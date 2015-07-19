@@ -2,4 +2,7 @@
 node_modules
 .idea/
 storage/
+log/
+pid/
 config.json
+node-twiMon
