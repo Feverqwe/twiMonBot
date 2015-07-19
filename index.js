@@ -64,11 +64,22 @@ var engine = {
 
       text += '\n' + imageUrl;
 
-      bot.sendMessage({
-        chat_id: bot.chat_id,
-        text: text
-      });
-    });
+      var userList = this.preferences.userList;
+      for (var user_id in userList) {
+        var user = userList[user_id];
+        var userServiceList = user.serviceList;
+        var userChannelList;
+        if (!(userChannelList = userServiceList[stream._service])) {
+          continue;
+        }
+        if (userChannelList.indexOf(stream._channelName) !== -1) {
+          bot.sendMessage({
+            chat_id: user.chat_id,
+            text: text
+          });
+        }
+      }
+    }.bind(this));
   },
 
   cleanStreamList: function(streamList) {
@@ -110,21 +121,27 @@ var engine = {
     var serviceList = {};
     var channelList;
     var userList = this.preferences.userList;
-    for (var userId in userList) {
-      var user = userList[userId];
+
+    for (var user_id in userList) {
+      var user = userList[user_id];
       var userServiceList = user.serviceList;
+
       for (var service in userServiceList) {
+
         var userChannelList = userServiceList[service];
         if (!(channelList = serviceList[service])) {
           serviceList[service] = channelList = [];
         }
+
         for (var i = 0, channelName; channelName = userChannelList[i]; i++) {
           if (channelList.indexOf(channelName) !== -1) {
             continue;
           }
           channelList.push(channelName);
         }
+
       }
+
     }
     return serviceList;
   },
@@ -152,11 +169,13 @@ var engine = {
 
       for (var i = 0, origItem; origItem = streamList[i]; i++) {
         var _id;
+        var channelName = origItem.channel.name.toLowerCase();
         var newItem = {
           _service: origItem._service,
           _addItemTime: now,
           _id: _id = origItem._id,
           _isOffline: false,
+          _channelName: channelName,
 
           game: origItem.game,
           preview: {
@@ -202,48 +221,83 @@ var engine = {
       if (!channelName) {
         return response('Error! Bad channel name!');
       }
-      if (!service) {
-        service = 'twitch';
+      channelName = channelName.toLowerCase();
+
+      service = service || 'twitch';
+      service = service.toLowerCase();
+      if (['twitch', 'goodgame'].indexOf(service) === -1) {
+        return response('Error! Service ' + service + ' is not supported!');
       }
 
       var userList = this.preferences.userList;
-      var user = userList[meta.userId] || {};
-      user.chatId = meta.chatId;
+
+      var user = userList[meta.user_id] || {};
+      user.chat_id = meta.chat_id;
       user.serviceList = user.serviceList || {};
-      if (!user.serviceList[service]) {
-        user.serviceList[service] = [];
-      }
+      user.serviceList[service] = user.serviceList[service] || {};
+
       user.serviceList[service].push(channelName);
 
       utils.storage.set({userList: userList}, function() {
-        response("Added!");
+        response("Add channel " + channelName + " to " + service);
       });
     },
     d: function(meta, response, channelName, service) {
       if (!channelName) {
         return response('Error! Bad channel name!');
       }
-      if (!service) {
-        service = 'twitch';
+      channelName = channelName.toLowerCase();
+
+      service = service || 'twitch';
+      service = service.toLowerCase();
+      if (['twitch', 'goodgame'].indexOf(service) === -1) {
+        return response('Error! Service ' + service + ' is not supported!');
       }
 
       var userList = this.preferences.userList;
-      var user = userList[meta.userId];
-      if (!user) {
-        return;
+
+      var user;
+      if (!(user = userList[meta.user_id]) || !user.serviceList || !user.serviceList[service]) {
+        return response("Error!");
       }
-      if (!user.serviceList || !user.serviceList[service]) {
-        return;
-      }
+
       var pos = user.serviceList[service].indexOf(channelName);
       if (pos === -1) {
-        return;
+        return response("Error channel is not found!");
       }
+
       user.serviceList[service].splice(pos, 1);
+
+      if (user.serviceList[service].length === 0) {
+        delete user.serviceList[service];
+      }
+
+      if (Object.keys(user.serviceList).length === 0) {
+        delete userList[meta.user_id];
+      }
+
+      utils.storage.set({userList: userList}, function() {
+        response("Delete channel " + channelName + " from " + service);
+      });
+    },
+    l: function(meta, response) {
+      var userList = this.preferences.userList;
+      var user;
+      if (!(user = userList[meta.user_id]) || !user.serviceList) {
+        return response("Channels is not found!");
+      }
+
+      var serviceList = ['==Channel list=='];
+      for (var service in user.serviceList) {
+        serviceList.push(service + ':');
+        serviceList.push(user.serviceList[service].join(', '));
+      }
+
+      response(serviceList.join('\n'));
     }
   },
 
-  actionRegexp: /^(\/[^\s\t]+)[\s\t]+([^\s\t]+)?[\s\t]+([^\s\t]+)?[\s\t]*/,
+  actionRegexp: /^\/([^\s\t]+)[\s\t]+([^\s\t]+)?[\s\t]+([^\s\t]+)?.*/,
 
   onMessage: function(meta, text, response) {
     text = text.trim();
@@ -266,25 +320,16 @@ var engine = {
     "use strict";
     var config = JSON.parse(require("fs").readFileSync('./config.json', 'utf8'));
     bot.token = config.token;
-    bot.user_id = config.userId;
     this.defaultPreferences = config.defaultPreferences;
 
-    utils.storage.get(['offset', 'chat_id'], function(storage) {
-      if (storage.chat_id) {
-        bot.offset = storage.offset || 0;
-        bot.chat_id = storage.chat_id;
-      }
+    utils.storage.get(['offset'], function(storage) {
+      bot.offset = storage.offset || 0;
       bot.onMessage = this.onMessage.bind(this);
 
       this.loadSettings(function() {
         bot.getUpdates(function() {
-          if (!bot.chat_id) {
-            throw "Chat id is not defined!";
-          }
-
           utils.storage.set({
-            offset: bot.offset || 0,
-            chat_id: bot.chat_id
+            offset: bot.offset || 0
           });
 
           this.updateList();

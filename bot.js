@@ -6,8 +6,6 @@ var Bot = function() {
   this.username = '';
   this.token = null;
   this.offset = 0;
-  this.chat_id = undefined;
-  this.user_id = -1;
   this.onMessage = function() {};
 };
 
@@ -82,14 +80,10 @@ Bot.prototype.getUpdates = function(cb) {
 
       var message = msg.message;
 
-      if (message.from.id === this.user_id) {
-        this.chat_id = message.chat.id;
-      }
-
       if (message.text) {
         this.onMessage({
-          userId: message.from.id,
-          chatId: message.chat.id
+          user_id: message.from.id,
+          chat_id: message.chat.id
         }, message.text, function(text) {
           this.sendMessage({
             chat_id: message.chat.id,

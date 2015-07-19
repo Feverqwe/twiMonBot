@@ -30,11 +30,13 @@ var convertGoodGameApi = function(data) {
         };
         streams.push(item);
     }
-    return {streams: streams};
+    return streams;
 };
-var getGoodGameStreamList = function(data, cb) {
+var getGoodGameStreamList = function(channelList, cb) {
+    var params = {};
+    params.id = channelList;
     utils.ajax({
-        url: 'http://goodgame.ru/api/getchannelstatus?fmt=json&' + utils.param(data),
+        url: 'http://goodgame.ru/api/getchannelstatus?fmt=json&' + utils.param(params),
         dataType: 'json',
         success: function(data) {
             cb(this.convertGoodGameApi(data));

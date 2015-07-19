@@ -2,9 +2,7 @@
   "token": "",
   "userId": -1,
   "defaultPreferences": {
-    "userList": {
-
-    },
+    "userList": {},
     "lastStreamList": {},
     "interval": 5,
     "timeout": 300
