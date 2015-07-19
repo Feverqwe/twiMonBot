@@ -256,6 +256,10 @@ var engine = {
       user.serviceList = user.serviceList || {};
       user.serviceList[service] = user.serviceList[service] || [];
 
+      if (user.serviceList[service].indexOf(channelName) !== -1) {
+        return response("Channel exists!");
+      }
+
       user.serviceList[service].push(channelName);
 
       utils.storage.set({userList: userList}, function() {
