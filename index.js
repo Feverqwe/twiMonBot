@@ -70,8 +70,8 @@ var engine = {
     if (stream.game) {
       text.push(stream.game);
     }
-    if (stream.url) {
-      text.push(stream.url.substr(stream.url.indexOf('//') + 3));
+    if (stream.channel.url) {
+      text.push(stream.channel.url.substr(stream.channel.url.indexOf('//') + 3));
     }
 
     this.getPreview(stream, function(imageUrl) {
