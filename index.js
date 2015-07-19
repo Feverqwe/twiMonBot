@@ -75,7 +75,7 @@ var engine = {
     }
 
     this.getPreview(stream, function(imageUrl) {
-      text.push(imageUrl);
+      text.push('\n'+imageUrl);
 
       text = text.join('\n');
 
