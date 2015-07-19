@@ -60,12 +60,12 @@ Bot.prototype.sendMessage = function (options, cb) {
   }.bind(this));
 };
 
-Bot.prototype.getUpdates = function(cb) {
+Bot.prototype.getUpdates = function(timeout, cb) {
   "use strict";
   this._get({
     method: 'getUpdates',
     params: {
-      timeout: 60,
+      timeout: timeout || 60,
       offset: this.offset
     }
   }, function(data) {

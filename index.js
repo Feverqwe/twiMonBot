@@ -365,7 +365,7 @@ var engine = {
       bot.onMessage = this.onMessage.bind(this);
 
       this.loadSettings(function() {
-        bot.getUpdates(function() {
+        bot.getUpdates(5, function() {
           utils.storage.set({
             offset: bot.offset || 0
           });
