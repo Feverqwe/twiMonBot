@@ -354,6 +354,37 @@ var engine = {
     func && func.apply(this.actionList, m);
   },
 
+  interval: {
+    timer: null,
+    onTimer: function() {
+      "use strict";
+        engine.updateList();
+    },
+    run: function(now) {
+      "use strict";
+      this.stop();
+      this.timer = setInterval(this.onTimer.bind(this), engine.preferences.interval * 60 * 1000);
+      if (now) {
+        this.onTimer();
+      }
+    },
+    stop: function() {
+      "use strict";
+      clearInterval(this.timer);
+    }
+  },
+
+  loop: function() {
+    "use strict";
+    bot.getUpdates(3600, function() {
+      utils.storage.set({
+        offset: bot.offset || 0
+      });
+
+      this.loop();
+    }.bind(this));
+  },
+
   once: function() {
     "use strict";
     var config = JSON.parse(require("fs").readFileSync('./config.json', 'utf8'));
@@ -365,13 +396,10 @@ var engine = {
       bot.onMessage = this.onMessage.bind(this);
 
       this.loadSettings(function() {
-        bot.getUpdates(5, function() {
-          utils.storage.set({
-            offset: bot.offset || 0
-          });
 
-          this.updateList();
-        }.bind(this));
+        this.interval.run(1);
+        this.loop();
+
       }.bind(this));
     }.bind(this));
   }
