@@ -225,19 +225,27 @@ var engine = {
   },
 
   actionList: {
+    ping: function(meta, response) {
+      "use strict";
+      response("pong");
+    },
     start: function(meta, response) {
       "use strict";
       response("Hello!");
     },
     help: function(meta, response) {
+      "use strict";
       var help = ["Hello user!"];
-      help.push('/a <channelName> <serviceName> - Add channel in list, <serviceName> is twitch or goodgame');
+      help.push('Note: <channelName> - Channel name');
+      help.push('Note: <serviceName> - Service name, twitch or goodgame, default twitch');
+      help.push('/a <channelName> <serviceName> - Add channel in list');
       help.push('/d <channelName> <serviceName> - Delete channel from list');
       help.push('/l - Show list of channel');
       help.push('/c - Clean channel list');
       response(help.join('\n'));
     },
     a: function(meta, response, channelName, service) {
+      "use strict";
       if (!channelName) {
         return response('Error! Bad channel name!');
       }
@@ -267,6 +275,7 @@ var engine = {
       });
     },
     d: function(meta, response, channelName, service) {
+      "use strict";
       if (!channelName) {
         return response('Error! Bad channel name!');
       }
@@ -281,7 +290,7 @@ var engine = {
       var userList = engine.preferences.userList;
 
       var user;
-      if (!(user = userList[meta.user_id]) || !user.serviceList || !user.serviceList[service]) {
+      if (!(user = userList[meta.user_id]) || !user.serviceList[service]) {
         return response("Error user or service is not found!");
       }
 
@@ -318,19 +327,50 @@ var engine = {
       });
     },
     l: function(meta, response) {
+      "use strict";
       var userList = engine.preferences.userList;
       var user;
-      if (!(user = userList[meta.user_id]) || !user.serviceList) {
+      if (!(user = userList[meta.user_id])) {
         return response("Channels is not found!");
       }
 
       var serviceList = ['Channel list'];
       for (var service in user.serviceList) {
-        serviceList.push(service + ':');
-        serviceList.push(user.serviceList[service].join(', '));
+        serviceList.push(service + ': ' + user.serviceList[service].join(', '));
       }
 
       response(serviceList.join('\n'));
+    },
+    o: function(meta, response) {
+      "use strict";
+      var lastStreamList = engine.preferences.lastStreamList;
+      var userList = engine.preferences.userList;
+      var user;
+      if (!(user = userList[meta.user_id])) {
+        return response("Channels is not found!");
+      }
+
+      var onLineList = [];
+
+      for (var service in user.serviceList) {
+        var userChannelList = user.serviceList[service];
+
+        var channelList = ['Now online'];
+        for (var id in lastStreamList) {
+          var stream = lastStreamList[id];
+          if (stream._isOffline || stream._service !== service) {
+            continue;
+          }
+
+          if (userChannelList.indexOf(stream._channelName) !== -1) {
+            channelList.push(stream._channelName);
+          }
+        }
+
+        onLineList.push(channelList.join(', '));
+      }
+
+      response(onLineList.join('\n'));
     }
   },
 
@@ -342,10 +382,10 @@ var engine = {
     if (!m) {
       return;
     }
-    m = m.splice(1);
+    m.shift();
     m.splice(3);
 
-    var action = m.shift();
+    var action = m.shift().toLowerCase();
     var func = this.actionList[action];
 
     m.unshift(response);
