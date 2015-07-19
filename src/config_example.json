@@ -1,4 +1,10 @@
 {
   "token": "",
-  "userId": -1
+  "userId": -1,
+  "defaultPreferences": {
+    "list": [
+      {"channel": "opergamer", "__service": "twitch"}
+    ],
+    "interval": 5
+  }
 }

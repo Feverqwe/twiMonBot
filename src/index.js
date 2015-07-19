@@ -18,7 +18,7 @@ var engine = {
   },
   defaultPreferences: {
     list: [
-      {channel: 'opergamer'}
+      {channel: 'opergamer', __service: 'twitch'}
     ],
     interval: 1
   },
@@ -306,6 +306,7 @@ var engine = {
     var config = JSON.parse(require("fs").readFileSync('./config.json', 'utf8'));
     bot.token = config.token;
     bot.user_id = config.userId;
+    engine.defaultPreferences = config.defaultPreferences;
 
     utils.storage.get(['offset', 'chat_id'], function(storage) {
       if (storage.chat_id) {
