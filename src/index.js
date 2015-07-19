@@ -25,22 +25,22 @@ var engine = {
   preferences: {},
   loadSettings: function(cb) {
     var prefList = [];
-    for (var key in engine.defaultPreferences) {
+    for (var key in this.defaultPreferences) {
       prefList.push(key);
     }
 
     utils.storage.get(prefList, function(storage) {
       for (var i = 0, key; key = prefList[i]; i++) {
         if (storage.hasOwnProperty(key)) {
-          engine.preferences[key] = storage[key];
+          this.preferences[key] = storage[key];
           continue;
         }
-        engine.preferences[key] = engine.defaultPreferences[key];
+        this.preferences[key] = this.defaultPreferences[key];
       }
 
-      engine.preferences.timeout = 300;
-      if (engine.preferences.timeout < engine.preferences.interval * 60 * 2) {
-        engine.preferences.timeout = parseInt(engine.preferences.interval * 3);
+      this.preferences.timeout = 300;
+      if (this.preferences.timeout < this.preferences.interval * 60 * 2) {
+        this.preferences.timeout = parseInt(this.preferences.interval * 3);
       }
 
       utils.storage.get(['lastStreamList'], function(storage) {
@@ -48,11 +48,11 @@ var engine = {
           if (storage.lastStreamList.meta === undefined) {
             storage.lastStreamList.meta = {};
           }
-          engine.varCache.lastStreamList = storage.lastStreamList;
+          this.varCache.lastStreamList = storage.lastStreamList;
         }
         cb();
-      });
-    });
+      }.bind(this));
+    }.bind(this));
   },
   getTwitchStreamList: function(data, cb) {
     utils.ajax({
@@ -139,7 +139,7 @@ var engine = {
       return cb();
     }
     var service = stream._service;
-    var imageUrl = stream.preview.template.replace('{width}', engine.varCache[service].pWidth).replace('{height}', engine.varCache[service].pHeight);
+    var imageUrl = stream.preview.template.replace('{width}', this.varCache[service].pWidth).replace('{height}', this.varCache[service].pHeight);
     cb(imageUrl);
   },
   onNewStream: function(stream) {
@@ -149,7 +149,7 @@ var engine = {
       message = '\n' + message;
     }
 
-    engine.createPreview(stream, function(imageUrl) {
+    this.createPreview(stream, function(imageUrl) {
       var text = title + message;
 
       text += '\n' + imageUrl;
@@ -163,7 +163,7 @@ var engine = {
   onGetStreamList: function(streamList) {
     var onlineCount = 0;
     if (streamList === undefined) {
-      streamList = engine.varCache.lastStreamList;
+      streamList = this.varCache.lastStreamList;
       for (var id in streamList) {
         if (id === 'meta') continue;
         var item = streamList[id];
@@ -178,7 +178,7 @@ var engine = {
       twChList: [],
       ggChList: []
     };
-    for (var i = 0, item; item = engine.preferences.list[i]; i++) {
+    for (var i = 0, item; item = this.preferences.list[i]; i++) {
       if (!item.__service) {
         item.__service = 'twitch';
       }
@@ -207,7 +207,7 @@ var engine = {
     for (var id in streamList) {
       if (id === 'meta') continue;
       var item = streamList[id];
-      if (now - item._addItemTime > engine.preferences.timeout && item._isOffline) {
+      if (now - item._addItemTime > this.preferences.timeout && item._isOffline) {
         rmList.push(id);
       }
       item._isOffline = true;
@@ -226,17 +226,17 @@ var engine = {
   },
   isNotDblItem: function(nItem) {
     var now = parseInt(Date.now() / 1000);
-    for (var id in engine.varCache.lastStreamList) {
+    for (var id in this.varCache.lastStreamList) {
       if (id === 'meta') continue;
-      var cItem = engine.varCache.lastStreamList[id];
-      if (now - cItem._addItemTime < engine.preferences.timeout && cItem.game === nItem.game && engine.isEqualObj(cItem.channel, nItem.channel)) {
+      var cItem = this.varCache.lastStreamList[id];
+      if (now - cItem._addItemTime < this.preferences.timeout && cItem.game === nItem.game && this.isEqualObj(cItem.channel, nItem.channel)) {
         return false;
       }
     }
     return true;
   },
   updateList: function(cb) {
-    engine.cleanStreamList(engine.varCache.lastStreamList);
+    this.cleanStreamList(this.varCache.lastStreamList);
     var streamList = [];
     var waitCount = 0;
     var readyCount = 0;
@@ -245,7 +245,7 @@ var engine = {
       if (readyCount !== waitCount) {
         return;
       }
-      engine.onGetStreamList(streamList);
+      this.onGetStreamList(streamList);
       var now = parseInt(Date.now() / 1000);
       for (var i = 0, origItem; origItem = streamList[i]; i++) {
         var newItem = {
@@ -267,20 +267,20 @@ var engine = {
           }
         };
         var _id = newItem._id;
-        if (!engine.varCache.lastStreamList.hasOwnProperty(_id) && engine.isNotDblItem(newItem)) {
-          engine.onNewStream(newItem);
+        if (!this.varCache.lastStreamList.hasOwnProperty(_id) && this.isNotDblItem(newItem)) {
+          this.onNewStream(newItem);
         }
-        engine.varCache.lastStreamList[_id] = newItem;
+        this.varCache.lastStreamList[_id] = newItem;
       }
-      engine.varCache.lastStreamList.meta.syncTime = now;
+      this.varCache.lastStreamList.meta.syncTime = now;
       utils.storage.set({
-        lastStreamList: engine.varCache.lastStreamList
+        lastStreamList: this.varCache.lastStreamList
       }, function() {
         cb && cb();
       });
-    };
+    }.bind(this);
 
-    var list = engine.channelListOpt(engine.preferences.list);
+    var list = this.channelListOpt(this.preferences.list);
 
     if (list.length === 0) {
       waitCount++;
@@ -289,7 +289,7 @@ var engine = {
 
     for (var i = 0, item; item = list[i]; i++) {
       waitCount++;
-      engine.checkStream(item, function(data) {
+      this.checkStream(item, function(data) {
         if (data.streams.length === 0) return onReady();
         streamList.push.apply(streamList, data.streams);
         onReady();
@@ -298,7 +298,7 @@ var engine = {
   },
   onPreferenceChange: {
     list: function() {
-      engine.updateList();
+      this.updateList();
     }
   },
   once: function() {
@@ -306,7 +306,7 @@ var engine = {
     var config = JSON.parse(require("fs").readFileSync('./config.json', 'utf8'));
     bot.token = config.token;
     bot.user_id = config.userId;
-    engine.defaultPreferences = config.defaultPreferences;
+    this.defaultPreferences = config.defaultPreferences;
 
     utils.storage.get(['offset', 'chat_id'], function(storage) {
       if (storage.chat_id) {
@@ -314,7 +314,7 @@ var engine = {
         bot.chat_id = storage.chat_id;
       }
 
-      engine.loadSettings(function() {
+      this.loadSettings(function() {
         bot.getUpdates(function() {
           if (!bot.chat_id) {
             throw "Chat id is not defined!";
@@ -325,10 +325,10 @@ var engine = {
             chat_id: bot.chat_id
           });
 
-          engine.updateList();
-        });
-      });
-    });
+          this.updateList();
+        }.bind(this));
+      }.bind(this));
+    }.bind(this));
   }
 };
 var utils = require('./utils');
