@@ -147,11 +147,13 @@ var engine = {
   },
 
   updateList: function(cb) {
-    this.cleanStreamList(this.preferences.lastStreamList);
+    "use strict";
+    var lastStreamList = this.preferences.lastStreamList;
+    this.cleanStreamList(lastStreamList);
 
     var streamList = [];
 
-    var waitCount = 1;
+    var waitCount = 0;
     var readyCount = 0;
     var onReady = function(streams) {
       readyCount++;
@@ -165,7 +167,6 @@ var engine = {
       }
 
       var now = parseInt(Date.now() / 1000);
-      var lastStreamList = this.preferences.lastStreamList;
 
       for (var i = 0, origItem; origItem = streamList[i]; i++) {
         var _id;
@@ -198,7 +199,9 @@ var engine = {
         lastStreamList[_id] = newItem;
       }
 
-      cb && cb();
+      utils.storage.set({lastStreamList: lastStreamList}, function() {
+        cb && cb();
+      });
     }.bind(this);
 
     var serviceChannelList = this.getChannelList();
@@ -210,12 +213,24 @@ var engine = {
       });
     }
 
-    onReady();
+    waitCount++;
+    utils.storage.set({lastStreamList: lastStreamList}, function() {
+      onReady();
+    });
   },
 
   actionList: {
+    start: function(meta, response) {
+      "use strict";
+      response("Hello!");
+    },
     help: function(meta, response) {
-      response("Hello user!");
+      var help = ["Hello user!"];
+      help.push('/a <channelName> <serviceName> - Add channel in list, <serviceName> is twitch or goodgame');
+      help.push('/d <channelName> <serviceName> - Delete channel from list');
+      help.push('/l - Show list of channel');
+      help.push('/c - Clean channel list');
+      response(help.join('\n'));
     },
     a: function(meta, response, channelName, service) {
       if (!channelName) {
@@ -229,12 +244,12 @@ var engine = {
         return response('Error! Service ' + service + ' is not supported!');
       }
 
-      var userList = this.preferences.userList;
+      var userList = engine.preferences.userList;
 
-      var user = userList[meta.user_id] || {};
+      var user = userList[meta.user_id] = userList[meta.user_id] || {};
       user.chat_id = meta.chat_id;
       user.serviceList = user.serviceList || {};
-      user.serviceList[service] = user.serviceList[service] || {};
+      user.serviceList[service] = user.serviceList[service] || [];
 
       user.serviceList[service].push(channelName);
 
@@ -254,11 +269,11 @@ var engine = {
         return response('Error! Service ' + service + ' is not supported!');
       }
 
-      var userList = this.preferences.userList;
+      var userList = engine.preferences.userList;
 
       var user;
       if (!(user = userList[meta.user_id]) || !user.serviceList || !user.serviceList[service]) {
-        return response("Error!");
+        return response("Error user or service is not found!");
       }
 
       var pos = user.serviceList[service].indexOf(channelName);
@@ -270,24 +285,37 @@ var engine = {
 
       if (user.serviceList[service].length === 0) {
         delete user.serviceList[service];
-      }
 
-      if (Object.keys(user.serviceList).length === 0) {
-        delete userList[meta.user_id];
+        if (Object.keys(user.serviceList).length === 0) {
+          delete userList[meta.user_id];
+        }
       }
 
       utils.storage.set({userList: userList}, function() {
         response("Delete channel " + channelName + " from " + service);
       });
     },
+    c: function(meta, response) {
+      "use strict";
+      var userList = engine.preferences.userList;
+      if (!userList[meta.user_id]) {
+        return response("User is not found!");
+      }
+
+      delete userList[meta.user_id];
+
+      utils.storage.set({userList: userList}, function() {
+        response("Channel list is clear!");
+      });
+    },
     l: function(meta, response) {
-      var userList = this.preferences.userList;
+      var userList = engine.preferences.userList;
       var user;
       if (!(user = userList[meta.user_id]) || !user.serviceList) {
         return response("Channels is not found!");
       }
 
-      var serviceList = ['==Channel list=='];
+      var serviceList = ['Channel list'];
       for (var service in user.serviceList) {
         serviceList.push(service + ':');
         serviceList.push(user.serviceList[service].join(', '));
@@ -297,7 +325,7 @@ var engine = {
     }
   },
 
-  actionRegexp: /^\/([^\s\t]+)[\s\t]+([^\s\t]+)?[\s\t]+([^\s\t]+)?.*/,
+  actionRegexp: /^\/([^\s\t]+)[\s\t]*([^\s\t]+)?[\s\t]*([^\s\t]+)?.*/,
 
   onMessage: function(meta, text, response) {
     text = text.trim();
@@ -305,7 +333,8 @@ var engine = {
     if (!m) {
       return;
     }
-    m.shift();
+    m = m.splice(1);
+    m.splice(3);
 
     var action = m.shift();
     var func = this.actionList[action];
@@ -313,7 +342,7 @@ var engine = {
     m.unshift(response);
     m.unshift(meta);
 
-    func && func[action].apply(this.actionList, m);
+    func && func.apply(this.actionList, m);
   },
 
   once: function() {

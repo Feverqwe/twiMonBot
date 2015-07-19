@@ -4,7 +4,7 @@
 var utils = require('./utils');
 var getTwitchStreamList = function(channelList, cb) {
     var params = {};
-    params.channel = channelList;
+    params.channel = channelList.join(',');
     utils.ajax({
         url: 'https://api.twitch.tv/kraken/streams?' + utils.param(params),
         dataType: 'json',
