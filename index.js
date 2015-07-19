@@ -376,10 +376,7 @@ var engine = {
           }
         }
 
-        if (channelList.length) {
-          channelList.unshift(service + ': ');
-          onLineList.push(channelList.join(', '));
-        }
+        channelList.length && onLineList.push(service + ': ' + channelList.join(', '));
       }
 
       if (onLineList.length) {
