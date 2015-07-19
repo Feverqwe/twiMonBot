@@ -241,6 +241,7 @@ var engine = {
       help.push('/a <channelName> <serviceName> - Add channel in list');
       help.push('/d <channelName> <serviceName> - Delete channel from list');
       help.push('/l - Show list of channel');
+      help.push('/o - Online channel list');
       help.push('/c - Clean channel list');
       response(help.join('\n'));
     },
@@ -355,7 +356,8 @@ var engine = {
       for (var service in user.serviceList) {
         var userChannelList = user.serviceList[service];
 
-        var channelList = ['Now online'];
+        var channelList = [];
+
         for (var id in lastStreamList) {
           var stream = lastStreamList[id];
           if (stream._isOffline || stream._service !== service) {
@@ -367,7 +369,13 @@ var engine = {
           }
         }
 
-        onLineList.push(channelList.join(', '));
+        channelList.length && onLineList.push(channelList.join(', '));
+      }
+
+      if (onLineList.length) {
+        onLineList.unshift('Now online:');
+      } else {
+        onLineList.unshift('Offline');
       }
 
       response(onLineList.join('\n'));
