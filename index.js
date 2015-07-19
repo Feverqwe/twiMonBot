@@ -107,15 +107,26 @@ var engine = {
   },
 
   getChannelList: function() {
-    var channelList = {};
-    for (var userId in this.preferences.userList) {
-      var item = this.preferences.userList[userId];
-      if (!channelList[item.service]) {
-        channelList[item.service] = [];
+    var serviceList = {};
+    var channelList;
+    var userList = this.preferences.userList;
+    for (var userId in userList) {
+      var user = userList[userId];
+      var userServiceList = user.serviceList;
+      for (var service in userServiceList) {
+        var userChannelList = userServiceList[service];
+        if (!(channelList = serviceList[service])) {
+          serviceList[service] = channelList = [];
+        }
+        for (var i = 0, channelName; channelName = userChannelList[i]; i++) {
+          if (channelList.indexOf(channelName) !== -1) {
+            continue;
+          }
+          channelList.push(channelName);
+        }
       }
-      channelList[item.service].push(item.channel);
     }
-    return channelList;
+    return serviceList;
   },
 
   updateList: function(cb) {
@@ -183,6 +194,74 @@ var engine = {
     onReady();
   },
 
+  actionList: {
+    help: function(meta, response) {
+      response("Hello user!");
+    },
+    a: function(meta, response, channelName, service) {
+      if (!channelName) {
+        return response('Error! Bad channel name!');
+      }
+      if (!service) {
+        service = 'twitch';
+      }
+
+      var userList = this.preferences.userList;
+      var user = userList[meta.userId] || {};
+      user.chatId = meta.chatId;
+      user.serviceList = user.serviceList || {};
+      if (!user.serviceList[service]) {
+        user.serviceList[service] = [];
+      }
+      user.serviceList[service].push(channelName);
+
+      utils.storage.set({userList: userList}, function() {
+        response("Added!");
+      });
+    },
+    d: function(meta, response, channelName, service) {
+      if (!channelName) {
+        return response('Error! Bad channel name!');
+      }
+      if (!service) {
+        service = 'twitch';
+      }
+
+      var userList = this.preferences.userList;
+      var user = userList[meta.userId];
+      if (!user) {
+        return;
+      }
+      if (!user.serviceList || !user.serviceList[service]) {
+        return;
+      }
+      var pos = user.serviceList[service].indexOf(channelName);
+      if (pos === -1) {
+        return;
+      }
+      user.serviceList[service].splice(pos, 1);
+    }
+  },
+
+  actionRegexp: /^(\/[^\s\t]+)[\s\t]+([^\s\t]+)?[\s\t]+([^\s\t]+)?[\s\t]*/,
+
+  onMessage: function(meta, text, response) {
+    text = text.trim();
+    var m = text.match(this.actionRegexp);
+    if (!m) {
+      return;
+    }
+    m.shift();
+
+    var action = m.shift();
+    var func = this.actionList[action];
+
+    m.unshift(response);
+    m.unshift(meta);
+
+    func && func[action].apply(this.actionList, m);
+  },
+
   once: function() {
     "use strict";
     var config = JSON.parse(require("fs").readFileSync('./config.json', 'utf8'));
@@ -195,6 +274,7 @@ var engine = {
         bot.offset = storage.offset || 0;
         bot.chat_id = storage.chat_id;
       }
+      bot.onMessage = this.onMessage.bind(this);
 
       this.loadSettings(function() {
         bot.getUpdates(function() {

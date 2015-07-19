@@ -87,7 +87,10 @@ Bot.prototype.getUpdates = function(cb) {
       }
 
       if (message.text) {
-        this.onMessage(this.message.text, function(text) {
+        this.onMessage({
+          userId: message.from.id,
+          chatId: message.chat.id
+        }, message.text, function(text) {
           this.sendMessage({
             chat_id: message.chat.id,
             reply_to_message_id: message.message_id,
