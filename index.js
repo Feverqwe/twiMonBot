@@ -58,23 +58,32 @@ var engine = {
   },
 
   onNewStream: function(stream) {
-    var title = stream.channel.display_name || stream.channel.name;
-    var message = stream.channel.status || '';
-    if (message) {
-      message = '\n' + message;
+    var text = [];
+    if (stream.channel.display_name) {
+      text.push(stream.channel.display_name);
+    } else {
+      text.push(stream.channel.name);
+    }
+    if (stream.channel.status) {
+      text.push(stream.channel.status);
+    }
+    if (stream.game) {
+      text.push(stream.game);
+    }
+    if (stream.url) {
+      text.push(stream.url.substr(stream.url.indexOf('//') + 3));
     }
 
     this.getPreview(stream, function(imageUrl) {
-      var text = title + message;
+      text.push(imageUrl);
 
-      text += '\n' + imageUrl;
+      text = text.join('\n');
 
       var userList = this.preferences.userList;
       for (var user_id in userList) {
         var user = userList[user_id];
-        var userServiceList = user.serviceList;
         var userChannelList;
-        if (!(userChannelList = userServiceList[stream._service])) {
+        if (!(userChannelList = user.serviceList[stream._service])) {
           continue;
         }
         if (userChannelList.indexOf(stream._channelName) !== -1) {
@@ -129,11 +138,9 @@ var engine = {
 
     for (var user_id in userList) {
       var user = userList[user_id];
-      var userServiceList = user.serviceList;
+      for (var service in user.serviceList) {
 
-      for (var service in userServiceList) {
-
-        var userChannelList = userServiceList[service];
+        var userChannelList = user.serviceList[service];
         if (!(channelList = serviceList[service])) {
           serviceList[service] = channelList = [];
         }
@@ -369,7 +376,10 @@ var engine = {
           }
         }
 
-        channelList.length && onLineList.push(channelList.join(', '));
+        if (channelList.length) {
+          channelList.unshift(service + ': ');
+          onLineList.push(channelList.join(', '));
+        }
       }
 
       if (onLineList.length) {
