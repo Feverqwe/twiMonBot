@@ -71,7 +71,7 @@ var engine = {
       text.push(stream.game);
     }
     if (stream.channel.url) {
-      text.push(stream.channel.url.substr(stream.channel.url.indexOf('//') + 3));
+      text.push(stream.channel.url.substr(stream.channel.url.indexOf('//') + 2));
     }
 
     this.getPreview(stream, function(imageUrl) {
