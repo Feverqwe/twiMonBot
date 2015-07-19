@@ -3,6 +3,6 @@
   "version": "0.0.1",
   "dependencies": {
     "node-localstorage": "",
-    "XMLHttpRequest": ""
+    "xmlhttprequest": ""
   }
 }
