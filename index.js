@@ -2,11 +2,7 @@
  * Created by Anton on 19.07.2015.
  */
 var engine = {
-  storage: undefined,
   varCache: {
-    lastStreamList: {
-      meta: {}
-    },
     twitch: {
       pWidth: 853,
       pHeight: 480
@@ -17,12 +13,13 @@ var engine = {
     }
   },
   defaultPreferences: {
-    list: [
-      {channel: 'opergamer', __service: 'twitch'}
-    ],
-    interval: 1
+    userList: {},
+    lastStreamList: {},
+    interval: 1,
+    timeout: 300
   },
   preferences: {},
+
   loadSettings: function(cb) {
     var prefList = [];
     for (var key in this.defaultPreferences) {
@@ -31,110 +28,22 @@ var engine = {
 
     utils.storage.get(prefList, function(storage) {
       for (var i = 0, key; key = prefList[i]; i++) {
-        if (storage.hasOwnProperty(key)) {
+        if (storage[key]) {
           this.preferences[key] = storage[key];
           continue;
         }
         this.preferences[key] = this.defaultPreferences[key];
       }
 
-      this.preferences.timeout = 300;
       if (this.preferences.timeout < this.preferences.interval * 60 * 2) {
         this.preferences.timeout = parseInt(this.preferences.interval * 3);
       }
 
-      utils.storage.get(['lastStreamList'], function(storage) {
-        if (storage.hasOwnProperty('lastStreamList')) {
-          if (storage.lastStreamList.meta === undefined) {
-            storage.lastStreamList.meta = {};
-          }
-          this.varCache.lastStreamList = storage.lastStreamList;
-        }
-        cb();
-      }.bind(this));
+      cb();
     }.bind(this));
   },
-  getTwitchStreamList: function(data, cb) {
-    utils.ajax({
-      url: 'https://api.twitch.tv/kraken/streams?' + utils.param(data),
-      dataType: 'json',
-      success: function(data) {
-        cb(data);
-      },
-      error: function() {
-        cb();
-      }
-    });
-  },
-  convertGoodGameApi: function(data) {
-    if (!data || typeof data !== 'object' || Array.isArray(data)) {
-      return;
-    }
-    var streams = [];
-    for (var streamId in data) {
-      var origItem = data[streamId];
-      if (origItem.status !== 'Live') {
-        continue;
-      }
-      var item = {
-        _service: 'goodgame',
-        _id: origItem.stream_id,
-        game: origItem.games,
-        preview: {
-          template: origItem.thumb
-        },
-        created_at: undefined,
-        channel: {
-          display_name: undefined,
-          name: origItem.key,
-          status: origItem.title,
-          logo: origItem.img,
-          url: origItem.url
-        }
-      };
-      streams.push(item);
-    }
-    return {streams: streams};
-  },
-  getGoodGameStreamList: function(data, cb) {
-    utils.ajax({
-      url: 'http://goodgame.ru/api/getchannelstatus?fmt=json&' + utils.param(data),
-      dataType: 'json',
-      success: function(data) {
-        cb(this.convertGoodGameApi(data));
-      }.bind(this),
-      error: function() {
-        cb();
-      }
-    });
-  },
-  checkStream: function(data, cb) {
-    var streams;
-    var result = {
-      streams: streams = []
-    };
-    var service = data.__service;
-    delete data.__service;
-    if (service === 'twitch') {
-      this.getTwitchStreamList(data, function (data) {
-        if (data && data.streams) {
-          streams.push.apply(streams, data.streams);
-        }
-        cb(result);
-      });
-    } else
-    if (service === 'goodgame') {
-      data.id = data.channel;
-      delete data.channel;
-      this.getGoodGameStreamList(data, function (data) {
-        if (data && data.streams) {
-          streams.push.apply(streams, data.streams);
-        }
-        cb(result);
-      });
-    }
-  },
-  createPreview: function(stream, cb) {
+
+  getPreview: function(stream, cb) {
     if (!stream.preview.template) {
       return cb();
     }
@@ -142,6 +51,7 @@ var engine = {
     var imageUrl = stream.preview.template.replace('{width}', this.varCache[service].pWidth).replace('{height}', this.varCache[service].pHeight);
     cb(imageUrl);
   },
+
   onNewStream: function(stream) {
     var title = stream.channel.display_name || stream.channel.name;
     var message = stream.channel.status || '';
@@ -149,7 +59,7 @@ var engine = {
       message = '\n' + message;
     }
 
-    this.createPreview(stream, function(imageUrl) {
+    this.getPreview(stream, function(imageUrl) {
       var text = title + message;
 
       text += '\n' + imageUrl;
@@ -160,52 +70,11 @@ var engine = {
       });
     });
   },
-  onGetStreamList: function(streamList) {
-    var onlineCount = 0;
-    if (streamList === undefined) {
-      streamList = this.varCache.lastStreamList;
-      for (var id in streamList) {
-        if (id === 'meta') continue;
-        var item = streamList[id];
-        if (item._isOffline) continue;
-        onlineCount++;
-      }
-    }
-  },
-  channelListOpt: function() {
-    var fastList = [];
-    var optimization = {
-      twChList: [],
-      ggChList: []
-    };
-    for (var i = 0, item; item = this.preferences.list[i]; i++) {
-      if (!item.__service) {
-        item.__service = 'twitch';
-      }
-      if (Object.keys(item).length === 2 && item.hasOwnProperty('channel')) {
-        if (item.__service === 'twitch') {
-          optimization.twChList.push(item.channel);
-        } else
-        if (item.__service === 'goodgame') {
-          optimization.ggChList.push(item.channel);
-        }
-        continue;
-      }
-      fastList.push(item);
-    }
-    if (optimization.twChList.length > 0) {
-      fastList.push({channel: optimization.twChList.join(','), __service: 'twitch'});
-    }
-    if (optimization.ggChList.length > 0) {
-      fastList.push({channel: optimization.ggChList.join(','), __service: 'goodgame'});
-    }
-    return fastList;
-  },
+
   cleanStreamList: function(streamList) {
     var rmList = [];
     var now = parseInt(Date.now() / 1000);
     for (var id in streamList) {
-      if (id === 'meta') continue;
       var item = streamList[id];
       if (now - item._addItemTime > this.preferences.timeout && item._isOffline) {
         rmList.push(id);
@@ -216,6 +85,7 @@ var engine = {
       delete streamList[id];
     }
   },
+
   isEqualObj: function(a, b) {
     for (var key in a) {
       if (a[key] !== b[key]) {
@@ -224,35 +94,59 @@ var engine = {
     }
     return true;
   },
+
   isNotDblItem: function(nItem) {
     var now = parseInt(Date.now() / 1000);
-    for (var id in this.varCache.lastStreamList) {
-      if (id === 'meta') continue;
-      var cItem = this.varCache.lastStreamList[id];
+    for (var id in this.preferences.lastStreamList) {
+      var cItem = this.preferences.lastStreamList[id];
       if (now - cItem._addItemTime < this.preferences.timeout && cItem.game === nItem.game && this.isEqualObj(cItem.channel, nItem.channel)) {
         return false;
       }
     }
     return true;
   },
+
+  getChannelList: function() {
+    var channelList = {};
+    for (var userId in this.preferences.userList) {
+      var item = this.preferences.userList[userId];
+      if (!channelList[item.service]) {
+        channelList[item.service] = [];
+      }
+      channelList[item.service].push(item.channel);
+    }
+    return channelList;
+  },
+
   updateList: function(cb) {
-    this.cleanStreamList(this.varCache.lastStreamList);
+    this.cleanStreamList(this.preferences.lastStreamList);
+
     var streamList = [];
-    var waitCount = 0;
+
+    var waitCount = 1;
     var readyCount = 0;
-    var onReady = function() {
+    var onReady = function(streams) {
       readyCount++;
+
+      if (streams && streams.length) {
+        streamList.push.apply(streamList, streams);
+      }
+
       if (readyCount !== waitCount) {
         return;
       }
-      this.onGetStreamList(streamList);
+
       var now = parseInt(Date.now() / 1000);
+      var lastStreamList = this.preferences.lastStreamList;
+
       for (var i = 0, origItem; origItem = streamList[i]; i++) {
+        var _id;
         var newItem = {
-          _service: origItem._service || 'twitch',
+          _service: origItem._service,
           _addItemTime: now,
-          _id: origItem._id,
+          _id: _id = origItem._id,
           _isOffline: false,
+
           game: origItem.game,
           preview: {
             template: origItem.preview.template
@@ -266,41 +160,29 @@ var engine = {
             url: origItem.channel.url
           }
         };
-        var _id = newItem._id;
-        if (!this.varCache.lastStreamList.hasOwnProperty(_id) && this.isNotDblItem(newItem)) {
+
+        if (!lastStreamList[_id] && this.isNotDblItem(newItem)) {
           this.onNewStream(newItem);
         }
-        this.varCache.lastStreamList[_id] = newItem;
+
+        lastStreamList[_id] = newItem;
       }
-      this.varCache.lastStreamList.meta.syncTime = now;
-      utils.storage.set({
-        lastStreamList: this.varCache.lastStreamList
-      }, function() {
-        cb && cb();
-      });
+
+      cb && cb();
     }.bind(this);
 
-    var list = this.channelListOpt(this.preferences.list);
+    var serviceChannelList = this.getChannelList();
 
-    if (list.length === 0) {
+    for (var service in serviceChannelList) {
       waitCount++;
-      return onReady();
-    }
-
-    for (var i = 0, item; item = list[i]; i++) {
-      waitCount++;
-      this.checkStream(item, function(data) {
-        if (data.streams.length === 0) return onReady();
-        streamList.push.apply(streamList, data.streams);
-        onReady();
+      require('./'+service)(serviceChannelList[service], function(streams) {
+        onReady(streams);
       });
     }
+
+    onReady();
   },
-  onPreferenceChange: {
-    list: function() {
-      this.updateList();
-    }
-  },
+
   once: function() {
     "use strict";
     var config = JSON.parse(require("fs").readFileSync('./config.json', 'utf8'));

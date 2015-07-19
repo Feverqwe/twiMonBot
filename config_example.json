@@ -2,9 +2,11 @@
   "token": "",
   "userId": -1,
   "defaultPreferences": {
-    "list": [
-      {"channel": "opergamer", "__service": "twitch"}
-    ],
-    "interval": 5
+    "userList": {
+
+    },
+    "lastStreamList": {},
+    "interval": 5,
+    "timeout": 300
   }
 }
