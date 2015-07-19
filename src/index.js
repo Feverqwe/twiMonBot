@@ -162,9 +162,7 @@ var engine = {
   },
   onGetStreamList: function(streamList) {
     var onlineCount = 0;
-    if (streamList !== undefined) {
-      onlineCount = streamList.length;
-    } else {
+    if (streamList === undefined) {
       streamList = engine.varCache.lastStreamList;
       for (var id in streamList) {
         if (id === 'meta') continue;
@@ -209,7 +207,6 @@ var engine = {
     for (var id in streamList) {
       if (id === 'meta') continue;
       var item = streamList[id];
-      // remove item after 5 min
       if (now - item._addItemTime > engine.preferences.timeout && item._isOffline) {
         rmList.push(id);
       }
