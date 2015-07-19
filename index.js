@@ -49,6 +49,11 @@ var engine = {
     }
     var service = stream._service;
     var imageUrl = stream.preview.template.replace('{width}', this.varCache[service].pWidth).replace('{height}', this.varCache[service].pHeight);
+
+    var sep = imageUrl.indexOf('?') === -1 ? '?' : '&';
+
+    imageUrl += sep + '_t=' + Date.now();
+
     cb(imageUrl);
   },
 
