@@ -8,6 +8,7 @@ var Bot = function() {
   this.offset = 0;
   this.chat_id = undefined;
   this.user_id = -1;
+  this.onMessage = function() {};
 };
 
 Bot.prototype._get = function(options, cb) {
@@ -79,8 +80,20 @@ Bot.prototype.getUpdates = function(cb) {
         return;
       }
 
-      if (msg.message.from.id === this.user_id) {
-        this.chat_id = msg.message.chat.id;
+      var message = msg.message;
+
+      if (message.from.id === this.user_id) {
+        this.chat_id = message.chat.id;
+      }
+
+      if (message.text) {
+        this.onMessage(this.message.text, function(text) {
+          this.sendMessage({
+            chat_id: message.chat.id,
+            reply_to_message_id: message.message_id,
+            text: text
+          });
+        }.bind(this));
       }
 
       this.offset = msg.update_id + 1;
