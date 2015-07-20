@@ -310,11 +310,15 @@ var engine = {
     self.chat.update();
   },
 
-  once: function() {
-    "use strict";
+  loadConfig: function() {
     var config = JSON.parse(require("fs").readFileSync('./config.json', 'utf8'));
     bot.token = config.token;
     this.defaultPreferences = config.defaultPreferences;
+  },
+
+  once: function() {
+    "use strict";
+    this.loadConfig();
 
     utils.storage.get(['offset'], function(storage) {
       bot.offset = storage.offset || 0;
