@@ -239,12 +239,15 @@ var chacker = {
     });
   },
 
-  once: function() {
-    "use strict";
+  loadConfig: function() {
     var config = JSON.parse(require("fs").readFileSync('./config.json', 'utf8'));
     bot.token = config.token;
     this.defaultPreferences = config.defaultPreferences;
+  },
 
+  once: function() {
+    "use strict";
+    this.loadConfig();
     this.loadSettings(function() {
       this.updateList();
     }.bind(this));
@@ -263,6 +266,7 @@ if(require.main === module) {
 } else {
   module.exports.init = function(preferences) {
     "use strict";
+    chacker.loadConfig();
     chacker.preferences = preferences;
   };
   module.exports.updateList = chacker.updateList.bind(chacker);
