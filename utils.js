@@ -126,18 +126,18 @@ var utils = {
             response = JSON.parse(xhr.responseText);
           }
         }
-        return obj.success && obj.success(response, xhr);
+        return obj.success && obj.success(response);
       }
-      obj.error && obj.error(xhr);
+      obj.error && obj.error(xhr.responseText);
     };
 
     xhr.onerror = function() {
-      obj.error && obj.error(xhr);
+      obj.error && obj.error(xhr.responseText);
     };
 
     xhr.send(data);
 
-    return xhr;
+    // return xhr;
   }
 };
 var xmlhttprequest = require("xmlhttprequest");
