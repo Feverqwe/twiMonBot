@@ -19,8 +19,8 @@ Bot.prototype._get = function(options, cb) {
     success: function(data) {
       cb(data);
     },
-    error: function(text) {
-      console.error(text);
+    error: function(responseText) {
+      console.error(responseText);
       cb();
     }
   });

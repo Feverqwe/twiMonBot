@@ -157,14 +157,8 @@ var engine = {
     }
     return serviceList;
   },
-  inProgress: false,
   updateList: function(cb) {
     "use strict";
-    if (this.inProgress) {
-      return console.error('Dbl update!');
-    }
-    this.inProgress = true;
-
     var lastStreamList = this.preferences.lastStreamList;
     this.cleanStreamList(lastStreamList);
 
@@ -217,9 +211,8 @@ var engine = {
       }
 
       utils.storage.set({lastStreamList: lastStreamList}, function() {
-        this.inProgress = false;
         cb && cb();
-      }.bind(this));
+      });
     }.bind(this);
 
     var serviceChannelList = this.getChannelList();
@@ -438,20 +431,16 @@ var engine = {
     }
   },
 
-  onGetUpdates: function() {
-    utils.storage.set({
-      offset: bot.offset || 0
-    });
-
-    engine.loop();
-  },
-
   loop: function() {
     "use strict";
     gc();
     bot.getUpdates(3600 * 6, function() {
-      engine.onGetUpdates();
-    });
+      utils.storage.set({
+        offset: bot.offset || 0
+      });
+
+      this.loop();
+    }.bind(this));
   },
 
   once: function() {
