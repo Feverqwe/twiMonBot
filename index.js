@@ -419,7 +419,8 @@ var engine = {
     timer: null,
     onTimer: function() {
       "use strict";
-        engine.updateList();
+      gc();
+      engine.updateList();
     },
     run: function(now) {
       "use strict";
