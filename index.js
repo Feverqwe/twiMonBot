@@ -447,6 +447,7 @@ var engine = {
 
   loop: function() {
     "use strict";
+    gc();
     bot.getUpdates(3600 * 6, function() {
       engine.onGetUpdates();
     });

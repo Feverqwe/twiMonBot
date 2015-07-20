@@ -7,7 +7,7 @@ PID_DIR="$APP_DIR/pid"
 PID_FILE="$PID_DIR/app.pid"
 LOG_DIR="$APP_DIR/log"
 LOG_FILE="$LOG_DIR/app.log"
-NODE_EXEC="exec sudo -u www-data $(which node) --always-compact --max_new_space_size=20000"
+NODE_EXEC="exec sudo -u www-data $(which node) --always-compact --max_new_space_size=5000 --expose-gc"
 
 ###############
 
