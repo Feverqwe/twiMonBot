@@ -79,7 +79,7 @@ var utils = {
       url += (url.indexOf('?') === -1 ? '?' : '&') + nc;
     }
 
-    var xhr = new utils.ajax.xhr();
+    var xhr = new xmlhttprequest.XMLHttpRequest();
 
     xhr.open(method, url, true);
 
@@ -140,6 +140,6 @@ var utils = {
     return xhr;
   }
 };
-utils.ajax.xhr = require("xmlhttprequest").XMLHttpRequest;
+var xmlhttprequest = require("xmlhttprequest");
 
 module.exports = utils;
