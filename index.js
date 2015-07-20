@@ -437,15 +437,19 @@ var engine = {
     }
   },
 
+  onGetUpdates: function() {
+    utils.storage.set({
+      offset: bot.offset || 0
+    });
+
+    engine.loop();
+  },
+
   loop: function() {
     "use strict";
     bot.getUpdates(3600 * 6, function() {
-      utils.storage.set({
-        offset: bot.offset || 0
-      });
-
-      this.loop();
-    }.bind(this));
+      engine.onGetUpdates();
+    });
   },
 
   once: function() {
