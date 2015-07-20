@@ -257,4 +257,12 @@ var services = {};
   services[service] = require('./'+service);
 });
 
-chacker.once();
+if(require.main === module) {
+  chacker.once();
+} else {
+  module.exports.init = function(preferences) {
+    "use strict";
+    chacker.preferences = preferences;
+  };
+  module.exports.updateList = chacker.updateList.bind(chacker);
+}
