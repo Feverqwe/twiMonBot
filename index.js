@@ -211,8 +211,8 @@ var engine = {
       return;
     }
 
-    args[0] = service;
-    args[1] = channelName;
+    args[0] = channelName;
+    args[1] = service;
 
     return args;
   },
