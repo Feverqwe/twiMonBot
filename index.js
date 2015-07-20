@@ -251,7 +251,7 @@ var engine = {
   },
 
   chat: {
-    isFail: null,
+    isFail: false,
     update: function() {
       "use strict";
       gc();
@@ -275,14 +275,18 @@ var engine = {
   runDaemon: function() {
     "use strict";
     var self = engine;
+
     if (checker) {
       self.checker.run(1);
     }
+
     setInterval(function() {
-      if (self.chat.isFail || self.chat.isFail === null) {
+      if (self.chat.isFail) {
         self.chat.update();
       }
     }, 60 * 1000);
+
+    self.chat.update();
   },
 
   once: function() {
