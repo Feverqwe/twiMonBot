@@ -9,7 +9,6 @@ var Bot = function() {
   this.onMessage = function() {};
   this.retry = 10;
   this.maxRetry = 10;
-  this.retryTimeout = 30000;
 };
 
 Bot.prototype._get = function(options, cb) {
@@ -76,9 +75,7 @@ Bot.prototype.getUpdates = function(cb) {
       if (this.retry > 0) {
         this.retry--;
         console.error('API error! Try again', this.retry);
-        setTimeout(function() {
-          this.getUpdates(cb);
-        }.bind(this), this.retryTimeout);
+        this.getUpdates(cb);
         return;
       }
       throw "getUpdates API error!";
