@@ -41,9 +41,9 @@ var engine = {
       return cb();
     }
     utils.storage.get('lastStreamList', function(storage) {
-      engine.preferences.lastStreamList = storage.lastStreamList;
+      this.preferences.lastStreamList = storage.lastStreamList;
       cb();
-    });
+    }.bind(this));
   },
 
   actionList: {
