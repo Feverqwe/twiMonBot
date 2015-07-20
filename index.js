@@ -153,7 +153,6 @@ var engine = {
     },
     o: function(meta, response) {
       "use strict";
-      var lastStreamList = engine.preferences.lastStreamList;
       var userList = engine.preferences.userList;
       var user;
       if (!(user = userList[meta.user_id])) {
@@ -162,32 +161,36 @@ var engine = {
 
       var onLineList = [];
 
-      for (var service in user.serviceList) {
-        var userChannelList = user.serviceList[service];
+      utils.storage.get('lastStreamList', function(storage) {
+        var lastStreamList = engine.preferences.lastStreamList = storage.lastStreamList;
 
-        var channelList = [];
+        for (var service in user.serviceList) {
+          var userChannelList = user.serviceList[service];
 
-        for (var id in lastStreamList) {
-          var stream = lastStreamList[id];
-          if (stream._isOffline || stream._service !== service) {
-            continue;
+          var channelList = [];
+
+          for (var id in lastStreamList) {
+            var stream = lastStreamList[id];
+            if (stream._isOffline || stream._service !== service) {
+              continue;
+            }
+
+            if (userChannelList.indexOf(stream._channelName) !== -1) {
+              channelList.push(stream._channelName);
+            }
           }
 
-          if (userChannelList.indexOf(stream._channelName) !== -1) {
-            channelList.push(stream._channelName);
-          }
+          channelList.length && onLineList.push(service + ': ' + channelList.join(', '));
         }
 
-        channelList.length && onLineList.push(service + ': ' + channelList.join(', '));
-      }
+        if (onLineList.length) {
+          onLineList.unshift('Now online:');
+        } else {
+          onLineList.unshift('Offline');
+        }
 
-      if (onLineList.length) {
-        onLineList.unshift('Now online:');
-      } else {
-        onLineList.unshift('Offline');
-      }
-
-      response(onLineList.join('\n'));
+        response(onLineList.join('\n'));
+      });
     }
   },
 
