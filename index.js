@@ -10,6 +10,10 @@ var engine = {
     includeChecker: true
   },
   preferences: {},
+  serviceMap: {
+    gg: 'goodgame',
+    tw: 'twitch'
+  },
   supportServiceList: ['twitch', 'goodgame'],
 
   loadSettings: function(cb) {
@@ -69,17 +73,6 @@ var engine = {
     },
     a: function(meta, response, channelName, service) {
       "use strict";
-      if (!channelName) {
-        return response('Error! Bad channel name!');
-      }
-      channelName = channelName.toLowerCase();
-
-      service = service || 'twitch';
-      service = service.toLowerCase();
-      if (engine.supportServiceList.indexOf(service) === -1) {
-        return response('Error! Service ' + service + ' is not supported!');
-      }
-
       var userList = engine.preferences.userList;
 
       var user = userList[meta.user_id] = userList[meta.user_id] || {};
@@ -99,17 +92,6 @@ var engine = {
     },
     d: function(meta, response, channelName, service) {
       "use strict";
-      if (!channelName) {
-        return response('Error! Bad channel name!');
-      }
-      channelName = channelName.toLowerCase();
-
-      service = service || 'twitch';
-      service = service.toLowerCase();
-      if (engine.supportServiceList.indexOf(service) === -1) {
-        return response('Error! Service ' + service + ' is not supported!');
-      }
-
       var userList = engine.preferences.userList;
 
       var user;
@@ -209,6 +191,32 @@ var engine = {
 
   actionRegexp: /^\/([^\s\t]+)[\s\t]*([^\s\t]+)?[\s\t]*([^\s\t]+)?.*/,
 
+  checkArgs: function(args, response) {
+    var channelName = args[0];
+    var service = args[1];
+
+    if (!channelName) {
+      response('Error! Bad channel name!');
+      return;
+    }
+
+    channelName = channelName.toLowerCase();
+
+    service = service || this.supportServiceList[0];
+    service = service.toLowerCase();
+    service = this.serviceMap[service] || service;
+
+    if (this.supportServiceList.indexOf(service) === -1) {
+      response('Error! Service ' + service + ' is not supported!');
+      return;
+    }
+
+    args[0] = service;
+    args[1] = channelName;
+
+    return args;
+  },
+
   onMessage: function(meta, text, response) {
     text = text.trim();
     var m = text.match(this.actionRegexp);
@@ -221,10 +229,22 @@ var engine = {
     var action = m.shift().toLowerCase();
     var func = this.actionList[action];
 
+    if (!func) {
+      return;
+    }
+
+    if (['a', 'd'].indexOf(action) !== -1) {
+      m = this.checkArgs(m, response);
+
+      if (!m) {
+        return;
+      }
+    }
+
     m.unshift(response);
     m.unshift(meta);
 
-    func && func.apply(this.actionList, m);
+    func.apply(this.actionList, m);
   },
 
   checker: {
