@@ -7,8 +7,6 @@ var Bot = function() {
   this.token = null;
   this.offset = 0;
   this.onMessage = function() {};
-  this.retry = 10;
-  this.maxRetry = 10;
 };
 
 Bot.prototype._get = function(options, cb) {
@@ -62,7 +60,7 @@ Bot.prototype.sendMessage = function (options, cb) {
   }.bind(this));
 };
 
-Bot.prototype.getUpdates = function(cb) {
+Bot.prototype.getUpdates = function(cb, fail) {
   "use strict";
   this._get({
     method: 'getUpdates',
@@ -71,21 +69,10 @@ Bot.prototype.getUpdates = function(cb) {
       offset: this.offset
     }
   }, function(data) {
-    if (data === null || typeof data !== 'object') {
-      if (this.retry > 0) {
-        this.retry--;
-        console.error('API error! Try again', this.retry);
-        this.getUpdates(cb);
-        return;
-      }
-      throw "getUpdates API error!";
+    if (!data || !data.ok) {
+      console.error("getUpdates API error!");
+      return fail();
     }
-
-    if (!data.ok) {
-      throw "getUpdates error!";
-    }
-
-    this.retry = this.maxRetry;
 
     data.result.forEach(function (msg) {
       if (msg.update_id < this.offset) {

@@ -4,6 +4,7 @@
     "userList": {},
     "lastStreamList": {},
     "interval": 5,
-    "timeout": 300
+    "timeout": 300,
+    "includeChecker": true
   }
 }

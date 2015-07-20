@@ -6,7 +6,8 @@ var engine = {
     userList: {},
     lastStreamList: {},
     interval: 1,
-    timeout: 300
+    timeout: 300,
+    includeChecker: true
   },
   preferences: {},
 
@@ -31,6 +32,17 @@ var engine = {
 
       cb();
     }.bind(this));
+  },
+
+  getLastStreamList: function(cb) {
+    "use strict";
+    if (this.preferences.includeChecker) {
+      return cb();
+    }
+    utils.storage.get('lastStreamList', function(storage) {
+      engine.preferences.lastStreamList = storage.lastStreamList;
+      cb();
+    });
   },
 
   actionList: {
@@ -161,8 +173,8 @@ var engine = {
 
       var onLineList = [];
 
-      utils.storage.get('lastStreamList', function(storage) {
-        var lastStreamList = engine.preferences.lastStreamList = storage.lastStreamList;
+      engine.getLastStreamList(function() {
+        var lastStreamList = engine.preferences.lastStreamList;
 
         for (var service in user.serviceList) {
           var userChannelList = user.serviceList[service];
@@ -214,19 +226,63 @@ var engine = {
     func && func.apply(this.actionList, m);
   },
 
-  loop: function() {
-    "use strict";
-    gc();
-    bot.getUpdates(function() {
-      setTimeout(function() {
-        // async offset write
-        utils.storage.set({
-          offset: bot.offset || 0
-        });
-      });
+  checker: {
+    timer: null,
+    onTimer: function() {
+      "use strict";
+      gc();
+      checker.updateList();
+    },
+    run: function(now) {
+      "use strict";
+      var _this = this;
+      _this.stop();
+      if (now) {
+        _this.onTimer();
+      }
+      _this.timer = setInterval(function(){
+        _this.onTimer();
+      }, engine.preferences.interval * 60 * 1000);
+    },
+    stop: function() {
+      "use strict";
+      clearInterval(this.timer);
+    }
+  },
 
-      this.loop();
-    }.bind(this));
+  chat: {
+    isFail: null,
+    update: function() {
+      "use strict";
+      gc();
+      var _this = this;
+      _this.isFail = false;
+      bot.getUpdates(function() {
+        setTimeout(function() {
+          // async offset write
+          utils.storage.set({
+            offset: bot.offset || 0
+          });
+        });
+
+        _this.update();
+      }, function() {
+        _this.isFail = true;
+      });
+    }
+  },
+
+  runDaemon: function() {
+    "use strict";
+    var self = engine;
+    if (checker) {
+      self.checker.run(1);
+    }
+    setInterval(function() {
+      if (self.chat.isFail || self.chat.isFail === null) {
+        self.chat.update();
+      }
+    }, 60 * 1000);
   },
 
   once: function() {
@@ -240,13 +296,18 @@ var engine = {
       bot.onMessage = this.onMessage.bind(this);
 
       this.loadSettings(function() {
+        if (this.preferences.includeChecker) {
+          checker = require('./checker.js');
+          checker.init(this.preferences);
+        }
 
-        this.loop();
+        this.runDaemon();
 
       }.bind(this));
     }.bind(this));
   }
 };
+var checker = null;
 var utils = require('./utils');
 var bot = require('./bot');
 
