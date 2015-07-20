@@ -20,6 +20,7 @@ var chacker = {
     timeout: 300
   },
   preferences: {},
+  supportServiceList: ['twitch', 'goodgame'],
 
   loadSettings: function(cb) {
     var prefList = [];
@@ -253,7 +254,7 @@ var chacker = {
 var utils = require('./utils');
 var bot = require('./bot');
 var services = {};
-['twitch', 'goodgame'].forEach(function(service) {
+chacker.supportServiceList.forEach(function(service) {
   services[service] = require('./'+service);
 });
 

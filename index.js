@@ -10,6 +10,7 @@ var engine = {
     includeChecker: true
   },
   preferences: {},
+  supportServiceList: ['twitch', 'goodgame'],
 
   loadSettings: function(cb) {
     var prefList = [];
@@ -75,7 +76,7 @@ var engine = {
 
       service = service || 'twitch';
       service = service.toLowerCase();
-      if (['twitch', 'goodgame'].indexOf(service) === -1) {
+      if (engine.supportServiceList.indexOf(service) === -1) {
         return response('Error! Service ' + service + ' is not supported!');
       }
 
@@ -105,7 +106,7 @@ var engine = {
 
       service = service || 'twitch';
       service = service.toLowerCase();
-      if (['twitch', 'goodgame'].indexOf(service) === -1) {
+      if (engine.supportServiceList.indexOf(service) === -1) {
         return response('Error! Service ' + service + ' is not supported!');
       }
 
