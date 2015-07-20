@@ -57,17 +57,17 @@ var engine = {
     },
     start: function(meta, response) {
       "use strict";
-      response("Hello!");
+      response("Hi!");
     },
     help: function(meta, response) {
       "use strict";
       var help = ["Hello user!"];
       help.push('Note: <channelName> - Channel name');
-      help.push('Note: <serviceName> - Service name, twitch or goodgame, default twitch');
+      help.push('Note: <serviceName> - Service name, twitch or goodgame, default is twitch');
       help.push('/a <channelName> <serviceName> - Add channel in list');
       help.push('/d <channelName> <serviceName> - Delete channel from list');
-      help.push('/l - Show list of channel');
       help.push('/o - Online channel list');
+      help.push('/l - Show list of channel');
       help.push('/c - Clean channel list');
       response(help.join('\n'));
     },
@@ -81,13 +81,13 @@ var engine = {
       user.serviceList[service] = user.serviceList[service] || [];
 
       if (user.serviceList[service].indexOf(channelName) !== -1) {
-        return response("Channel exists!");
+        return response("Channel already exists!");
       }
 
       user.serviceList[service].push(channelName);
 
       utils.storage.set({userList: userList}, function() {
-        response("Add channel " + channelName + " to " + service);
+        response("Channel " + channelName + " (" + service + ") added!");
       });
     },
     d: function(meta, response, channelName, service) {
@@ -96,12 +96,12 @@ var engine = {
 
       var user;
       if (!(user = userList[meta.user_id]) || !user.serviceList[service]) {
-        return response("Error user or service is not found!");
+        return response("User or service is not found!");
       }
 
       var pos = user.serviceList[service].indexOf(channelName);
       if (pos === -1) {
-        return response("Error channel is not found!");
+        return response("Channel is not found!");
       }
 
       user.serviceList[service].splice(pos, 1);
@@ -115,7 +115,7 @@ var engine = {
       }
 
       utils.storage.set({userList: userList}, function() {
-        response("Delete channel " + channelName + " from " + service);
+        response("Channel " + channelName + " (" + service + ") deleted!");
       });
     },
     c: function(meta, response) {
@@ -128,7 +128,7 @@ var engine = {
       delete userList[meta.user_id];
 
       utils.storage.set({userList: userList}, function() {
-        response("Channel list is clear!");
+        response("Channel list is cleared!");
       });
     },
     l: function(meta, response) {
@@ -136,10 +136,10 @@ var engine = {
       var userList = engine.preferences.userList;
       var user;
       if (!(user = userList[meta.user_id])) {
-        return response("Channels is not found!");
+        return response("User is not found!");
       }
 
-      var serviceList = ['Channel list'];
+      var serviceList = ['Channel list:'];
       for (var service in user.serviceList) {
         serviceList.push(service + ': ' + user.serviceList[service].join(', '));
       }
@@ -151,7 +151,7 @@ var engine = {
       var userList = engine.preferences.userList;
       var user;
       if (!(user = userList[meta.user_id])) {
-        return response("Channels is not found!");
+        return response("User is not found!");
       }
 
       var onLineList = [];
@@ -181,7 +181,7 @@ var engine = {
         if (onLineList.length) {
           onLineList.unshift('Now online:');
         } else {
-          onLineList.unshift('Offline');
+          onLineList.unshift('All channels in offline');
         }
 
         response(onLineList.join('\n'));
@@ -196,7 +196,7 @@ var engine = {
     var service = args[1];
 
     if (!channelName) {
-      response('Error! Bad channel name!');
+      response('Oops! Channel name is empty!');
       return;
     }
 
@@ -207,7 +207,7 @@ var engine = {
     service = this.serviceMap[service] || service;
 
     if (this.supportServiceList.indexOf(service) === -1) {
-      response('Error! Service ' + service + ' is not supported!');
+      response('Oops! Service ' + service + ' is not supported!');
       return;
     }
 
