@@ -157,9 +157,14 @@ var engine = {
     }
     return serviceList;
   },
-
+  inProgress: false,
   updateList: function(cb) {
     "use strict";
+    if (this.inProgress) {
+      return console.error('Dbl update!');
+    }
+    this.inProgress = true;
+
     var lastStreamList = this.preferences.lastStreamList;
     this.cleanStreamList(lastStreamList);
 
@@ -212,15 +217,16 @@ var engine = {
       }
 
       utils.storage.set({lastStreamList: lastStreamList}, function() {
+        this.inProgress = false;
         cb && cb();
-      });
+      }.bind(this));
     }.bind(this);
 
     var serviceChannelList = this.getChannelList();
 
     for (var service in serviceChannelList) {
       waitCount++;
-      require('./'+service)(serviceChannelList[service], function(streams) {
+      services[service](serviceChannelList[service], function(streams) {
         onReady(streams);
       });
     }
@@ -418,7 +424,9 @@ var engine = {
     run: function(now) {
       "use strict";
       this.stop();
-      this.timer = setInterval(this.onTimer.bind(this), engine.preferences.interval * 60 * 1000);
+      this.timer = setInterval(function(){
+        engine.interval.onTimer();
+      }, engine.preferences.interval * 60 * 1000);
       if (now) {
         this.onTimer();
       }
@@ -431,7 +439,7 @@ var engine = {
 
   loop: function() {
     "use strict";
-    bot.getUpdates(3600, function() {
+    bot.getUpdates(3600 * 6, function() {
       utils.storage.set({
         offset: bot.offset || 0
       });
@@ -461,5 +469,9 @@ var engine = {
 };
 var utils = require('./utils');
 var bot = require('./bot');
+var services = {};
+['twitch', 'goodgame'].forEach(function(service) {
+  services[service] = require('./'+service);
+});
 
 engine.once();
