@@ -74,7 +74,7 @@ var utils = {
       data = undefined;
     }
 
-    if (obj.cache === false && ['GET','HEAD'].indexOf(method) !== -1) {
+    if (obj.cache === false && ['GET', 'HEAD'].indexOf(method) !== -1) {
       var nc = '_=' + Date.now();
       url += (url.indexOf('?') === -1 ? '?' : '&') + nc;
     }
@@ -118,7 +118,7 @@ var utils = {
       xhr.ontimeout = obj.onTimeout;
     }
 
-    xhr.onload = function () {
+    xhr.onload = function() {
       if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
         var response = (obj.dataType) ? xhr.response : xhr.responseText;
         if (!response && xhr.responseText) {

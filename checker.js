@@ -140,10 +140,10 @@ var chacker = {
     }
 
     this.getPreview(stream, function(imageUrl) {
-      text.push('\n'+imageUrl);
+      text.push('\n' + imageUrl);
 
       text = text.join('\n');
-      
+
       var ddblChatId = {};
       var userList = this.preferences.userList;
       for (var user_id in userList) {
@@ -236,10 +236,10 @@ var utils = require('./utils');
 var bot = require('./bot');
 var services = {};
 chacker.supportServiceList.forEach(function(service) {
-  services[service] = require('./'+service);
+  services[service] = require('./' + service);
 });
 
-if(require.main === module) {
+if (require.main === module) {
   chacker.once();
 } else {
   module.exports.init = function(preferences) {

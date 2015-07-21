@@ -262,7 +262,7 @@ var engine = {
       if (now) {
         _this.onTimer();
       }
-      _this.timer = setInterval(function(){
+      _this.timer = setInterval(function() {
         _this.onTimer();
       }, engine.preferences.interval * 60 * 1000);
     },

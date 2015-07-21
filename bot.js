@@ -6,7 +6,8 @@ var Bot = function() {
   this.username = '';
   this.token = null;
   this.offset = 0;
-  this.onMessage = function() {};
+  this.onMessage = function() {
+  };
 };
 
 Bot.prototype._get = function(options, cb) {
@@ -35,13 +36,13 @@ Bot.prototype.getMe = function(cb) {
 
     this.id = data.result.id;
     this.first_name = data.result.first_name;
-    this.username  = data.result.username;
+    this.username = data.result.username;
 
     cb && cb();
   }.bind(this))
 };
 
-Bot.prototype.sendMessage = function (options, cb) {
+Bot.prototype.sendMessage = function(options, cb) {
   this._get({
     method: 'sendMessage',
     params: {
@@ -51,7 +52,7 @@ Bot.prototype.sendMessage = function (options, cb) {
       reply_to_message_id: options.reply_to_message_id,
       reply_markup: JSON.stringify(options.reply_markup)
     }
-  }, function (data) {
+  }, function(data) {
     if (!data || !data.ok) {
       throw "sendMessage error!";
     }
@@ -74,7 +75,7 @@ Bot.prototype.getUpdates = function(cb, fail) {
       return fail();
     }
 
-    data.result.forEach(function (msg) {
+    data.result.forEach(function(msg) {
       if (msg.update_id < this.offset) {
         return;
       }
