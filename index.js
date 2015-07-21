@@ -33,6 +33,7 @@ var engine = {
 
       if (this.preferences.timeout < this.preferences.interval * 60 * 2) {
         this.preferences.timeout = parseInt(this.preferences.interval * 3);
+        console.log('Timeout auto change!', this.preferences.timeout + 'sec.');
       }
 
       cb();
