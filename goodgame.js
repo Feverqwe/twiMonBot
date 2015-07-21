@@ -2,19 +2,29 @@
  * Created by anton on 19.07.15.
  */
 var utils = require('./utils');
-var convertGoodGameApi = function(data) {
-    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+var apiNormalization = function(data) {
+    "use strict";
+    if (!data || typeof data !== 'object') {
+        console.error('GoodGame bas response!');
         return;
     }
+    var now = parseInt(Date.now() / 1000);
     var streams = [];
     for (var streamId in data) {
         var origItem = data[streamId];
         if (origItem.status !== 'Live') {
             continue;
         }
+        if (!origItem.key) {
+            console.error('GoodGame channel without name!');
+        }
         var item = {
             _service: 'goodgame',
+            _addItemTime: now,
             _id: origItem.stream_id,
+            _isOffline: false,
+            _channelName: origItem.key.toLowerCase(),
+
             game: origItem.games,
             preview: {
                 template: origItem.thumb
@@ -39,9 +49,10 @@ var getGoodGameStreamList = function(channelList, cb) {
         url: 'http://goodgame.ru/api/getchannelstatus?fmt=json&' + utils.param(params),
         dataType: 'json',
         success: function(data) {
-            cb(convertGoodGameApi(data));
+            cb(apiNormalization(data));
         }.bind(this),
-        error: function() {
+        error: function(responseText) {
+            console.error('GoodGame check request error!', responseText);
             cb();
         }
     });

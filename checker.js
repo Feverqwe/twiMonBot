@@ -186,37 +186,14 @@ var chacker = {
         return;
       }
 
-      var now = parseInt(Date.now() / 1000);
+      for (var i = 0, item; item = streamList[i]; i++) {
+        var id = item._id;
 
-      for (var i = 0, origItem; origItem = streamList[i]; i++) {
-        var _id;
-        var channelName = origItem.channel.name.toLowerCase();
-        var newItem = {
-          _service: origItem._service,
-          _addItemTime: now,
-          _id: _id = origItem._id,
-          _isOffline: false,
-          _channelName: channelName,
-
-          game: origItem.game,
-          preview: {
-            template: origItem.preview.template
-          },
-          created_at: origItem.created_at,
-          channel: {
-            display_name: origItem.channel.display_name,
-            name: origItem.channel.name,
-            status: origItem.channel.status,
-            logo: origItem.channel.logo,
-            url: origItem.channel.url
-          }
-        };
-
-        if (!lastStreamList[_id] && this.isNotDblItem(newItem)) {
-          this.onNewStream(newItem);
+        if (!lastStreamList[id] && this.isNotDblItem(item)) {
+          this.onNewStream(item);
         }
 
-        lastStreamList[_id] = newItem;
+        lastStreamList[id] = item;
       }
 
       utils.storage.set({lastStreamList: lastStreamList}, function() {
