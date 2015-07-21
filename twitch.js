@@ -5,7 +5,7 @@ var utils = require('./utils');
 var apiNormalization = function(data) {
     "use strict";
     if (!data || !Array.isArray(data.streams)) {
-        console.error('Twitch bas response!');
+        console.error('Twitch bad response!');
         return;
     }
     var now = parseInt(Date.now() / 1000);

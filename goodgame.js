@@ -5,7 +5,7 @@ var utils = require('./utils');
 var apiNormalization = function(data) {
     "use strict";
     if (!data || typeof data !== 'object') {
-        console.error('GoodGame bas response!');
+        console.error('GoodGame bad response!');
         return;
     }
     var now = parseInt(Date.now() / 1000);
