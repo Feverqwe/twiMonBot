@@ -63,14 +63,36 @@ var engine = {
     help: function(meta, response) {
       "use strict";
       var help = ["Hello user!"];
-      help.push('Note: <channelName> - Channel name');
-      help.push('Note: <serviceName> - Service name, twitch or goodgame, default is twitch');
-      help.push('/a <channelName> <serviceName> - Add channel in list');
-      help.push('/d <channelName> <serviceName> - Delete channel from list');
+      help.push('/add - Add channel in list');
+      help.push('/delete - Delete channel from list');
       help.push('/o - Online channel list');
       help.push('/l - Show list of channel');
       help.push('/c - Clean channel list');
       response(help.join('\n'));
+    },
+    add: function(meta, response) {
+      "use strict";
+      var channelName;
+      var service;
+      response('Enter channel name', {
+        reply_markup: {
+          force_reply: true,
+          selective: true
+        }
+      }, function(meta, text, response) {
+        channelName = text;
+        response('Enter service twitch or goodgame', {
+          reply_markup: {
+            force_reply: true,
+            selective: true
+          }
+        },
+        function(meta, text, response) {
+          service = text;
+
+          engine.actionList.a(meta, response, channelName, service);
+        });
+      });
     },
     a: function(meta, response, channelName, service) {
       "use strict";
@@ -90,6 +112,38 @@ var engine = {
       utils.storage.set({userList: userList}, function() {
         response("Channel " + channelName + " (" + service + ") added!");
       });
+    },
+    delete: function(meta, response) {
+      "use strict";
+      var userList = engine.preferences.userList;
+
+      var user = userList[meta.user_id];
+      if (!user) {
+        return response("User is not found!");
+      }
+
+      var btnList = [];
+      for (var service in user.serviceList) {
+        var channelList = user.serviceList[service];
+        for (var i = 0, channelName; channelName = channelList[i]; i++) {
+          btnList.push(['/d ' + channelName + ' ' + service]);
+        }
+      }
+      btnList.push(['/cancel']);
+
+
+      response('Select the channel that you want to delete', {
+        reply_markup: {
+          keyboard: btnList,
+          resize_keyboard: true,
+          one_time_keyboard: true,
+          selective: true
+        }
+      });
+    },
+    cancel: function(meta, response) {
+      "use strict";
+      response('The command has been cancelled.');
     },
     d: function(meta, response, channelName, service) {
       "use strict";

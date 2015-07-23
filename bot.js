@@ -8,6 +8,7 @@ var Bot = function() {
   this.offset = 0;
   this.onMessage = function() {
   };
+  this.onReplyList = {};
 };
 
 Bot.prototype._get = function(options, cb) {
@@ -57,7 +58,30 @@ Bot.prototype.sendMessage = function(options, cb) {
       throw "sendMessage error!";
     }
 
-    cb && cb();
+    cb && cb(data);
+  }.bind(this));
+};
+
+var replyFunc = function(message, text, options, onReply) {
+  "use strict";
+  var base = {
+    chat_id: message.chat.id,
+    reply_to_message_id: message.message_id,
+    text: text
+  };
+  for (var key in options) {
+    base[key] = options[key];
+  }
+
+  this.sendMessage(base, function(data) {
+    if (!onReply) {
+      return;
+    }
+
+    this.onReplyList[data.result.message_id] = {
+      func: onReply,
+      time: parseInt(Date.now() / 1000)
+    };
   }.bind(this));
 };
 
@@ -66,7 +90,7 @@ Bot.prototype.getUpdates = function(cb, fail) {
   this._get({
     method: 'getUpdates',
     params: {
-      timeout: 60,
+      timeout: 3600,
       offset: this.offset
     }
   }, function(data) {
@@ -79,23 +103,34 @@ Bot.prototype.getUpdates = function(cb, fail) {
       if (msg.update_id < this.offset) {
         return;
       }
+      this.offset = msg.update_id + 1;
 
       var message = msg.message;
+
+      if (!message.text) {
+        return;
+      }
+
+      if (message.reply_to_message) {
+        var id = message.reply_to_message.message_id;
+        var obj = this.onReplyList[id];
+        delete this.onReplyList[id];
+
+        if (obj) {
+          obj.func({
+            user_id: message.from.id,
+            chat_id: message.chat.id
+          }, message.text, replyFunc.bind(this, message));
+        }
+        return;
+      }
 
       if (message.text) {
         this.onMessage({
           user_id: message.from.id,
           chat_id: message.chat.id
-        }, message.text, function(text) {
-          this.sendMessage({
-            chat_id: message.chat.id,
-            reply_to_message_id: message.message_id,
-            text: text
-          });
-        }.bind(this));
+        }, message.text, replyFunc.bind(this, message));
       }
-
-      this.offset = msg.update_id + 1;
     }.bind(this));
 
     cb && cb();
