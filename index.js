@@ -81,21 +81,31 @@ var engine = {
         }
       }, function(meta, text, response) {
         channelName = text;
+
+        var btnList = [];
+        for (var i = 0, service; service = engine.supportServiceList[i]; i++) {
+          btnList.push(['/a ' + channelName + ' ' + service]);
+        }
+        btnList.push(['/cancel']);
+
         response('Enter service twitch or goodgame', {
           reply_markup: {
-            force_reply: true,
+            keyboard: btnList,
+            resize_keyboard: true,
+            one_time_keyboard: true,
             selective: true
           }
-        },
-        function(meta, text, response) {
-          service = text;
-
-          engine.actionList.a(meta, response, channelName, service);
         });
       });
     },
     a: function(meta, response, channelName, service) {
       "use strict";
+      var options = {
+        reply_markup: {
+          hide_keyboard: true,
+          selective: true
+        }
+      };
       var userList = engine.preferences.userList;
 
       var user = userList[meta.user_id] = userList[meta.user_id] || {};
@@ -104,13 +114,13 @@ var engine = {
       user.serviceList[service] = user.serviceList[service] || [];
 
       if (user.serviceList[service].indexOf(channelName) !== -1) {
-        return response("Channel already exists!");
+        return response("Channel already exists!", options);
       }
 
       user.serviceList[service].push(channelName);
 
       utils.storage.set({userList: userList}, function() {
-        response("Channel " + channelName + " (" + service + ") added!");
+        response("Channel " + channelName + " (" + service + ") added!", options);
       });
     },
     delete: function(meta, response) {
