@@ -38,7 +38,7 @@ var engine = {
     cantFindChannel: 'Can\'t find channel in watch list!',
     clear: 'The channel list has been cleared.',
     channelNameIsEmpty: 'Oops! Channel name is empty!',
-    serviceIsNotSupported: 'Oops! Service {serviceName} is not supported!',
+    serviceIsNotSupported: 'Oops! Platform {serviceName} is not supported!',
     channelList: 'Channel list:',
     online: 'Now online:',
     offline: 'All channels in offline'
