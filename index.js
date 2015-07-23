@@ -86,7 +86,7 @@ var engine = {
         for (var i = 0, service; service = engine.supportServiceList[i]; i++) {
           btnList.push(['/a ' + channelName + ' ' + service]);
         }
-        btnList.push(['/cancel']);
+        btnList.push(['/cancel add']);
 
         response('Enter service twitch or goodgame', {
           reply_markup: {
@@ -139,7 +139,7 @@ var engine = {
           btnList.push(['/d ' + channelName + ' ' + service]);
         }
       }
-      btnList.push(['/cancel']);
+      btnList.push(['/cancel delete']);
 
 
       response('Select the channel that you want to delete', {
@@ -151,7 +151,7 @@ var engine = {
         }
       });
     },
-    cancel: function(meta, response) {
+    cancel: function(meta, response, command) {
       "use strict";
       var options = {
         reply_markup: {
@@ -159,7 +159,7 @@ var engine = {
           selective: true
         }
       };
-      response('The command has been cancelled.', options);
+      response('The command ' + command + ' has been cancelled.', options);
     },
     d: function(meta, response, channelName, service) {
       "use strict";
