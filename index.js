@@ -15,7 +15,34 @@ var engine = {
     tw: 'twitch'
   },
   supportServiceList: ['twitch', 'goodgame'],
-
+  commands: [
+    'Hi! I will notify you about the beginning of the broadcasts on Twitch!',
+    '',
+    'You can control me by sending these commands:',
+    '',
+    '/add - Add channel in list',
+    '/delete - Delete channel from list',
+    '/online - Online channel list',
+    '/list - Show list of channel',
+    '/clear - Clear channel list'
+  ],
+  language: {
+    enterChannelName: 'Enter the channel name',
+    enterService: 'Enter the platform Twitch or Goodgame',
+    channelExists: 'This channel already exists!',
+    channelAdded: 'Channel {channelName} ({serviceName}) added!',
+    channelDeleted: 'Channel {channelName} ({serviceName}) deleted!',
+    channelListEmpty: 'You don\'t have channels in watch list, yet.',
+    selectDelChannel: 'Select the channel that you want to delete',
+    cancel: 'The command {command} has been cancelled.',
+    cantFindChannel: 'Can\'t find channel in watch list!',
+    clear: 'The channel list has been cleared.',
+    channelNameIsEmpty: 'Oops! Channel name is empty!',
+    serviceIsNotSupported: 'Oops! Service {serviceName} is not supported!',
+    channelList: 'Channel list:',
+    online: 'Now online:',
+    offline: 'All channels in offline'
+  },
   loadSettings: function(cb) {
     var prefList = [];
     for (var key in this.defaultPreferences) {
@@ -58,23 +85,17 @@ var engine = {
     },
     start: function(meta, response) {
       "use strict";
-      response("Hi!");
+      response(engine.commands.join('\n'));
     },
     help: function(meta, response) {
       "use strict";
-      var help = ["Hello user!"];
-      help.push('/add - Add channel in list');
-      help.push('/delete - Delete channel from list');
-      help.push('/online - Online channel list');
-      help.push('/list - Show list of channel');
-      help.push('/clean - Clean channel list');
-      response(help.join('\n'));
+      response(engine.commands.join('\n'));
     },
     add: function(meta, response) {
       "use strict";
       var channelName;
       var service;
-      response('Enter channel name', {
+      response(engine.language.enterChannelName, {
         reply_markup: {
           force_reply: true,
           selective: true
@@ -88,7 +109,7 @@ var engine = {
         }
         btnList.push(['/cancel add']);
 
-        response('Enter service twitch or goodgame', {
+        response(engine.language.enterService, {
           reply_markup: {
             keyboard: btnList,
             resize_keyboard: true,
@@ -114,13 +135,15 @@ var engine = {
       user.serviceList[service] = user.serviceList[service] || [];
 
       if (user.serviceList[service].indexOf(channelName) !== -1) {
-        return response("Channel already exists!", options);
+        return response(engine.language.channelExists, options);
       }
 
       user.serviceList[service].push(channelName);
 
       utils.storage.set({userList: userList}, function() {
-        response("Channel " + channelName + " (" + service + ") added!", options);
+        response(engine.language.channelAdded
+            .replace('{channelName}', channelName)
+            .replace('{serviceName}', service), options);
       });
     },
     delete: function(meta, response) {
@@ -129,7 +152,7 @@ var engine = {
 
       var user = userList[meta.user_id];
       if (!user) {
-        return response("User is not found!");
+        return response(engine.language.channelListEmpty);
       }
 
       var btnList = [];
@@ -142,7 +165,7 @@ var engine = {
       btnList.push(['/cancel delete']);
 
 
-      response('Select the channel that you want to delete', {
+      response(engine.language.selectDelChannel, {
         reply_markup: {
           keyboard: btnList,
           resize_keyboard: true,
@@ -159,7 +182,7 @@ var engine = {
           selective: true
         }
       };
-      response('The command ' + command + ' has been cancelled.', options);
+      response(engine.language.cancel.replace('{command}', String(command)), options);
     },
     d: function(meta, response, channelName, service) {
       "use strict";
@@ -173,12 +196,12 @@ var engine = {
 
       var user;
       if (!(user = userList[meta.user_id]) || !user.serviceList[service]) {
-        return response("User or service is not found!", options);
+        return response(engine.language.cantFindChannel, options);
       }
 
       var pos = user.serviceList[service].indexOf(channelName);
       if (pos === -1) {
-        return response("Channel is not found!", options);
+        return response(engine.language.cantFindChannel, options);
       }
 
       user.serviceList[service].splice(pos, 1);
@@ -192,20 +215,22 @@ var engine = {
       }
 
       utils.storage.set({userList: userList}, function() {
-        response("Channel " + channelName + " (" + service + ") deleted!", options);
+        response(engine.language.channelDeleted
+            .replace('{channelName}', channelName)
+            .replace('{serviceName}', service), options);
       });
     },
     c: function(meta, response) {
       "use strict";
       var userList = engine.preferences.userList;
       if (!userList[meta.user_id]) {
-        return response("User is not found!");
+        return response(engine.language.channelListEmpty);
       }
 
       delete userList[meta.user_id];
 
       utils.storage.set({userList: userList}, function() {
-        response("Channel list is cleared!");
+        response(engine.language.clear);
       });
     },
     l: function(meta, response) {
@@ -213,10 +238,10 @@ var engine = {
       var userList = engine.preferences.userList;
       var user;
       if (!(user = userList[meta.user_id])) {
-        return response("User is not found!");
+        return response(engine.language.channelListEmpty);
       }
 
-      var serviceList = ['Channel list:'];
+      var serviceList = [engine.language.channelList];
       for (var service in user.serviceList) {
         serviceList.push(service + ': ' + user.serviceList[service].join(', '));
       }
@@ -228,7 +253,7 @@ var engine = {
       var userList = engine.preferences.userList;
       var user;
       if (!(user = userList[meta.user_id])) {
-        return response("User is not found!");
+        return response(engine.language.channelListEmpty);
       }
 
       var onLineList = [];
@@ -256,9 +281,9 @@ var engine = {
         }
 
         if (onLineList.length) {
-          onLineList.unshift('Now online:');
+          onLineList.unshift(engine.language.online);
         } else {
-          onLineList.unshift('All channels in offline');
+          onLineList.unshift(engine.language.offline);
         }
 
         response(onLineList.join('\n'));
@@ -273,7 +298,7 @@ var engine = {
     var service = args[1];
 
     if (!channelName) {
-      response('Oops! Channel name is empty!');
+      response(engine.language.channelNameIsEmpty);
       return;
     }
 
@@ -284,7 +309,9 @@ var engine = {
     service = this.serviceMap[service] || service;
 
     if (this.supportServiceList.indexOf(service) === -1) {
-      response('Oops! Service ' + service + ' is not supported!');
+      response(engine.language.serviceIsNotSupported
+          .replace('{serviceName}', service)
+      );
       return;
     }
 
@@ -419,6 +446,6 @@ var bot = require('./bot');
 
 engine.actionList.online = engine.actionList.o;
 engine.actionList.list = engine.actionList.l;
-engine.actionList.clean = engine.actionList.c;
+engine.actionList.clear = engine.actionList.c;
 
 engine.once();
