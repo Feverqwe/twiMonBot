@@ -65,9 +65,9 @@ var engine = {
       var help = ["Hello user!"];
       help.push('/add - Add channel in list');
       help.push('/delete - Delete channel from list');
-      help.push('/o - Online channel list');
-      help.push('/l - Show list of channel');
-      help.push('/c - Clean channel list');
+      help.push('/online - Online channel list');
+      help.push('/list - Show list of channel');
+      help.push('/clean - Clean channel list');
       response(help.join('\n'));
     },
     add: function(meta, response) {
@@ -416,5 +416,9 @@ var engine = {
 var checker = null;
 var utils = require('./utils');
 var bot = require('./bot');
+
+engine.actionList.online = engine.actionList.o;
+engine.actionList.list = engine.actionList.l;
+engine.actionList.clean = engine.actionList.c;
 
 engine.once();
