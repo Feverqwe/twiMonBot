@@ -143,20 +143,32 @@ var engine = {
     },
     cancel: function(meta, response) {
       "use strict";
-      response('The command has been cancelled.');
+      var options = {
+        reply_markup: {
+          hide_keyboard: true,
+          selective: true
+        }
+      };
+      response('The command has been cancelled.', options);
     },
     d: function(meta, response, channelName, service) {
       "use strict";
+      var options = {
+        reply_markup: {
+          hide_keyboard: true,
+          selective: true
+        }
+      };
       var userList = engine.preferences.userList;
 
       var user;
       if (!(user = userList[meta.user_id]) || !user.serviceList[service]) {
-        return response("User or service is not found!");
+        return response("User or service is not found!", options);
       }
 
       var pos = user.serviceList[service].indexOf(channelName);
       if (pos === -1) {
-        return response("Channel is not found!");
+        return response("Channel is not found!", options);
       }
 
       user.serviceList[service].splice(pos, 1);
@@ -170,7 +182,7 @@ var engine = {
       }
 
       utils.storage.set({userList: userList}, function() {
-        response("Channel " + channelName + " (" + service + ") deleted!");
+        response("Channel " + channelName + " (" + service + ") deleted!", options);
       });
     },
     c: function(meta, response) {
