@@ -80,7 +80,7 @@ var replyFunc = function(message, text, options, onReply) {
 
     this.onReplyList[data.result.message_id] = {
       func: onReply,
-      time: parseInt(Date.now() / 1000)
+      time: parseInt(Date.now() / 1000) + 300
     };
   }.bind(this));
 };
@@ -92,7 +92,7 @@ var clearReplyList = function(list) {
   var rmList = [];
   for (var id in list) {
     var item = list[id];
-    if (item.time + 300 < now) {
+    if (item.time < now) {
       rmList.push(id);
     }
   }
