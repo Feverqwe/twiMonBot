@@ -85,6 +85,23 @@ var replyFunc = function(message, text, options, onReply) {
   }.bind(this));
 };
 
+var clearReplyList = function(list) {
+  "use strict";
+  var now = parseInt(Date.now() / 1000);
+
+  var rmList = [];
+  for (var id in list) {
+    var item = list[id];
+    if (item.time + 300 < now) {
+      rmList.push(id);
+    }
+  }
+
+  for (var i = 0, id; id = rmList[i]; i++) {
+    delete list[id];
+  }
+};
+
 Bot.prototype.getUpdates = function(cb, fail) {
   "use strict";
   this._get({
@@ -112,6 +129,7 @@ Bot.prototype.getUpdates = function(cb, fail) {
       }
 
       if (message.reply_to_message) {
+        clearReplyList(this.onReplyList);
         var id = message.reply_to_message.message_id;
         var obj = this.onReplyList[id];
         delete this.onReplyList[id];
