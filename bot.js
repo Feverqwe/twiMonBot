@@ -151,7 +151,10 @@ Bot.prototype.getUpdates = function(cb, fail) {
       }
     }.bind(this));
 
-    cb && cb();
+    setTimeout(function() {
+      cb && cb();
+    }, 2000);
+
   }.bind(this));
 };
 var utils = require('./utils');
