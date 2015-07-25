@@ -178,7 +178,8 @@ var chat = {
       "use strict";
       var _this = chat;
       var chatId = msg.chat.id;
-      var chatItem = _this.storage.chatList[chatId];
+      var chatList = _this.storage.chatList;
+      var chatItem = chatList[chatId];
 
       var channelList = chatItem && chatItem.serviceList && chatItem.serviceList[service];
 
@@ -193,7 +194,7 @@ var chat = {
 
       channelList.splice(pos, 1);
 
-      utils.storage.set({chatList: _this.storage.chatList}, function() {
+      utils.storage.set({chatList: chatList}, function() {
         return _this.bot.sendMessage(
           chatId,
           _this.language.channelDeleted
@@ -258,10 +259,12 @@ var chat = {
 
       delete _this.storage.chatList[chatId];
 
-      _this.bot.sendMessage(
-        chatId,
-        _this.language.cleared
-      );
+      utils.storage.set({chatList: _this.storage.chatList}, function() {
+        _this.bot.sendMessage(
+          chatId,
+          _this.language.cleared
+        );
+      });
     },
     list: function(msg) {
       "use strict";
