@@ -45,6 +45,10 @@ var apiNormalization = function(data) {
   return streams;
 };
 var getTwitchStreamList = function(channelList, cb) {
+  if (!channelList.length) {
+    return cb();
+  }
+
   var params = {};
   params.channel = channelList.join(',');
   utils.ajax({
@@ -56,8 +60,8 @@ var getTwitchStreamList = function(channelList, cb) {
     success: function(data) {
       cb(apiNormalization(data));
     },
-    error: function(responseText) {
-      console.error('Twitch check request error!', responseText);
+    error: function(errorMsg) {
+      console.error('Twitch check request error!', errorMsg);
       cb();
     }
   });

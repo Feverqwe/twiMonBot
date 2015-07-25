@@ -1,5 +1,10 @@
+var Promise = require("bluebird");
+var request = require("request");
+var requestPromise = Promise.promisify(request);
+
 var LocalStorage = require('node-localstorage').LocalStorage;
 var localStorage = new LocalStorage('./storage');
+
 var utils = {
   storage: function() {
     "use strict";
@@ -34,6 +39,7 @@ var utils = {
     }
   }(),
   param: function(params) {
+    "use strict";
     if (typeof params === 'string') return params;
 
     var args = [];
@@ -53,20 +59,15 @@ var utils = {
     return args.join('&');
   },
   ajax: function(obj) {
+    "use strict";
     var url = obj.url;
 
     var method = obj.type || 'GET';
     method.toUpperCase();
 
     var data = obj.data;
-
-    var isFormData = false;
-
     if (data && typeof data !== "string") {
-      isFormData = String(data) === '[object FormData]';
-      if (!isFormData) {
-        data = utils.param(data);
-      }
+      data = utils.param(data);
     }
 
     if (data && method === 'GET') {
@@ -79,18 +80,8 @@ var utils = {
       url += (url.indexOf('?') === -1 ? '?' : '&') + nc;
     }
 
-    var xhr = new xmlhttprequest.XMLHttpRequest();
-
-    xhr.open(method, url, true);
-
-    if (obj.timeout !== undefined) {
-      xhr.timeout = obj.timeout;
-    }
-
     if (obj.dataType) {
       obj.dataType = obj.dataType.toLowerCase();
-
-      xhr.responseType = obj.dataType;
     }
 
     if (!obj.headers) {
@@ -101,45 +92,44 @@ var utils = {
       obj.headers["Content-Type"] = obj.contentType;
     }
 
-    if (data && !obj.headers["Content-Type"] && !isFormData) {
+    if (data && !obj.headers["Content-Type"]) {
       obj.headers["Content-Type"] = 'application/x-www-form-urlencoded; charset=UTF-8';
     }
 
-    if (obj.mimeType) {
-      xhr.overrideMimeType(obj.mimeType);
-    }
+
+    var options = {};
+    options.url = url;
+    options.method = method;
+
     if (obj.headers) {
-      for (var key in obj.headers) {
-        xhr.setRequestHeader(key, obj.headers[key]);
-      }
+      options.headers = obj.headers;
     }
 
-    if (obj.onTimeout !== undefined) {
-      xhr.ontimeout = obj.onTimeout;
+    if (data) {
+      options.body = data;
     }
 
-    xhr.onload = function() {
-      if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
-        var response = (obj.dataType) ? xhr.response : xhr.responseText;
-        if (!response && xhr.responseText) {
-          if (obj.dataType === 'json') {
-            response = JSON.parse(xhr.responseText);
-          }
-        }
-        return obj.success && obj.success(response);
+    var onReady = function(resp) {
+      if (!(resp[0].statusCode >= 200 && resp[0].statusCode < 300 || resp[0].statusCode === 304)) {
+        throw new Error(resp[0].statusCode+' '+resp[0].body);
       }
-      obj.error && obj.error(xhr.responseText);
+
+      var data = resp[0].body;
+
+      if (obj.dataType === 'json') {
+        data = JSON.parse(resp[0].body);
+      }
+
+      obj.success(data);
     };
 
-    xhr.onerror = function() {
-      obj.error && obj.error(xhr.responseText);
+    var onError = function(error) {
+      var msg = error.message;
+      obj.error(msg);
     };
 
-    xhr.send(data);
-
-    // return xhr;
+    return requestPromise(options).then(onReady).catch(onError);
   }
 };
-var xmlhttprequest = require("xmlhttprequest");
 
 module.exports = utils;

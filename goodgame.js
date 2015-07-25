@@ -47,6 +47,10 @@ var apiNormalization = function(data) {
   return streams;
 };
 var getGoodGameStreamList = function(channelList, cb) {
+  if (!channelList.length) {
+    return cb();
+  }
+
   var params = {};
   params.id = channelList.join(',');
   utils.ajax({
@@ -54,9 +58,9 @@ var getGoodGameStreamList = function(channelList, cb) {
     dataType: 'json',
     success: function(data) {
       cb(apiNormalization(data));
-    }.bind(this),
-    error: function(responseText) {
-      console.error('GoodGame check request error!', responseText);
+    },
+    error: function(errorMsg) {
+      console.error('GoodGame check request error!', errorMsg);
       cb();
     }
   });
