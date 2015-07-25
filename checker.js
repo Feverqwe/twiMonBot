@@ -54,16 +54,14 @@ var chacker = {
 
   getChannelList: function() {
     var serviceList = {};
-    var channelList;
     var chatList = this.storage.chatList;
 
     for (var chatId in chatList) {
       var chatItem = chatList[chatId];
       for (var service in chatItem.serviceList) {
+        var channelList = serviceList[service] = serviceList[service] || [];
 
         var userChannelList = chatItem.serviceList[service];
-        channelList = serviceList[service] = serviceList[service] || [];
-
         for (var i = 0, channelName; channelName = userChannelList[i]; i++) {
           if (channelList.indexOf(channelName) !== -1) {
             continue;

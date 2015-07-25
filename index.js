@@ -22,10 +22,10 @@ var chat = {
     tw: 'twitch'
   },
   language: {
-    help: "{help msg",
-    online: "{online msg}",
-    offline: "{offline msg}",
-    emptyServiceList: "{empty service list msg}",
+    help: "{help}",
+    online: "{online}",
+    offline: "{offline}",
+    emptyServiceList: "{emptyServiceList}",
     enterChannelName: "{enterChannelName}",
     enterService: "{enterService}",
     serviceIsNotSupported: "{serviceIsNotSupported}",
@@ -457,10 +457,11 @@ var chat = {
     try {
       var language = JSON.parse(require("fs").readFileSync('./language.json', 'utf8'));
       for (var key in language) {
-        if (Array.isArray(language[key])) {
-          language[key] = language[key].join('\n');
+        var item = language[key];
+        if (Array.isArray(item)) {
+          item = item.join('\n');
         }
-        this.language[key] = language[key];
+        this.language[key] = item;
       }
     } catch (e) {
       return console.error("Language file is not found!");
