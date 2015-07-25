@@ -1,171 +1,226 @@
 /**
  * Created by Anton on 19.07.2015.
  */
-var engine = {
-  defaultPreferences: {
-    userList: {},
-    lastStreamList: {},
-    interval: 1,
-    timeout: 300,
-    includeChecker: true
+var checker = null;
+var utils = require('./utils');
+var TelegramBot = require('node-telegram-bot-api');
+var debug = require('debug')('chat');
+var chat = {
+  storage: {
+    token: null,
+    interval: 5,
+    timeout: 900,
+    includeChecker: true,
+    chatList: {},
+    lastStreamList: {}
   },
-  preferences: {},
+  stateList: {},
+  supportServiceList: ['twitch', 'goodgame'],
+  bot: null,
   serviceMap: {
     gg: 'goodgame',
     tw: 'twitch'
   },
-  supportServiceList: ['twitch', 'goodgame'],
-  commands: [
-    'Hi! I will notify you about the beginning of the broadcasts on Twitch!',
-    '',
-    'You can control me by sending these commands:',
-    '',
-    '/add - Add channel in list',
-    '/delete - Delete channel from list',
-    '/online - Online channel list',
-    '/list - Show list of channel',
-    '/clear - Clear channel list'
-  ],
   language: {
-    enterChannelName: 'Enter the channel name',
-    enterService: 'Enter the platform Twitch or Goodgame',
-    channelExists: 'This channel already exists!',
-    channelAdded: 'Success! Channel {channelName} ({serviceName}) added!',
-    channelDeleted: 'Success! Channel {channelName} ({serviceName}) deleted!',
-    channelListEmpty: 'You don\'t have channels in watch list, yet.',
-    selectDelChannel: 'Select the channel that you want to delete',
-    cancel: 'The command {command} has been cancelled.',
-    cantFindChannel: 'Can\'t find channel in watch list!',
-    clear: 'The channel list has been cleared.',
-    channelNameIsEmpty: 'Oops! Channel name is empty!',
-    serviceIsNotSupported: 'Oops! Platform {serviceName} is not supported!',
-    channelList: 'Channel list:',
-    online: 'Now online:',
-    offline: 'All channels in offline'
+    help: "{help msg",
+    online: "{online msg}",
+    offline: "{offline msg}",
+    emptyServiceList: "{empty service list msg}",
+    enterChannelName: "{enterChannelName}",
+    enterService: "{enterService}",
+    serviceIsNotSupported: "{serviceIsNotSupported}",
+    channelExists: "{channelExists}",
+    channelAdded: "{channelAdded}",
+    commandCanceled: "{commandCanceled}",
+    channelDontExist: "{channelDontExist}",
+    channelDeleted: "{channelDeleted}",
+    cleared: "{cleared}",
+    channelList: "{channelList}",
+    channelNameIsEmpty: "{channelNameIsEmpty}"
   },
-  loadSettings: function(cb) {
-    var prefList = [];
-    for (var key in this.defaultPreferences) {
-      prefList.push(key);
+  options: {
+    hideKeyboard: {
+      reply_markup: {
+        hide_keyboard: true,
+        selective: true
+      }
     }
-
-    utils.storage.get(prefList, function(storage) {
-      for (var i = 0, key; key = prefList[i]; i++) {
-        if (storage[key]) {
-          this.preferences[key] = storage[key];
-          continue;
-        }
-        this.preferences[key] = this.defaultPreferences[key];
-      }
-
-      if (this.preferences.timeout < this.preferences.interval * 60 * 2) {
-        this.preferences.timeout = parseInt(this.preferences.interval * 3 * 60);
-        console.log('Timeout auto change!', this.preferences.timeout + 'sec.');
-      }
-
-      cb();
-    }.bind(this));
   },
 
   getLastStreamList: function(cb) {
     "use strict";
-    if (this.preferences.includeChecker) {
+    if (this.storage.includeChecker) {
       return cb();
     }
     utils.storage.get('lastStreamList', function(storage) {
-      this.preferences.lastStreamList = storage.lastStreamList;
+      this.storage.lastStreamList = storage.lastStreamList;
       cb();
     }.bind(this));
   },
+  onResponse: function(state, data, msg) {
+    "use strict";
+    var chatId = msg.chat.id;
 
-  actionList: {
-    ping: function(meta, response) {
-      "use strict";
-      response("pong");
-    },
-    start: function(meta, response) {
-      "use strict";
-      response(engine.commands.join('\n'));
-    },
-    help: function(meta, response) {
-      "use strict";
-      response(engine.commands.join('\n'));
-    },
-    add: function(meta, response) {
-      "use strict";
-      var channelName;
-      var service;
-      response(engine.language.enterChannelName, {
-        reply_markup: {
-          force_reply: true,
-          selective: true
-        }
-      }, function(meta, text, response) {
-        channelName = text;
-
-        var btnList = [];
-        for (var i = 0, service; service = engine.supportServiceList[i]; i++) {
-          btnList.push(['/a ' + channelName + ' ' + service]);
-        }
-        btnList.push(['/cancel add']);
-
-        response(engine.language.enterService, {
-          reply_markup: {
-            keyboard: btnList,
-            resize_keyboard: true,
-            one_time_keyboard: true,
-            selective: true
-          }
-        });
-      });
-    },
-    a: function(meta, response, channelName, service) {
-      "use strict";
-      var options = {
-        reply_markup: {
-          hide_keyboard: true,
-          selective: true
-        }
-      };
-      var userList = engine.preferences.userList;
-
-      var user = userList[meta.user_id] = userList[meta.user_id] || {};
-      user.chat_id = meta.chat_id;
-      user.serviceList = user.serviceList || {};
-      user.serviceList[service] = user.serviceList[service] || [];
-
-      if (user.serviceList[service].indexOf(channelName) !== -1) {
-        return response(engine.language.channelExists, options);
-      }
-
-      user.serviceList[service].push(channelName);
-
-      utils.storage.set({userList: userList}, function() {
-        response(engine.language.channelAdded
-            .replace('{channelName}', channelName)
-            .replace('{serviceName}', service), options);
-      });
-    },
-    delete: function(meta, response) {
-      "use strict";
-      var userList = engine.preferences.userList;
-
-      var user = userList[meta.user_id];
-      if (!user) {
-        return response(engine.language.channelListEmpty);
-      }
+    if (state === 'channelName') {
+      data.push(msg.text);
+      this.stateList[chatId] = this.onResponse(this, 'service', data);
+      this.stateList[chatId].command = 'add';
 
       var btnList = [];
-      for (var service in user.serviceList) {
-        var channelList = user.serviceList[service];
+      for (var i = 0, service; service = this.supportServiceList[i]; i++) {
+        btnList.push(service);
+      }
+      btnList.push('Cancel');
+
+      this.bot.sendMessage(chatId, this.language.enterService, {
+        reply_markup: {
+          keyboard: btnList,
+          resize_keyboard: true,
+          one_time_keyboard: true,
+          selective: true
+        }
+      });
+    }
+
+    if (state === 'service') {
+      data.push(msg.text);
+      msg.text = '/a ' + data.join(' ');
+      this.onMessage(msg);
+    }
+
+    if (state === 'delete') {
+      data = msg.text.match(/^(.+) \((.+)\)$/);
+      if (!data) {
+        return;
+      }
+      data.shift();
+
+      msg.text = '/d ' + data.join(' ');
+      this.onMessage(msg);
+    }
+  },
+  actionList: {
+    /**
+     * @param {{chat: {id: Number}}} msg
+     */
+    ping: function(msg) {
+      "use strict";
+      var _this = chat;
+      var chatId = msg.chat.id;
+
+      _this.bot.sendMessage(chatId, "pong");
+    },
+    start: function(msg) {
+      "use strict";
+      var _this = chat;
+      var chatId = msg.chat.id;
+
+      _this.bot.sendMessage(chatId, _this.language.help);
+    },
+    help: function(msg) {
+      "use strict";
+      var _this = chat;
+      var chatId = msg.chat.id;
+
+      _this.bot.sendMessage(chatId, _this.language.help);
+    },
+    a: function(msg, channelName, service) {
+      "use strict";
+      var _this = chat;
+      var chatId = msg.chat.id;
+      var chatList = _this.storage.chatList;
+
+      var chatItem = chatList[chatId] = chatList[chatId] || {};
+      chatItem.chatId = chatId;
+
+      var serviceList = chatItem.serviceList = chatItem.serviceList || {};
+      var channelList = serviceList[service] = serviceList[service] || [];
+
+      if (channelList.indexOf(channelName) !== -1) {
+        return _this.bot.sendMessage(chatId, _this.language.channelExists, _this.options.hideKeyboard);
+      }
+
+      channelList.push(channelName);
+
+      utils.storage.set({chatList: chatList}, function() {
+        return _this.bot.sendMessage(
+          chatId,
+          _this.language.channelAdded
+            .replace('{channelName}', channelName)
+            .replace('{serviceName}', service),
+          _this.options.hideKeyboard
+        );
+      });
+    },
+    add: function(msg) {
+      "use strict";
+      var _this = chat;
+      var chatId = msg.chat.id;
+
+      _this.stateList[chatId] = _this.onResponse.bind(_this, 'channelName', []);
+      _this.stateList[chatId].command = 'add';
+
+      _this.bot.sendMessage(
+        chatId,
+        _this.language.enterChannelName,
+        {reply_markup: {
+          force_reply: true,
+          selective: true
+        }}
+      );
+    },
+    d: function(msg, channelName, service) {
+      "use strict";
+      var _this = chat;
+      var chatId = msg.chat.id;
+      var chatItem = _this.storage.chatList[chatId];
+
+      var channelList = chatItem && chatItem.serviceList && chatItem.serviceList[service];
+
+      if (!channelList) {
+        return _this.bot.sendMessage(chatId, _this.language.emptyServiceList);
+      }
+
+      var pos = channelList.indexOf(channelName);
+      if (pos === -1) {
+        return _this.bot.sendMessage(chatId, _this.language.channelDontExist);
+      }
+
+      channelList.splice(pos, 1);
+
+      utils.storage.set({chatList: chatList}, function() {
+        return _this.bot.sendMessage(
+          chatId,
+          _this.language.channelDeleted
+            .replace('{channelName}', channelName)
+            .replace('{serviceName}', service),
+          _this.options.hideKeyboard
+        );
+      });
+    },
+    delete: function(msg) {
+      "use strict";
+      var _this = chat;
+      var chatId = msg.chat.id;
+      var chatItem = _this.storage.chatList[chatId];
+
+      if (!chatItem) {
+        return _this.bot.sendMessage(chatId, _this.language.emptyServiceList);
+      }
+
+      _this.stateList[chatId] = _this.onResponse.bind(_this, 'delete', []);
+      _this.stateList[chatId].command = 'delete';
+
+      var btnList = [];
+      for (var service in chatItem.serviceList) {
+        var channelList = chatItem.serviceList[service];
         for (var i = 0, channelName; channelName = channelList[i]; i++) {
-          btnList.push(['/d ' + channelName + ' ' + service]);
+          btnList.push(channelName + ' (' + service + ')');
         }
       }
-      btnList.push(['/cancel delete']);
+      btnList.push(['Cancel']);
 
-
-      response(engine.language.selectDelChannel, {
+      this.bot.sendMessage(chatId, this.language.enterService, {
         reply_markup: {
           keyboard: btnList,
           resize_keyboard: true,
@@ -174,95 +229,71 @@ var engine = {
         }
       });
     },
-    cancel: function(meta, response, command) {
+    cancel: function(msg, arg1) {
       "use strict";
-      var options = {
-        reply_markup: {
-          hide_keyboard: true,
-          selective: true
-        }
-      };
-      response(engine.language.cancel.replace('{command}', String(command)), options);
+      var _this = chat;
+      var chatId = msg.chat.id;
+
+      _this.bot.sendMessage(
+        chatId,
+        _this.language.commandCanceled
+          .replace('{command}', arg1),
+        _this.options.hideKeyboard
+      );
     },
-    d: function(meta, response, channelName, service) {
+    clear: function(msg) {
       "use strict";
-      var options = {
-        reply_markup: {
-          hide_keyboard: true,
-          selective: true
-        }
-      };
-      var userList = engine.preferences.userList;
+      var _this = chat;
+      var chatId = msg.chat.id;
+      var chatItem = _this.storage.chatList[chatId];
 
-      var user;
-      if (!(user = userList[meta.user_id]) || !user.serviceList[service]) {
-        return response(engine.language.cantFindChannel, options);
+      if (!chatItem) {
+        return _this.bot.sendMessage(chatId, _this.language.emptyServiceList);
       }
 
-      var pos = user.serviceList[service].indexOf(channelName);
-      if (pos === -1) {
-        return response(engine.language.cantFindChannel, options);
-      }
+      delete _this.storage.chatList[chatId];
 
-      user.serviceList[service].splice(pos, 1);
-
-      if (user.serviceList[service].length === 0) {
-        delete user.serviceList[service];
-
-        if (Object.keys(user.serviceList).length === 0) {
-          delete userList[meta.user_id];
-        }
-      }
-
-      utils.storage.set({userList: userList}, function() {
-        response(engine.language.channelDeleted
-            .replace('{channelName}', channelName)
-            .replace('{serviceName}', service), options);
-      });
+      _this.bot.sendMessage(
+        chatId,
+        _this.language.cleared
+      );
     },
-    c: function(meta, response) {
+    list: function(msg) {
       "use strict";
-      var userList = engine.preferences.userList;
-      if (!userList[meta.user_id]) {
-        return response(engine.language.channelListEmpty);
+      var _this = chat;
+      var chatId = msg.chat.id;
+      var chatItem = _this.storage.chatList[chatId];
+
+      if (!chatItem) {
+        return _this.bot.sendMessage(chatId, _this.language.emptyServiceList);
       }
 
-      delete userList[meta.user_id];
+      var serviceList = [_this.language.channelList];
+      for (var service in chatItem.serviceList) {
+        serviceList.push(service + ': ' + chatItem.serviceList[service].join(', '));
+      }
 
-      utils.storage.set({userList: userList}, function() {
-        response(engine.language.clear);
-      });
+      _this.bot.sendMessage(
+        chatId,
+        serviceList.join('\n')
+      );
     },
-    l: function(meta, response) {
+    online: function(msg) {
       "use strict";
-      var userList = engine.preferences.userList;
-      var user;
-      if (!(user = userList[meta.user_id])) {
-        return response(engine.language.channelListEmpty);
-      }
+      var _this = chat;
+      var chatId = msg.chat.id;
+      var chatItem = _this.storage.chatList[chatId];
 
-      var serviceList = [engine.language.channelList];
-      for (var service in user.serviceList) {
-        serviceList.push(service + ': ' + user.serviceList[service].join(', '));
-      }
-
-      response(serviceList.join('\n'));
-    },
-    o: function(meta, response) {
-      "use strict";
-      var userList = engine.preferences.userList;
-      var user;
-      if (!(user = userList[meta.user_id])) {
-        return response(engine.language.channelListEmpty);
+      if (!chatItem) {
+        return _this.bot.sendMessage(chatId, _this.language.emptyServiceList);
       }
 
       var onLineList = [];
+      _this.getLastStreamList(function() {
+        var lastStreamList = _this.storage.lastStreamList;
 
-      engine.getLastStreamList(function() {
-        var lastStreamList = engine.preferences.lastStreamList;
-
-        for (var service in user.serviceList) {
-          var userChannelList = user.serviceList[service];
+        for (var service in chatItem.serviceList) {
+          var userChannelList = chatItem.serviceList[service];
 
           var channelList = [];
 
@@ -281,24 +312,24 @@ var engine = {
         }
 
         if (onLineList.length) {
-          onLineList.unshift(engine.language.online);
+          onLineList.unshift(_this.language.online);
         } else {
-          onLineList.unshift(engine.language.offline);
+          onLineList.unshift(_this.language.offline);
         }
 
-        response(onLineList.join('\n'));
+        _this.bot.sendMessage(chatId, onLineList.join('\n'));
       });
     }
   },
+  checkArgs: function(msg, args) {
+    "use strict";
+    var chatId = msg.chat.id;
 
-  actionRegexp: /^\/([^\s\t]+)[\s\t]*([^\s\t]+)?[\s\t]*([^\s\t]+)?.*/,
-
-  checkArgs: function(args, response) {
     var channelName = args[0];
     var service = args[1];
 
     if (!channelName) {
-      response(engine.language.channelNameIsEmpty);
+      this.bot.sendMessage(chatId, this.language.channelNameIsEmpty, this.options.hideKeyboard);
       return;
     }
 
@@ -309,8 +340,11 @@ var engine = {
     service = this.serviceMap[service] || service;
 
     if (this.supportServiceList.indexOf(service) === -1) {
-      response(engine.language.serviceIsNotSupported
-          .replace('{serviceName}', service)
+      this.bot.sendMessage(
+        chatId,
+        this.language.serviceIsNotSupported
+          .replace('{serviceName}', service),
+        this.options.hideKeyboard
       );
       return;
     }
@@ -320,54 +354,83 @@ var engine = {
 
     return args;
   },
+  /**
+   * @param {{chat: {id: Number}, [text]: String}} msg
+   */
+  onMessage: function(msg) {
+    "use strict";
+    debug(msg);
 
-  onMessage: function(meta, text, response) {
-    text = text.trim();
-    var m = text.match(this.actionRegexp);
-    if (!m) {
+    var text = msg.text;
+    var chatId = msg.chat.id;
+
+    var responseFunc = this.stateList[chatId];
+    if (responseFunc) {
+      delete this.stateList[chatId];
+    }
+
+    if (!text) {
       return;
     }
-    m.shift();
-    m.splice(3);
 
-    var action = m.shift().toLowerCase();
+    if (responseFunc) {
+      if (text === 'Cancel') {
+        text = '/' + text + ' ' + responseFunc.command;
+      } else {
+        return responseFunc(msg);
+      }
+    }
+
+    if (text[0] !== '/') {
+      return;
+    }
+
+    text = text.substr(1);
+
+    var args = text.split(/\s+/);
+
+    var action = args.shift().toLowerCase();
     var func = this.actionList[action];
 
     if (!func) {
+      debug("Command is not found!", action);
       return;
     }
 
     if (['a', 'd'].indexOf(action) !== -1) {
-      m = this.checkArgs(m, response);
-
-      if (!m) {
-        return;
-      }
+      args = this.checkArgs(msg, args);
     }
 
-    m.unshift(response);
-    m.unshift(meta);
+    if (!args) {
+      return;
+    }
 
-    func.apply(this.actionList, m);
+    args.unshift(msg);
+
+    func.apply(this.actionList, args);
   },
 
   checker: {
     timer: null,
+
     onTimer: function() {
       "use strict";
-      gc();
       checker.updateList();
     },
+
     run: function(now) {
       "use strict";
       var _this = this;
+
       _this.stop();
+
       if (now) {
         _this.onTimer();
       }
+
       _this.timer = setInterval(function() {
         _this.onTimer();
-      }, engine.preferences.interval * 60 * 1000);
+      }, chat.storage.interval * 60 * 1000);
     },
     stop: function() {
       "use strict";
@@ -375,77 +438,71 @@ var engine = {
     }
   },
 
-  chat: {
-    isFail: false,
-    update: function() {
-      "use strict";
-      gc();
-      var _this = this;
-      _this.isFail = false;
-      bot.getUpdates(function() {
-        setTimeout(function() {
-          // async offset write
-          utils.storage.set({
-            offset: bot.offset || 0
-          });
-        });
-
-        _this.update();
-      }, function() {
-        _this.isFail = true;
-      });
-    }
-  },
-
   runDaemon: function() {
     "use strict";
-    var self = engine;
 
     if (checker) {
-      self.checker.run(1);
+      this.checker.run(1);
     }
 
+    var hasGc = typeof gc === 'function';
+
     setInterval(function() {
-      if (self.chat.isFail) {
-        self.chat.update();
-      }
+      hasGc && gc();
     }, 60 * 1000);
-
-    self.chat.update();
-  },
-
-  loadConfig: function() {
-    var config = JSON.parse(require("fs").readFileSync('./config.json', 'utf8'));
-    bot.token = config.token;
-    this.defaultPreferences = config.defaultPreferences;
   },
 
   once: function() {
     "use strict";
-    this.loadConfig();
-
-    utils.storage.get(['offset'], function(storage) {
-      bot.offset = storage.offset || 0;
-      bot.onMessage = this.onMessage.bind(this);
-
-      this.loadSettings(function() {
-        if (this.preferences.includeChecker) {
-          checker = require('./checker.js');
-          checker.init(this.preferences);
+    try {
+      var language = JSON.parse(require("fs").readFileSync('./language.json', 'utf8'));
+      for (var key in language) {
+        if (Array.isArray(language[key])) {
+          language[key] = language[key].join('\n');
         }
+        this.language[key] = language[key];
+      }
+    } catch (e) {
+      return console.error("Language file is not found!");
+    }
 
-        this.runDaemon();
+    try {
+      var config = JSON.parse(require("fs").readFileSync('./config.json', 'utf8'));
+    } catch (e) {
+      return console.error("Config is not found!");
+    }
 
-      }.bind(this));
+    if (config.timeout < config.interval * 60 * 2) {
+      config.timeout = parseInt(config.interval * 3 * 60);
+      console.log('Timeout auto change!', config.timeout + 'sec.');
+    }
+
+    this.storage.timeout = config.timeout;
+    this.storage.interval = config.interval;
+    this.storage.token = config.token;
+    this.storage.includeChecker = config.includeChecker;
+
+    utils.storage.get(['chatList', 'lastStreamList'], function(storage) {
+      if (storage.chatList) {
+        this.storage.chatList = storage.chatList;
+      }
+      if (storage.lastStreamList) {
+        this.storage.lastStreamList = storage.lastStreamList;
+      }
+
+      this.bot = new TelegramBot(this.storage.token, {polling: {
+        timeout: 60
+      }});
+      this.bot.on('message', this.onMessage.bind(this));
+
+      if (this.storage.includeChecker) {
+        checker = require('./checker.js');
+        checker.init(this.storage);
+      }
+
+      this.runDaemon();
     }.bind(this));
   }
 };
-var checker = null;
-var utils = require('./utils');
-var bot = require('./bot');
 
-engine.actionList.online = engine.actionList.o;
-engine.actionList.list = engine.actionList.l;
-engine.actionList.clear = engine.actionList.c;
-
-engine.once();
+chat.once();

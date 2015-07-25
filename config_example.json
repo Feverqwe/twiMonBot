@@ -1,10 +1,6 @@
 {
   "token": "",
-  "defaultPreferences": {
-    "userList": {},
-    "lastStreamList": {},
-    "interval": 5,
-    "timeout": 300,
-    "includeChecker": true
-  }
+  "interval": 5,
+  "timeout": 900,
+  "includeChecker": true
 }

@@ -1,0 +1,27 @@
+{
+  "help": [
+    "Hi! I will notify you about the beginning of the broadcasts on Twitch!",
+    "",
+    "You can control me by sending these commands:",
+    "",
+    "/add - Add channel in list",
+    "/delete - Delete channel from list",
+    "/online - Online channel list",
+    "/list - Show list of channel",
+    "/clear - Clear channel list"
+  ],
+  "online": "Now online:",
+  "offline": "All channels in offline",
+  "emptyServiceList": "You don\'t have channels in watch list, yet.",
+  "enterChannelName": "Enter the channel name:",
+  "enterService": "Enter the platform Twitch or Goodgame",
+  "serviceIsNotSupported": "Oops! Platform {serviceName} is not supported!",
+  "channelExists": "This channel already exists!",
+  "channelAdded": "Success! Channel {channelName} ({serviceName}) added!",
+  "commandCanceled": "The command {command} has been cancelled.",
+  "channelDontExist": "Can\'t find channel in watch list!",
+  "channelDeleted": "Success! Channel {channelName} ({serviceName}) deleted!",
+  "cleared": "The channel list has been cleared.",
+  "channelList": "Channel list:",
+  "channelNameIsEmpty": "Oops! Channel name is empty!"
+}
