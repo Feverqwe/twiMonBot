@@ -36,14 +36,15 @@ var chat = {
     channelDeleted: "{channelDeleted}",
     cleared: "{cleared}",
     channelList: "{channelList}",
-    channelNameIsEmpty: "{channelNameIsEmpty}"
+    channelNameIsEmpty: "{channelNameIsEmpty}",
+    selectDelChannel: "{selectDelChannel}"
   },
   options: {
     hideKeyboard: {
-      reply_markup: {
+      reply_markup: JSON.stringify({
         hide_keyboard: true,
         selective: true
-      }
+      })
     }
   },
 
@@ -59,26 +60,27 @@ var chat = {
   },
   onResponse: function(state, data, msg) {
     "use strict";
+    debug('onResponse', state, data);
     var chatId = msg.chat.id;
 
     if (state === 'channelName') {
       data.push(msg.text);
-      this.stateList[chatId] = this.onResponse(this, 'service', data);
+      this.stateList[chatId] = this.onResponse.bind(this, 'service', data);
       this.stateList[chatId].command = 'add';
 
       var btnList = [];
       for (var i = 0, service; service = this.supportServiceList[i]; i++) {
-        btnList.push(service);
+        btnList.push([service]);
       }
-      btnList.push('Cancel');
+      btnList.push(['Cancel']);
 
       this.bot.sendMessage(chatId, this.language.enterService, {
-        reply_markup: {
+        reply_markup: JSON.stringify({
           keyboard: btnList,
           resize_keyboard: true,
           one_time_keyboard: true,
           selective: true
-        }
+        })
       });
     }
 
@@ -91,6 +93,7 @@ var chat = {
     if (state === 'delete') {
       data = msg.text.match(/^(.+) \((.+)\)$/);
       if (!data) {
+        debug("Can't match delete channel");
         return;
       }
       data.shift();
@@ -163,10 +166,12 @@ var chat = {
       _this.bot.sendMessage(
         chatId,
         _this.language.enterChannelName,
-        {reply_markup: {
-          force_reply: true,
-          selective: true
-        }}
+        {
+          reply_markup: JSON.stringify({
+            force_reply: true,
+            selective: true
+          })
+        }
       );
     },
     d: function(msg, channelName, service) {
@@ -178,17 +183,17 @@ var chat = {
       var channelList = chatItem && chatItem.serviceList && chatItem.serviceList[service];
 
       if (!channelList) {
-        return _this.bot.sendMessage(chatId, _this.language.emptyServiceList);
+        return _this.bot.sendMessage(chatId, _this.language.emptyServiceList, _this.options.hideKeyboard);
       }
 
       var pos = channelList.indexOf(channelName);
       if (pos === -1) {
-        return _this.bot.sendMessage(chatId, _this.language.channelDontExist);
+        return _this.bot.sendMessage(chatId, _this.language.channelDontExist, _this.options.hideKeyboard);
       }
 
       channelList.splice(pos, 1);
 
-      utils.storage.set({chatList: chatList}, function() {
+      utils.storage.set({chatList: _this.storage.chatList}, function() {
         return _this.bot.sendMessage(
           chatId,
           _this.language.channelDeleted
@@ -205,7 +210,7 @@ var chat = {
       var chatItem = _this.storage.chatList[chatId];
 
       if (!chatItem) {
-        return _this.bot.sendMessage(chatId, _this.language.emptyServiceList);
+        return _this.bot.sendMessage(chatId, _this.language.emptyServiceList, _this.options.hideKeyboard);
       }
 
       _this.stateList[chatId] = _this.onResponse.bind(_this, 'delete', []);
@@ -215,18 +220,18 @@ var chat = {
       for (var service in chatItem.serviceList) {
         var channelList = chatItem.serviceList[service];
         for (var i = 0, channelName; channelName = channelList[i]; i++) {
-          btnList.push(channelName + ' (' + service + ')');
+          btnList.push([channelName + ' (' + service + ')']);
         }
       }
       btnList.push(['Cancel']);
 
-      this.bot.sendMessage(chatId, this.language.enterService, {
-        reply_markup: {
+      _this.bot.sendMessage(chatId, _this.language.selectDelChannel, {
+        reply_markup: JSON.stringify({
           keyboard: btnList,
           resize_keyboard: true,
           one_time_keyboard: true,
           selective: true
-        }
+        })
       });
     },
     cancel: function(msg, arg1) {
@@ -237,7 +242,7 @@ var chat = {
       _this.bot.sendMessage(
         chatId,
         _this.language.commandCanceled
-          .replace('{command}', arg1),
+          .replace('{command}', arg1 || ''),
         _this.options.hideKeyboard
       );
     },
@@ -366,22 +371,25 @@ var chat = {
 
     var responseFunc = this.stateList[chatId];
     if (responseFunc) {
+      debug("Has response function!");
       delete this.stateList[chatId];
     }
 
     if (!text) {
+      debug("Text is empty!");
       return;
     }
 
-    if (responseFunc) {
-      if (text === 'Cancel') {
-        text = '/' + text + ' ' + responseFunc.command;
-      } else {
-        return responseFunc(msg);
-      }
+    if (text === 'Cancel') {
+      text ='/cancel ' + (responseFunc && responseFunc.command || '');
     }
 
     if (text[0] !== '/') {
+      if (responseFunc) {
+        return responseFunc(msg);
+      }
+
+      debug("Msg is not command!", text);
       return;
     }
 
@@ -402,8 +410,11 @@ var chat = {
     }
 
     if (!args) {
+      debug("Args is empty!");
       return;
     }
+
+    debug("Run action", action, args);
 
     args.unshift(msg);
 
@@ -464,7 +475,7 @@ var chat = {
         this.language[key] = item;
       }
     } catch (e) {
-      return console.error("Language file is not found!");
+      return console.error("Language file is not found!", e.message);
     }
 
     try {
