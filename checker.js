@@ -108,20 +108,6 @@ var chacker = {
     return serviceList;
   },
 
-  getPreview: function(stream, cb) {
-    if (!stream.preview.template) {
-      return cb();
-    }
-    var service = stream._service;
-    var imageUrl = stream.preview.template.replace('{width}', this.varCache[service].pWidth).replace('{height}', this.varCache[service].pHeight);
-
-    var sep = imageUrl.indexOf('?') === -1 ? '?' : '&';
-
-    imageUrl += sep + '_t=' + Date.now();
-
-    cb(imageUrl);
-  },
-
   onNewStream: function(stream) {
     var text = [];
     if (stream.channel.display_name) {
@@ -139,32 +125,32 @@ var chacker = {
       text.push(stream.channel.url.substr(stream.channel.url.indexOf('//') + 2));
     }
 
-    this.getPreview(stream, function(imageUrl) {
-      text.push('\n' + imageUrl);
+    if (stream.preview) {
+      text.push('\n' + stream.preview);
+    }
 
-      text = text.join('\n');
+    text = text.join('\n');
 
-      var ddblChatId = {};
-      var userList = this.preferences.userList;
-      for (var user_id in userList) {
-        var user = userList[user_id];
-        var userChannelList;
-        if (!(userChannelList = user.serviceList[stream._service])) {
+    var ddblChatId = {};
+    var userList = this.preferences.userList;
+    for (var user_id in userList) {
+      var user = userList[user_id];
+      var userChannelList;
+      if (!(userChannelList = user.serviceList[stream._service])) {
+        continue;
+      }
+      if (userChannelList.indexOf(stream._channelName) !== -1) {
+        if (ddblChatId[user.chat_id] === 1) {
           continue;
         }
-        if (userChannelList.indexOf(stream._channelName) !== -1) {
-          if (ddblChatId[user.chat_id] === 1) {
-            continue;
-          }
-          ddblChatId[user.chat_id] = 1;
+        ddblChatId[user.chat_id] = 1;
 
-          bot.sendMessage({
-            chat_id: user.chat_id,
-            text: text
-          });
-        }
+        bot.sendMessage({
+          chat_id: user.chat_id,
+          text: text
+        });
       }
-    }.bind(this));
+    }
   },
 
   updateList: function(cb) {

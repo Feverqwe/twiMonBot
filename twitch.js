@@ -24,9 +24,7 @@ var apiNormalization = function(data) {
       _channelName: origItem.channel.name.toLowerCase(),
 
       game: origItem.game,
-      preview: {
-        template: origItem.preview.template
-      },
+      preview: origItem.preview && origItem.preview.large,
       created_at: origItem.created_at,
       channel: {
         display_name: origItem.channel.display_name,
