@@ -49,6 +49,9 @@ var getTwitchStreamList = function(channelList, cb) {
   params.channel = channelList.join(',');
   utils.ajax({
     url: 'https://api.twitch.tv/kraken/streams?limit=100&' + utils.param(params),
+    headers: {
+      'Accept': 'application/vnd.twitchtv.v3+json'
+    },
     dataType: 'json',
     success: function(data) {
       cb(apiNormalization(data));
