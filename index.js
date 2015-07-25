@@ -482,7 +482,24 @@ var chat = {
     this.storage.token = config.token;
     this.storage.includeChecker = config.includeChecker;
 
-    utils.storage.get(['chatList', 'lastStreamList'], function(storage) {
+    utils.storage.get(['chatList', 'lastStreamList', 'userList'], function(storage) {
+      if (storage.userList && !storage.chatList) {
+        storage.chatList = {};
+        for (var userId in storage.userList) {
+          var userItem = storage.userList[userId];
+          if (!userItem.serviceList || Object.keys(userItem.serviceList).length === 0) {
+            continue;
+          }
+          storage.chatList[userItem.chat_id] = {
+            chatId: userItem.chat_id,
+            serviceList: userItem.serviceList
+          }
+        }
+        utils.storage.set({chatList: storage.chatList}, function() {
+          utils.storage.remove('userList');
+        });
+      }
+
       if (storage.chatList) {
         this.storage.chatList = storage.chatList;
       }

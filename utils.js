@@ -35,6 +35,15 @@ var utils = {
           localStorage.setItem(key, JSON.stringify(value));
         }
         cb && cb();
+      },
+      remove: function(arr) {
+        if (!Array.isArray(arr)) {
+          arr = [arr];
+        }
+
+        for (var i = 0, len = arr.length; i < len; i++) {
+          localStorage.removeItem(arr[i]);
+        }
       }
     }
   }(),
