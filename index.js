@@ -508,7 +508,7 @@ var chat = {
       }
 
       this.bot = new TelegramBot(this.storage.token, {polling: {
-        timeout: 60
+        timeout: 3600
       }});
       this.bot.on('message', this.onMessage.bind(this));
 
