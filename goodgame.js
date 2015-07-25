@@ -36,6 +36,12 @@ var apiNormalization = function(data) {
         url: origItem.url
       }
     };
+
+    if (item.preview) {
+      var sep = item.preview.indexOf('?') === -1 ? '?' : '&';
+      item.preview += sep + '_=' + now;
+    }
+
     streams.push(item);
   }
   return streams;

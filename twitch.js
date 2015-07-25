@@ -34,6 +34,12 @@ var apiNormalization = function(data) {
         url: origItem.channel.url
       }
     };
+
+    if (item.preview) {
+      var sep = item.preview.indexOf('?') === -1 ? '?' : '&';
+      item.preview += sep + '_=' + now;
+    }
+
     streams.push(item);
   }
   return streams;
@@ -42,7 +48,7 @@ var getTwitchStreamList = function(channelList, cb) {
   var params = {};
   params.channel = channelList.join(',');
   utils.ajax({
-    url: 'https://api.twitch.tv/kraken/streams?' + utils.param(params),
+    url: 'https://api.twitch.tv/kraken/streams?limit=100&' + utils.param(params),
     dataType: 'json',
     success: function(data) {
       cb(apiNormalization(data));
