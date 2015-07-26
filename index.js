@@ -59,7 +59,9 @@ var chat = {
       return cb();
     }
     utils.storage.get('lastStreamList', function(storage) {
-      this.storage.lastStreamList = storage.lastStreamList;
+      if (storage.lastStreamList) {
+        this.storage.lastStreamList = storage.lastStreamList;
+      }
       cb();
     }.bind(this));
   },
