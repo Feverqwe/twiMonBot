@@ -181,7 +181,7 @@ var chat = {
             _this.options.hideKeyboard
           );
         }
-        channelName = _channelName;
+        channelName = _channelName.toLowerCase();
 
         var chatItem = chatList[chatId] = chatList[chatId] || {};
         chatItem.chatId = chatId;
