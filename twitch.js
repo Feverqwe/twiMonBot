@@ -83,7 +83,7 @@ var getChannelName = function(channelName, cb) {
       if (!data || !data.name) {
         return cb();
       }
-      cb(data.name);
+      cb(data.name.toLowerCase());
     },
     error: function(errorMsg) {
       console.error('Twitch get channelName request error!', errorMsg);
