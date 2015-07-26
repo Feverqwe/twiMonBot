@@ -110,26 +110,27 @@ var chat = {
   getStreamText: function(stream) {
     var textArr = [];
 
-    if (stream.channel.name) {
-      textArr.push(stream.channel.name + ' (' + this.serviceToTitle[stream._service] + ')');
+    var line1 = [];
+    line1.push(stream.channel.display_name || stream.channel.name);
+
+    if (stream.viewers || stream.viewers === 0) {
+      line1.push('('+stream.viewers+')');
     }
+
+    textArr.push(line1.join(' '));
+
 
     var line2 = [];
-    if (stream.viewers || stream.viewers === 0) {
-      line2.push(this.language.viewers + ': ' + stream.viewers);
-    }
-
     if (stream.channel.status) {
       line2.push(stream.channel.status);
     }
-
     if (stream.game) {
       line2.push(stream.game);
     }
-
     if (line2.length) {
       textArr.push(line2.join(', '));
     }
+
 
     if (stream.channel.url) {
       textArr.push(stream.channel.url);

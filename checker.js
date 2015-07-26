@@ -77,22 +77,21 @@ var chacker = {
   onNewStream: function(stream) {
     var textArr = [];
 
-    if (stream.channel.display_name) {
-      textArr.push(stream.channel.display_name);
-    } else {
-      textArr.push(stream.channel.name);
-    }
+    textArr.push(stream.channel.display_name || stream.channel.name);
 
+    var line2 = [];
     if (stream.channel.status) {
-      textArr.push(stream.channel.status);
+      line2.push(stream.channel.status);
     }
-
     if (stream.game) {
-      textArr.push(stream.game);
+      line2.push(stream.game);
+    }
+    if (line2.length) {
+      textArr.push(line2.join(', '));
     }
 
     if (stream.channel.url) {
-      textArr.push(stream.channel.url.substr(stream.channel.url.indexOf('//') + 2));
+      textArr.push(stream.channel.url);
     }
 
     if (stream.preview) {
