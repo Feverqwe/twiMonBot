@@ -4,9 +4,9 @@
     "",
     "You can control me by sending these commands:",
     "",
+    "/online - Online channel list",
     "/add - Add channel in list",
     "/delete - Delete channel from list",
-    "/online - Online channel list",
     "/list - Show list of channel",
     "/clear - Clear channel list"
   ],
