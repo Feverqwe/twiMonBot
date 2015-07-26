@@ -194,6 +194,14 @@ var chat = {
 
       channelList.splice(pos, 1);
 
+      if (channelList.length === 0) {
+        delete chatItem.serviceList[service];
+
+        if (Object.keys(chatItem.serviceList).length === 0) {
+          delete chatList[chatId];
+        }
+      }
+
       utils.storage.set({chatList: chatList}, function() {
         return _this.bot.sendMessage(
           chatId,
