@@ -325,7 +325,7 @@ var chat = {
 
       _this.bot.sendMessage(
         chatId,
-        serviceList.join('\n')
+        serviceList.join('\n\n')
       );
     },
     online: function(msg) {
