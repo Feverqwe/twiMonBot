@@ -165,7 +165,7 @@ var chacker = {
       while (channelList.length) {
         var arr = channelList.splice(0, 100);
         waitCount++;
-        services[service](arr, function(streams) {
+        services[service].getStreamList(arr, function(streams) {
           onReady(streams);
         });
       }

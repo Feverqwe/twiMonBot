@@ -48,6 +48,7 @@ var apiNormalization = function(data) {
   return streams;
 };
 var getGoodGameStreamList = function(channelList, cb) {
+  "use strict";
   if (!channelList.length) {
     return cb();
   }
@@ -66,4 +67,28 @@ var getGoodGameStreamList = function(channelList, cb) {
     }
   });
 };
-module.exports = getGoodGameStreamList;
+module.exports.getStreamList = getGoodGameStreamList;
+
+var getChannelName = function(channelName, cb) {
+  "use strict";
+  var params = {};
+  params.id = channelName;
+  utils.ajax({
+    url: 'http://goodgame.ru/api/getchannelstatus?fmt=json&' + utils.param(params),
+    dataType: 'json',
+    success: function(data) {
+      for (var key in data) {
+        var item = data[key];
+        if (item.key) {
+          return cb(item.key);
+        }
+      }
+      cb();
+    },
+    error: function(errorMsg) {
+      console.error('GoodGame get channelName request error!', errorMsg);
+      cb();
+    }
+  });
+};
+module.exports.getChannelName = getChannelName;

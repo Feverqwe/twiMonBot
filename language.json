@@ -24,5 +24,6 @@
   "cleared": "The channel list has been cleared.",
   "channelList": "Channel list:",
   "channelNameIsEmpty": "Oops! Channel name is empty!",
-  "selectDelChannel": "Select the channel that you want to delete"
+  "selectDelChannel": "Select the channel that you want to delete",
+  "channelIsNotFound": "Channel {channelName} ({serviceName}) is not found!"
 }

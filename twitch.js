@@ -47,6 +47,7 @@ var apiNormalization = function(data) {
   return streams;
 };
 var getTwitchStreamList = function(channelList, cb) {
+  "use strict";
   if (!channelList.length) {
     return cb();
   }
@@ -68,4 +69,26 @@ var getTwitchStreamList = function(channelList, cb) {
     }
   });
 };
-module.exports = getTwitchStreamList;
+module.exports.getStreamList = getTwitchStreamList;
+
+var getChannelName = function(channelName, cb) {
+  "use strict";
+  utils.ajax({
+    url: 'https://api.twitch.tv/kraken/channels/' + encodeURIComponent(channelName),
+    headers: {
+      'Accept': 'application/vnd.twitchtv.v3+json'
+    },
+    dataType: 'json',
+    success: function(data) {
+      if (!data || !data.name) {
+        return cb();
+      }
+      cb(data.name);
+    },
+    error: function(errorMsg) {
+      console.error('Twitch get channelName request error!', errorMsg);
+      cb();
+    }
+  });
+};
+module.exports.getChannelName = getChannelName;

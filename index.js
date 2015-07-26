@@ -42,7 +42,7 @@ var chat = {
     channelList: "{channelList}",
     channelNameIsEmpty: "{channelNameIsEmpty}",
     selectDelChannel: "{selectDelChannel}",
-    viewers: "{viewers}"
+    channelIsNotFound: "{channelIsNotFound}"
   },
   options: {
     hideKeyboard: {
@@ -169,30 +169,39 @@ var chat = {
       var chatId = msg.chat.id;
       var chatList = _this.storage.chatList;
 
-      var chatItem = chatList[chatId] = chatList[chatId] || {};
-      chatItem.chatId = chatId;
+      services[service].getChannelName(channelName, function(_channelName) {
+        if (!_channelName) {
+          return _this.bot.sendMessage(
+            chatId,
+            _this.language.channelIsNotFound
+              .replace('{channelName}', channelName)
+              .replace('{serviceName}', _this.serviceToTitle[service]),
+            _this.options.hideKeyboard
+          );
+        }
+        channelName = _channelName;
 
-      var serviceList = chatItem.serviceList = chatItem.serviceList || {};
-      var channelList = serviceList[service] = serviceList[service] || [];
+        var chatItem = chatList[chatId] = chatList[chatId] || {};
+        chatItem.chatId = chatId;
 
-      if (channelName[0] === '@') {
-        channelName = channelName.substr(1);
-      }
+        var serviceList = chatItem.serviceList = chatItem.serviceList || {};
+        var channelList = serviceList[service] = serviceList[service] || [];
 
-      if (channelList.indexOf(channelName) !== -1) {
-        return _this.bot.sendMessage(chatId, _this.language.channelExists, _this.options.hideKeyboard);
-      }
+        if (channelList.indexOf(channelName) !== -1) {
+          return _this.bot.sendMessage(chatId, _this.language.channelExists, _this.options.hideKeyboard);
+        }
 
-      channelList.push(channelName);
+        channelList.push(channelName);
 
-      utils.storage.set({chatList: chatList}, function() {
-        return _this.bot.sendMessage(
-          chatId,
-          _this.language.channelAdded
-            .replace('{channelName}', channelName)
-            .replace('{serviceName}', _this.serviceToTitle[service]),
-          _this.options.hideKeyboard
-        );
+        utils.storage.set({chatList: chatList}, function() {
+          return _this.bot.sendMessage(
+            chatId,
+            _this.language.channelAdded
+              .replace('{channelName}', channelName)
+              .replace('{serviceName}', _this.serviceToTitle[service]),
+            _this.options.hideKeyboard
+          );
+        });
       });
     },
     add: function(msg) {
@@ -580,5 +589,10 @@ var chat = {
     }.bind(this));
   }
 };
+
+var services = {};
+chat.supportServiceList.forEach(function(service) {
+  services[service] = require('./' + service);
+});
 
 chat.once();
