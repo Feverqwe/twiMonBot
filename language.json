@@ -14,7 +14,7 @@
   "offline": "All channels in offline",
   "emptyServiceList": "You don't have channels in watch list, yet.",
   "enterChannelName": "Enter the channel name (example: opergamer):",
-  "enterService": "Enter the platform Twitch or Goodgame",
+  "enterService": "Enter the platform Twitch or GoodGame",
   "serviceIsNotSupported": "Oops! Platform {serviceName} is not supported!",
   "channelExists": "This channel already exists!",
   "channelAdded": "Success! Channel {channelName} ({serviceName}) added!",
