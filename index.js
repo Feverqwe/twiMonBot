@@ -110,17 +110,13 @@ var chat = {
   getStreamText: function(stream) {
     var textArr = [];
 
-    var line1 = [];
-    line1.push(stream.channel.display_name || stream.channel.name);
+    textArr.push(stream.channel.display_name || stream.channel.name);
 
-    if (stream.viewers || stream.viewers === 0) {
-      line1.push('('+stream.viewers+')');
-    }
-
-    textArr.push(line1.join(' '));
-
-
+    
     var line2 = [];
+    if (stream.viewers || stream.viewers === 0) {
+      line2.push(stream.viewers);
+    }
     if (stream.channel.status) {
       line2.push(stream.channel.status);
     }
