@@ -169,13 +169,7 @@ var chat = {
 
       _this.bot.sendMessage(
         chatId,
-        _this.language.enterChannelName,
-        {
-          reply_markup: JSON.stringify({
-            force_reply: true,
-            selective: true
-          })
-        }
+        _this.language.enterChannelName
       );
     },
     d: function(msg, channelName, service) {
