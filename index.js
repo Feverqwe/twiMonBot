@@ -115,8 +115,8 @@ var chat = {
     }
 
     var line2 = [];
-    if (stream.channel.status) {
-      line2.push(this.language.viewers + ': ' + stream.channel.status);
+    if (stream.viewers || stream.viewers === 0) {
+      line2.push(this.language.viewers + ': ' + stream.viewers);
     }
 
     if (stream.channel.status) {
