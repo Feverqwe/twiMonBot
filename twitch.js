@@ -36,7 +36,7 @@ var apiNormalization = function(data) {
     };
 
     if (item.preview) {
-      item.preview = item.preview.replace('{width}', '1080').replace('{height}', '608');
+      item.preview = item.preview.replace('{width}', '1279').replace('{height}', '720');
       var sep = item.preview.indexOf('?') === -1 ? '?' : '&';
       item.preview += sep + '_=' + now;
     }
