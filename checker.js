@@ -161,10 +161,14 @@ var chacker = {
         continue;
       }
 
-      waitCount++;
-      services[service](serviceChannelList[service], function(streams) {
-        onReady(streams);
-      });
+      var channelList = serviceChannelList[service];
+      while (channelList.length) {
+        var arr = channelList.splice(0, 100);
+        waitCount++;
+        services[service](arr, function(streams) {
+          onReady(streams);
+        });
+      }
     }
 
     waitCount++;
