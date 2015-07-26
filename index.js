@@ -143,6 +143,10 @@ var chat = {
       var serviceList = chatItem.serviceList = chatItem.serviceList || {};
       var channelList = serviceList[service] = serviceList[service] || [];
 
+      if (channelName[0] === '@') {
+        channelName = channelName.substr(1);
+      }
+
       if (channelList.indexOf(channelName) !== -1) {
         return _this.bot.sendMessage(chatId, _this.language.channelExists, _this.options.hideKeyboard);
       }
