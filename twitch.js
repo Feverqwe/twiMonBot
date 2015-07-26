@@ -24,7 +24,7 @@ var apiNormalization = function(data) {
       _channelName: origItem.channel.name.toLowerCase(),
 
       game: origItem.game,
-      preview: origItem.preview && origItem.preview.large,
+      preview: origItem.preview && origItem.preview.template,
       created_at: origItem.created_at,
       channel: {
         display_name: origItem.channel.display_name,
@@ -36,6 +36,7 @@ var apiNormalization = function(data) {
     };
 
     if (item.preview) {
+      item.preview = item.preview.replace('{width}', '1080').replace('{height}', '608');
       var sep = item.preview.indexOf('?') === -1 ? '?' : '&';
       item.preview += sep + '_=' + now;
     }
