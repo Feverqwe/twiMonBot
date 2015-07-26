@@ -106,6 +106,31 @@ var chat = {
       this.onMessage(msg);
     }
   },
+  getStreamText: function(stream) {
+    var textArr = [];
+
+    if (stream.channel.name) {
+      textArr.push(stream.channel.name);
+    }
+
+    if (stream.channel.status) {
+      textArr.push(stream.channel.status);
+    }
+
+    if (stream.game) {
+      textArr.push(stream.game);
+    }
+
+    if (stream.channel.url) {
+      textArr.push(stream.channel.url.substr(stream.channel.url.indexOf('//') + 2));
+    }
+
+    if (stream.preview) {
+      textArr.push(stream.preview);
+    }
+
+    return textArr.join('\n');
+  },
   actionList: {
     /**
      * @param {{chat: {id: Number}}} msg
@@ -322,11 +347,11 @@ var chat = {
             }
 
             if (userChannelList.indexOf(stream._channelName) !== -1) {
-              channelList.push(stream._channelName);
+              channelList.push(_this.getStreamText(stream));
             }
           }
 
-          channelList.length && onLineList.push(_this.serviceToTitle[service] + ': ' + channelList.join(', '));
+          channelList.length && onLineList.push(_this.serviceToTitle[service] + ':\n' + channelList.join('\n\n'));
         }
 
         if (onLineList.length) {
@@ -335,7 +360,9 @@ var chat = {
           onLineList.unshift(_this.language.offline);
         }
 
-        _this.bot.sendMessage(chatId, onLineList.join('\n'));
+        _this.bot.sendMessage(chatId, onLineList.join('\n'), {
+          disable_web_page_preview: true
+        });
       });
     }
   },
