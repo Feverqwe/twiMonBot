@@ -16,6 +16,10 @@ var chat = {
   },
   stateList: {},
   supportServiceList: ['twitch', 'goodgame'],
+  serviceToTitle: {
+    goodgame: 'GoodGame',
+    twitch: 'Twitch'
+  },
   bot: null,
   serviceMap: {
     gg: 'goodgame',
@@ -70,7 +74,7 @@ var chat = {
 
       var btnList = [];
       for (var i = 0, service; service = this.supportServiceList[i]; i++) {
-        btnList.push([service]);
+        btnList.push([this.serviceToTitle[service]]);
       }
       btnList.push(['Cancel']);
 
@@ -150,7 +154,7 @@ var chat = {
           chatId,
           _this.language.channelAdded
             .replace('{channelName}', channelName)
-            .replace('{serviceName}', service),
+            .replace('{serviceName}', _this.serviceToTitle[service]),
           _this.options.hideKeyboard
         );
       });
@@ -207,7 +211,7 @@ var chat = {
           chatId,
           _this.language.channelDeleted
             .replace('{channelName}', channelName)
-            .replace('{serviceName}', service),
+            .replace('{serviceName}', _this.serviceToTitle[service]),
           _this.options.hideKeyboard
         );
       });
@@ -229,7 +233,7 @@ var chat = {
       for (var service in chatItem.serviceList) {
         var channelList = chatItem.serviceList[service];
         for (var i = 0, channelName; channelName = channelList[i]; i++) {
-          btnList.push([channelName + ' (' + service + ')']);
+          btnList.push([channelName + ' (' + _this.serviceToTitle[service] + ')']);
         }
       }
       btnList.push(['Cancel']);
@@ -286,7 +290,7 @@ var chat = {
 
       var serviceList = [_this.language.channelList];
       for (var service in chatItem.serviceList) {
-        serviceList.push(service + ': ' + chatItem.serviceList[service].join(', '));
+        serviceList.push(_this.serviceToTitle[service] + ': ' + chatItem.serviceList[service].join(', '));
       }
 
       _this.bot.sendMessage(
@@ -324,7 +328,7 @@ var chat = {
             }
           }
 
-          channelList.length && onLineList.push(service + ': ' + channelList.join(', '));
+          channelList.length && onLineList.push(_this.serviceToTitle[service] + ': ' + channelList.join(', '));
         }
 
         if (onLineList.length) {
