@@ -41,7 +41,8 @@ var chat = {
     cleared: "{cleared}",
     channelList: "{channelList}",
     channelNameIsEmpty: "{channelNameIsEmpty}",
-    selectDelChannel: "{selectDelChannel}"
+    selectDelChannel: "{selectDelChannel}",
+    viewers: "{viewers}"
   },
   options: {
     hideKeyboard: {
@@ -110,15 +111,24 @@ var chat = {
     var textArr = [];
 
     if (stream.channel.name) {
-      textArr.push(stream.channel.name);
+      textArr.push(stream.channel.name + ' (' + this.serviceToTitle[stream._service] + ')');
+    }
+
+    var line2 = [];
+    if (stream.channel.status) {
+      line2.push(this.language.viewers + ': ' + stream.channel.status);
     }
 
     if (stream.channel.status) {
-      textArr.push(stream.channel.status);
+      line2.push(stream.channel.status);
     }
 
     if (stream.game) {
-      textArr.push(stream.game);
+      line2.push(stream.game);
+    }
+
+    if (line2.length) {
+      textArr.push(line2.join(', '));
     }
 
     if (stream.channel.url) {
@@ -351,7 +361,7 @@ var chat = {
             }
           }
 
-          channelList.length && onLineList.push(_this.serviceToTitle[service] + ':\n' + channelList.join('\n\n'));
+          channelList.length && onLineList.push(channelList.join('\n\n'));
         }
 
         if (onLineList.length) {
@@ -360,7 +370,7 @@ var chat = {
           onLineList.unshift(_this.language.offline);
         }
 
-        _this.bot.sendMessage(chatId, onLineList.join('\n'), {
+        _this.bot.sendMessage(chatId, onLineList.join('\n\n'), {
           disable_web_page_preview: true
         });
       });

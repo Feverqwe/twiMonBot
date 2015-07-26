@@ -23,6 +23,7 @@ var apiNormalization = function(data) {
       _isOffline: false,
       _channelName: origItem.channel.name.toLowerCase(),
 
+      viewers: parseInt(origItem.viewers) || 0,
       game: origItem.game,
       preview: origItem.preview && origItem.preview.template,
       created_at: origItem.created_at,
