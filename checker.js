@@ -91,7 +91,7 @@ var chacker = {
     }
 
     if (stream.channel.url) {
-      textArr.push(stream.channel.url);
+      textArr.push(stream.channel.url.substr(stream.channel.url.indexOf('//') + 2));
     }
 
     if (stream.preview) {
