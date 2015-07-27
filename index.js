@@ -300,7 +300,7 @@ var chat = {
         _this.options.hideKeyboard
       );
     },
-    clear: function(msg) {
+    clear: function(msg, arg1) {
       "use strict";
       var _this = chat;
       var chatId = msg.chat.id;
@@ -308,6 +308,14 @@ var chat = {
 
       if (!chatItem) {
         return _this.bot.sendMessage(chatId, _this.language.emptyServiceList);
+      }
+
+      if (!arg1) {
+        return _this.bot.sendMessage(chatId, _this.language.clearSure);
+      }
+
+      if (arg1 !== 'yes') {
+        return;
       }
 
       delete _this.storage.chatList[chatId];
