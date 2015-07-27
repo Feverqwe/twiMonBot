@@ -30,6 +30,14 @@ var chacker = {
     }
   },
 
+  isStatusChange: function(cItem, nItem) {
+    if (cItem.game !== nItem.game || cItem.channel.status !== nItem.channel.status) {
+      return true;
+    }
+
+    return false;
+  },
+
   isEqualObj: function(a, b) {
     for (var key in a) {
       if (a[key] !== b[key]) {
@@ -154,6 +162,11 @@ var chacker = {
           }
         } else {
           item._isNotified = cItem._isNotified;
+
+          if (item._isNotified === false && this.isStatusChange(cItem, item)) {
+            item._isNotified = true;
+            this.onNewStream(item);
+          }
         }
 
         lastStreamList[id] = item;
