@@ -53,7 +53,7 @@ var chacker = {
     for (var id in this.storage.lastStreamList) {
       var cItem = this.storage.lastStreamList[id];
 
-      if (cItem._service !== nItem._service || cItem._channelName !== nItem._channelName) {
+      if (cItem._service !== nItem._service) {
         continue;
       }
 
