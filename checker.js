@@ -44,6 +44,11 @@ var chacker = {
 
     for (var id in this.storage.lastStreamList) {
       var cItem = this.storage.lastStreamList[id];
+
+      if (cItem._service !== nItem._service || cItem._channelName !== nItem._channelName) {
+        continue;
+      }
+
       if (now - cItem._addItemTime < this.storage.timeout && cItem.game === nItem.game && this.isEqualObj(cItem.channel, nItem.channel)) {
         return false;
       }
@@ -141,8 +146,10 @@ var chacker = {
       for (var i = 0, item; item = streamList[i]; i++) {
         var id = item._id;
 
-        if (!lastStreamList[id] && this.isNotDblItem(item)) {
-          this.onNewStream(item);
+        if (!lastStreamList[id]) {
+          if (item._isNotified = this.isNotDblItem(item)) {
+            this.onNewStream(item);
+          }
         }
 
         lastStreamList[id] = item;
