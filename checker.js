@@ -146,10 +146,14 @@ var chacker = {
       for (var i = 0, item; item = streamList[i]; i++) {
         var id = item._id;
 
-        if (!lastStreamList[id]) {
+        var cItem = lastStreamList[id];
+
+        if (!cItem) {
           if (item._isNotified = this.isNotDblItem(item)) {
             this.onNewStream(item);
           }
+        } else {
+          item._isNotified = cItem._isNotified;
         }
 
         lastStreamList[id] = item;
