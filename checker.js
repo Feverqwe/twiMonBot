@@ -87,6 +87,57 @@ var chacker = {
     return serviceList;
   },
 
+  sendNotify: function(chatIdList, text, noPhotoText, stream) {
+    var end = false;
+    var chatId = null;
+
+    var sendMsg = function(chatId) {
+      this.bot.sendMessage(chatId, noPhotoText);
+    }.bind(this);
+
+    var sendPic = function(chatId, stream) {
+      this.bot.sendPhoto(chatId, stream, {
+        caption: text
+      });
+    }.bind(this);
+
+    var onError = function(chatIdList) {
+      while (chatId = chatIdList.shift()) {
+        sendMsg(chatId);
+      }
+    }.bind(null, chatIdList.slice(0));
+
+
+    if (!stream.preview) {
+      return onError();
+    }
+
+    try {
+      var request = require("request");
+      var req = request(stream.preview);
+
+      req.on('end', function() {
+        end = true;
+      });
+
+      req.on('error', function() {
+        console.log('Request Error!', stream._channelName);
+        onError();
+      });
+
+      while (chatId = chatIdList.shift()) {
+        if (end) {
+          console.log('Request is End!', stream._channelName);
+          sendMsg(chatId);
+        } else {
+          sendPic(chatId, req);
+        }
+      }
+    } catch(e) {
+      onError();
+    }
+  },
+
   onNewStream: function(stream) {
     var textArr = [];
 
@@ -107,13 +158,17 @@ var chacker = {
       textArr.push(stream.channel.url.substr(stream.channel.url.indexOf('//') + 2));
     }
 
+    var text = textArr.join('\n');
+
     if (stream.preview) {
       textArr.push('\n' + stream.preview);
     }
 
-    var text = textArr.join('\n');
+    var noPhotoText = textArr.join('\n');
 
     var chatList = this.storage.chatList;
+
+    var chatIdList = [];
 
     for (var chatId in chatList) {
       var chatItem = chatList[chatId];
@@ -127,8 +182,10 @@ var chacker = {
         continue;
       }
 
-      this.bot.sendMessage(chatItem.chatId, text);
+      chatIdList.push(chatItem.chatId);
     }
+
+    chatIdList.length && this.sendNotify(chatIdList, text, noPhotoText, stream);
   },
 
   updateList: function(cb) {
