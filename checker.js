@@ -121,13 +121,13 @@ var chacker = {
       });
 
       req.on('error', function() {
-        console.log('Request Error!', stream._channelName);
+        console.error('Request Error!', stream._channelName);
         onError();
       });
 
       while (chatId = chatIdList.shift()) {
         if (end) {
-          console.log('Request is End!', stream._channelName);
+          console.error('Request is End!', stream._channelName);
           sendMsg(chatId);
         } else {
           sendPic(chatId, req);
