@@ -163,7 +163,7 @@ var chacker = {
         } else {
           item._isNotified = cItem._isNotified;
 
-          if (item._isNotified === false && this.isStatusChange(cItem, item)) {
+          if (!item._isNotified && this.isStatusChange(cItem, item)) {
             item._isNotified = true;
             this.onNewStream(item);
           }
