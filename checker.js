@@ -139,9 +139,14 @@ var chacker = {
     }
 
     var chatId = chatIdList.shift();
-
+    var fired = false;
     return this.getPicId(chatId, text, stream, function(fileId) {
-      "use strict";
+      if (fired) {
+        console.error('Dbl fire getPicId!');
+        return;
+      }
+      fired = true;
+
       if (!fileId) {
         chatIdList.unshift(chatId);
         return onError();
