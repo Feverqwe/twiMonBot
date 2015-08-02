@@ -87,10 +87,37 @@ var chacker = {
     return serviceList;
   },
 
-  sendNotify: function(chatIdList, text, noPhotoText, stream) {
-    var end = false;
-    var chatId = null;
+  getPicId: function(chatId, text, stream, onReady) {
+    "use strict";
+    var sendPic = function(chatId, stream) {
+      return this.bot.sendPhoto(chatId, stream, {
+        caption: text
+      }).then(function (msg) {
+        var photo = msg.photo && msg.photo.shift();
+        var fileId = photo && photo.file_id;
 
+        onReady(fileId);
+      }).catch(function() {
+        onReady();
+      });
+    }.bind(this);
+
+    try {
+      var request = require("request");
+      var req = request(stream.preview);
+
+      req.on('error', function() {
+        console.error('Request Error!', stream._channelName);
+        return onReady();
+      });
+
+      sendPic(chatId, req);
+    } catch(e) {
+      return onReady();
+    }
+  },
+
+  sendNotify: function(chatIdList, text, noPhotoText, stream) {
     var sendMsg = function(chatId) {
       this.bot.sendMessage(chatId, noPhotoText);
     }.bind(this);
@@ -101,41 +128,29 @@ var chacker = {
       });
     }.bind(this);
 
-    var onError = function(chatIdList) {
+    var onError = function() {
       while (chatId = chatIdList.shift()) {
         sendMsg(chatId);
       }
-    }.bind(null, chatIdList.slice(0));
-
+    };
 
     if (!stream.preview) {
       return onError();
     }
 
-    try {
-      var request = require("request");
-      var req = request(stream.preview);
+    var chatId = chatIdList.shift();
 
-      req.on('end', function() {
-        end = true;
-      });
-
-      req.on('error', function() {
-        console.error('Request Error!', stream._channelName);
-        onError();
-      });
+    return this.getPicId(chatId, text, stream, function(fileId) {
+      "use strict";
+      if (!fileId) {
+        chatIdList.unshift(chatId);
+        return onError();
+      }
 
       while (chatId = chatIdList.shift()) {
-        if (end) {
-          console.error('Request is End!', stream._channelName);
-          sendMsg(chatId);
-        } else {
-          sendPic(chatId, req);
-        }
+        sendPic(chatId, fileId);
       }
-    } catch(e) {
-      onError();
-    }
+    });
   },
 
   onNewStream: function(stream) {
