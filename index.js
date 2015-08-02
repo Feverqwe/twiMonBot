@@ -8,8 +8,8 @@ var debug = require('debug')('chat');
 var chat = {
   storage: {
     token: null,
-    interval: 5,
     timeout: 900,
+    interval: 5,
     includeChecker: true,
     chatList: {},
     lastStreamList: {}

@@ -161,7 +161,7 @@ var chacker = {
   onNewStream: function(stream) {
     var textArr = [];
 
-    textArr.push(stream.channel.display_name || stream.channel.name);
+    // textArr.push(stream.channel.display_name || stream.channel.name);
 
     var line2 = [];
     if (stream.channel.status) {
