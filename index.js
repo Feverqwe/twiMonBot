@@ -490,6 +490,20 @@ var chat = {
   checker: {
     timer: null,
 
+    getRunTime: function(interval) {
+      var everyMs = interval * 60 * 1000;
+      var today = new Date();
+      var ms = today.getMilliseconds();
+      var sec = today.getSeconds();
+      var min = today.getMinutes();
+
+      var nowMs = min * 60 * 1000 + sec * 1000 + ms;
+
+      var waitMs = everyMs - nowMs % everyMs;
+
+      return waitMs;
+    },
+
     onTimer: function() {
       "use strict";
       checker.updateList();
@@ -505,9 +519,13 @@ var chat = {
         _this.onTimer();
       }
 
-      _this.timer = setInterval(function() {
+      setTimeout(function() {
+        _this.timer = setInterval(function() {
+          _this.onTimer();
+        }, chat.storage.interval * 60 * 1000);
+
         _this.onTimer();
-      }, chat.storage.interval * 60 * 1000);
+      }, _this.getRunTime(chat.storage.interval));
     },
     stop: function() {
       "use strict";
