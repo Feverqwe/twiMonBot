@@ -513,13 +513,13 @@ var chat = {
       "use strict";
       var _this = this;
 
-      _this.stop();
-
       if (now) {
         _this.onTimer();
       }
 
       setTimeout(function() {
+        _this.stop();
+
         _this.timer = setInterval(function() {
           _this.onTimer();
         }, chat.storage.interval * 60 * 1000);
