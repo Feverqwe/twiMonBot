@@ -17,11 +17,6 @@ var apiNormalization = function(data) {
       continue;
     }
 
-    if (!origItem.channel.url) {
-      console.error('Twitch channel url is emty!');
-      continue;
-    }
-
     var item = {
       _service: 'twitch',
       _addItemTime: now,
@@ -46,6 +41,10 @@ var apiNormalization = function(data) {
       item.preview = item.preview.replace('{width}', '1279').replace('{height}', '720');
       var sep = item.preview.indexOf('?') === -1 ? '?' : '&';
       item.preview += sep + '_=' + now;
+    }
+
+    if (!item.channel.url) {
+      item.channel.url = 'http://www.twitch.tv/' + item.channel.name;
     }
 
     streams.push(item);

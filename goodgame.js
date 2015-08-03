@@ -23,11 +23,6 @@ var apiNormalization = function(data) {
       continue;
     }
 
-    if (!origItem.url) {
-      console.error('GoodGame channel url is emty!');
-      continue;
-    }
-
     var item = {
       _service: 'goodgame',
       _addItemTime: now,
@@ -51,6 +46,10 @@ var apiNormalization = function(data) {
     if (item.preview) {
       var sep = item.preview.indexOf('?') === -1 ? '?' : '&';
       item.preview += sep + '_=' + now;
+    }
+
+    if (!item.channel.url) {
+      item.channel.url = 'http://goodgame.ru/channel/' + item.channel.name + '/';
     }
 
     streams.push(item);
