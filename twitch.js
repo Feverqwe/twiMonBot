@@ -16,6 +16,12 @@ var apiNormalization = function(data) {
       console.error('Twitch channel without name!');
       continue;
     }
+
+    if (!origItem.channel.url) {
+      console.error('Twitch channel url is emty!');
+      continue;
+    }
+
     var item = {
       _service: 'twitch',
       _addItemTime: now,

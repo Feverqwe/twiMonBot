@@ -8,16 +8,25 @@ var apiNormalization = function(data) {
     console.error('GoodGame bad response!');
     return;
   }
+
   var now = parseInt(Date.now() / 1000);
   var streams = [];
   for (var streamId in data) {
     var origItem = data[streamId];
+
     if (origItem.status !== 'Live') {
       continue;
     }
+
     if (!origItem.key) {
       console.error('GoodGame channel without name!');
     }
+
+    if (!origItem.url) {
+      console.error('GoodGame channel url is emty!');
+      continue;
+    }
+
     var item = {
       _service: 'goodgame',
       _addItemTime: now,
