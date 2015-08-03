@@ -20,6 +20,7 @@ var apiNormalization = function(data) {
 
     if (!origItem.key) {
       console.error('GoodGame channel without name!');
+      continue;
     }
 
     if (!origItem.url) {
