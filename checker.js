@@ -93,11 +93,11 @@ var chacker = {
       return this.bot.sendPhoto(chatId, stream, {
         caption: text
       }).then(function (msg) {
-        var photo = msg.photo && msg.photo.shift();
-        var fileId = photo && photo.file_id;
+        var fileId = msg && msg.photo && msg.photo[0] && msg.photo[0].file_id;
 
         onReady(fileId);
       }).catch(function() {
+        console.error('Send photo error!', stream._channelName);
         onReady();
       });
     }.bind(this);
@@ -113,6 +113,7 @@ var chacker = {
 
       sendPic(chatId, req);
     } catch(e) {
+      console.error('Get photo error!', stream._channelName);
       return onReady();
     }
   },
