@@ -87,6 +87,37 @@ var chacker = {
     return serviceList;
   },
 
+  onSendMsgEx: function(e, chatId) {
+    var errorMsg;
+    if (!e || !(errorMsg = e.message) || typeof errorMsg !== 'string') {
+      return;
+    }
+
+    var isError = [
+      'Bot was kicked from a chat',
+      'Bad Request: wrong chat id'
+    ].some(function(desc) {
+      if (errorMsg.indexOf(desc) !== -1) {
+        return true;
+      }
+    });
+
+    if (!isError) {
+      return;
+    }
+
+    var storage = this.storage;
+    for (var _chatId in storage.chatList) {
+      var item = storage.chatList[_chatId];
+      if (item.chatId === chatId) {
+        console.error('Remove chatId', chatId, JSON.stringify(item));
+        delete storage.chatList[_chatId];
+      }
+    }
+
+    utils.storage.set({chatList: storage.chatList});
+  },
+
   getPicId: function(chatId, text, stream, onReady) {
     "use strict";
     var sendPic = function(chatId, request) {
@@ -101,11 +132,14 @@ var chacker = {
         var fileId = msg && msg.photo && msg.photo[0] && msg.photo[0].file_id;
 
         onReady(fileId);
-      }).catch(function() {
+      }).catch(function(e) {
         clearTimeout(timeout);
         console.error('Send photo error!', chatId, stream._channelName);
+
+        this.onSendMsgEx(e, chatId);
+
         onReady();
-      });
+      }.bind(this));
     }.bind(this);
 
     try {
@@ -126,13 +160,21 @@ var chacker = {
 
   sendNotify: function(chatIdList, text, noPhotoText, stream) {
     var sendMsg = function(chatId) {
-      this.bot.sendMessage(chatId, noPhotoText);
+      this.bot.sendMessage(chatId, noPhotoText).catch(function(e) {
+        console.error('Send msg error!', chatId, stream._channelName);
+
+        this.onSendMsgEx(e, chatId);
+      }.bind(this));
     }.bind(this);
 
-    var sendPic = function(chatId, stream) {
-      this.bot.sendPhoto(chatId, stream, {
+    var sendPic = function(chatId, fileId) {
+      this.bot.sendPhoto(chatId, fileId, {
         caption: text
-      });
+      }).catch(function(e) {
+        console.error('Send photo id error!', chatId, stream._channelName);
+
+        this.onSendMsgEx(e, chatId);
+      }.bind(this));
     }.bind(this);
 
     var onError = function() {
