@@ -87,11 +87,8 @@ var chacker = {
     return serviceList;
   },
 
-  onSendMsgEx: function(e, chatId) {
-    var errorMsg;
-    if (!e || !(errorMsg = e.message) || typeof errorMsg !== 'string') {
-      return;
-    }
+  onSendMsgError: function(e, chatId) {
+    var errorMsg = e && e.message || '<not error msg>';
 
     var isError = [
       'Bot was kicked from a chat',
@@ -110,7 +107,7 @@ var chacker = {
     for (var _chatId in storage.chatList) {
       var item = storage.chatList[_chatId];
       if (item.chatId === chatId) {
-        console.error('Remove chatId', chatId, JSON.stringify(item));
+        console.error('Remove chat', chatId, '\n', JSON.stringify(item));
         delete storage.chatList[_chatId];
       }
     }
@@ -121,22 +118,16 @@ var chacker = {
   getPicId: function(chatId, text, stream, onReady) {
     "use strict";
     var sendPic = function(chatId, request) {
-      var timeout = setTimeout(function() {
-        console.error('Send photo response timeout!', chatId, stream._channelName);
-        onReady();
-      }, 60 * 1000);
       return this.bot.sendPhoto(chatId, request, {
         caption: text
       }).then(function (msg) {
-        clearTimeout(timeout);
         var fileId = msg && msg.photo && msg.photo[0] && msg.photo[0].file_id;
 
         onReady(fileId);
       }).catch(function(e) {
-        clearTimeout(timeout);
-        console.error('Send photo error!', chatId, stream._channelName);
+        console.error('Send msg with photo error!', chatId, stream._channelName, '\n', e.message);
 
-        this.onSendMsgEx(e, chatId);
+        this.onSendMsgError(e, chatId);
 
         onReady();
       }.bind(this));
@@ -147,13 +138,13 @@ var chacker = {
       var req = request(stream.preview);
 
       req.on('error', function() {
-        console.error('Request Error!', stream._channelName);
+        console.error('Request photo error!', stream._channelName, '\n', stream.preview);
         return onReady();
       });
 
       sendPic(chatId, req);
     } catch(e) {
-      console.error('Get photo error!', stream._channelName);
+      console.error('Request photo exception!', stream._channelName, '\n', e && e.message);
       return onReady();
     }
   },
@@ -161,9 +152,9 @@ var chacker = {
   sendNotify: function(chatIdList, text, noPhotoText, stream) {
     var sendMsg = function(chatId) {
       this.bot.sendMessage(chatId, noPhotoText).catch(function(e) {
-        console.error('Send msg error!', chatId, stream._channelName);
+        console.error('Send msg without photo error!', chatId, stream._channelName, '\n', e && e.message);
 
-        this.onSendMsgEx(e, chatId);
+        this.onSendMsgError(e, chatId);
       }.bind(this));
     }.bind(this);
 
@@ -171,13 +162,14 @@ var chacker = {
       this.bot.sendPhoto(chatId, fileId, {
         caption: text
       }).catch(function(e) {
-        console.error('Send photo id error!', chatId, stream._channelName);
+        console.error('Send msg with photo id error!', chatId, stream._channelName, '\n', e && e.message);
 
-        this.onSendMsgEx(e, chatId);
+        this.onSendMsgError(e, chatId);
       }.bind(this));
     }.bind(this);
 
     var onError = function() {
+      console.error('Sending msg without photo!', stream._channelName, '\n', e && e.message);
       while (chatId = chatIdList.shift()) {
         sendMsg(chatId);
       }
@@ -307,7 +299,7 @@ var chacker = {
 
     for (var service in serviceChannelList) {
       if (!services[service]) {
-        console.error("Service is not found!");
+        console.error('Service is not found!', service);
         continue;
       }
 

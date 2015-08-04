@@ -118,23 +118,23 @@ var utils = {
       options.body = data;
     }
 
-    var onReady = function(resp) {
-      if (!(resp[0].statusCode >= 200 && resp[0].statusCode < 300 || resp[0].statusCode === 304)) {
-        throw new Error(resp[0].statusCode+' '+resp[0].body);
+    var onReady = function(response) {
+      var resp = response[0];
+      if (!(resp.statusCode >= 200 && resp.statusCode < 300 || resp.statusCode === 304)) {
+        throw new Error('Status code: '+resp.statusCode+'\n'+resp.body);
       }
 
-      var data = resp[0].body;
+      var data = resp.body;
 
       if (obj.dataType === 'json') {
-        data = JSON.parse(resp[0].body);
+        data = JSON.parse(resp.body);
       }
 
       obj.success(data);
     };
 
-    var onError = function(error) {
-      var msg = error.message;
-      obj.error(msg);
+    var onError = function(e) {
+      obj.error(e.message);
     };
 
     return requestPromise(options).then(onReady).catch(onError);

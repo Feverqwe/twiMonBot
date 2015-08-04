@@ -637,7 +637,7 @@ var chat = {
     try {
       var config = JSON.parse(require("fs").readFileSync('./config.json', 'utf8'));
     } catch (e) {
-      return console.error("Config is not found!");
+      return console.error("Config is not found!", e.message);
     }
 
     if (config.timeout < config.interval * 60 * 2) {
