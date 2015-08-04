@@ -455,7 +455,7 @@ var chat = {
       for (service in topArr) {
         textArr.push('');
         textArr.push(_this.serviceToTitle[service] + ':');
-        topArr[service].sort(function(a, b){return a[1] > b[1] ? 1 : -1}).splice(10);
+        topArr[service].sort(function(a, b){return a[1] === b[1] ? 0 : a[1] > b[1] ? -1 : 1}).splice(10);
         topArr[service].map(function(item, index) {
           textArr.push((index + 1) + '. ' + item[0]);
         });
