@@ -8,8 +8,8 @@
     "/add - Add channel in list",
     "/delete - Delete channel from list",
     "/list - Show list of channel",
-    "/clear - Clear channel list",
-    "/top - Top 10"
+    "/top - Top 10",
+    "/clear - Clear channel list"
   ],
   "online": "Now online:",
   "offline": "All channels in offline",
