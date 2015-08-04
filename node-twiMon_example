@@ -7,7 +7,8 @@ PID_DIR="$APP_DIR/pid"
 PID_FILE="$PID_DIR/app.pid"
 LOG_DIR="$APP_DIR/log"
 LOG_FILE="$LOG_DIR/app.log"
-NODE_EXEC="exec sudo -u www-data $(which node) --always-compact --max_new_space_size=5000 --expose-gc"
+LOG_ERROR="$LOG_DIR/error.log"
+NODE_EXEC="exec sudo -u www-data $(which node) --always-compact  --max_new_space_size=5000 --expose-gc"
 
 ###############
 
@@ -49,7 +50,7 @@ start_it() {
 
     echo "Starting node app ..."
 	cd $APP_DIR
-    NODE_CONFIG_DIR="$CONFIG_DIR" $NODE_EXEC "$APP_DIR/$NODE_APP"  1>>"$LOG_FILE" 2>&1 &
+    NODE_CONFIG_DIR="$CONFIG_DIR" $NODE_EXEC "$APP_DIR/$NODE_APP"  1>>"$LOG_FILE" 2>>"$LOG_ERROR" &
     echo $! > "$PID_FILE"
     echo "Node app started with pid $!"
 }
