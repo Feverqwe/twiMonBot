@@ -125,7 +125,7 @@ var chacker = {
 
         onReady(fileId);
       }).catch(function(e) {
-        console.error('Send msg with photo error!', chatId, stream._channelName, '\n', e.message);
+        console.error('Send msg with photo error!', chatId, stream._channelName, '\n', e && e.message);
 
         this.onSendMsgError(e, chatId);
 
@@ -144,7 +144,7 @@ var chacker = {
 
       sendPic(chatId, req);
     } catch(e) {
-      console.error('Request photo exception!', stream._channelName, '\n', e && e.message);
+      console.error('Request photo exception!', stream._channelName, '\n', e.message);
       return onReady();
     }
   },
@@ -169,7 +169,7 @@ var chacker = {
     }.bind(this);
 
     var onError = function() {
-      console.error('Sending msg without photo!', stream._channelName, '\n', e && e.message);
+      console.error('Sending msg without photo!', stream._channelName);
       while (chatId = chatIdList.shift()) {
         sendMsg(chatId);
       }
