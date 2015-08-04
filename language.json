@@ -8,7 +8,8 @@
     "/add - Add channel in list",
     "/delete - Delete channel from list",
     "/list - Show list of channel",
-    "/clear - Clear channel list"
+    "/clear - Clear channel list",
+    "/top - Top 10"
   ],
   "online": "Now online:",
   "offline": "All channels in offline",
@@ -29,5 +30,7 @@
   "clearSure": [
     "If your are sure, enter:",
     "/clear yes"
-  ]
+  ],
+  "users": "Users: {count}",
+  "channels": "Channels: {count}"
 }

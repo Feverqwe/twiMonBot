@@ -42,7 +42,9 @@ var chat = {
     channelList: "{channelList}",
     channelNameIsEmpty: "{channelNameIsEmpty}",
     selectDelChannel: "{selectDelChannel}",
-    channelIsNotFound: "{channelIsNotFound}"
+    channelIsNotFound: "{channelIsNotFound}",
+    users: "{users}",
+    channels: "{channels}"
   },
   options: {
     hideKeyboard: {
@@ -390,6 +392,76 @@ var chat = {
           disable_web_page_preview: true
         });
       });
+    },
+    top: function(msg) {
+      var service, channelList, channelName;
+      var _this = chat;
+      var chatId = msg.chat.id;
+      var chatList = _this.storage.chatList;
+
+      var userCount = 0;
+      var channelCount = 0;
+
+      var top = {};
+      for (var _chatId in chatList) {
+        var chatItem = chatList[_chatId];
+        if (!chatItem.serviceList) {
+          continue;
+        }
+
+        userCount++;
+
+        for (var n = 0; service = _this.supportServiceList[n]; n++) {
+          var userChannelList = chatItem.serviceList[service];
+          if (!userChannelList) {
+            continue;
+          }
+
+          channelList = top[service];
+          if (channelList === undefined) {
+            channelList = top[service] = {};
+          }
+
+          for (var i = 0; channelName = userChannelList[i]; i++) {
+            if (channelList[channelName] === undefined) {
+              channelList[channelName] = 0;
+            }
+            channelList[channelName]++;
+          }
+        }
+      }
+
+      var topArr = {};
+      for (service in top) {
+        channelList = top[service];
+
+        channelCount += Object.keys(channelList).length;
+
+        if (!topArr[service]) {
+          topArr[service] = [];
+        }
+
+        for (channelName in channelList) {
+          var count = channelList[channelName];
+          topArr[service].push([channelName, count]);
+        }
+      }
+
+      var textArr = [];
+
+      textArr.push(_this.language.users.replace('{count}', userCount));
+      textArr.push(_this.language.channels.replace('{count}', channelCount));
+
+      for (service in topArr) {
+        textArr.push('');
+        textArr.push(_this.serviceToTitle[service] + ':');
+        topArr[service].sort(function(a, b){return a[1] > b[1] ? 1 : -1}).splice(10);
+        topArr[service].map(function(item, index) {
+          textArr.push((index + 1) + '. ' + item[0]);
+        });
+      }
+
+      _this.bot.sendMessage(chatId, textArr.join('\n'));
     }
   },
   checkArgs: function(msg, args) {
