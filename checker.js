@@ -89,12 +89,12 @@ var chacker = {
 
   getPicId: function(chatId, text, stream, onReady) {
     "use strict";
-    var sendPic = function(chatId, stream) {
+    var sendPic = function(chatId, request) {
       var timeout = setTimeout(function() {
         console.error('Send photo response timeout!', stream._channelName);
         onReady();
       }, 60 * 1000);
-      return this.bot.sendPhoto(chatId, stream, {
+      return this.bot.sendPhoto(chatId, request, {
         caption: text
       }).then(function (msg) {
         clearTimeout(timeout);
