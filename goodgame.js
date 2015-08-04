@@ -43,7 +43,7 @@ var apiNormalization = function(data) {
       }
     };
 
-    if (item.preview) {
+    if (typeof item.preview === 'string') {
       var sep = item.preview.indexOf('?') === -1 ? '?' : '&';
       item.preview += sep + '_=' + now;
     }
