@@ -14,6 +14,8 @@ var apiNormalization = function(data) {
   for (var streamId in data) {
     var origItem = data[streamId];
 
+    delete origItem.embed;
+    delete origItem.description;
     console.error('GG check', utils.getDate(), JSON.stringify(origItem));
 
     if (origItem.status !== 'Live') {
