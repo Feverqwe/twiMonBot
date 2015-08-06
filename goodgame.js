@@ -14,7 +14,12 @@ var apiNormalization = function(data) {
   for (var streamId in data) {
     var origItem = data[streamId];
 
+    console.error('GG check', utils.getDate(), JSON.stringify(origItem));
+
     if (origItem.status !== 'Live') {
+      if (origItem.status !== 'Dead') {
+        console.error('GG undefined status', origItem.status);
+      }
       continue;
     }
 

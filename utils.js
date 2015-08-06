@@ -138,6 +138,16 @@ var utils = {
     };
 
     return requestPromise(options).then(onReady).catch(onError);
+  },
+  getDate: function() {
+    "use strict";
+    var currentdate = new Date();
+    return currentdate.getDate() + "/"
+      + (currentdate.getMonth()+1)  + "/"
+      + currentdate.getFullYear() + " @ "
+      + currentdate.getHours() + ":"
+      + currentdate.getMinutes() + ":"
+      + currentdate.getSeconds();
   }
 };
 
