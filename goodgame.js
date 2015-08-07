@@ -16,11 +16,11 @@ var apiNormalization = function(data) {
 
     delete origItem.embed;
     delete origItem.description;
-    console.error('GG check', utils.getDate(), JSON.stringify(origItem));
 
     if (origItem.status !== 'Live') {
+      // TODO: Remove me!
       if (origItem.status !== 'Dead') {
-        console.error('GG undefined status', origItem.status);
+        console.error('GG undefined status', origItem.status, JSON.stringify(origItem));
       }
       continue;
     }
@@ -56,6 +56,8 @@ var apiNormalization = function(data) {
     }
 
     if (!item.channel.url) {
+      // TODO: Remove me!
+      console.error('GoodGame fix channel url!');
       item.channel.url = 'http://goodgame.ru/channel/' + item.channel.name + '/';
     }
 
