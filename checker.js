@@ -61,8 +61,15 @@ var chacker = {
     return false;
   },
 
-  isEqualObj: function(a, b) {
+  isEqualChannel: function(cItem, nItem) {
+    var brokenItems = this.getBrokenItems(cItem, nItem);
+
+    var a = cItem.channel;
+    var b = nItem.channel;
     for (var key in a) {
+      if (brokenItems.indexOf(key) !== -1) {
+        continue;
+      }
       if (a[key] !== b[key]) {
         return false;
       }
@@ -80,7 +87,7 @@ var chacker = {
         continue;
       }
 
-      if (now - cItem._addItemTime < this.storage.timeout && cItem.game === nItem.game && this.isEqualObj(cItem.channel, nItem.channel)) {
+      if (now - cItem._addItemTime < this.storage.timeout && cItem.game === nItem.game && this.isEqualChannel(cItem, nItem)) {
         return false;
       }
     }

@@ -42,7 +42,6 @@ var apiNormalization = function(data) {
       preview: origItem.thumb,
       created_at: undefined,
       channel: {
-        display_name: undefined,
         name: origItem.key,
         status: origItem.title,
         logo: origItem.img,
