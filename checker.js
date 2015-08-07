@@ -7,6 +7,7 @@ var chacker = {
   storage: {
     token: '',
     timeout: 900,
+    notifyTimeout: 60,
     chatList: {},
     lastStreamList: {}
   },
@@ -269,6 +270,7 @@ var chacker = {
         return;
       }
 
+      var now = parseInt(Date.now() / 1000);
       for (var i = 0, item; item = streamList[i]; i++) {
         var id = item._id;
 
@@ -280,11 +282,21 @@ var chacker = {
           }
         } else {
           item._isNotified = cItem._isNotified;
+          item._notifyTimeout = cItem._notifyTimeout;
+
+          if (item._isNotified && item._notifyTimeout < now) {
+            item._isNotified = false;
+            delete item._notifyTimeout;
+          }
 
           if (!item._isNotified && this.isStatusChange(cItem, item)) {
             item._isNotified = true;
             this.onNewStream(item);
           }
+        }
+
+        if (item._isNotified && !item._notifyTimeout) {
+          item._notifyTimeout = now + this.storage.notifyTimeout * 60;
         }
 
         lastStreamList[id] = item;
