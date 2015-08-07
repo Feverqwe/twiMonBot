@@ -9,6 +9,7 @@ var chat = {
   storage: {
     token: null,
     timeout: 900,
+    notifyTimeout: 60,
     interval: 5,
     includeChecker: true,
     chatList: {},
@@ -645,13 +646,13 @@ var chat = {
       console.log('Timeout auto change!', config.timeout + 'sec.');
     }
 
-    ['timeout', 'notifyTimeout', 'token', 'includeChecker'].forEach(function(key) {
+    ['timeout', 'notifyTimeout', 'interval', 'token', 'includeChecker'].forEach(function(key) {
       if (config.hasOwnProperty(key)) {
         this.storage[key] = config[key];
       }
     }.bind(this));
 
-    utils.storage.get(['chatList', 'lastStreamList', 'userList'], function(storage) {
+    utils.storage.get(['chatList', 'lastStreamList'], function(storage) {
       if (storage.chatList) {
         this.storage.chatList = storage.chatList;
       }
