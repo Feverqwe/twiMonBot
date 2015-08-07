@@ -31,8 +31,30 @@ var chacker = {
     }
   },
 
+  getBrokenItems: function(cItem, nItem) {
+    "use strict";
+    var brokenItems = [];
+    [cItem, nItem].forEach(function(item) {
+      if (!item._isBroken) {
+        return;
+      }
+      for (var n = 0, key; key = item._isBroken[n]; n++) {
+        if (brokenItems.indexOf(key) === -1) {
+          brokenItems.push(key);
+        }
+      }
+    });
+    return brokenItems;
+  },
+
   isStatusChange: function(cItem, nItem) {
-    if (cItem.game !== nItem.game || cItem.channel.status !== nItem.channel.status) {
+    var brokenItems = this.getBrokenItems(cItem, nItem);
+
+    if (cItem.game !== nItem.game && brokenItems.indexOf('game') === -1) {
+      return true;
+    }
+
+    if (cItem.channel.status !== nItem.channel.status && brokenItems.indexOf('status') === -1) {
       return true;
     }
 

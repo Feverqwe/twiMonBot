@@ -45,6 +45,9 @@ var apiNormalization = function(data) {
 
     if (!item.channel.url) {
       item.channel.url = 'http://www.twitch.tv/' + item.channel.name;
+      if (item.channel.status === undefined) {
+        item._isBroken = ['status'];
+      }
     }
 
     streams.push(item);
