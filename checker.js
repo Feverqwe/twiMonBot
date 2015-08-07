@@ -349,8 +349,11 @@ var chacker = {
       console.log('Timeout auto change!', config.timeout + 'sec.');
     }
 
-    this.storage.timeout = config.timeout;
-    this.storage.token = config.token;
+    ['timeout', 'notifyTimeout', 'token'].forEach(function(key) {
+      if (config.hasOwnProperty(key)) {
+        this.storage[key] = config[key];
+      }
+    }.bind(this));
 
     utils.storage.get(['chatList', 'lastStreamList'], function(storage) {
       if (storage.chatList) {

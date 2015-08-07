@@ -645,10 +645,11 @@ var chat = {
       console.log('Timeout auto change!', config.timeout + 'sec.');
     }
 
-    this.storage.timeout = config.timeout;
-    this.storage.interval = config.interval;
-    this.storage.token = config.token;
-    this.storage.includeChecker = config.includeChecker;
+    ['timeout', 'notifyTimeout', 'token', 'includeChecker'].forEach(function(key) {
+      if (config.hasOwnProperty(key)) {
+        this.storage[key] = config[key];
+      }
+    }.bind(this));
 
     utils.storage.get(['chatList', 'lastStreamList', 'userList'], function(storage) {
       if (storage.chatList) {
