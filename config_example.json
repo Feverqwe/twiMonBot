@@ -2,6 +2,5 @@
   "token": "",
   "interval": 5,
   "timeout": 900,
-  "includeChecker": true,
   "notifyTimeout": 60
 }

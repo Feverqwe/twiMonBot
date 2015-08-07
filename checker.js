@@ -4,14 +4,8 @@
 var utils = require('./utils');
 var TelegramBot = require('node-telegram-bot-api');
 var chacker = {
-  storage: {
-    token: '',
-    timeout: 900,
-    notifyTimeout: 60,
-    chatList: {},
-    lastStreamList: {}
-  },
-  supportServiceList: ['twitch', 'goodgame'],
+  storage: null,
+  language: null,
   bot: null,
 
   cleanStreamList: function(streamList) {
@@ -363,53 +357,16 @@ var chacker = {
   initBot: function() {
     "use strict";
     this.bot = new TelegramBot(this.storage.token);
-  },
-
-  once: function() {
-    "use strict";
-    try {
-      var config = JSON.parse(require("fs").readFileSync('./config.json', 'utf8'));
-    } catch (e) {
-      return console.error("Config is not found!", e.message);
-    }
-
-    if (config.timeout < config.interval * 60 * 2) {
-      config.timeout = parseInt(config.interval * 3 * 60);
-      console.log('Timeout auto change!', config.timeout + 'sec.');
-    }
-
-    ['timeout', 'notifyTimeout', 'token'].forEach(function(key) {
-      if (config.hasOwnProperty(key)) {
-        this.storage[key] = config[key];
-      }
-    }.bind(this));
-
-    utils.storage.get(['chatList', 'lastStreamList'], function(storage) {
-      if (storage.chatList) {
-        this.storage.chatList = storage.chatList;
-      }
-      if (storage.lastStreamList) {
-        this.storage.lastStreamList = storage.lastStreamList;
-      }
-
-      this.initBot();
-      this.updateList();
-    }.bind(this));
   }
 };
 
-var services = {};
-chacker.supportServiceList.forEach(function(service) {
-  services[service] = require('./' + service);
-});
+var services = null;
 
-if (require.main === module) {
-  chacker.once();
-} else {
-  module.exports.init = function(storage) {
-    "use strict";
-    chacker.storage = storage;
-    chacker.initBot();
-  };
-  module.exports.updateList = chacker.updateList.bind(chacker);
-}
+module.exports.init = function(storage, language, _services) {
+  "use strict";
+  chacker.storage = storage;
+  chacker.language = language;
+  services = _services;
+  chacker.initBot();
+};
+module.exports.updateList = chacker.updateList.bind(chacker);

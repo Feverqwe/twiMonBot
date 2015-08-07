@@ -11,7 +11,6 @@ var chat = {
     timeout: 900,
     notifyTimeout: 60,
     interval: 5,
-    includeChecker: true,
     chatList: {},
     lastStreamList: {}
   },
@@ -56,18 +55,6 @@ var chat = {
     }
   },
 
-  getLastStreamList: function(cb) {
-    "use strict";
-    if (this.storage.includeChecker) {
-      return cb();
-    }
-    utils.storage.get('lastStreamList', function(storage) {
-      if (storage.lastStreamList) {
-        this.storage.lastStreamList = storage.lastStreamList;
-      }
-      cb();
-    }.bind(this));
-  },
   onResponse: function(state, data, msg) {
     "use strict";
     debug('onResponse', state, data);
@@ -361,37 +348,35 @@ var chat = {
       }
 
       var onLineList = [];
-      _this.getLastStreamList(function() {
-        var lastStreamList = _this.storage.lastStreamList;
+      var lastStreamList = _this.storage.lastStreamList;
 
-        for (var service in chatItem.serviceList) {
-          var userChannelList = chatItem.serviceList[service];
+      for (var service in chatItem.serviceList) {
+        var userChannelList = chatItem.serviceList[service];
 
-          var channelList = [];
+        var channelList = [];
 
-          for (var id in lastStreamList) {
-            var stream = lastStreamList[id];
-            if (stream._isOffline || stream._service !== service) {
-              continue;
-            }
-
-            if (userChannelList.indexOf(stream._channelName) !== -1) {
-              channelList.push(_this.getStreamText(stream));
-            }
+        for (var id in lastStreamList) {
+          var stream = lastStreamList[id];
+          if (stream._isOffline || stream._service !== service) {
+            continue;
           }
 
-          channelList.length && onLineList.push(channelList.join('\n\n'));
+          if (userChannelList.indexOf(stream._channelName) !== -1) {
+            channelList.push(_this.getStreamText(stream));
+          }
         }
 
-        if (onLineList.length) {
-          onLineList.unshift(_this.language.online);
-        } else {
-          onLineList.unshift(_this.language.offline);
-        }
+        channelList.length && onLineList.push(channelList.join('\n\n'));
+      }
 
-        _this.bot.sendMessage(chatId, onLineList.join('\n\n'), {
-          disable_web_page_preview: true
-        });
+      if (onLineList.length) {
+        onLineList.unshift(_this.language.online);
+      } else {
+        onLineList.unshift(_this.language.offline);
+      }
+
+      _this.bot.sendMessage(chatId, onLineList.join('\n\n'), {
+        disable_web_page_preview: true
       });
     },
     top: function(msg) {
@@ -646,7 +631,7 @@ var chat = {
       console.log('Timeout auto change!', config.timeout + 'sec.');
     }
 
-    ['timeout', 'notifyTimeout', 'interval', 'token', 'includeChecker'].forEach(function(key) {
+    ['timeout', 'notifyTimeout', 'interval', 'token'].forEach(function(key) {
       if (config.hasOwnProperty(key)) {
         this.storage[key] = config[key];
       }
@@ -665,10 +650,8 @@ var chat = {
       }});
       this.bot.on('message', this.onMessage.bind(this));
 
-      if (this.storage.includeChecker) {
-        checker = require('./checker.js');
-        checker.init(this.storage);
-      }
+      checker = require('./checker.js');
+      checker.init(this.storage, this.language, services);
 
       this.runDaemon();
     }.bind(this));
