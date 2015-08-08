@@ -37,7 +37,11 @@ var apiNormalization = function(data) {
       }
     };
 
-    if (item.preview && typeof item.preview === 'string') {
+    if (!item.preview) {
+      // TODO: Remove me!
+      console.error('Twitch channel without preview!', item._channelName);
+    } else
+    if (typeof item.preview === 'string') {
       item.preview = item.preview.replace('{width}', '1279').replace('{height}', '720');
       var sep = item.preview.indexOf('?') === -1 ? '?' : '&';
       item.preview += sep + '_=' + now;

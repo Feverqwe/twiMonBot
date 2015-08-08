@@ -61,7 +61,7 @@ var apiNormalization = function(data) {
 
     if (!item.channel.url) {
       // TODO: Remove me!
-      console.error('GoodGame fix channel url!');
+      console.error('GoodGame fix channel url!', item._channelName);
       item.channel.url = 'http://goodgame.ru/channel/' + item.channel.name + '/';
     }
 
