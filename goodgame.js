@@ -54,7 +54,7 @@ var apiNormalization = function(data) {
       }
     };
 
-    if (item.preview && typeof item.preview === 'string') {
+    if (typeof item.preview === 'string') {
       var sep = item.preview.indexOf('?') === -1 ? '?' : '&';
       item.preview += sep + '_=' + now;
     }
