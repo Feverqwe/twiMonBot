@@ -30,6 +30,11 @@ var apiNormalization = function(data) {
       continue;
     }
 
+    if (!origItem.thumb) {
+      // If don't exists preview, and Live - API bug, it Dead
+      continue;
+    }
+
     var item = {
       _service: 'goodgame',
       _addItemTime: now,
@@ -49,7 +54,7 @@ var apiNormalization = function(data) {
       }
     };
 
-    if (typeof item.preview === 'string') {
+    if (item.preview && typeof item.preview === 'string') {
       var sep = item.preview.indexOf('?') === -1 ? '?' : '&';
       item.preview += sep + '_=' + now;
     }
