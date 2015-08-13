@@ -326,7 +326,7 @@ var chat = {
         return _this.bot.sendMessage(chatId, _this.language.emptyServiceList);
       }
 
-      var serviceList = [_this.language.channelList];
+      var serviceList = [];
       for (var service in chatItem.serviceList) {
         serviceList.push(_this.serviceToTitle[service] + ': ' + chatItem.serviceList[service].join(', '));
       }
