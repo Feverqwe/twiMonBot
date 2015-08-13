@@ -27,7 +27,6 @@ var chat = {
   },
   language: {
     help: "{help}",
-    online: "{online}",
     offline: "{offline}",
     emptyServiceList: "{emptyServiceList}",
     enterChannelName: "{enterChannelName}",
@@ -369,9 +368,7 @@ var chat = {
         channelList.length && onLineList.push(channelList.join('\n\n'));
       }
 
-      if (onLineList.length) {
-        onLineList.unshift(_this.language.online);
-      } else {
+      if (!onLineList.length) {
         onLineList.unshift(_this.language.offline);
       }
 
