@@ -2,5 +2,5 @@
   "token": "",
   "interval": 5,
   "timeout": 900,
-  "notifyTimeout": 60
+  "notifyTimeout": 180
 }

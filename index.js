@@ -9,7 +9,7 @@ var chat = {
   storage: {
     token: null,
     timeout: 900,
-    notifyTimeout: 60,
+    notifyTimeout: 180,
     interval: 5,
     chatList: {},
     lastStreamList: {}
