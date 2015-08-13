@@ -375,7 +375,9 @@ var chat = {
         onLineList.unshift(_this.language.offline);
       }
 
-      _this.bot.sendMessage(chatId, onLineList.join('\n\n'), {
+      var text = utils.stripLinks(onLineList.join('\n\n'));
+
+      _this.bot.sendMessage(chatId, text, {
         disable_web_page_preview: true
       });
     },

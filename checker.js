@@ -270,6 +270,9 @@ var chacker = {
       chatIdList.push(chatItem.chatId);
     }
 
+    text = utils.stripLinks(text);
+    noPhotoText = utils.stripLinks(noPhotoText);
+
     chatIdList.length && this.sendNotify(chatIdList, text, noPhotoText, stream);
   },
 
