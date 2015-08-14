@@ -152,7 +152,6 @@ var chacker = {
         onReady(fileId);
       }).catch(function(e) {
         console.error('Send msg with photo error!', chatId, stream._channelName, '\n', e && e.message);
-        console.error('URL', stream.preview);
 
         this.onSendMsgError(e, chatId);
 
@@ -162,12 +161,7 @@ var chacker = {
 
     try {
       var request = require("request");
-      var req = request({
-        url: stream.preview,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.155 Safari/537.36'
-        }
-      });
+      var req = request(stream.preview);
 
       req.on('error', function() {
         console.error('Request photo error!', stream._channelName, '\n', stream.preview);
