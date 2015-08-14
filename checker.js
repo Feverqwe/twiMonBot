@@ -152,6 +152,7 @@ var chacker = {
         onReady(fileId);
       }).catch(function(e) {
         console.error('Send msg with photo error!', chatId, stream._channelName, '\n', e && e.message);
+        console.error('URL', stream.preview);
 
         this.onSendMsgError(e, chatId);
 
