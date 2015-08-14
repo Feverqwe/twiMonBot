@@ -127,16 +127,18 @@ var chacker = {
       return;
     }
 
+    var needSave = false;
     var storage = this.storage;
     for (var _chatId in storage.chatList) {
       var item = storage.chatList[_chatId];
       if (item.chatId === chatId) {
         console.error('Remove chat', chatId, '\n', JSON.stringify(item));
         delete storage.chatList[_chatId];
+        needSave = true;
       }
     }
 
-    utils.storage.set({chatList: storage.chatList});
+    needSave &&  utils.storage.set({chatList: storage.chatList});
   },
 
   getPicId: function(chatId, text, stream, onReady) {
