@@ -161,7 +161,12 @@ var chacker = {
 
     try {
       var request = require("request");
-      var req = request(stream.preview);
+      var req = request({
+        url: stream.preview,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.155 Safari/537.36'
+        }
+      });
 
       req.on('error', function() {
         console.error('Request photo error!', stream._channelName, '\n', stream.preview);
