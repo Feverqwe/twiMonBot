@@ -668,7 +668,7 @@ var chat = {
   }
 };
 
-var botan;
+var botan = null;
 var services = {};
 chat.supportServiceList.forEach(function(service) {
   services[service] = require('./' + service);
