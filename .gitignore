@@ -6,4 +6,5 @@ log/
 pid/
 config.json
 node-twiMon
+/backup
 old/

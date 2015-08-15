@@ -543,7 +543,7 @@ var chat = {
     args.unshift(msg);
 
     func.apply(this.actionList, args);
-    
+
     botan.track(msg, action);
   },
 
