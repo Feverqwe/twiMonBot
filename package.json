@@ -6,6 +6,7 @@
     "node-localstorage": "",
     "debug": "",
     "bluebird": "",
-    "request": ""
+    "request": "",
+    "botanio": ""
   }
 }

@@ -12,7 +12,8 @@ var chat = {
     notifyTimeout: 180,
     interval: 5,
     chatList: {},
-    lastStreamList: {}
+    lastStreamList: {},
+    botanToken: ""
   },
   stateList: {},
   supportServiceList: ['twitch', 'goodgame'],
@@ -542,6 +543,8 @@ var chat = {
     args.unshift(msg);
 
     func.apply(this.actionList, args);
+    
+    botan.track(msg, action);
   },
 
   checker: {
@@ -630,7 +633,7 @@ var chat = {
       console.log('Timeout auto change!', config.timeout + 'sec.');
     }
 
-    ['timeout', 'notifyTimeout', 'interval', 'token'].forEach(function(key) {
+    ['timeout', 'notifyTimeout', 'interval', 'token', 'botanToken'].forEach(function(key) {
       if (config.hasOwnProperty(key)) {
         this.storage[key] = config[key];
       }
@@ -649,6 +652,8 @@ var chat = {
       }});
       this.bot.on('message', this.onMessage.bind(this));
 
+      botan = require('botanio')(this.storage.botanToken);
+
       checker = require('./checker.js');
       checker.init(this.storage, this.language, services);
 
@@ -657,6 +662,7 @@ var chat = {
   }
 };
 
+var botan;
 var services = {};
 chat.supportServiceList.forEach(function(service) {
   services[service] = require('./' + service);
