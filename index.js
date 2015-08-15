@@ -544,7 +544,13 @@ var chat = {
 
     func.apply(this.actionList, args);
 
-    botan.track(msg, action);
+    botan.track({
+      text: msg.text,
+      chat: {
+        id: msg.chatId
+      },
+      date: msg.date
+    }, action);
   },
 
   checker: {
