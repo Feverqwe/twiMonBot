@@ -547,7 +547,7 @@ var chat = {
     botan.track({
       text: msg.text,
       chat: {
-        id: msg.chatId
+        id: msg.chat.id
       },
       date: msg.date
     }, action);
