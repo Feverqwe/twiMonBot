@@ -151,8 +151,8 @@ var chacker = {
 
         onReady(fileId);
 
-        chacker.track(stream, 'sendPhoto');
-      }).catch(function(e) {
+        this.track(stream, 'sendPhoto');
+      }.bind(this)).catch(function(e) {
         console.error('Send msg with photo error!', chatId, stream._channelName, '\n', e && e.message);
 
         this.onSendMsgError(e, chatId);
@@ -180,8 +180,8 @@ var chacker = {
   sendNotify: function(chatIdList, text, noPhotoText, stream) {
     var sendMsg = function(chatId) {
       this.bot.sendMessage(chatId, noPhotoText).then(function() {
-        chacker.track(stream, 'sendMsg');
-      }).catch(function(e) {
+        this.track(stream, 'sendMsg');
+      }.bind(this)).catch(function(e) {
         console.error('Send msg without photo error!', chatId, stream._channelName, '\n', e && e.message);
 
         this.onSendMsgError(e, chatId);
@@ -192,8 +192,8 @@ var chacker = {
       this.bot.sendPhoto(chatId, fileId, {
         caption: text
       }).then(function() {
-        chacker.track(stream, 'sendPhoto');
-      }).catch(function(e) {
+        this.track(stream, 'sendPhoto');
+      }.bind(this)).catch(function(e) {
         console.error('Send msg with photo id error!', chatId, stream._channelName, '\n', e && e.message);
 
         this.onSendMsgError(e, chatId);
