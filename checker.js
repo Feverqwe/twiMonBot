@@ -151,7 +151,7 @@ var chacker = {
 
         onReady(fileId);
 
-        this.track(stream, 'sendPhoto');
+        this.track(chatId, stream, 'sendPhoto');
       }.bind(this)).catch(function(e) {
         console.error('Send msg with photo error!', chatId, stream._channelName, '\n', e && e.message);
 
@@ -180,7 +180,7 @@ var chacker = {
   sendNotify: function(chatIdList, text, noPhotoText, stream) {
     var sendMsg = function(chatId) {
       this.bot.sendMessage(chatId, noPhotoText).then(function() {
-        this.track(stream, 'sendMsg');
+        this.track(chatId, stream, 'sendMsg');
       }.bind(this)).catch(function(e) {
         console.error('Send msg without photo error!', chatId, stream._channelName, '\n', e && e.message);
 
@@ -192,7 +192,7 @@ var chacker = {
       this.bot.sendPhoto(chatId, fileId, {
         caption: text
       }).then(function() {
-        this.track(stream, 'sendPhoto');
+        this.track(chatId, stream, 'sendPhoto');
       }.bind(this)).catch(function(e) {
         console.error('Send msg with photo id error!', chatId, stream._channelName, '\n', e && e.message);
 
@@ -370,7 +370,7 @@ var chacker = {
     this.bot = new TelegramBot(this.storage.token);
   },
 
-  track: function(stream, title) {
+  track: function(chatId, stream, title) {
     "use strict";
     botan.track({text: stream._channelName, from: {id: 1}, chat: {id: chatId}, date: parseInt(Date.now() / 1000)}, title);
   }
