@@ -544,6 +544,11 @@ var chat = {
 
     func.apply(this.actionList, args);
 
+    this.track(msg, action)
+  },
+
+  track: function(msg, title) {
+    "use strict";
     botan.track({
       text: msg.text,
       from: {
@@ -553,7 +558,7 @@ var chat = {
         id: msg.chat.id
       },
       date: msg.date
-    }, action);
+    }, title);
   },
 
   checker: {
