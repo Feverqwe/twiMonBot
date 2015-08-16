@@ -372,7 +372,7 @@ var chacker = {
 
   track: function(stream, title) {
     "use strict";
-    botan.track({text: stream._channelName, from: {id: 0}, chat: {id: chatId}, date: parseInt(Date.now() / 1000)}, title);
+    botan.track({text: stream._channelName, from: {id: 1}, chat: {id: chatId}, date: parseInt(Date.now() / 1000)}, title);
   }
 };
 
