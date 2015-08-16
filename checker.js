@@ -150,6 +150,8 @@ var chacker = {
         var fileId = msg && msg.photo && msg.photo[0] && msg.photo[0].file_id;
 
         onReady(fileId);
+
+        chacker.track(stream, 'sendPhoto');
       }).catch(function(e) {
         console.error('Send msg with photo error!', chatId, stream._channelName, '\n', e && e.message);
 
@@ -177,7 +179,9 @@ var chacker = {
 
   sendNotify: function(chatIdList, text, noPhotoText, stream) {
     var sendMsg = function(chatId) {
-      this.bot.sendMessage(chatId, noPhotoText).catch(function(e) {
+      this.bot.sendMessage(chatId, noPhotoText).then(function() {
+        chacker.track(stream, 'sendMsg');
+      }).catch(function(e) {
         console.error('Send msg without photo error!', chatId, stream._channelName, '\n', e && e.message);
 
         this.onSendMsgError(e, chatId);
@@ -187,6 +191,8 @@ var chacker = {
     var sendPic = function(chatId, fileId) {
       this.bot.sendPhoto(chatId, fileId, {
         caption: text
+      }).then(function() {
+        chacker.track(stream, 'sendPhoto');
       }).catch(function(e) {
         console.error('Send msg with photo id error!', chatId, stream._channelName, '\n', e && e.message);
 
@@ -362,16 +368,23 @@ var chacker = {
   initBot: function() {
     "use strict";
     this.bot = new TelegramBot(this.storage.token);
+  },
+
+  track: function(stream, title) {
+    "use strict";
+    botan.track({text: stream._channelName, from: {id: 0}, chat: {id: chatId}, date: parseInt(Date.now() / 1000)}, title);
   }
 };
 
 var services = null;
+var botan = null;
 
-module.exports.init = function(storage, language, _services) {
+module.exports.init = function(storage, language, _services, _botan) {
   "use strict";
   chacker.storage = storage;
   chacker.language = language;
   services = _services;
+  botan = _botan;
   chacker.initBot();
 };
 module.exports.updateList = chacker.updateList.bind(chacker);

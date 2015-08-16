@@ -664,7 +664,7 @@ var chat = {
       botan = require('botanio')(this.storage.botanToken);
 
       checker = require('./checker.js');
-      checker.init(this.storage, this.language, services);
+      checker.init(this.storage, this.language, services, botan);
 
       this.runDaemon();
     }.bind(this));
