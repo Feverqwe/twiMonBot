@@ -1,6 +1,7 @@
 /**
  * Created by Anton on 20.07.2015.
  */
+var streamLog = true;
 var utils = require('./utils');
 var TelegramBot = require('node-telegram-bot-api');
 var chacker = {
@@ -22,6 +23,7 @@ var chacker = {
 
     for (var i = 0; id = rmList[i]; i++) {
       delete streamList[id];
+      streamLog && console.log('[s]', utils.getDate(), 'R     ', id);
     }
   },
 
@@ -313,6 +315,9 @@ var chacker = {
         if (!cItem) {
           if (item._isNotified = this.isNotDblItem(item)) {
             this.onNewStream(item);
+            streamLog && console.log('[s]', utils.getDate(), 'NewN  ', item._channelName);
+          } else {
+            streamLog && console.log('[s]', utils.getDate(),'isDbl ', item._channelName);
           }
         } else {
           item._isNotified = cItem._isNotified;
@@ -326,6 +331,7 @@ var chacker = {
           if (!item._isNotified && this.isStatusChange(cItem, item)) {
             item._isNotified = true;
             this.onNewStream(item);
+            streamLog && console.log('[s]', utils.getDate(),'ExN   ', item._channelName);
           }
         }
 
