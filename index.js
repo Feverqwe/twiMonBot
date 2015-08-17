@@ -549,16 +549,20 @@ var chat = {
 
   track: function(msg, title) {
     "use strict";
-    botan.track({
-      text: msg.text,
-      from: {
-        id: msg.from.id
-      },
-      chat: {
-        id: msg.chat.id
-      },
-      date: msg.date
-    }, title);
+    try {
+      botan.track({
+        text: msg.text,
+        from: {
+          id: msg.from.id
+        },
+        chat: {
+          id: msg.chat.id
+        },
+        date: msg.date
+      }, title);
+    } catch(e) {
+      console.error('Botan track error', e.message);
+    }
   },
 
   checker: {

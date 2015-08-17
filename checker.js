@@ -372,7 +372,20 @@ var chacker = {
 
   track: function(chatId, stream, title) {
     "use strict";
-    botan.track({text: stream._channelName, from: {id: 1}, chat: {id: chatId}, date: parseInt(Date.now() / 1000)}, title);
+    try {
+      botan.track({
+        text: stream._channelName,
+        from: {
+          id: 1
+        },
+        chat: {
+          id: chatId
+        },
+        date: parseInt(Date.now() / 1000)
+      }, title);
+    } catch(e) {
+      console.error('Botan track error', e.message);
+    }
   }
 };
 
