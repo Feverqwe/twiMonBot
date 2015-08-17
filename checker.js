@@ -17,13 +17,13 @@ var chacker = {
       var item = streamList[id];
       if (now - item._addItemTime > this.storage.timeout && item._isOffline) {
         rmList.push(id);
+        streamLog && console.log('[s]', utils.getDate(), 'R     ', item._channelName, '#', item.channel.status, '#', item.game);
       }
       item._isOffline = true;
     }
 
     for (var i = 0; id = rmList[i]; i++) {
       delete streamList[id];
-      streamLog && console.log('[s]', utils.getDate(), 'R     ', id);
     }
   },
 
@@ -315,9 +315,9 @@ var chacker = {
         if (!cItem) {
           if (item._isNotified = this.isNotDblItem(item)) {
             this.onNewStream(item);
-            streamLog && console.log('[s]', utils.getDate(), 'NewN  ', item._channelName);
+            streamLog && console.log('[s]', utils.getDate(), 'NewN  ', item._channelName, '#', item.channel.status, '#', item.game);
           } else {
-            streamLog && console.log('[s]', utils.getDate(),'isDbl ', item._channelName);
+            streamLog && console.log('[s]', utils.getDate(),'isDbl ', item._channelName, '#', item.channel.status, '#', item.game);
           }
         } else {
           item._isNotified = cItem._isNotified;
@@ -331,7 +331,7 @@ var chacker = {
           if (!item._isNotified && this.isStatusChange(cItem, item)) {
             item._isNotified = true;
             this.onNewStream(item);
-            streamLog && console.log('[s]', utils.getDate(),'ExN   ', item._channelName);
+            streamLog && console.log('[s]', utils.getDate(),'ExN   ', item._channelName, '#', item.channel.status, '#', item.game);
           }
         }
 

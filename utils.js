@@ -145,13 +145,25 @@ var utils = {
   },
   getDate: function() {
     "use strict";
-    var currentdate = new Date();
-    return currentdate.getDate() + "/"
-      + (currentdate.getMonth()+1)  + "/"
-      + currentdate.getFullYear() + " @ "
-      + currentdate.getHours() + ":"
-      + currentdate.getMinutes() + ":"
-      + currentdate.getSeconds();
+    var today = new Date();
+    var h = today.getHours();
+    var m = today.getMinutes();
+    var s = today.getSeconds();
+    if (h < 10) {
+      h = '0' + h;
+    }
+    if (m < 10) {
+      m = '0' + m;
+    }
+    if (s < 10) {
+      s = '0' + s;
+    }
+    return today.getDate() + "/"
+      + (today.getMonth()+1)  + "/"
+      + today.getFullYear() + " @ "
+      + h + ":"
+      + m + ":"
+      + s;
   }
 };
 
