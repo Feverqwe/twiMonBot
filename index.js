@@ -54,49 +54,60 @@ var chat = {
       })
     }
   },
-
-  onResponse: function(state, data, msg) {
+  getServiceListKeyboard: function() {
     "use strict";
-    debug('onResponse', state, data);
-    var chatId = msg.chat.id;
-
-    if (state === 'channelName') {
-      data.push(msg.text);
-      this.stateList[chatId] = this.onResponse.bind(this, 'service', data);
-      this.stateList[chatId].command = 'add';
-
-      var btnList = [];
-      for (var i = 0, service; service = this.supportServiceList[i]; i++) {
-        btnList.push([this.serviceToTitle[service]]);
+    var last = [];
+    var btnList = [last];
+    for (var i = 0, service; service = this.supportServiceList[i]; i++) {
+      if (last.length === 2) {
+        last = [];
+        btnList.push(last);
       }
-      btnList.push(['Cancel']);
+      last.push(this.serviceToTitle[service]);
+    }
+    btnList.push(['Cancel']);
 
-      this.bot.sendMessage(chatId, this.language.enterService, {
+    return btnList;
+  },
+  sceneList: {
+    waitChannelName: function(data, msg) {
+      "use strict";
+      var _this = chat;
+      var chatId = msg.chat.id;
+
+      _this.stateList[chatId] = function(msg) {
+        data.push(msg.text);
+
+        _this.sceneList.waitServiceName(data, msg);
+      };
+      _this.stateList[chatId].command = 'add';
+
+      _this.bot.sendMessage(
+        chatId,
+        _this.language.enterChannelName
+      );
+    },
+    waitServiceName: function(data, msg) {
+      "use strict";
+      var _this = chat;
+      var chatId = msg.chat.id;
+
+      _this.stateList[chatId] = function(msg) {
+        "use strict";
+        data.push(msg.text);
+        msg.text = '/a ' + data.join(' ');
+        _this.onMessage(msg);
+      };
+      _this.stateList[chatId].command = 'add';
+
+      _this.bot.sendMessage(chatId, _this.language.enterService, {
         reply_markup: JSON.stringify({
-          keyboard: btnList,
+          keyboard: _this.getServiceListKeyboard(),
           resize_keyboard: true,
           one_time_keyboard: true,
           selective: true
         })
       });
-    }
-
-    if (state === 'service') {
-      data.push(msg.text);
-      msg.text = '/a ' + data.join(' ');
-      this.onMessage(msg);
-    }
-
-    if (state === 'delete') {
-      data = msg.text.match(/^(.+) \((.+)\)$/);
-      if (!data) {
-        debug("Can't match delete channel");
-        return;
-      }
-      data.shift();
-
-      msg.text = '/d ' + data.join(' ');
-      this.onMessage(msg);
     }
   },
   getStreamText: function(stream) {
@@ -196,18 +207,24 @@ var chat = {
         });
       });
     },
-    add: function(msg) {
+    add: function(msg, channelName, serviceName) {
       "use strict";
       var _this = chat;
       var chatId = msg.chat.id;
 
-      _this.stateList[chatId] = _this.onResponse.bind(_this, 'channelName', []);
-      _this.stateList[chatId].command = 'add';
+      var data = [];
+      channelName && data.push(channelName);
+      channelName && serviceName && data.push(serviceName);
 
-      _this.bot.sendMessage(
-        chatId,
-        _this.language.enterChannelName
-      );
+      if (data.length === 0) {
+        _this.sceneList.waitChannelName(data, msg);
+      } else
+      if (data.length === 1) {
+        _this.sceneList.waitServiceName(data, msg);
+      } else {
+        msg.text = '/a ' + data.join(' ');
+        _this.onMessage(msg);
+      }
     },
     d: function(msg, channelName, service) {
       "use strict";
@@ -257,7 +274,17 @@ var chat = {
         return _this.bot.sendMessage(chatId, _this.language.emptyServiceList, _this.options.hideKeyboard);
       }
 
-      _this.stateList[chatId] = _this.onResponse.bind(_this, 'delete', []);
+      _this.stateList[chatId] = function(msg) {
+        var data = msg.text.match(/^(.+) \((.+)\)$/);
+        if (!data) {
+          debug("Can't match delete channel");
+          return;
+        }
+        data.shift();
+
+        msg.text = '/d ' + data.join(' ');
+        _this.onMessage(msg);
+      };
       _this.stateList[chatId].command = 'delete';
 
       var btnList = [];
@@ -483,6 +510,10 @@ var chat = {
 
     return args;
   },
+  getArgs: function(text) {
+    "use strict";
+    return text.split(/\s+/);
+  },
   /**
    * @param {{chat: {id: Number}, [text]: String}} msg
    */
@@ -519,7 +550,7 @@ var chat = {
 
     text = text.substr(1);
 
-    var args = text.split(/\s+/);
+    var args = this.getArgs(text);
 
     var action = args.shift().toLowerCase();
     var func = this.actionList[action];
@@ -670,7 +701,13 @@ var chat = {
       }});
       this.bot.on('message', this.onMessage.bind(this));
 
-      botan = require('botanio')(this.storage.botanToken);
+      if (this.storage.botanToken) {
+        botan = require('botanio')(this.storage.botanToken);
+      } else {
+        botan = {track: function(data, action){
+          debug("Track", action, data);
+        }};
+      }
 
       checker = require('./checker.js');
       checker.init(this.storage, this.language, services, botan);
