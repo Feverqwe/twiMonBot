@@ -5,6 +5,7 @@ var checker = null;
 var utils = require('./utils');
 var TelegramBot = require('node-telegram-bot-api');
 var debug = require('debug')('chat');
+var rmStateLog = true;
 var chat = {
   storage: {
     token: null,
@@ -69,6 +70,23 @@ var chat = {
 
     return btnList;
   },
+  clearStateList: function() {
+    "use strict";
+    var chatId, i;
+    var aliveTime = Date.now() - 5 * 60 * 1000;
+    var rmList = [];
+    var stateList = this.stateList;
+    for (chatId in stateList) {
+      var func = stateList[chatId];
+      if (func.now < aliveTime) {
+        rmList.push(chatId);
+        rmStateLog && console.log('[c]', 'rmState', chatId, func.command || '');
+      }
+    }
+    for (i = 0, chatId; chatId = rmList[i]; i++) {
+      delete stateList[chatId];
+    }
+  },
   sceneList: {
     waitChannelName: function(data, msg) {
       "use strict";
@@ -81,6 +99,7 @@ var chat = {
         _this.sceneList.waitServiceName(data, msg);
       };
       _this.stateList[chatId].command = 'add';
+      _this.stateList[chatId].now = Date.now();
 
       _this.bot.sendMessage(
         chatId,
@@ -99,6 +118,7 @@ var chat = {
         _this.onMessage(msg);
       };
       _this.stateList[chatId].command = 'add';
+      _this.stateList[chatId].now = Date.now();
 
       _this.bot.sendMessage(chatId, _this.language.enterService, {
         reply_markup: JSON.stringify({
@@ -286,6 +306,7 @@ var chat = {
         _this.onMessage(msg);
       };
       _this.stateList[chatId].command = 'delete';
+      _this.stateList[chatId].now = Date.now();
 
       var btnList = [];
       for (var service in chatItem.serviceList) {
@@ -652,6 +673,8 @@ var chat = {
     var hasGc = typeof gc === 'function';
 
     setInterval(function() {
+      chat.clearStateList();
+
       hasGc && gc();
     }, 60 * 1000);
   },
