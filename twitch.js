@@ -5,7 +5,7 @@ var utils = require('./utils');
 var apiNormalization = function(data) {
   "use strict";
   if (!data || !Array.isArray(data.streams)) {
-    console.error('Twitch bad response!');
+    console.error(utils.getDate(), 'Twitch bad response!');
     return;
   }
   var now = parseInt(Date.now() / 1000);
@@ -13,7 +13,7 @@ var apiNormalization = function(data) {
   var origStreams = data && data.streams || [];
   for (var i = 0, origItem; origItem = origStreams[i]; i++) {
     if (!origItem.channel || !origItem.channel.name) {
-      console.error('Twitch channel without name!');
+      console.error(utils.getDate(), 'Twitch channel without name!');
       continue;
     }
 
@@ -37,12 +37,8 @@ var apiNormalization = function(data) {
       }
     };
 
-    if (!item.preview) {
-      // TODO: Remove me!
-      console.error('Twitch channel without preview!', item._channelName);
-    } else
     if (typeof item.preview === 'string') {
-      item.preview = item.preview.replace('{width}', '1279').replace('{height}', '720');
+      item.preview = item.preview.replace('{width}', '1280').replace('{height}', '720');
       var sep = item.preview.indexOf('?') === -1 ? '?' : '&';
       item.preview += sep + '_=' + now;
     }
@@ -76,7 +72,7 @@ var getTwitchStreamList = function(channelList, cb) {
       cb(apiNormalization(data));
     },
     error: function(errorMsg) {
-      console.error('Twitch check request error!', errorMsg);
+      console.error(utils.getDate(), 'Twitch check request error!', errorMsg);
       cb();
     }
   });
@@ -95,10 +91,10 @@ var getChannelName = function(channelName, cb) {
       if (!data || !data.name) {
         return cb();
       }
-      cb(data.name.toLowerCase());
+      cb(data.name);
     },
     error: function(errorMsg) {
-      console.error('Twitch get channelName request error!', errorMsg);
+      console.error(utils.getDate(), 'Twitch get channelName request error!', errorMsg);
       cb();
     }
   });

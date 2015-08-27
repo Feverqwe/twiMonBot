@@ -5,7 +5,7 @@ var utils = require('./utils');
 var apiNormalization = function(data) {
   "use strict";
   if (!data || typeof data !== 'object') {
-    console.error('GoodGame bad response!');
+    console.error(utils.getDate(), 'GoodGame bad response!');
     return;
   }
 
@@ -18,15 +18,11 @@ var apiNormalization = function(data) {
     delete origItem.description;
 
     if (origItem.status !== 'Live') {
-      // TODO: Remove me!
-      if (origItem.status !== 'Dead') {
-        console.error('GG undefined status', origItem.status, JSON.stringify(origItem));
-      }
       continue;
     }
 
     if (!origItem.key) {
-      console.error('GoodGame channel without name!');
+      console.error(utils.getDate(), 'GoodGame channel without name!');
       continue;
     }
 
@@ -59,12 +55,6 @@ var apiNormalization = function(data) {
       item.preview += sep + '_=' + now;
     }
 
-    if (!item.channel.url) {
-      // TODO: Remove me!
-      console.error('GoodGame fix channel url!', item._channelName);
-      item.channel.url = 'http://goodgame.ru/channel/' + item.channel.name + '/';
-    }
-
     streams.push(item);
   }
   return streams;
@@ -84,7 +74,7 @@ var getGoodGameStreamList = function(channelList, cb) {
       cb(apiNormalization(data));
     },
     error: function(errorMsg) {
-      console.error('GoodGame check request error!', errorMsg);
+      console.error(utils.getDate(), 'GoodGame check request error!', errorMsg);
       cb();
     }
   });
@@ -102,13 +92,13 @@ var getChannelName = function(channelName, cb) {
       for (var key in data) {
         var item = data[key];
         if (item.key) {
-          return cb(item.key.toLowerCase());
+          return cb(item.key);
         }
       }
       cb();
     },
     error: function(errorMsg) {
-      console.error('GoodGame get channelName request error!', errorMsg);
+      console.error(utils.getDate(), 'GoodGame get channelName request error!', errorMsg);
       cb();
     }
   });

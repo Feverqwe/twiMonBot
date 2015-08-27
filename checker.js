@@ -92,22 +92,32 @@ var chacker = {
   },
 
   getChannelList: function() {
+    "use strict";
     var serviceList = {};
     var chatList = this.storage.chatList;
 
     for (var chatId in chatList) {
       var chatItem = chatList[chatId];
       for (var service in chatItem.serviceList) {
+        var lowChannelList = serviceList['low-'+service] = serviceList['low-'+service] || [];
         var channelList = serviceList[service] = serviceList[service] || [];
 
         var userChannelList = chatItem.serviceList[service];
+
         for (var i = 0, channelName; channelName = userChannelList[i]; i++) {
-          if (channelList.indexOf(channelName) !== -1) {
+          var lowChannelName = channelName.toLowerCase();
+          if (lowChannelList.indexOf(lowChannelName) !== -1) {
             continue;
           }
+          lowChannelList.push(lowChannelName);
+
           channelList.push(channelName);
         }
       }
+    }
+
+    for (var service in chatItem.serviceList) {
+      delete serviceList['low-'+service];
     }
 
     return serviceList;
@@ -134,7 +144,7 @@ var chacker = {
     for (var _chatId in storage.chatList) {
       var item = storage.chatList[_chatId];
       if (item.chatId === chatId) {
-        console.error('Remove chat', chatId, '\n', JSON.stringify(item));
+        console.error(utils.getDate(), 'Remove chat', chatId, '\n', JSON.stringify(item));
         delete storage.chatList[_chatId];
         needSave = true;
       }
@@ -155,7 +165,7 @@ var chacker = {
 
         this.track(chatId, stream, 'sendPhoto');
       }.bind(this)).catch(function(e) {
-        console.error('Send msg with photo error!', chatId, stream._channelName, '\n', e && e.message);
+        console.error(utils.getDate(), 'Send msg with photo error!', chatId, stream._channelName, '\n', e && e.message);
 
         this.onSendMsgError(e, chatId);
 
@@ -168,13 +178,13 @@ var chacker = {
       var req = request(stream.preview);
 
       req.on('error', function() {
-        console.error('Request photo error!', stream._channelName, '\n', stream.preview);
+        console.error(utils.getDate(), 'Request photo error!', stream._channelName, '\n', stream.preview);
         return onReady();
       });
 
       sendPic(chatId, req);
     } catch(e) {
-      console.error('Request photo exception!', stream._channelName, '\n', e.message);
+      console.error(utils.getDate(), 'Request photo exception!', stream._channelName, '\n', e.message);
       return onReady();
     }
   },
@@ -184,7 +194,7 @@ var chacker = {
       this.bot.sendMessage(chatId, noPhotoText).then(function() {
         this.track(chatId, stream, 'sendMsg');
       }.bind(this)).catch(function(e) {
-        console.error('Send msg without photo error!', chatId, stream._channelName, '\n', e && e.message);
+        console.error(utils.getDate(), 'Send msg without photo error!', chatId, stream._channelName, '\n', e && e.message);
 
         this.onSendMsgError(e, chatId);
       }.bind(this));
@@ -196,14 +206,14 @@ var chacker = {
       }).then(function() {
         this.track(chatId, stream, 'sendPhoto');
       }.bind(this)).catch(function(e) {
-        console.error('Send msg with photo id error!', chatId, stream._channelName, '\n', e && e.message);
+        console.error(utils.getDate(), 'Send msg with photo id error!', chatId, stream._channelName, '\n', e && e.message);
 
         this.onSendMsgError(e, chatId);
       }.bind(this));
     }.bind(this);
 
     var onError = function() {
-      console.error('Sending msg without photo!', stream._channelName);
+      console.error(utils.getDate(), 'Sending msg without photo!', stream._channelName);
       while (chatId = chatIdList.shift()) {
         sendMsg(chatId);
       }
@@ -217,7 +227,7 @@ var chacker = {
     var fired = false;
     return this.getPicId(chatId, text, stream, function(fileId) {
       if (fired) {
-        console.error('Dbl fire getPicId!');
+        console.error(utils.getDate(), 'Dbl fire getPicId!');
         return;
       }
       fired = true;
@@ -234,6 +244,7 @@ var chacker = {
   },
 
   onNewStream: function(stream) {
+    "use strict";
     var textArr = [];
 
     // textArr.push(stream.channel.display_name || stream.channel.name);
@@ -273,7 +284,11 @@ var chacker = {
         continue;
       }
 
-      if (userChannelList.indexOf(stream._channelName) === -1) {
+      var lowUserChannelList = userChannelList.map(function(item) {
+        return item.toLowerCase();
+      });
+
+      if (lowUserChannelList.indexOf(stream._channelName) === -1) {
         continue;
       }
 
@@ -351,7 +366,7 @@ var chacker = {
 
     for (var service in serviceChannelList) {
       if (!services[service]) {
-        console.error('Service is not found!', service);
+        console.error(utils.getDate(), 'Service is not found!', service);
         continue;
       }
 
@@ -390,7 +405,7 @@ var chacker = {
         date: parseInt(Date.now() / 1000)
       }, title);
     } catch(e) {
-      console.error('Botan track error', e.message);
+      console.error(utils.getDate(), 'Botan track error', e.message);
     }
   }
 };

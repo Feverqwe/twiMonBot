@@ -79,7 +79,7 @@ var utils = {
     method.toUpperCase();
 
     var data = obj.data;
-    if (data && typeof data !== "string") {
+    if (data && typeof data !== "string" && !obj.json) {
       data = utils.param(data);
     }
 
@@ -105,7 +105,7 @@ var utils = {
       obj.headers["Content-Type"] = obj.contentType;
     }
 
-    if (data && !obj.headers["Content-Type"]) {
+    if (data && !obj.headers["Content-Type"] && !obj.json) {
       obj.headers["Content-Type"] = 'application/x-www-form-urlencoded; charset=UTF-8';
     }
 
@@ -120,6 +120,10 @@ var utils = {
 
     if (data) {
       options.body = data;
+    }
+
+    if (obj.json) {
+      options.json = true;
     }
 
     var onReady = function(response) {

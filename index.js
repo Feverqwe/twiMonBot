@@ -80,7 +80,7 @@ var chat = {
       var func = stateList[chatId];
       if (func.now < aliveTime) {
         rmList.push(chatId);
-        rmStateLog && console.log('[c]', 'rmState', chatId, func.command || '');
+        rmStateLog && console.log('[c]', utils.getDate(), 'rmState', chatId, func.command || '');
       }
     }
     for (i = 0, chatId; chatId = rmList[i]; i++) {
@@ -210,7 +210,11 @@ var chat = {
         var serviceList = chatItem.serviceList = chatItem.serviceList || {};
         var channelList = serviceList[service] = serviceList[service] || [];
 
-        if (channelList.indexOf(channelName) !== -1) {
+        var lowChannelList = channelList.map(function(item) {
+          return item.toLowerCase();
+        });
+
+        if (lowChannelList.indexOf(channelName.toLowerCase()) !== -1) {
           return _this.bot.sendMessage(chatId, _this.language.channelExists, _this.options.hideKeyboard);
         }
 
@@ -230,7 +234,6 @@ var chat = {
     add: function(msg, channelName, serviceName) {
       "use strict";
       var _this = chat;
-      var chatId = msg.chat.id;
 
       var data = [];
       channelName && data.push(channelName);
@@ -259,7 +262,11 @@ var chat = {
         return _this.bot.sendMessage(chatId, _this.language.emptyServiceList, _this.options.hideKeyboard);
       }
 
-      var pos = channelList.indexOf(channelName);
+      var lowChannelList = channelList.map(function(item) {
+        return item.toLowerCase();
+      });
+
+      var pos = lowChannelList.indexOf(channelName.toLowerCase());
       if (pos === -1) {
         return _this.bot.sendMessage(chatId, _this.language.channelDontExist, _this.options.hideKeyboard);
       }
@@ -338,7 +345,7 @@ var chat = {
         _this.options.hideKeyboard
       );
     },
-    clear: function(msg, arg1) {
+    clear: function(msg, isYes) {
       "use strict";
       var _this = chat;
       var chatId = msg.chat.id;
@@ -348,11 +355,11 @@ var chat = {
         return _this.bot.sendMessage(chatId, _this.language.emptyServiceList);
       }
 
-      if (!arg1) {
+      if (!isYes) {
         return _this.bot.sendMessage(chatId, _this.language.clearSure);
       }
 
-      if (arg1 !== 'yes') {
+      if (isYes !== 'yes') {
         return;
       }
 
@@ -400,6 +407,9 @@ var chat = {
 
       for (var service in chatItem.serviceList) {
         var userChannelList = chatItem.serviceList[service];
+        var lowUserChannelList = userChannelList.map(function(item) {
+          return item.toLowerCase();
+        });
 
         var channelList = [];
 
@@ -409,7 +419,7 @@ var chat = {
             continue;
           }
 
-          if (userChannelList.indexOf(stream._channelName) !== -1) {
+          if (lowUserChannelList.indexOf(stream._channelName) !== -1) {
             channelList.push(_this.getStreamText(stream));
           }
         }
@@ -451,12 +461,16 @@ var chat = {
             continue;
           }
 
+          var lowUserChannelList = userChannelList.map(function(item) {
+            return item.toLowerCase();
+          });
+
           channelList = top[service];
           if (channelList === undefined) {
             channelList = top[service] = {};
           }
 
-          for (var i = 0; channelName = userChannelList[i]; i++) {
+          for (var i = 0; channelName = lowUserChannelList[i]; i++) {
             if (channelList[channelName] === undefined) {
               channelList[channelName] = 0;
             }
@@ -510,8 +524,6 @@ var chat = {
       return;
     }
 
-    channelName = channelName.toLowerCase();
-
     service = service || this.supportServiceList[0];
     service = service.toLowerCase();
     service = this.serviceMap[service] || service;
@@ -533,7 +545,30 @@ var chat = {
   },
   getArgs: function(text) {
     "use strict";
-    return text.split(/\s+/);
+    var commands = [];
+
+    var command = text.match(/^([^\s]+)/);
+    command = command && command[1];
+    if (!command) {
+      return commands;
+    }
+    commands.push(command);
+
+    text = text.substr(command.length);
+
+    command = text.match(/\s*([^\s]+)$/);
+    command = command && command[1];
+    if (!command) {
+      return commands;
+    }
+    commands.push(command);
+
+    text = text.substr(0, text.length - command.length).trim();
+    if (text) {
+      commands.splice(1, 0, text);
+    }
+
+    return commands;
   },
   /**
    * @param {{chat: {id: Number}, [text]: String}} msg
@@ -613,7 +648,7 @@ var chat = {
         date: msg.date
       }, title);
     } catch(e) {
-      console.error('Botan track error', e.message);
+      console.error(utils.getDate(), 'Botan track error', e.message);
     }
   },
 
@@ -691,18 +726,18 @@ var chat = {
         this.language[key] = item;
       }
     } catch (e) {
-      return console.error("Language file is not found!", e.message);
+      return console.error(utils.getDate(), "Language file is not found!", e.message);
     }
 
     try {
       var config = JSON.parse(require("fs").readFileSync('./config.json', 'utf8'));
     } catch (e) {
-      return console.error("Config is not found!", e.message);
+      return console.error(utils.getDate(), "Config is not found!", e.message);
     }
 
     if (config.timeout < config.interval * 60 * 2) {
       config.timeout = parseInt(config.interval * 3 * 60);
-      console.log('Timeout auto change!', config.timeout + 'sec.');
+      console.log(utils.getDate(), 'Timeout auto change!', config.timeout + 'sec.');
     }
 
     ['timeout', 'notifyTimeout', 'interval', 'token', 'botanToken'].forEach(function(key) {
