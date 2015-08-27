@@ -117,7 +117,9 @@ var chacker = {
     }
 
     for (var service in chatItem.serviceList) {
-      delete serviceList['low-'+service];
+      if (service.substr(0, 4) === 'low-') {
+        delete serviceList[service];
+      }
     }
 
     return serviceList;
