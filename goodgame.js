@@ -92,7 +92,7 @@ var getChannelName = function(channelName, cb) {
       for (var key in data) {
         var item = data[key];
         if (item.key) {
-          return cb(item.key);
+          return cb(item.key.toLowerCase());
         }
       }
       cb();

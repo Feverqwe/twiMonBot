@@ -99,26 +99,15 @@ var chacker = {
     for (var chatId in chatList) {
       var chatItem = chatList[chatId];
       for (var service in chatItem.serviceList) {
-        var lowChannelList = serviceList['low-'+service] = serviceList['low-'+service] || [];
         var channelList = serviceList[service] = serviceList[service] || [];
 
         var userChannelList = chatItem.serviceList[service];
-
         for (var i = 0, channelName; channelName = userChannelList[i]; i++) {
-          var lowChannelName = channelName.toLowerCase();
-          if (lowChannelList.indexOf(lowChannelName) !== -1) {
+          if (channelList.indexOf(channelName) !== -1) {
             continue;
           }
-          lowChannelList.push(lowChannelName);
-
           channelList.push(channelName);
         }
-      }
-    }
-
-    for (var service in serviceList) {
-      if (service.substr(0, 4) === 'low-') {
-        delete serviceList[service];
       }
     }
 
@@ -286,11 +275,7 @@ var chacker = {
         continue;
       }
 
-      var lowUserChannelList = userChannelList.map(function(item) {
-        return item.toLowerCase();
-      });
-
-      if (lowUserChannelList.indexOf(stream._channelName) === -1) {
+      if (userChannelList.indexOf(stream._channelName) === -1) {
         continue;
       }
 

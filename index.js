@@ -212,11 +212,7 @@ var chat = {
         var serviceList = chatItem.serviceList = chatItem.serviceList || {};
         var channelList = serviceList[service] = serviceList[service] || [];
 
-        var lowChannelList = channelList.map(function(item) {
-          return item.toLowerCase();
-        });
-
-        if (lowChannelList.indexOf(channelName.toLowerCase()) !== -1) {
+        if (channelList.indexOf(channelName) !== -1) {
           return _this.bot.sendMessage(chatId, _this.language.channelExists, _this.options.hideKeyboard);
         }
 
@@ -269,11 +265,7 @@ var chat = {
         return _this.bot.sendMessage(chatId, _this.language.emptyServiceList, _this.options.hideKeyboard);
       }
 
-      var lowChannelList = channelList.map(function(item) {
-        return item.toLowerCase();
-      });
-
-      var pos = lowChannelList.indexOf(channelName.toLowerCase());
+      var pos = channelList.indexOf(channelName);
       if (pos === -1) {
         return _this.bot.sendMessage(chatId, _this.language.channelDontExist, _this.options.hideKeyboard);
       }
@@ -414,9 +406,6 @@ var chat = {
 
       for (var service in chatItem.serviceList) {
         var userChannelList = chatItem.serviceList[service];
-        var lowUserChannelList = userChannelList.map(function(item) {
-          return item.toLowerCase();
-        });
 
         var channelList = [];
 
@@ -426,7 +415,7 @@ var chat = {
             continue;
           }
 
-          if (lowUserChannelList.indexOf(stream._channelName) !== -1) {
+          if (userChannelList.indexOf(stream._channelName) !== -1) {
             channelList.push(_this.getStreamText(stream));
           }
         }
@@ -468,16 +457,12 @@ var chat = {
             continue;
           }
 
-          var lowUserChannelList = userChannelList.map(function(item) {
-            return item.toLowerCase();
-          });
-
           channelList = top[service];
           if (channelList === undefined) {
             channelList = top[service] = {};
           }
 
-          for (var i = 0; channelName = lowUserChannelList[i]; i++) {
+          for (var i = 0; channelName = userChannelList[i]; i++) {
             if (channelList[channelName] === undefined) {
               channelList[channelName] = 0;
             }
@@ -531,6 +516,8 @@ var chat = {
       return;
     }
 
+    channelName = channelName.toLowerCase();
+
     service = service || this.supportServiceList[0];
     service = service.toLowerCase();
     service = this.serviceMap[service] || service;
@@ -552,30 +539,7 @@ var chat = {
   },
   getArgs: function(text) {
     "use strict";
-    var commands = [];
-
-    var command = text.match(/^([^\s]+)/);
-    command = command && command[1];
-    if (!command) {
-      return commands;
-    }
-    commands.push(command);
-
-    text = text.substr(command.length);
-
-    command = text.match(/\s*([^\s]+)$/);
-    command = command && command[1];
-    if (!command) {
-      return commands;
-    }
-    commands.push(command);
-
-    text = text.substr(0, text.length - command.length).trim();
-    if (text) {
-      commands.splice(1, 0, text);
-    }
-
-    return commands;
+    return text.split(/\s+/);
   },
   /**
    * @param {{chat: {id: Number}, [text]: String}} msg
