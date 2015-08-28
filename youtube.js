@@ -164,7 +164,6 @@ var getChannelName = function(userId, cb) {
       fields: 'items(id,snippet)',
       key: config.token
     };
-    console.log(1);
     utils.ajax({
       url: 'https://www.googleapis.com/youtube/v3/channels?' + utils.param(params),
       dataType: 'json',
