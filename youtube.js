@@ -113,10 +113,6 @@ module.exports.getStreamList = getYoutubeStreamList;
 
 var getChannelId = function(userId, cb) {
   "use strict";
-  if (userId.substr(0, 2) === 'UC') {
-    return cb(userId);
-  }
-
   if (config.userIdToChannelId[userId]) {
     return cb(config.userIdToChannelId[userId]);
   }
