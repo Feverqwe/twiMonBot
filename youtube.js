@@ -7,7 +7,7 @@ var config = {
   userIdToChannelId: {}
 };
 
-var apiNormalization = function(data) {
+var apiNormalization = function(userId, data) {
   "use strict";
   if (!data || typeof data !== 'object' || !data.items) {
     console.error(utils.getDate(), 'Youtube bad response!');
@@ -30,7 +30,7 @@ var apiNormalization = function(data) {
       _addItemTime: now,
       _id: videoId,
       _isOffline: false,
-      _channelName: snippet.channelId.toLowerCase(),
+      _channelName: userId.toLowerCase(),
 
       viewers: parseInt(origItem.viewers) || 0,
       game: origItem.games,
@@ -96,7 +96,7 @@ var getYoutubeStreamList = function(userList, cb) {
         url: 'https://www.googleapis.com/youtube/v3/search?' + utils.param(params),
         dataType: 'json',
         success: function(data) {
-          onReady(apiNormalization(data));
+          onReady(apiNormalization(userId, data));
         },
         error: function(errorMsg) {
           console.error(utils.getDate(), 'Youtube check request error!', channelId, errorMsg);
