@@ -2,7 +2,11 @@
  * Created by anton on 28.08.15.
  */
 var utils = require('./utils');
-var token = null;
+var config = {
+  token: null,
+  userIdToChannelId: {}
+};
+
 var apiNormalization = function(data) {
   "use strict";
   if (!data || typeof data !== 'object' || !data.items) {
@@ -49,9 +53,10 @@ var apiNormalization = function(data) {
   });
   return streams;
 };
-var getYoutubeStreamList = function(channelList, cb) {
+
+var getYoutubeStreamList = function(userList, cb) {
   "use strict";
-  if (!channelList.length) {
+  if (!userList.length) {
     return cb();
   }
 
@@ -69,42 +74,56 @@ var getYoutubeStreamList = function(channelList, cb) {
     cb(streamList);
   };
 
-  channelList.forEach(function(channelId) {
+  userList.forEach(function(userId) {
     waitCount++;
-    var params = {
-      part: 'snippet',
-      channelId: channelId,
-      eventType: 'live',
-      maxResults: 1,
-      order: 'date',
-      safeSearch: 'none',
-      type: 'video',
-      fields: 'items(id,snippet)',
-      key: token
-    };
-    utils.ajax({
-      url: 'https://www.googleapis.com/youtube/v3/search?' + utils.param(params),
-      dataType: 'json',
-      success: function(data) {
-        onReady(apiNormalization(data));
-      },
-      error: function(errorMsg) {
-        console.error(utils.getDate(), 'Youtube check request error!', channelId, errorMsg);
-        onReady();
+    getChannelId(userId, function(channelId) {
+      if (!channelId) {
+        return onReady();
       }
+
+      var params = {
+        part: 'snippet',
+        channelId: channelId,
+        eventType: 'live',
+        maxResults: 1,
+        order: 'date',
+        safeSearch: 'none',
+        type: 'video',
+        fields: 'items(id,snippet)',
+        key: config.token
+      };
+      utils.ajax({
+        url: 'https://www.googleapis.com/youtube/v3/search?' + utils.param(params),
+        dataType: 'json',
+        success: function(data) {
+          onReady(apiNormalization(data));
+        },
+        error: function(errorMsg) {
+          console.error(utils.getDate(), 'Youtube check request error!', channelId, errorMsg);
+          onReady();
+        }
+      });
     });
   });
 };
 module.exports.getStreamList = getYoutubeStreamList;
 
-var getChannelName = function(channelId, cb) {
+var getChannelId = function(userId, cb) {
   "use strict";
+  if (userId.substr(0, 2) === 'UC') {
+    return cb(userId);
+  }
+
+  if (config.userIdToChannelId[userId]) {
+    return cb(config.userIdToChannelId[userId]);
+  }
+
   var params = {
     part: 'snippet',
-    id: channelId,
+    forUsername: userId,
     maxResults: 1,
-    fields: 'items(id,snippet)',
-    key: token
+    fields: 'items/id',
+    key: config.token
   };
   utils.ajax({
     url: 'https://www.googleapis.com/youtube/v3/channels?' + utils.param(params),
@@ -116,16 +135,62 @@ var getChannelName = function(channelId, cb) {
       }
 
       cb(id);
+
+      config.userIdToChannelId[userId] = id;
+      utils.storage.set({userIdToChannelId: config.userIdToChannelId});
     },
     error: function(errorMsg) {
-      console.error(utils.getDate(), 'Youtube get channelId request error!', errorMsg);
+      console.error(utils.getDate(), 'Youtube get channelId by userId request error!', errorMsg);
       cb();
     }
   });
 };
+
+var getChannelName = function(userId, cb) {
+  "use strict";
+  if (!userId || typeof userId !== 'string') {
+    return cb();
+  }
+
+  getChannelId(userId, function(channelId) {
+    if (!channelId) {
+      return cb();
+    }
+
+    var params = {
+      part: 'snippet',
+      id: channelId,
+      maxResults: 1,
+      fields: 'items(id,snippet)',
+      key: config.token
+    };
+    console.log(1);
+    utils.ajax({
+      url: 'https://www.googleapis.com/youtube/v3/channels?' + utils.param(params),
+      dataType: 'json',
+      success: function(data) {
+        var id = data && data.items && data.items[0] && data.items[0].id;
+        if (!id) {
+          return cb();
+        }
+
+        cb(userId, id);
+      },
+      error: function(errorMsg) {
+        console.error(utils.getDate(), 'Youtube get channelId request error!', errorMsg);
+        cb();
+      }
+    });
+  });
+};
 module.exports.getChannelName = getChannelName;
 
-module.exports.init = function(_token) {
+module.exports.init = function(token) {
   "use strict";
-  token = _token;
+  config.token = token;
+  utils.storage.get('userIdToChannelId', function(storage) {
+    if (storage.userIdToChannelId) {
+      config.userIdToChannelId = storage.userIdToChannelId;
+    }
+  });
 };

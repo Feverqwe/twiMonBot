@@ -194,7 +194,7 @@ var chat = {
       var chatId = msg.chat.id;
       var chatList = _this.storage.chatList;
 
-      services[service].getChannelName(channelName, function(_channelName) {
+      services[service].getChannelName(channelName, function(_channelName, channelId) {
         if (!_channelName) {
           return _this.bot.sendMessage(
             chatId,
@@ -222,11 +222,16 @@ var chat = {
 
         channelList.push(channelName);
 
+        var displayName = [channelName];
+        if (channelId) {
+          displayName.push('(' + channelId + ')');
+        }
+
         utils.storage.set({chatList: chatList}, function() {
           return _this.bot.sendMessage(
             chatId,
             _this.language.channelAdded
-              .replace('{channelName}', channelName)
+              .replace('{channelName}', displayName.join(' '))
               .replace('{serviceName}', _this.serviceToTitle[service]),
             _this.options.hideKeyboard
           );
