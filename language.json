@@ -1,6 +1,6 @@
 {
   "help": [
-    "Hi! I will notify you about the beginning of the broadcasts on Twitch and GoodGame!",
+    "Hi! I will notify you about the beginning of the broadcasts on Youtube Gaming, Twitch and GoodGame!",
     "",
     "You can control me by sending these commands:",
     "",
@@ -13,7 +13,7 @@
   ],
   "offline": "All channels in offline",
   "emptyServiceList": "You don't have channels in watch list, yet.",
-  "enterChannelName": "Enter the channel name (example: opergamer):",
+  "enterChannelName": "Enter the channel name (example: opergamer), for Youtube - channel ID:",
   "enterService": "Enter a live streaming video platform",
   "serviceIsNotSupported": "Oops! Platform {serviceName} is not supported!",
   "channelExists": "This channel already exists!",

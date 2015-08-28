@@ -1,0 +1,131 @@
+/**
+ * Created by anton on 28.08.15.
+ */
+var utils = require('./utils');
+var token = null;
+var apiNormalization = function(data) {
+  "use strict";
+  if (!data || typeof data !== 'object' || !data.items) {
+    console.error(utils.getDate(), 'Youtube bad response!');
+    return;
+  }
+
+  var now = parseInt(Date.now() / 1000);
+  var streams = [];
+  data.items.forEach(function(origItem) {
+    var snippet = origItem.snippet;
+
+    if (snippet.liveBroadcastContent !== 'live') {
+      return;
+    }
+
+    var videoId = origItem.id.videoId;
+
+    var item = {
+      _service: 'youtube',
+      _addItemTime: now,
+      _id: videoId,
+      _isOffline: false,
+      _channelName: snippet.channelId.toLowerCase(),
+
+      viewers: parseInt(origItem.viewers) || 0,
+      game: origItem.games,
+      preview: 'https://i.ytimg.com/vi/' + videoId + '/maxresdefault_live.jpg',
+      created_at: snippet.snippet,
+      channel: {
+        display_name: snippet.channelTitle,
+        name: snippet.channelId,
+        status: snippet.title,
+        url: 'https://gaming.youtube.com/watch?v=' + videoId
+      }
+    };
+
+    if (typeof item.preview === 'string') {
+      var sep = item.preview.indexOf('?') === -1 ? '?' : '&';
+      item.preview += sep + '_=' + now;
+    }
+
+    streams.push(item);
+  });
+  return streams;
+};
+var getYoutubeStreamList = function(channelList, cb) {
+  "use strict";
+  if (!channelList.length) {
+    return cb();
+  }
+
+  var waitCount = 0;
+  var readyCount = 0;
+  var streamList = [];
+  var onReady = function(stream) {
+    readyCount++;
+    streamList.push.apply(streamList, stream);
+
+    if (readyCount !== waitCount) {
+      return;
+    }
+
+    cb(streamList);
+  };
+
+  channelList.forEach(function(channelId) {
+    waitCount++;
+    var params = {
+      part: 'snippet',
+      channelId: channelId,
+      eventType: 'live',
+      maxResults: 1,
+      order: 'date',
+      safeSearch: 'none',
+      type: 'video',
+      fields: 'items(id,snippet)',
+      key: token
+    };
+    utils.ajax({
+      url: 'https://www.googleapis.com/youtube/v3/search?' + utils.param(params),
+      dataType: 'json',
+      success: function(data) {
+        onReady(apiNormalization(data));
+      },
+      error: function(errorMsg) {
+        console.error(utils.getDate(), 'Youtube check request error!', channelId, errorMsg);
+        onReady();
+      }
+    });
+  });
+};
+module.exports.getStreamList = getYoutubeStreamList;
+
+var getChannelName = function(channelId, cb) {
+  "use strict";
+  var params = {
+    part: 'snippet',
+    id: channelId,
+    maxResults: 1,
+    fields: 'items(id,snippet)',
+    key: token
+  };
+  utils.ajax({
+    url: 'https://www.googleapis.com/youtube/v3/channels?' + utils.param(params),
+    dataType: 'json',
+    success: function(data) {
+      var id = data && data.items && data.items[0] && data.items[0].id;
+      if (!id) {
+        return cb();
+      }
+
+      cb(id);
+    },
+    error: function(errorMsg) {
+      console.error(utils.getDate(), 'Youtube get channelId request error!', errorMsg);
+      cb();
+    }
+  });
+};
+module.exports.getChannelName = getChannelName;
+
+module.exports.init = function(_token) {
+  "use strict";
+  token = _token;
+};

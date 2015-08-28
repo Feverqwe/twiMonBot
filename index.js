@@ -17,15 +17,17 @@ var chat = {
     botanToken: ""
   },
   stateList: {},
-  supportServiceList: ['twitch', 'goodgame'],
+  supportServiceList: ['twitch', 'goodgame', 'youtube'],
   serviceToTitle: {
     goodgame: 'GoodGame',
-    twitch: 'Twitch'
+    twitch: 'Twitch',
+    youtube: 'Youtube'
   },
   bot: null,
   serviceMap: {
     gg: 'goodgame',
-    tw: 'twitch'
+    tw: 'twitch',
+    yt: 'youtube'
   },
   language: {
     help: "{help}",
@@ -734,6 +736,8 @@ var chat = {
     } catch (e) {
       return console.error(utils.getDate(), "Config is not found!", e.message);
     }
+
+    services.youtube.init(config.ytToken);
 
     if (config.timeout < config.interval * 60 * 2) {
       config.timeout = parseInt(config.interval * 3 * 60);
