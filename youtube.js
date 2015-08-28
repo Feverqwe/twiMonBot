@@ -7,9 +7,9 @@ var config = {
   userIdToChannelId: {}
 };
 
-var apiNormalization = function(userId, data) {
+var apiNormalization = function(userId, data, viewers) {
   "use strict";
-  if (!data || typeof data !== 'object' || !data.items) {
+  if (!data || !data.items) {
     console.error(utils.getDate(), 'Youtube bad response!');
     return;
   }
@@ -35,7 +35,7 @@ var apiNormalization = function(userId, data) {
       _isOffline: false,
       _channelName: userId.toLowerCase(),
 
-      viewers: 0,
+      viewers: viewers || 0,
       game: '',
       preview: 'https://i.ytimg.com/vi/' + videoId + '/maxresdefault_live.jpg',
       created_at: snippet.snippet,
@@ -55,6 +55,27 @@ var apiNormalization = function(userId, data) {
     streams.push(item);
   });
   return streams;
+};
+
+var getViewers = function(id, cb) {
+  "use strict";
+  utils.ajax({
+    url: 'https://gaming.youtube.com/live_stats?' + utils.param({
+      v: id,
+      t: Date.now()
+    }),
+    success: function(data) {
+      if (!/^\d+$/.test(data)) {
+        return cb();
+      }
+
+      cb(parseInt(data));
+    },
+    error: function(errorMsg) {
+      console.error(utils.getDate(), 'Youtube get viewers error!', id, errorMsg);
+      cb();
+    }
+  });
 };
 
 var getYoutubeStreamList = function(userList, cb) {
@@ -99,7 +120,30 @@ var getYoutubeStreamList = function(userList, cb) {
         url: 'https://www.googleapis.com/youtube/v3/search?' + utils.param(params),
         dataType: 'json',
         success: function(data) {
-          onReady(apiNormalization(userId, data));
+          if (!data || !data.items) {
+            console.error(utils.getDate(), 'Youtube bad response!');
+            return onReady();
+          }
+
+          if (data.items.length === 0) {
+            return onReady();
+          }
+
+          var videoId = null;
+          data.items.some(function(item) {
+            if (item.id && (videoId = item.id.videoId)) {
+              return true;
+            }
+          });
+
+          if (!videoId) {
+            console.error(utils.getDate(), 'Youtube videoId is not found!');
+            return onReady();
+          }
+
+          getViewers(videoId, function(viewers) {
+            onReady(apiNormalization(userId, data, viewers));
+          });
         },
         error: function(errorMsg) {
           console.error(utils.getDate(), 'Youtube check request error!', channelId, errorMsg);
