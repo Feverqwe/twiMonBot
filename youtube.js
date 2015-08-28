@@ -23,7 +23,10 @@ var apiNormalization = function(userId, data) {
       return;
     }
 
-    var videoId = origItem.id.videoId;
+    var videoId = origItem.id && origItem.id.videoId;
+    if (!videoId) {
+      return;
+    }
 
     var item = {
       _service: 'youtube',
@@ -32,8 +35,8 @@ var apiNormalization = function(userId, data) {
       _isOffline: false,
       _channelName: userId.toLowerCase(),
 
-      viewers: parseInt(origItem.viewers) || 0,
-      game: origItem.games,
+      viewers: 0,
+      game: '',
       preview: 'https://i.ytimg.com/vi/' + videoId + '/maxresdefault_live.jpg',
       created_at: snippet.snippet,
       channel: {
