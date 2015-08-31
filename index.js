@@ -503,7 +503,7 @@ var chat = {
 
       _this.bot.sendMessage(chatId, textArr.join('\n'));
     },
-    liveTime: function(msg) {
+    livetime: function(msg) {
       "use strict";
       var _this = chat;
       var chatId = msg.chat.id;
