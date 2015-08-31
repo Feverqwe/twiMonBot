@@ -17,7 +17,7 @@ var chat = {
     botanToken: ""
   },
   stateList: {},
-  supportServiceList: ['twitch', 'goodgame', 'youtube'],
+  supportServiceList: ['youtube', 'twitch', 'goodgame'],
   serviceToTitle: {
     goodgame: 'GoodGame',
     twitch: 'Twitch',
