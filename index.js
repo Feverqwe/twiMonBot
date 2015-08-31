@@ -509,7 +509,14 @@ var chat = {
       var chatId = msg.chat.id;
 
       var liveTime = JSON.parse(require("fs").readFileSync('./liveTime.json', 'utf8'));
-      _this.bot.sendMessage(chatId, liveTime.message.join('\n'));
+
+      var endTime = liveTime.endTime.split(',');
+      endTime = (new Date(endTime[0], endTime[1], endTime[2])).getTime();
+      var count = parseInt((endTime - Date.now()) / 1000 / 60 / 60 / 24 / 30 * 10) / 10;
+
+      var message = liveTime.message.join('\n').replace('{count}', count);
+
+      _this.bot.sendMessage(chatId, message);
     }
   },
   checkArgs: function(msg, args) {
