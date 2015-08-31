@@ -9,7 +9,8 @@
     "/delete - Delete channel from list",
     "/list - Show list of channel",
     "/top - Top 10",
-    "/clear - Clear channel list"
+    "/clear - Clear channel list",
+    "/liveTime - How long will it works"
   ],
   "offline": "All channels in offline",
   "emptyServiceList": "You don't have channels in watch list, yet.",

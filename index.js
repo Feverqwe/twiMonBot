@@ -502,6 +502,14 @@ var chat = {
       }
 
       _this.bot.sendMessage(chatId, textArr.join('\n'));
+    },
+    liveTime: function(msg) {
+      "use strict";
+      var _this = chat;
+      var chatId = msg.chat.id;
+
+      var liveTime = JSON.parse(require("fs").readFileSync('./liveTime.json', 'utf8'));
+      _this.bot.sendMessage(chatId, liveTime.message.join('\n'));
     }
   },
   checkArgs: function(msg, args) {
