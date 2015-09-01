@@ -13,7 +13,7 @@ var chat = {
     notifyTimeout: 180,
     interval: 5,
     chatList: {},
-    lastStreamList: {},
+    lastStreamList: [],
     botanToken: ""
   },
   stateList: {},
@@ -409,8 +409,7 @@ var chat = {
 
         var channelList = [];
 
-        for (var id in lastStreamList) {
-          var stream = lastStreamList[id];
+        for (var i = 0, stream; stream = lastStreamList[i]; i++) {
           if (stream._isOffline || stream._service !== service) {
             continue;
           }
@@ -739,6 +738,16 @@ var chat = {
         this.storage.chatList = storage.chatList;
       }
       if (storage.lastStreamList) {
+        if (!Array.isArray(storage.lastStreamList)) {
+          //todo: rm me!
+          var lastStreamList = [];
+          for (var key in storage.lastStreamList) {
+            lastStreamList.push(storage.lastStreamList[key]);
+          }
+          storage.lastStreamList = lastStreamList;
+          lastStreamList = null;
+        }
+
         this.storage.lastStreamList = storage.lastStreamList;
       }
 

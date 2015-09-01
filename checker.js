@@ -13,17 +13,16 @@ var chacker = {
     var rmList = [];
     var now = parseInt(Date.now() / 1000);
 
-    for (var id in streamList) {
-      var item = streamList[id];
+    for (var i = 0, item; item = streamList[i]; i++) {
       if (now - item._addItemTime > this.storage.timeout && item._isOffline) {
-        rmList.push(id);
+        rmList.push(item);
         streamLog && console.log('[s]', utils.getDate(), 'R     ', item._channelName, '#', item.channel.status, '#', item.game);
       }
       item._isOffline = true;
     }
 
-    for (var i = 0; id = rmList[i]; i++) {
-      delete streamList[id];
+    for (i = 0; item = rmList[i]; i++) {
+      streamList.splice(streamList.indexOf(item), 1);
     }
   },
 
@@ -76,9 +75,9 @@ var chacker = {
   isNotDblItem: function(nItem) {
     var now = parseInt(Date.now() / 1000);
 
-    for (var id in this.storage.lastStreamList) {
-      var cItem = this.storage.lastStreamList[id];
+    var lastStreamList = this.storage.lastStreamList;
 
+    for (var i = 0, cItem; cItem = lastStreamList[i]; i++) {
       if (cItem._service !== nItem._service) {
         continue;
       }
@@ -309,10 +308,16 @@ var chacker = {
       }
 
       var now = parseInt(Date.now() / 1000);
-      for (var i = 0, item; item = streamList[i]; i++) {
-        var id = item._id;
+      streamList.forEach(function(item) {
+        var cItem = null;
 
-        var cItem = lastStreamList[id];
+        lastStreamList.some(function(exItem, index) {
+          if (exItem._service === item._service && exItem._id === item._id) {
+            cItem = exItem;
+            lastStreamList.splice(index, 1);
+            return true;
+          }
+        });
 
         if (!cItem) {
           if (item._isNotified = this.isNotDblItem(item)) {
@@ -341,8 +346,8 @@ var chacker = {
           item._notifyTimeout = now + this.storage.notifyTimeout * 60;
         }
 
-        lastStreamList[id] = item;
-      }
+        lastStreamList.push(item);
+      }.bind(this));
 
       utils.storage.set({lastStreamList: lastStreamList}, function() {
         cb && cb();
