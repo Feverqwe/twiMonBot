@@ -699,7 +699,7 @@ var chat = {
 
       if (_this.botPolling._polling.lastUpdate + 3600 * 2 * 1000 < Date.now()) {
         console.error(utils.getDate(), 'Polling restart!');
-        _this.botPolling.initPooling();
+        _this.botPolling.initPolling();
       }
 
       hasGc && gc();

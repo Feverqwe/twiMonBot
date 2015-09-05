@@ -23,17 +23,17 @@ var TelegramBot = function (token, options) {
   this.processUpdate = this._processUpdate.bind(this);
 
   if (options.polling) {
-    this.initPooling();
+    this.initPolling();
   }
 };
 
 util.inherits(TelegramBot, EventEmitter);
 
-TelegramBot.prototype.initPooling = function() {
+TelegramBot.prototype.initPolling = function() {
   var index = 0;
   if (this._polling) {
     this._polling.abort = true;
-    this._polling.lastRequest.cancel("Poling restart");
+    this._polling.lastRequest.cancel("Polling restart");
 
     index = this._polling.index + 1;
   }
