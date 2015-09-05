@@ -745,16 +745,6 @@ var chat = {
         this.storage.chatList = storage.chatList;
       }
       if (storage.lastStreamList) {
-        if (!Array.isArray(storage.lastStreamList)) {
-          //todo: rm me!
-          var lastStreamList = [];
-          for (var key in storage.lastStreamList) {
-            lastStreamList.push(storage.lastStreamList[key]);
-          }
-          storage.lastStreamList = lastStreamList;
-          lastStreamList = null;
-        }
-
         this.storage.lastStreamList = storage.lastStreamList;
       }
 
