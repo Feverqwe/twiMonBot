@@ -33,7 +33,7 @@ var apiNormalization = function(userId, data, viewers) {
       _addItemTime: now,
       _id: videoId,
       _isOffline: false,
-      _channelName: userId.toLowerCase(),
+      _channelName: userId,
 
       viewers: viewers || 0,
       game: '',
