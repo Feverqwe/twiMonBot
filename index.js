@@ -698,7 +698,7 @@ var chat = {
       chat.clearStateList();
 
       if (_this.botPolling._polling.lastUpdate + 3600 * 2 * 1000 < Date.now()) {
-        console.error(utils.getDate(), 'Pooling restart!');
+        console.error(utils.getDate(), 'Polling restart!');
         _this.botPolling.initPooling();
       }
 
