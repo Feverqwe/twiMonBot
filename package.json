@@ -2,11 +2,11 @@
   "name": "application-name",
   "version": "0.0.1",
   "dependencies": {
-    "node-telegram-bot-api": "",
-    "node-localstorage": "",
-    "debug": "",
-    "bluebird": "",
-    "request": "",
-    "botanio": ""
+    "node-telegram-bot-api": "^0.12.1",
+    "node-localstorage": "^0.5.2",
+    "debug": "^2.2.0",
+    "bluebird": "^2.9.34",
+    "request": "^2.61.0",
+    "botanio": "^0.0.6"
   }
 }
