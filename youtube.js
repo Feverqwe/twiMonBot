@@ -161,6 +161,10 @@ var getChannelId = function(userId, cb) {
     return cb(config.userIdToChannelId[userId]);
   }
 
+  if (userId.substr(0, 2) === 'UC') {
+    return cb(userId);
+  }
+
   var params = {
     part: 'snippet',
     forUsername: userId,
@@ -216,7 +220,7 @@ var getChannelName = function(userId, cb) {
           return cb();
         }
 
-        cb(userId, id);
+        cb(userId, id === userId ? undefined : id);
       },
       error: function(errorMsg) {
         console.error(utils.getDate(), 'Youtube get channelId request error!', errorMsg);

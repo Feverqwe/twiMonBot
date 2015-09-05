@@ -531,11 +531,13 @@ var chat = {
       return;
     }
 
-    channelName = channelName.toLowerCase();
-
     service = service || this.supportServiceList[0];
     service = service.toLowerCase();
     service = this.serviceMap[service] || service;
+
+    if (service !== 'youtube' || channelName.substr(0, 2) !== 'UC') {
+      channelName = channelName.toLowerCase();
+    }
 
     if (this.supportServiceList.indexOf(service) === -1) {
       this.bot.sendMessage(
