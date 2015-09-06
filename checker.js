@@ -329,6 +329,7 @@ var chacker = {
         } else {
           item._isNotified = cItem._isNotified;
           item._notifyTimeout = cItem._notifyTimeout;
+          item._createTime = cItem._createTime;
 
           if (item._isNotified && item._notifyTimeout < now) {
             item._isNotified = false;

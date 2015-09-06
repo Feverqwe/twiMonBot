@@ -34,6 +34,7 @@ var apiNormalization = function(data) {
     var item = {
       _service: 'goodgame',
       _addItemTime: now,
+      _createTime: now,
       _id: origItem.stream_id,
       _isOffline: false,
       _channelName: origItem.key.toLowerCase(),

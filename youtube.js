@@ -31,6 +31,7 @@ var apiNormalization = function(userId, data, viewers) {
     var item = {
       _service: 'youtube',
       _addItemTime: now,
+      _createTime: now,
       _id: videoId,
       _isOffline: false,
       _channelName: userId,

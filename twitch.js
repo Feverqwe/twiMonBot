@@ -20,6 +20,7 @@ var apiNormalization = function(data) {
     var item = {
       _service: 'twitch',
       _addItemTime: now,
+      _createTime: now,
       _id: origItem._id,
       _isOffline: false,
       _channelName: origItem.channel.name.toLowerCase(),
