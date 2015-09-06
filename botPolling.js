@@ -71,7 +71,7 @@ var TelegramBotPolling = function (token, options, callback) {
   this.callback = callback;
   this.timeout = options.timeout || 0;
   this.interval = options.interval || 2000;
-  this.lastUpdate = 0;
+  this.lastUpdate = Date.now();
   this.lastRequest = null;
 };
 
