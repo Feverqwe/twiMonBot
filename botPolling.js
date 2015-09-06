@@ -82,24 +82,24 @@ TelegramBotPolling.prototype._polling = function () {
   this.lastRequest = this._getUpdates().then(function (updates) {
     self.lastUpdate = Date.now();
 
-    debug('#' + self.index, 'polling data', updates);
+    debug('#%s, polling data %j', self.index, updates);
     updates.forEach(function (update, index) {
       // If is the latest, update the offset.
       if (index === updates.length - 1) {
         self.offset = update.update_id;
-        debug('#' + self.index, 'updated offset:', self.offset);
+        debug('#%s, updated offset: %s', self.index, self.offset);
       }
       self.callback(update);
     });
   }).catch(function (err) {
-    debug('#' + self.index, 'polling error:', err);
+    debug('#%s, polling error: %j', self.index, err);
   }).finally(function () {
     if (self.abort) {
-      console.error('Polling is aborted!', self.index);
+      console.error('#%s, polling is aborted!', self.index);
       return;
     }
 
-    debug('#' + self.index, 'setTimeout for miliseconds', self.interval);
+    debug('#%s, setTimeout for %s miliseconds', self.index, self.interval);
     setTimeout(self._polling.bind(self), self.interval);
   });
 };
@@ -117,7 +117,7 @@ TelegramBotPolling.prototype._getUpdates = function () {
       pathname: '/bot'+this.token+'/getUpdates'
     })
   };
-  debug('#' + this.index, 'polling with options:', opts);
+  debug('#%s, polling with options: %j', this.index, opts);
   return requestPromise(opts).cancellable().then(function (resp) {
     if (resp[0].statusCode !== 200) {
       throw new Error(resp[0].statusCode+' '+resp[0].body);
