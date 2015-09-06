@@ -699,7 +699,7 @@ var chat = {
     setInterval(function() {
       chat.clearStateList();
 
-      if (_this.botPolling._polling.lastUpdate + 3600 * 2 * 1000 < Date.now()) {
+      if (_this.botPolling._polling.lastUpdate + 60 * 5 * 1000 < Date.now()) {
         console.error(utils.getDate(), 'Polling restart!');
         _this.botPolling.initPolling();
       }
@@ -752,7 +752,7 @@ var chat = {
 
       this.bot = new TelegramBot(this.storage.token);
       this.botPolling = new botPolling(this.storage.token, {polling: {
-        timeout: 3600
+        timeout: 120
       }});
       this.botPolling.on('message', this.onMessage.bind(this));
 
