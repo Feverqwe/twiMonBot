@@ -31,14 +31,16 @@ util.inherits(TelegramBot, EventEmitter);
 
 TelegramBot.prototype.initPolling = function() {
   var index = 0;
+  var offset = 0;
   if (this._polling) {
     this._polling.abort = true;
     this._polling.lastRequest.cancel("Polling restart");
-
+    offset = this._polling.offset;
     index = this._polling.index + 1;
   }
   this._polling = new TelegramBotPolling(this.token, this.options.polling, this.processUpdate);
   this._polling.index = index;
+  this._polling.offset = offset;
   this._polling._polling();
 };
 
