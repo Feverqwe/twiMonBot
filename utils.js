@@ -126,6 +126,12 @@ var utils = {
       options.json = true;
     }
 
+    if (obj.timeout) {
+      options.timeout = obj.timeout;
+    } else {
+      options.timeout = 15 * 1000; // 15 sec
+    }
+
     var onReady = function(response) {
       var resp = response[0];
       if (!(resp.statusCode >= 200 && resp.statusCode < 300 || resp.statusCode === 304)) {
