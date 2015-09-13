@@ -147,7 +147,11 @@ var getYoutubeStreamList = function(userList, cb) {
           });
         },
         error: function(errorMsg) {
-          console.error(utils.getDate(), 'Youtube check request error!', channelId, errorMsg);
+          var msg = errorMsg;
+          if (/reason.+quotaExceeded/.test(msg)) {
+            msg = 'quotaExceeded';
+          }
+          console.error(utils.getDate(), 'Youtube check request error!', channelId, msg);
           onReady();
         }
       });
