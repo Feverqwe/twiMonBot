@@ -57,6 +57,10 @@ var apiNormalization = function(data) {
 };
 var getHitBoxStreamList = function(channelList, cb) {
   "use strict";
+  if (!channelList.length) {
+    return cb();
+  }
+
   var channels = channelList.map(function(item) {
     return encodeURIComponent(item);
   }).join(',');
