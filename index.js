@@ -18,17 +18,19 @@ var chat = {
     botanToken: ""
   },
   stateList: {},
-  supportServiceList: ['youtube', 'twitch', 'goodgame'],
+  supportServiceList: ['youtube', 'twitch', 'hitbox', 'goodgame'],
   serviceToTitle: {
     goodgame: 'GoodGame',
     twitch: 'Twitch',
-    youtube: 'Youtube'
+    youtube: 'Youtube',
+    hitbox: 'Hitbox'
   },
   bot: null,
   serviceMap: {
     gg: 'goodgame',
     tw: 'twitch',
-    yt: 'youtube'
+    yt: 'youtube',
+    hb: 'hitbox'
   },
   language: {
     help: "{help}",
