@@ -182,7 +182,9 @@ var chacker = {
 
   sendNotify: function(chatIdList, text, noPhotoText, stream) {
     var sendMsg = function(chatId) {
-      this.bot.sendMessage(chatId, noPhotoText).then(function() {
+      this.bot.sendMessage(chatId, noPhotoText, {
+        parse_mode: 'Markdown'
+      }).then(function() {
         this.track(chatId, stream, 'sendMsg');
       }.bind(this)).catch(function(e) {
         console.error(utils.getDate(), 'Send msg without photo error!', chatId, stream._channelName, '\n', e && e.message);
@@ -234,34 +236,65 @@ var chacker = {
     });
   },
 
-  onNewStream: function(stream) {
+  getNowStreamPhotoText: function(stream) {
     "use strict";
     var textArr = [];
 
-    // textArr.push(stream.channel.display_name || stream.channel.name);
-
-    var line2 = [];
+    var line = [];
     if (stream.channel.status) {
-      line2.push(stream.channel.status);
+      line.push(stream.channel.status);
     }
     if (stream.game) {
-      line2.push(stream.game);
+      line.push(stream.game);
     }
-    if (line2.length) {
-      textArr.push(line2.join(', '));
+    if (line.length) {
+      textArr.push(line.join(', '));
     }
 
     if (stream.channel.url) {
       textArr.push(stream.channel.url);
     }
 
-    var text = textArr.join('\n');
+    return textArr.join('\n');
+  },
 
-    if (stream.preview) {
-      textArr.push('\n' + stream.preview);
+  getNowStreamText: function(stream) {
+    "use strict";
+    var textArr = [];
+
+    var line = [];
+    if (stream.channel.status) {
+      line.push(stream.channel.status);
+    }
+    if (stream.game) {
+      line.push('_'+stream.game+'_');
+    }
+    if (line.length) {
+      textArr.push(line.join(', '));
     }
 
-    var noPhotoText = textArr.join('\n');
+    line = [];
+    if (stream.channel.url) {
+      var channelName = '*' + (stream.channel.display_name || stream.channel.name) + '*';
+      line.push(this.language.watchOn
+          .replace('{channelName}', channelName)
+          .replace('{serviceName}', '['+this.serviceToTitle[stream._service]+']'+'('+stream.channel.url+')')
+      );
+    }
+    if (stream.preview) {
+      line.push('('+'['+this.language.preview+']' + '('+stream.preview+')'+')');
+    }
+    if (line.length) {
+      textArr.push(line.join(', '));
+    }
+
+    return textArr.join('\n');
+  },
+
+  onNewStream: function(stream) {
+    "use strict";
+    var text = this.getNowStreamPhotoText(stream);
+    var noPhotoText = this.getNowStreamText(stream);
 
     var chatList = this.storage.chatList;
 
@@ -281,9 +314,6 @@ var chacker = {
 
       chatIdList.push(chatItem.chatId);
     }
-
-    text = utils.stripLinks(text);
-    noPhotoText = utils.stripLinks(noPhotoText);
 
     chatIdList.length && this.sendNotify(chatIdList, text, noPhotoText, stream);
   },
@@ -407,10 +437,11 @@ var chacker = {
 var services = null;
 var botan = null;
 
-module.exports.init = function(storage, language, _services, _botan) {
+module.exports.init = function(storage, language, _services, _serviceToTitle, _botan) {
   "use strict";
   chacker.storage = storage;
   chacker.language = language;
+  chacker.serviceToTitle = _serviceToTitle;
   services = _services;
   botan = _botan;
   chacker.initBot();

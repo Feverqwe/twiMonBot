@@ -67,10 +67,6 @@ var utils = {
     }
     return args.join('&');
   },
-  stripLinks: function(text) {
-    "use strict";
-    return text; // .replace(/http:\/\/(www\.)?/g, '');
-  },
   ajax: function(obj) {
     "use strict";
     var url = obj.url;

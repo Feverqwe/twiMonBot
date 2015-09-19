@@ -142,7 +142,6 @@ var chat = {
 
     textArr.push('*' + (stream.channel.display_name || stream.channel.name) + '*');
 
-    
     var line = [];
     if (stream.viewers || stream.viewers === 0) {
       line.push(stream.viewers);
@@ -160,6 +159,7 @@ var chat = {
     line = [];
     if (stream.channel.url) {
       line.push(this.language.watchOn
+        .replace('{channelName} ', '')
         .replace('{serviceName}', '['+this.serviceToTitle[stream._service]+']'+'('+stream.channel.url+')')
       );
     }
@@ -436,7 +436,7 @@ var chat = {
         onLineList.unshift(_this.language.offline);
       }
 
-      var text = utils.stripLinks(onLineList.join('\n\n'));
+      var text = onLineList.join('\n\n');
 
       _this.bot.sendMessage(chatId, text, {
         disable_web_page_preview: true,
@@ -775,7 +775,7 @@ var chat = {
       }
 
       checker = require('./checker.js');
-      checker.init(this.storage, this.language, services, botan);
+      checker.init(this.storage, this.language, services, this.serviceToTitle, botan);
 
       this.runDaemon();
     }.bind(this));
