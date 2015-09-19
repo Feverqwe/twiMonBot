@@ -21,11 +21,6 @@ var apiNormalization = function(data) {
       return;
     }
 
-    if (!origItem.media_id) {
-      //todo rm me!
-      console.error(utils.getDate(), 'HitBox media id is not exists!');
-    }
-
     var item = {
       _service: 'hitbox',
       _addItemTime: now,
