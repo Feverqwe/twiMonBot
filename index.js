@@ -140,7 +140,7 @@ var chat = {
   getStreamText: function(stream) {
     var textArr = [];
 
-    textArr.push(stream.channel.display_name || stream.channel.name);
+    textArr.push('*' + (stream.channel.display_name || stream.channel.name) + '*');
 
     
     var line = [];
@@ -151,7 +151,7 @@ var chat = {
       line.push(stream.channel.status);
     }
     if (stream.game) {
-      line.push(stream.game);
+      line.push('_' + stream.game + '_');
     }
     if (line.length) {
       textArr.push(line.join(', '));
