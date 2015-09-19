@@ -31,5 +31,7 @@
     "/clear yes"
   ],
   "users": "Users: {count}",
-  "channels": "Channels: {count}"
+  "channels": "Channels: {count}",
+  "preview": "preview",
+  "watchOn": "Watch on {serviceName}"
 }

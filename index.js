@@ -50,7 +50,9 @@ var chat = {
     selectDelChannel: "{selectDelChannel}",
     channelIsNotFound: "{channelIsNotFound}",
     users: "{users}",
-    channels: "{channels}"
+    channels: "{channels}",
+    preview: "{preview}",
+    watchOn: "{watchOn} {serviceName}"
   },
   options: {
     hideKeyboard: {
@@ -141,27 +143,31 @@ var chat = {
     textArr.push(stream.channel.display_name || stream.channel.name);
 
     
-    var line2 = [];
+    var line = [];
     if (stream.viewers || stream.viewers === 0) {
-      line2.push(stream.viewers);
+      line.push(stream.viewers);
     }
     if (stream.channel.status) {
-      line2.push(stream.channel.status);
+      line.push(stream.channel.status);
     }
     if (stream.game) {
-      line2.push(stream.game);
+      line.push(stream.game);
     }
-    if (line2.length) {
-      textArr.push(line2.join(', '));
+    if (line.length) {
+      textArr.push(line.join(', '));
     }
 
-
+    line = [];
     if (stream.channel.url) {
-      textArr.push(stream.channel.url);
+      line.push(this.language.watchOn
+        .replace('{serviceName}', '['+stream._service+']'+'('+stream.channel.url+')')
+      );
     }
-
     if (stream.preview) {
-      textArr.push(stream.preview);
+      line.push('(['+this.language.preview+']' + '('+stream.preview+'))');
+    }
+    if (line.length) {
+      textArr.push(line.join(', '));
     }
 
     return textArr.join('\n');
@@ -432,7 +438,8 @@ var chat = {
       var text = utils.stripLinks(onLineList.join('\n\n'));
 
       _this.bot.sendMessage(chatId, text, {
-        disable_web_page_preview: true
+        disable_web_page_preview: true,
+        parse_mode: 'Markdown'
       });
     },
     top: function(msg) {
