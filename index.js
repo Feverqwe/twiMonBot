@@ -160,7 +160,7 @@ var chat = {
     line = [];
     if (stream.channel.url) {
       line.push(this.language.watchOn
-        .replace('{serviceName}', '['+stream._service+']'+'('+stream.channel.url+')')
+        .replace('{serviceName}', '['+this.serviceToTitle[stream._service]+']'+'('+stream.channel.url+')')
       );
     }
     if (stream.preview) {
@@ -392,12 +392,13 @@ var chat = {
 
       var serviceList = [];
       for (var service in chatItem.serviceList) {
-        serviceList.push(_this.serviceToTitle[service] + ': ' + chatItem.serviceList[service].join(', '));
+        serviceList.push('*' + _this.serviceToTitle[service] + '*' + ': ' + chatItem.serviceList[service].join(', '));
       }
 
       _this.bot.sendMessage(
-        chatId,
-        serviceList.join('\n\n')
+        chatId, serviceList.join('\n\n'), {
+          parse_mode: 'Markdown'
+        }
       );
     },
     online: function(msg) {
