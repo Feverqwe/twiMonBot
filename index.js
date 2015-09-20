@@ -167,7 +167,7 @@ var chat = {
       line.push('(['+this.language.preview+']' + '('+stream.preview+'))');
     }
     if (line.length) {
-      textArr.push(line.join(', '));
+      textArr.push(line.join(' '));
     }
 
     return textArr.join('\n');
