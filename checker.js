@@ -180,7 +180,7 @@ var chacker = {
     }
   },
 
-  sendNotify: function(chatIdList, text, noPhotoText, stream) {
+  sendNotify: function(chatIdList, text, noPhotoText, stream, useCache) {
     var sendMsg = function(chatId) {
       this.bot.sendMessage(chatId, noPhotoText, {
         parse_mode: 'Markdown'
@@ -216,6 +216,13 @@ var chacker = {
       return onError();
     }
 
+    if (useCache && stream._photoId) {
+      while (chatId = chatIdList.shift()) {
+        sendPic(chatId, stream._photoId);
+      }
+      return;
+    }
+
     var chatId = chatIdList.shift();
     var fired = false;
     return this.getPicId(chatId, text, stream, function(fileId) {
@@ -229,6 +236,8 @@ var chacker = {
         chatIdList.unshift(chatId);
         return onError();
       }
+
+      stream._photoId = fileId;
 
       while (chatId = chatIdList.shift()) {
         sendPic(chatId, fileId);
@@ -264,10 +273,10 @@ var chacker = {
 
     var line = [];
     if (stream.channel.status) {
-      line.push(stream.channel.status);
+      line.push(utils.markDownSanitize(stream.channel.status));
     }
     if (stream.game) {
-      line.push('_'+stream.game+'_');
+      line.push('_'+utils.markDownSanitize(stream.game)+'_');
     }
     if (line.length) {
       textArr.push(line.join(', '));
@@ -275,17 +284,17 @@ var chacker = {
 
     line = [];
     if (stream.channel.url) {
-      var channelName = '*' + (stream.channel.display_name || stream.channel.name) + '*';
+      var channelName = '*' + utils.markDownSanitize(stream.channel.display_name || stream.channel.name) + '*';
       line.push(this.language.watchOn
           .replace('{channelName}', channelName)
           .replace('{serviceName}', '['+this.serviceToTitle[stream._service]+']'+'('+stream.channel.url+')')
       );
     }
     if (stream.preview) {
-      line.push('('+'['+this.language.preview+']' + '('+stream.preview+')'+')');
+      line.push('['+this.language.preview+']' + '('+stream.preview+')');
     }
     if (line.length) {
-      textArr.push(line.join(' '));
+      textArr.push(line.join(', '));
     }
 
     return textArr.join('\n');

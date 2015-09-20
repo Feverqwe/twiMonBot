@@ -140,17 +140,17 @@ var chat = {
   getStreamText: function(stream) {
     var textArr = [];
 
-    textArr.push('*' + (stream.channel.display_name || stream.channel.name) + '*');
+    textArr.push('*' + utils.markDownSanitize(stream.channel.display_name || stream.channel.name) + '*');
 
     var line = [];
     if (stream.viewers || stream.viewers === 0) {
       line.push(stream.viewers);
     }
     if (stream.channel.status) {
-      line.push(stream.channel.status);
+      line.push(utils.markDownSanitize(stream.channel.status));
     }
     if (stream.game) {
-      line.push('_' + stream.game + '_');
+      line.push('_' + utils.markDownSanitize(stream.game) + '_');
     }
     if (line.length) {
       textArr.push(line.join(', '));
@@ -164,10 +164,10 @@ var chat = {
       );
     }
     if (stream.preview) {
-      line.push('(['+this.language.preview+']' + '('+stream.preview+'))');
+      line.push('['+this.language.preview+']' + '('+stream.preview+')');
     }
     if (line.length) {
-      textArr.push(line.join(' '));
+      textArr.push(line.join(', '));
     }
 
     return textArr.join('\n');

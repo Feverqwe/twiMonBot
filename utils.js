@@ -170,6 +170,15 @@ var utils = {
       + h + ":"
       + m + ":"
       + s;
+  },
+  markDownSanitize: function(text) {
+    "use strict";
+    text = text
+      .replace(/\*([^*]+)\*/g, '\\*$1\\*')
+      .replace(/_([^_]+)_/g, '\\_$1\\_')
+      .replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '\\[$1\\]\\($2\\)');
+
+    return text;
   }
 };
 
