@@ -443,6 +443,7 @@ var chat = {
       });
     },
     top: function(msg) {
+      "use strict";
       var service, channelList, channelName;
       var _this = chat;
       var chatId = msg.chat.id;
@@ -501,8 +502,15 @@ var chat = {
       textArr.push(_this.language.users.replace('{count}', userCount));
       textArr.push(_this.language.channels.replace('{count}', channelCount));
 
+      var onlineCount = 0;
       var lastStreamList = _this.storage.lastStreamList;
-      textArr.push(_this.language.online.replace('{count}', lastStreamList.length));
+      lastStreamList.forEach(function(item) {
+        if (item._isOffline) {
+          return;
+        }
+        onlineCount++;
+      });
+      textArr.push(_this.language.online.replace('{count}', onlineCount));
 
       for (service in topArr) {
         textArr.push('');
