@@ -16,7 +16,7 @@ var chacker = {
     for (var i = 0, item; item = streamList[i]; i++) {
       if (now - item._addItemTime > this.storage.timeout && item._isOffline) {
         rmList.push(item);
-        streamLog && console.log('[s]', utils.getDate(), 'R     ', item._channelName, '#', item.channel.status, '#', item.game);
+        streamLog && console.log('[s]', utils.getDate(), 'R-', item._service, item._channelName, '#', item.channel.status, '#', item.game);
       }
       item._isOffline = true;
     }
@@ -157,6 +157,9 @@ var chacker = {
         this.track(chatId, stream, 'sendPhoto');
       }.bind(this)).catch(function(e) {
         console.error(utils.getDate(), 'Send msg with photo error!', chatId, stream._channelName, '\n', e && e.message);
+        if (/socket hang up/.test(e.message)) {
+          console.error(utils.getDate(), 'Stream preview url', stream.preview);
+        }
 
         this.onSendMsgError(e, chatId);
 
@@ -362,9 +365,9 @@ var chacker = {
         if (!cItem) {
           if (item._isNotified = this.isNotDblItem(item)) {
             this.onNewStream(item);
-            streamLog && console.log('[s]', utils.getDate(), 'NewN  ', item._channelName, '#', item.channel.status, '#', item.game);
+            streamLog && console.log('[s]', utils.getDate(), 'Nn', item._service, item._channelName, '#', item.channel.status, '#', item.game);
           } else {
-            streamLog && console.log('[s]', utils.getDate(),'isDbl ', item._channelName, '#', item.channel.status, '#', item.game);
+            streamLog && console.log('[s]', utils.getDate(),'D-', item._service, item._channelName, '#', item.channel.status, '#', item.game);
           }
         } else {
           item._isNotified = cItem._isNotified;
@@ -379,7 +382,7 @@ var chacker = {
           if (!item._isNotified && this.isStatusChange(cItem, item)) {
             item._isNotified = true;
             this.onNewStream(item);
-            streamLog && console.log('[s]', utils.getDate(),'ExN   ', item._channelName, '#', item.channel.status, '#', item.game);
+            streamLog && console.log('[s]', utils.getDate(),'En', item._service, item._channelName, '#', item.channel.status, '#', item.game);
           }
         }
 

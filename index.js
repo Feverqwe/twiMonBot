@@ -6,7 +6,6 @@ var utils = require('./utils');
 var TelegramBot = require('node-telegram-bot-api');
 var botPolling = require('./botPolling');
 var debug = require('debug')('chat');
-var rmStateLog = true;
 var chat = {
   storage: {
     token: null,
@@ -87,7 +86,6 @@ var chat = {
       var func = stateList[chatId];
       if (func.now < aliveTime) {
         rmList.push(chatId);
-        rmStateLog && console.log('[c]', utils.getDate(), 'rmState', chatId, func.command || '');
       }
     }
     for (i = 0, chatId; chatId = rmList[i]; i++) {
