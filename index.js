@@ -51,7 +51,8 @@ var chat = {
     users: "{users}",
     channels: "{channels}",
     preview: "{preview}",
-    watchOn: "{watchOn} {serviceName}"
+    watchOn: "{watchOn} {serviceName}",
+    online: "{online} {count}"
   },
   options: {
     hideKeyboard: {
@@ -499,6 +500,9 @@ var chat = {
 
       textArr.push(_this.language.users.replace('{count}', userCount));
       textArr.push(_this.language.channels.replace('{count}', channelCount));
+
+      var lastStreamList = _this.storage.lastStreamList;
+      textArr.push(_this.language.online.replace('{count}', lastStreamList.length));
 
       for (service in topArr) {
         textArr.push('');

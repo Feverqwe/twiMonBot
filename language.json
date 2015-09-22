@@ -33,5 +33,6 @@
   "users": "Users: {count}",
   "channels": "Channels: {count}",
   "preview": "preview",
-  "watchOn": "Watch {channelName} on {serviceName}"
+  "watchOn": "Watch {channelName} on {serviceName}",
+  "online": "Online: {count}"
 }
