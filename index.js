@@ -390,8 +390,12 @@ var chat = {
       }
 
       var serviceList = [];
+
       for (var service in chatItem.serviceList) {
-        serviceList.push('*' + _this.serviceToTitle[service] + '*' + ': ' + chatItem.serviceList[service].join(', '));
+        var channelList = chatItem.serviceList[service].map(function(channelName) {
+          return utils.markDownSanitize(channelName);
+        });
+        serviceList.push('*' + _this.serviceToTitle[service] + '*' + ': ' + channelList.join(', '));
       }
 
       _this.bot.sendMessage(
