@@ -1,4 +1,4 @@
-Youtube Gaming, Twitch and GoodGame monitor
+Youtube Gaming, Twitch, Hitbox and GoodGame monitor
 =======
 
 It bot for telegram.
@@ -8,4 +8,4 @@ Run
 ---
 Use node-twiMon_example as the service for init.d or enter in console:
 
-    node --always-compact  --max_new_space_size=5000 --expose-gc index.js
+    node --always-compact --expose-gc index.js
