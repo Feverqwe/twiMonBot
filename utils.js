@@ -173,7 +173,7 @@ var utils = {
   },
   markDownSanitize: function(text) {
     "use strict";
-    text = text.replace(/([*_\[\]\(\)])/g, '\\$1');
+    text = text.replace(/([*_\[\]])/g, '\\$1');
 
     return text;
   }
