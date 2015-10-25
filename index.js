@@ -4,7 +4,6 @@
 var checker = null;
 var utils = require('./utils');
 var TelegramBot = require('node-telegram-bot-api');
-var botPolling = require('./botPolling');
 var debug = require('debug')('chat');
 var chat = {
   storage: {
@@ -723,9 +722,9 @@ var chat = {
     setInterval(function() {
       chat.clearStateList();
 
-      if (_this.botPolling._polling.lastUpdate + 60 * 5 * 1000 < Date.now()) {
+      if (_this.bot._polling.lastUpdate + 60 * 5 * 1000 < Date.now()) {
         console.error(utils.getDate(), 'Polling restart!');
-        _this.botPolling.initPolling();
+        _this.bot.initPolling();
       }
 
       hasGc && gc();
@@ -774,11 +773,12 @@ var chat = {
         this.storage.lastStreamList = storage.lastStreamList;
       }
 
-      this.bot = new TelegramBot(this.storage.token);
-      this.botPolling = new botPolling(this.storage.token, {polling: {
-        timeout: 120
-      }});
-      this.botPolling.on('message', this.onMessage.bind(this));
+      this.bot = new TelegramBot(this.storage.token, {
+        polling: {
+          timeout: 120
+        }
+      });
+      this.bot.on('message', this.onMessage.bind(this));
 
       if (this.storage.botanToken) {
         botan = require('botanio')(this.storage.botanToken);
