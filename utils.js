@@ -131,7 +131,7 @@ var utils = {
     var onReady = function(response) {
       var resp = response[0];
       if (!(resp.statusCode >= 200 && resp.statusCode < 300 || resp.statusCode === 304)) {
-        throw new Error('Status code: '+resp.statusCode+'\n'+resp.body);
+        throw new Error(resp.statusCode+' '+resp.body);
       }
 
       var data = resp.body;

@@ -119,7 +119,8 @@ var chacker = {
     var isError = [
       'Bot was kicked from a chat',
       'Bad Request: wrong chat id',
-      'PEER_ID_INVALID'
+      'PEER_ID_INVALID',
+      'chat not found'
     ].some(function(desc) {
       if (errorMsg.indexOf(desc) !== -1) {
         return true;
