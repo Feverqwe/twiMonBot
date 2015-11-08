@@ -158,7 +158,7 @@ var chacker = {
         this.track(chatId, stream, 'sendPhoto');
       }.bind(this)).catch(function(e) {
         console.error(utils.getDate(), 'Send msg with photo error!', chatId, stream._channelName, '\n', e && e.message);
-        if (/socket hang up/.test(e.message)) {
+        if (/socket hang up/.test(e && e.message)) {
           console.error(utils.getDate(), 'Stream preview url', stream.preview);
         }
 
