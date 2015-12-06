@@ -2,7 +2,7 @@
  * Created by anton on 19.07.15.
  */
 var debug = require('debug')('goodgame');
-var base = require('./base');
+var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = Promise.promisify(request);

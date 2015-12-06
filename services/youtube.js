@@ -2,7 +2,7 @@
  * Created by Anton on 06.12.2015.
  */
 var debug = require('debug')('twitch');
-var base = require('./base');
+var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = Promise.promisify(request);
@@ -13,7 +13,7 @@ Youtube = function(options) {
     this.gOptions = options;
     this.config = {};
 
-    options.storage.get('userIdToChannelId').then(function(storage) {
+    this.onReady = base.storage.get('userIdToChannelId').then(function(storage) {
         _this.config.token = options.config.ytToken;
         _this.config.userIdToChannelId = storage.userIdToChannelId || {};
     });
@@ -32,7 +32,7 @@ Youtube.prototype.apiNormalization = function(userId, data, viewers) {
 
         var videoId = origItem.id && origItem.id.videoId;
         if (!videoId) {
-            return;
+            throw new Error('Video id is not exists!');
         }
 
         var item = {
@@ -206,10 +206,7 @@ Youtube.prototype.getChannelName = function(userId) {
             },
             json: true
         }).then(function(data) {
-            var id = data && data.items && data.items[0] && data.items[0].id;
-            if (!id) {
-                return null;
-            }
+            var id = data.items[0].id;
 
             return {userId: userId, channelId: id === userId ? undefined : id};
         }).catch(function(err) {

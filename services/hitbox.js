@@ -2,17 +2,17 @@
  * Created by Anton on 06.12.2015.
  */
 var debug = require('debug')('hitbox');
-var base = require('./base');
+var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = Promise.promisify(request);
 
-HitBox = function(options) {
+Hitbox = function(options) {
     "use strict";
     this.gOptions = options;
 };
 
-HitBox.prototype.apiNormalization = function(data) {
+Hitbox.prototype.apiNormalization = function(data) {
     "use strict";
     var now = parseInt(Date.now() / 1000);
     var streams = [];
@@ -51,7 +51,7 @@ HitBox.prototype.apiNormalization = function(data) {
     return streams;
 };
 
-HitBox.prototype.getStreamList = function(channelList) {
+Hitbox.prototype.getStreamList = function(channelList) {
     "use strict";
     var _this = this;
     return Promise.resolve().then(function() {
@@ -78,7 +78,7 @@ HitBox.prototype.getStreamList = function(channelList) {
     });
 };
 
-HitBox.prototype.getChannelName = function(channelName) {
+Hitbox.prototype.getChannelName = function(channelName) {
     "use strict";
     return requestPromise({
         method: 'GET',
@@ -106,4 +106,4 @@ HitBox.prototype.getChannelName = function(channelName) {
     });
 };
 
-module.exports = HitBox;
+module.exports = Hitbox;

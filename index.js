@@ -60,23 +60,31 @@ var options = {
 (function() {
     "use strict";
     return Promise.resolve().then(function() {
+        debug('Load config');
         return base.loadConfig().then(function(config) {
             options.config = config;
         });
     }).then(function() {
+        debug('Load language');
         return base.loadLanguage().then(function(language) {
             options.language = language;
         });
     }).then(function() {
+        debug('Load storage');
         return base.storage.get(Object.keys(options.storage)).then(function(storage) {
             for (var key in storage) {
                 options.storage[key] = storage[key];
             }
         });
     }).then(function() {
-        options.serviceList.forEach(function(name) {
-            options.services[name] = new require('./services/' + name)(options);
-        });
+        debug('Load services');
+        return Promise.all(options.serviceList.map(function(name) {
+            return Promise.resolve().then(function() {
+                var service = require('./services/' + name);
+                service = options.services[name] = new service(options);
+                return service.onReady;
+            });
+        }));
     }).then(function() {
         debug('Init telegram bot api');
         /**

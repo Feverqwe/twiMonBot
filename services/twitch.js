@@ -2,7 +2,7 @@
  * Created by Anton on 06.12.2015.
  */
 var debug = require('debug')('twitch');
-var base = require('./base');
+var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = Promise.promisify(request);
