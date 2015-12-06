@@ -175,6 +175,8 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
             debug(base.getDate(), 'Send photo error!', chatId, stream._channelName, '\n', e && e.message);
 
             _this.onSendMsgError(e, chatId);
+
+            throw new Error('Sent msg with photo file error!');
         });
     };
 
@@ -243,7 +245,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
 
     return new Promise(function(resolve) {
         chatId = chatIdList.shift();
-        this.getPicId(chatId, text, stream).then(function(fileId) {
+        _this.getPicId(chatId, text, stream).then(function(fileId) {
             stream._photoId = fileId;
         }).catch(function() {
             chatIdList.unshift(chatId);
