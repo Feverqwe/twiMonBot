@@ -3,6 +3,7 @@
  */
 var Promise = require('bluebird');
 var debug = require('debug')('commands');
+var base = require('./base');
 
 var commands = {
     ping: function (msg) {
@@ -33,7 +34,7 @@ var commands = {
         var chatList = _this.gOptions.storage.chatList;
 
         return new Promise(function(resolve){
-            this.gOptions.services[service].getChannelName(channelName).then(function (channelName, channelId) {
+            _this.gOptions.services[service].getChannelName(channelName).then(function (channelName, channelId) {
                 return resolve(Promise.resolve().then(function() {
                     var chatItem = chatList[chatId] = chatList[chatId] || {};
                     chatItem.chatId = chatId;
@@ -82,12 +83,12 @@ var commands = {
         channelName && serviceName && data.push(serviceName);
 
         if (data.length === 0) {
-            _this.sceneList.waitChannelName.call(this, data, msg);
+            return _this.sceneList.waitChannelName.call(_this, data, msg);
         } else if (data.length === 1) {
-            _this.sceneList.waitServiceName.call(this, data, msg);
+            return _this.sceneList.waitServiceName.call(_this, data, msg);
         } else {
             msg.text = '/a ' + data.join(' ');
-            _this.onMessage(msg);
+            return _this.onMessage(msg);
         }
     },
     d: function (msg, channelName, service) {
@@ -258,7 +259,7 @@ var commands = {
                 }
 
                 if (userChannelList.indexOf(stream._channelName) !== -1) {
-                    channelList.push(_this.getStreamText(stream));
+                    channelList.push(base.getStreamText(_this.gOptions, stream));
                 }
             }
 
@@ -376,4 +377,4 @@ var commands = {
     }
 };
 
-modele.exports = commands;
+module.exports = commands;

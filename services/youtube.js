@@ -67,7 +67,7 @@ Youtube.prototype.apiNormalization = function(userId, data, viewers) {
 
 Youtube.prototype.getViewers = function(id) {
     "use strict";
-    requestPromise({
+    return requestPromise({
         url: 'https://gaming.youtube.com/live_stats',
         qs: {
             v: id,
@@ -81,6 +81,8 @@ Youtube.prototype.getViewers = function(id) {
         throw new Error('Value is not int');
     }).catch(function(err) {
         debug(base.getDate(), 'Error request viewers!', err);
+
+        return -1;
     });
 };
 
@@ -114,8 +116,6 @@ Youtube.prototype.getChannelId = function(userId) {
             base.storage.set({userIdToChannelId: _this.config.userIdToChannelId});
 
             return id;
-        }).catch(function(err) {
-            debug(base.getDate(), 'Request getChannelId error!', err);
         });
     });
 };
@@ -131,61 +131,53 @@ Youtube.prototype.getStreamList = function(userList) {
         var streamList = [];
 
         var requestList = userList.map(function(userId) {
-            return new Promise(function(resolve) {
-                _this.getChannelId(userId).then(function(channelId) {
-                    return requestPromise({
-                        method: 'GET',
-                        url: 'https://www.googleapis.com/youtube/v3/search',
-                        qs: {
-                            part: 'snippet',
-                            channelId: channelId,
-                            eventType: 'live',
-                            maxResults: 1,
-                            order: 'date',
-                            safeSearch: 'none',
-                            type: 'video',
-                            fields: 'items(id,snippet)',
-                            key: _this.config.token
-                        },
-                        json: true
-                    }).then(function(data) {
-                        if (data.items.length === 0) {
-                            return [];
+            return _this.getChannelId(userId).then(function(channelId) {
+                return requestPromise({
+                    method: 'GET',
+                    url: 'https://www.googleapis.com/youtube/v3/search',
+                    qs: {
+                        part: 'snippet',
+                        channelId: channelId,
+                        eventType: 'live',
+                        maxResults: 1,
+                        order: 'date',
+                        safeSearch: 'none',
+                        type: 'video',
+                        fields: 'items(id,snippet)',
+                        key: _this.config.token
+                    },
+                    json: true
+                }).then(function(data) {
+                    if (data.items.length === 0) {
+                        return [];
+                    }
+
+                    var videoId = null;
+                    data.items.some(function(item) {
+                        if (item.id && (videoId = item.id.videoId)) {
+                            return true;
                         }
-
-                        var videoId = null;
-                        data.items.some(function(item) {
-                            if (item.id && (videoId = item.id.videoId)) {
-                                return true;
-                            }
-                        });
-
-                        if (!videoId) {
-                            debug(base.getDate(), 'VideoId is not found!');
-                            return [];
-                        }
-
-                        return _this.getViewers(videoId).catch(function() {
-                            return -1;
-                        }).finally(function(viewers) {
-                            return _this.apiNormalization(userId, data, viewers);
-                        });
                     });
-                }).then(function(stream) {
-                    streamList.push(stream);
-                }).catch(function(err) {
-                    debug(base.getDate(), 'Stream list item response error!', err);
-                }).finally(function() {
-                    resolve();
+
+                    if (!videoId) {
+                        debug(base.getDate(), 'VideoId is not found!');
+                        return [];
+                    }
+
+                    return _this.getViewers(videoId).then(function(viewers) {
+                        return _this.apiNormalization(userId, data, viewers);
+                    });
                 });
+            }).then(function(stream) {
+                streamList.push(stream);
+            }).catch(function(err) {
+                debug(base.getDate(), 'Stream list item response error!', err);
             });
         });
 
         return Promise.all(requestList).then(function() {
             return streamList;
         });
-    }).catch(function(err) {
-        debug(base.getDate(), 'Request streamList error!', err);
     });
 };
 
@@ -209,8 +201,6 @@ Youtube.prototype.getChannelName = function(userId) {
             var id = data.items[0].id;
 
             return Promise.resolve(userId, id === userId ? undefined : id);
-        }).catch(function(err) {
-            debug(base.getDate(), 'Request channelName error!', err);
         });
     });
 };

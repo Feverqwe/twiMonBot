@@ -83,8 +83,6 @@ GoodGame.prototype.getStreamList = function (channelList) {
             json: true
         }).then(function(response) {
             return _this.apiNormalization(response)
-        }).catch(function(err) {
-            debug(base.getDate(), 'Request streamList error!', err);
         });
     });
 };
@@ -108,8 +106,6 @@ GoodGame.prototype.getChannelName = function (channelName) {
         }
 
         throw new Error('Channel is not exists!');
-    }).catch(function(err) {
-        debug(base.getDate(), 'Error request channelName!', err);
     });
 };
 

@@ -72,8 +72,6 @@ Hitbox.prototype.getStreamList = function(channelList) {
             json: true
         }).then(function(response) {
             return _this.apiNormalization(response);
-        }).catch(function(err) {
-            debug(base.getDate(), 'Request streamList error!', err);
         });
     });
 };
@@ -101,8 +99,6 @@ Hitbox.prototype.getChannelName = function(channelName) {
         }
 
         return channelName;
-    }).catch(function(err) {
-        debug(base.getDate(), 'Error request channelName!', err);
     });
 };
 

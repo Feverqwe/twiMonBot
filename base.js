@@ -29,7 +29,18 @@ module.exports.loadLanguage = function() {
     debug('Load language');
     return new Promise(function(resolve, reject) {
         var fs = require('fs');
-        return resolve(JSON.parse(fs.readFileSync(path.join(__dirname, 'language.json'))));
+
+        var language = JSON.parse(fs.readFileSync(path.join(__dirname, 'language.json')));
+
+        for (var key in language) {
+            var item = language[key];
+            if (Array.isArray(item)) {
+                item = item.join('\n');
+            }
+            language[key] = item;
+        }
+
+        return resolve(language);
     });
 };
 
@@ -160,6 +171,54 @@ module.exports.getNowStreamText = function(gOptions, stream) {
         var channelName = '*' + this.markDownSanitize(stream.channel.display_name || stream.channel.name) + '*';
         line.push(gOptions.language.watchOn
             .replace('{channelName}', channelName)
+            .replace('{serviceName}', '['+gOptions.serviceToTitle[stream._service]+']'+'('+stream.channel.url+')')
+        );
+    }
+    if (stream.preview) {
+        line.push('['+gOptions.language.preview+']' + '('+stream.preview+')');
+    }
+    if (line.length) {
+        textArr.push(line.join(', '));
+    }
+
+    return textArr.join('\n');
+};
+
+/**
+ * @param {{
+ * channel: {display_name},
+ * viewers,
+ * game,
+ * _service,
+ * preview,
+ * _isOffline,
+ * _channelName
+ * }} stream
+ * @returns {string}
+ */
+module.exports.getStreamText = function(gOptions, stream) {
+    var textArr = [];
+
+    textArr.push('*' + this.markDownSanitize(stream.channel.display_name || stream.channel.name) + '*');
+
+    var line = [];
+    if (stream.viewers || stream.viewers === 0) {
+        line.push(stream.viewers);
+    }
+    if (stream.channel.status) {
+        line.push(this.markDownSanitize(stream.channel.status));
+    }
+    if (stream.game) {
+        line.push('_' + this.markDownSanitize(stream.game) + '_');
+    }
+    if (line.length) {
+        textArr.push(line.join(', '));
+    }
+
+    line = [];
+    if (stream.channel.url) {
+        line.push(this.gOptions.language.watchOn
+            .replace('{channelName} ', '')
             .replace('{serviceName}', '['+gOptions.serviceToTitle[stream._service]+']'+'('+stream.channel.url+')')
         );
     }

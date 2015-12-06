@@ -300,7 +300,7 @@ Checker.prototype.notifyAll = function(streamList) {
 Checker.prototype.updateList = function() {
     "use strict";
     var _this = this;
-    var lastStreamList = this.gOptions.config.lastStreamList;
+    var lastStreamList = this.gOptions.storage.lastStreamList;
     var notifyTimeout = _this.gOptions.config.notifyTimeout;
 
     var onGetStreamList = function(streamList) {
@@ -368,7 +368,9 @@ Checker.prototype.updateList = function() {
             var channelList = serviceChannelList[service];
             while (channelList.length) {
                 var arr = channelList.splice(0, 100);
-                promiseList.push(services[service].getStreamList(arr).then(onGetStreamList));
+                promiseList.push(services[service].getStreamList(arr).then(function(streamList) {
+                    return onGetStreamList(streamList);
+                }));
             }
         }
 

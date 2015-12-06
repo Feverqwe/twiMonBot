@@ -77,8 +77,6 @@ Twitch.prototype.getStreamList = function(channelList) {
             json: true
         }).then(function(response) {
             return _this.apiNormalization(response);
-        }).catch(function(err) {
-            debug(base.getDate(), 'Request streamList error!', err);
         });
     });
 };
@@ -94,8 +92,6 @@ Twitch.prototype.getChannelName = function(channelName) {
         json: true
     }).then(function(response) {
         return response.name.toLowerCase();
-    }).catch(function(err) {
-        debug(base.getDate(), 'Error request channelName!', err);
     });
 };
 

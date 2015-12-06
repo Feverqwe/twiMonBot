@@ -78,14 +78,14 @@ Chat.prototype.sceneList = {
         _this.stateList[chatId] = function(msg) {
             data.push(msg.text);
 
-            _this.sceneList.waitServiceName(data, msg);
+            _this.sceneList.waitServiceName.call(_this, data, msg);
         };
         _this.stateList[chatId].command = 'add';
         _this.stateList[chatId].now = Date.now();
 
-        _this.bot.sendMessage(
+        return _this.gOptions.bot.sendMessage(
             chatId,
-            _this.language.enterChannelName
+            _this.gOptions.language.enterChannelName
         );
     },
     waitServiceName: function(data, msg) {
@@ -97,12 +97,12 @@ Chat.prototype.sceneList = {
             "use strict";
             data.push(msg.text);
             msg.text = '/a ' + data.join(' ');
-            _this.onMessage(msg);
+            _this.onMessage.call(_this, msg);
         };
         _this.stateList[chatId].command = 'add';
         _this.stateList[chatId].now = Date.now();
 
-        _this.bot.sendMessage(chatId, _this.language.enterService, {
+        return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.enterService, {
             reply_markup: JSON.stringify({
                 keyboard: _this.getServiceListKeyboard(),
                 resize_keyboard: true,
@@ -112,56 +112,6 @@ Chat.prototype.sceneList = {
         });
     }
 };
-
-/**
- * @param {{
- * channel: {display_name},
- * viewers,
- * game,
- * _service,
- * preview,
- * _isOffline,
- * _channelName
- * }} stream
- * @returns {string}
- */
-Chat.prototype.getStreamText = function(stream) {
-    var textArr = [];
-
-    textArr.push('*' + base.markDownSanitize(stream.channel.display_name || stream.channel.name) + '*');
-
-    var line = [];
-    if (stream.viewers || stream.viewers === 0) {
-        line.push(stream.viewers);
-    }
-    if (stream.channel.status) {
-        line.push(base.markDownSanitize(stream.channel.status));
-    }
-    if (stream.game) {
-        line.push('_' + base.markDownSanitize(stream.game) + '_');
-    }
-    if (line.length) {
-        textArr.push(line.join(', '));
-    }
-
-    line = [];
-    if (stream.channel.url) {
-        line.push(this.gOptions.language.watchOn
-            .replace('{channelName} ', '')
-            .replace('{serviceName}', '['+this.gOptions.serviceToTitle[stream._service]+']'+'('+stream.channel.url+')')
-        );
-    }
-    if (stream.preview) {
-        line.push('['+this.gOptions.language.preview+']' + '('+stream.preview+')');
-    }
-    if (line.length) {
-        textArr.push(line.join(', '));
-    }
-
-    return textArr.join('\n');
-};
-
-
 
 Chat.prototype.checkArgs = function(msg, args) {
     "use strict";
