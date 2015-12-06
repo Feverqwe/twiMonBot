@@ -294,7 +294,7 @@ Checker.prototype.notifyAll = function(streamList) {
     streamList.forEach(function (stream) {
         promiseList.push(_this.onNewStream(stream));
     });
-    
+
     return Promise.all(promiseList);
 };
 

@@ -185,6 +185,8 @@ module.exports.getNowStreamText = function(gOptions, stream) {
 };
 
 /**
+ *
+ * @param gOptions
  * @param {{
  * channel: {display_name},
  * viewers,
