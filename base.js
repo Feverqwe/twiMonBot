@@ -13,7 +13,7 @@ var localStorage = null;
  */
 module.exports.loadConfig = function() {
     "use strict";
-    debug('Loading config');
+    debug('Load config');
     return new Promise(function(resolve, reject) {
         var fs = require('fs');
         return resolve(JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'))));
@@ -26,7 +26,7 @@ module.exports.loadConfig = function() {
  */
 module.exports.loadLanguage = function() {
     "use strict";
-    debug('Loading language');
+    debug('Load language');
     return new Promise(function(resolve, reject) {
         var fs = require('fs');
         return resolve(JSON.parse(fs.readFileSync(path.join(__dirname, 'language.json'))));

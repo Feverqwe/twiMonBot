@@ -7,6 +7,9 @@ var base = require('./base');
 var Checker = require('./checker');
 var Chat = require('./chat');
 var TelegramBotApi = require('node-telegram-bot-api');
+var EventEmitter = require('events').EventEmitter;
+var util = require('util');
+var Daemon = require('./daemon');
 
 /**
  * @type {
@@ -60,12 +63,12 @@ var options = {
 (function() {
     "use strict";
     return Promise.resolve().then(function() {
-        debug('Load config');
+        options.events = new EventEmitter();
+    }).then(function() {
         return base.loadConfig().then(function(config) {
             options.config = config;
         });
     }).then(function() {
-        debug('Load language');
         return base.loadLanguage().then(function(language) {
             options.language = language;
         });
@@ -86,17 +89,33 @@ var options = {
             });
         }));
     }).then(function() {
+        debug('Init daemon');
+        options.daemon = new Daemon(options);
+
+        (typeof gc === 'function') && options.events.on('tickTack', function() {
+            gc();
+        });
+    }).then(function() {
         debug('Init telegram bot api');
         /**
          * @type {{
          * sendMessage: function,
          * sendPhoto: function,
-         * on: function
+         * on: function,
+         * _polling: {lastUpdate: number},
+         * initPolling: function
          * }}
          */
-        options.bot = new TelegramBotApi(options.config.token, {
+        var bot = options.bot = new TelegramBotApi(options.config.token, {
             polling: {
-                timeout: 120
+                timeout: options.config.pollongTimeout || 120
+            }
+        });
+
+        options.events.on('tickTack', function() {
+            if (bot._polling.lastUpdate + 60 * 5 * 1000 < Date.now()) {
+                debug(base.getDate(), 'Polling restart!');
+                bot.initPolling();
             }
         });
     }).then(function() {
