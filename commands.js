@@ -33,45 +33,42 @@ var commands = {
         var chatId = msg.chat.id;
         var chatList = _this.gOptions.storage.chatList;
 
-        return new Promise(function(resolve){
-            _this.gOptions.services[service].getChannelName(channelName).then(function (channelName, channelId) {
-                return resolve(Promise.resolve().then(function() {
-                    var chatItem = chatList[chatId] = chatList[chatId] || {};
-                    chatItem.chatId = chatId;
+        return _this.gOptions.services[service].getChannelName(channelName).then(function (channelName, channelId) {
+            var chatItem = chatList[chatId] = chatList[chatId] || {};
+            chatItem.chatId = chatId;
 
-                    var serviceList = chatItem.serviceList = chatItem.serviceList || {};
-                    var channelList = serviceList[service] = serviceList[service] || [];
+            var serviceList = chatItem.serviceList = chatItem.serviceList || {};
+            var channelList = serviceList[service] = serviceList[service] || [];
 
-                    if (channelList.indexOf(channelName) !== -1) {
-                        return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.channelExists, _this.templates.hideKeyboard);
-                    }
+            if (channelList.indexOf(channelName) !== -1) {
+                return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.channelExists, _this.templates.hideKeyboard);
+            }
 
-                    channelList.push(channelName);
+            channelList.push(channelName);
 
-                    var displayName = [channelName];
-                    if (channelId) {
-                        displayName.push('(' + channelId + ')');
-                    }
+            var displayName = [channelName];
+            if (channelId) {
+                displayName.push('(' + channelId + ')');
+            }
 
-                    return base.storage.set({chatList: chatList}).then(function () {
-                        return _this.gOptions.bot.sendMessage(
-                            chatId,
-                            _this.gOptions.language.channelAdded
-                                .replace('{channelName}', displayName.join(' '))
-                                .replace('{serviceName}', _this.gOptions.serviceToTitle[service]),
-                            _this.templates.hideKeyboard
-                        );
-                    });
-                }));
-            }).catch(function() {
-                return resolve(_this.gOptions.bot.sendMessage(
+            return base.storage.set({chatList: chatList}).then(function () {
+                return _this.gOptions.bot.sendMessage(
                     chatId,
-                    _this.gOptions.language.channelIsNotFound
-                        .replace('{channelName}', channelName)
+                    _this.gOptions.language.channelAdded
+                        .replace('{channelName}', displayName.join(' '))
                         .replace('{serviceName}', _this.gOptions.serviceToTitle[service]),
                     _this.templates.hideKeyboard
-                ));
+                );
             });
+        }).catch(function() {
+            debug('Channel %s (%s) is not found', channelName, service);
+            return _this.gOptions.bot.sendMessage(
+                chatId,
+                _this.gOptions.language.channelIsNotFound
+                    .replace('{channelName}', channelName)
+                    .replace('{serviceName}', _this.gOptions.serviceToTitle[service]),
+                _this.templates.hideKeyboard
+            );
         });
     },
     add: function (msg, channelName, serviceName) {
