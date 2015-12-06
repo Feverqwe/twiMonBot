@@ -1,7 +1,7 @@
 /**
  * Created by Anton on 06.12.2015.
  */
-var debug = require('debug')('twitch');
+var debug = require('debug')('youtube');
 var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
@@ -73,9 +73,11 @@ Youtube.prototype.getViewers = function(id) {
             v: id,
             t: Date.now()
         }
-    }).then(function(data) {
-        if (/^\d+$/.test(data)) {
-            return parseInt(data);
+    }).then(function(response) {
+        debug("Response %j", response);
+        response = response.body;
+        if (/^\d+$/.test(response)) {
+            return parseInt(response);
         }
 
         throw new Error('Value is not int');
@@ -109,8 +111,10 @@ Youtube.prototype.getChannelId = function(userId) {
                 key: _this.config.token
             },
             json: true
-        }).then(function(data) {
-            var id = data.items[0].id;
+        }).then(function(response) {
+            debug("Response %j", response);
+            response = response.body;
+            var id = response.items[0].id;
 
             _this.config.userIdToChannelId[userId] = id;
             base.storage.set({userIdToChannelId: _this.config.userIdToChannelId});
@@ -147,13 +151,15 @@ Youtube.prototype.getStreamList = function(userList) {
                         key: _this.config.token
                     },
                     json: true
-                }).then(function(data) {
-                    if (data.items.length === 0) {
+                }).then(function(response) {
+                    debug("Response %j", response);
+                    response = response.body;
+                    if (response.items.length === 0) {
                         return [];
                     }
 
                     var videoId = null;
-                    data.items.some(function(item) {
+                    response.items.some(function(item) {
                         if (item.id && (videoId = item.id.videoId)) {
                             return true;
                         }
@@ -165,11 +171,11 @@ Youtube.prototype.getStreamList = function(userList) {
                     }
 
                     return _this.getViewers(videoId).then(function(viewers) {
-                        return _this.apiNormalization(userId, data, viewers);
+                        return _this.apiNormalization(userId, response, viewers);
                     });
                 });
             }).then(function(stream) {
-                streamList.push(stream);
+                streamList.push.apply(streamList, stream);
             }).catch(function(err) {
                 debug(base.getDate(), 'Stream list item response error!', err);
             });
@@ -197,8 +203,10 @@ Youtube.prototype.getChannelName = function(userId) {
                 key: _this.config.token
             },
             json: true
-        }).then(function(data) {
-            var id = data.items[0].id;
+        }).then(function(response) {
+            debug("Response %j", response);
+            response = response.body;
+            var id = response.items[0].id;
 
             return Promise.resolve(userId, id === userId ? undefined : id);
         });

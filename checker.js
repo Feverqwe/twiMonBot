@@ -183,11 +183,11 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
     return new Promise(function(resolve, reject) {
         var req = request(stream.preview);
         req.on('error', function() {
-            console.error(base.getDate(), 'Request photo error!', stream._channelName, '\n', stream.preview);
+            debug(base.getDate(), 'Request photo error!', stream._channelName, '\n', stream.preview);
             return reject();
         });
 
-        resolve(sendPic);
+        resolve(sendPic(chatId, req));
     });
 };
 
@@ -243,20 +243,19 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         return send();
     }
 
-    return new Promise(function(resolve) {
-        chatId = chatIdList.shift();
-        _this.getPicId(chatId, text, stream).then(function(fileId) {
-            stream._photoId = fileId;
-        }).catch(function() {
-            chatIdList.unshift(chatId);
-        }).finally(function() {
-            return resolve(send());
-        });
+    chatId = chatIdList.shift();
+    return _this.getPicId(chatId, text, stream).then(function(fileId) {
+        stream._photoId = fileId;
+    }).catch(function() {
+        chatIdList.unshift(chatId);
+    }).then(function() {
+        return send();
     });
 };
 
 Checker.prototype.onNewStream = function(stream) {
     "use strict";
+    debug('onNewStream %j', stream);
     var _this = this;
     var text = base.getNowStreamPhotoText(this.gOptions, stream);
     var noPhotoText = base.getNowStreamText(this.gOptions, stream);
@@ -306,6 +305,7 @@ Checker.prototype.updateList = function() {
     var notifyTimeout = _this.gOptions.config.notifyTimeout;
 
     var onGetStreamList = function(streamList) {
+        debug('streamList %j', streamList);
         var notifyList = [];
         var now = parseInt(Date.now() / 1000);
         streamList.forEach(function(item) {

@@ -82,6 +82,8 @@ GoodGame.prototype.getStreamList = function (channelList) {
             },
             json: true
         }).then(function(response) {
+            debug("Response %j", response);
+            response = response.body;
             return _this.apiNormalization(response);
         }).catch(function(err) {
             debug("Request stream list error!", err);
@@ -101,6 +103,8 @@ GoodGame.prototype.getChannelName = function (channelName) {
         },
         json: true
     }).then(function(response) {
+        debug("Response %j", response);
+        response = response.body;
         for (var key in response) {
             var item = response[key];
             if (item.key) {

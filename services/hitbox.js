@@ -71,6 +71,8 @@ Hitbox.prototype.getStreamList = function(channelList) {
             },
             json: true
         }).then(function(response) {
+            debug("Response %j", response);
+            response = response.body;
             return _this.apiNormalization(response);
         }).catch(function(err) {
             debug("Request stream list error!", err);
@@ -90,6 +92,8 @@ Hitbox.prototype.getChannelName = function(channelName) {
         json: true
     }).then(function(response) {
         var channelName = null;
+        debug("Response %j", response);
+        response = response.body;
         response.livestream.some(function(item) {
             if (item.channel && (channelName = item.channel.user_name)) {
                 channelName = channelName.toLowerCase();

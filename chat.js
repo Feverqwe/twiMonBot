@@ -52,67 +52,6 @@ Chat.prototype.getServiceListKeyboard = function() {
     return btnList;
 };
 
-Chat.prototype.clearStateList = function() {
-    "use strict";
-    var chatId, i;
-    var aliveTime = Date.now() - 5 * 60 * 1000;
-    var rmList = [];
-    var stateList = this.stateList;
-    for (chatId in stateList) {
-        var func = stateList[chatId];
-        if (func.now < aliveTime) {
-            rmList.push(chatId);
-        }
-    }
-    for (i = 0, chatId; chatId = rmList[i]; i++) {
-        delete stateList[chatId];
-    }
-};
-
-Chat.prototype.sceneList = {
-    waitChannelName: function(data, msg) {
-        "use strict";
-        var _this = this;
-        var chatId = msg.chat.id;
-
-        _this.stateList[chatId] = function(msg) {
-            data.push(msg.text);
-
-            _this.sceneList.waitServiceName.call(_this, data, msg);
-        };
-        _this.stateList[chatId].command = 'add';
-        _this.stateList[chatId].now = Date.now();
-
-        return _this.gOptions.bot.sendMessage(
-            chatId,
-            _this.gOptions.language.enterChannelName
-        );
-    },
-    waitServiceName: function(data, msg) {
-        "use strict";
-        var _this = this;
-        var chatId = msg.chat.id;
-
-        _this.stateList[chatId] = function(msg) {
-            "use strict";
-            data.push(msg.text);
-            msg.text = '/a ' + data.join(' ');
-            _this.onMessage.call(_this, msg);
-        };
-        _this.stateList[chatId].command = 'add';
-        _this.stateList[chatId].now = Date.now();
-
-        return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.enterService, {
-            reply_markup: JSON.stringify({
-                keyboard: _this.getServiceListKeyboard(),
-                resize_keyboard: true,
-                one_time_keyboard: true,
-                selective: true
-            })
-        });
-    }
-};
-
 Chat.prototype.checkArgs = function(msg, args) {
     "use strict";
     var bot = this.gOptions.bot;
@@ -178,6 +117,7 @@ Chat.prototype.msgParser = function(text) {
 
 Chat.prototype.onMessage = function(msg) {
     "use strict";
+    var _this = this;
     debug('Input msg, %j', msg);
 
     var text = msg.text;
@@ -187,11 +127,6 @@ Chat.prototype.onMessage = function(msg) {
     if (responseFunc) {
         debug("Has response function!");
         delete this.stateList[chatId];
-    }
-
-    if (!text) {
-        debug("Text is empty!");
-        return;
     }
 
     if (text === 'Cancel') {
@@ -232,9 +167,9 @@ Chat.prototype.onMessage = function(msg) {
 
     args.unshift(msg);
 
-    func.apply(this, args);
-
-    this.track(msg, action)
+    return func.apply(this, args).finally(function() {
+        _this.track(msg, action)
+    });
 };
 
 Chat.prototype.track = function(msg, title) {

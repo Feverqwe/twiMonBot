@@ -74,15 +74,72 @@ var commands = {
     add: function (msg, channelName, serviceName) {
         "use strict";
         var _this = this;
+        var chatId = msg.chat.id;
 
         var data = [];
         channelName && data.push(channelName);
         channelName && serviceName && data.push(serviceName);
 
+        var waitMsgTimeout = null;
+
+        var onTimeout = function() {
+            debug("Wait message timeout, %j", msg);
+            msg.text = 'Cancel';
+            return _this.onMessage(msg);
+        };
+
+        var waitChannelName = function() {
+            var onMessage = _this.stateList[chatId] = function(msg) {
+                clearTimeout(waitMsgTimeout);
+
+                data.push('"' + msg.text + '"');
+
+                return waitServiceName();
+            };
+            onMessage.command = 'add';
+            onMessage.now = Date.now();
+
+            waitMsgTimeout = setTimeout(function() {
+                return onTimeout();
+            }, 3 * 60 * 1000);
+
+            return _this.gOptions.bot.sendMessage(
+                chatId,
+                _this.gOptions.language.enterChannelName
+            );
+        };
+
+        var waitServiceName = function() {
+            var onMessage = _this.stateList[chatId] = function(msg) {
+                clearTimeout(waitMsgTimeout);
+
+                data.push('"' + msg.text + '"');
+
+                msg.text = '/a ' + data.join(' ');
+                return _this.onMessage(msg);
+            };
+            onMessage.command = 'add';
+            onMessage.now = Date.now();
+
+            waitMsgTimeout = setTimeout(function() {
+                onTimeout();
+            }, 3 * 60 * 1000);
+
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.enterService, {
+                reply_markup: JSON.stringify({
+                    keyboard: _this.getServiceListKeyboard(),
+                    resize_keyboard: true,
+                    one_time_keyboard: true,
+                    selective: true
+                })
+            });
+        };
+
         if (data.length === 0) {
-            return _this.sceneList.waitChannelName.call(_this, data, msg);
-        } else if (data.length === 1) {
-            return _this.sceneList.waitServiceName.call(_this, data, msg);
+            return waitChannelName();
+        } else
+        if (data.length === 1) {
+            return waitServiceName();
         } else {
             msg.text = '/a ' + data.join(' ');
             return _this.onMessage(msg);
