@@ -11,6 +11,14 @@ var Chat = function(options) {
     this.stateList = {};
 
     this.bindBot();
+
+    options.events.on('tickTack', function() {
+        var bot = options.bot;
+        if (bot._polling.lastUpdate + 60 * 5 * 1000 < Date.now()) {
+            debug(base.getDate(), 'Polling restart!');
+            bot.initPolling();
+        }
+    });
 };
 
 Chat.prototype.bindBot = function() {

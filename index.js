@@ -57,7 +57,8 @@ var options = {
         youtube: 'Youtube',
         hitbox: 'Hitbox'
     },
-    services: {}
+    services: {},
+    events: null
 };
 
 (function() {
@@ -106,16 +107,9 @@ var options = {
          * initPolling: function
          * }}
          */
-        var bot = options.bot = new TelegramBotApi(options.config.token, {
+        options.bot = new TelegramBotApi(options.config.token, {
             polling: {
                 timeout: options.config.pollongTimeout || 120
-            }
-        });
-
-        options.events.on('tickTack', function() {
-            if (bot._polling.lastUpdate + 60 * 5 * 1000 < Date.now()) {
-                debug(base.getDate(), 'Polling restart!');
-                bot.initPolling();
             }
         });
     }).then(function() {
