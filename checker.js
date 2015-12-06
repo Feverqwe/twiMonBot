@@ -289,13 +289,13 @@ Checker.prototype.onNewStream = function(stream) {
 Checker.prototype.notifyAll = function(streamList) {
     "use strict";
     var _this = this;
-    return Promise.resolve().then(function() {
-        var promiseList = [];
-        streamList.forEach(function (stream) {
-            promiseList.push(_this.onNewStream(stream));
-        });
-        return Promise.all(promiseList);
+
+    var promiseList = [];
+    streamList.forEach(function (stream) {
+        promiseList.push(_this.onNewStream(stream));
     });
+    
+    return Promise.all(promiseList);
 };
 
 Checker.prototype.updateList = function() {
