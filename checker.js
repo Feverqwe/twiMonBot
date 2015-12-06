@@ -11,7 +11,12 @@ var streamLog = true;
 
 var Checker = function(options) {
     "use strict";
+    var _this = this;
     this.gOptions = options;
+
+    options.events.on('check', function() {
+        _this.updateList();
+    });
 };
 
 Checker.prototype.cleanStreamList = function(streamList) {
@@ -21,7 +26,7 @@ Checker.prototype.cleanStreamList = function(streamList) {
     for (var i = 0, item; item = streamList[i]; i++) {
         if (now - item._addItemTime > this.gOptions.config.timeout && item._isOffline) {
             rmList.push(item);
-            streamLog && console.log('[s]', base.getDate(), 'R-', item._service, item._channelName, '#', item.channel.status, '#', item.game);
+            streamLog && debug('[s]', base.getDate(), 'R-', item._service, item._channelName, '#', item.channel.status, '#', item.game);
         }
         item._isOffline = true;
     }
@@ -159,7 +164,7 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
         return _this.gOptions.bot.sendPhoto(chatId, request, {
             caption: text
         }).then(function (msg) {
-            var fileId = msg && msg.photo && msg.photo[0] && msg.photo[0].file_id;
+            var fileId = msg.photo[0].file_id;
 
             setTimeout(function() {
                 _this.track(chatId, stream, 'sendPhoto');
@@ -188,6 +193,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
     "use strict";
     var _this = this;
     var bot = _this.gOptions.bot;
+    var chatId = null;
     var sendMsg = function(chatId) {
         return bot.sendMessage(chatId, noPhotoText, {
             parse_mode: 'Markdown'
@@ -212,35 +218,38 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         });
     };
 
-    var onError = function() {
-        while (chatId = chatIdList.shift()) {
-            sendMsg(chatId);
-        }
-    };
+    var send = function() {
+        var hasPhoto = stream._photoId;
+        var promiseList = [];
 
-    var onGetPhoto = function() {
-        var fileId = stream._photoId;
         while (chatId = chatIdList.shift()) {
-            sendPic(chatId, fileId);
+            if (!hasPhoto) {
+                promiseList.push(sendMsg(chatId));
+            } else {
+                promiseList.push(sendPic(chatId, hasPhoto));
+            }
         }
+
+        return Promise.all(promiseList);
     };
 
     if (!stream.preview) {
-        return onError();
+        return send();
     }
 
     if (useCache && stream._photoId) {
-        return onGetPhoto();
+        return send();
     }
 
-    var chatId = chatIdList.shift();
-    this.getPicId(chatId, text, stream).then(function(fileId) {
-        stream._photoId = fileId;
-
-        onGetPhoto();
-    }).catch(function() {
-        chatIdList.unshift(chatId);
-        onError();
+    return new Promise(function(resolve) {
+        chatId = chatIdList.shift();
+        this.getPicId(chatId, text, stream).then(function(fileId) {
+            stream._photoId = fileId;
+        }).catch(function() {
+            chatIdList.unshift(chatId);
+        }).finally(function() {
+            return resolve(send());
+        });
     });
 };
 
