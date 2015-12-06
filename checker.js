@@ -212,7 +212,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         });
     };
 
-    var onError = function(notPreview) {
+    var onError = function() {
         while (chatId = chatIdList.shift()) {
             sendMsg(chatId);
         }
@@ -226,7 +226,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
     };
 
     if (!stream.preview) {
-        return onError(1);
+        return onError();
     }
 
     if (useCache && stream._photoId) {
