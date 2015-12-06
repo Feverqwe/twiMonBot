@@ -115,3 +115,60 @@ module.exports.getDate = function() {
         + m + ":"
         + s;
 };
+
+module.exports.getNowStreamPhotoText = function(gOptions, stream) {
+    "use strict";
+    var textArr = [];
+
+    var line = [];
+    if (stream.channel.status) {
+        line.push(stream.channel.status);
+    }
+    if (stream.game) {
+        line.push(stream.game);
+    }
+    if (line.length) {
+        textArr.push(line.join(', '));
+    }
+
+    if (stream.channel.url) {
+        textArr.push(stream.channel.url);
+    }
+
+    return textArr.join('\n');
+};
+
+
+
+module.exports.getNowStreamText = function(gOptions, stream) {
+    "use strict";
+    var textArr = [];
+
+    var line = [];
+    if (stream.channel.status) {
+        line.push(this.markDownSanitize(stream.channel.status));
+    }
+    if (stream.game) {
+        line.push('_'+this.markDownSanitize(stream.game)+'_');
+    }
+    if (line.length) {
+        textArr.push(line.join(', '));
+    }
+
+    line = [];
+    if (stream.channel.url) {
+        var channelName = '*' + this.markDownSanitize(stream.channel.display_name || stream.channel.name) + '*';
+        line.push(gOptions.language.watchOn
+            .replace('{channelName}', channelName)
+            .replace('{serviceName}', '['+gOptions.serviceToTitle[stream._service]+']'+'('+stream.channel.url+')')
+        );
+    }
+    if (stream.preview) {
+        line.push('['+gOptions.language.preview+']' + '('+stream.preview+')');
+    }
+    if (line.length) {
+        textArr.push(line.join(', '));
+    }
+
+    return textArr.join('\n');
+};

@@ -182,7 +182,7 @@ Chat.prototype.checkArgs = function(msg, args) {
     service = service || serviceList[0];
     service = service.toLowerCase();
 
-    if (service !== 'youtube' || channelName.substr(0, 2) !== 'UC') {
+    if (service !== 'youtube' || /^UC/.test(channelName)) {
         channelName = channelName.toLowerCase();
     }
 
@@ -200,11 +200,6 @@ Chat.prototype.checkArgs = function(msg, args) {
     args[1] = service;
 
     return args;
-};
-
-Chat.prototype.getArgs = function(text) {
-    "use strict";
-    return text.split(/\s+/);
 };
 
 Chat.prototype.msgParser = function(text) {
@@ -264,7 +259,7 @@ Chat.prototype.onMessage = function(msg) {
 
     text = text.substr(1);
 
-    var args = this.getArgs(text);
+    var args = this.msgParser(text);
 
     var action = args.shift().toLowerCase();
     var func = commands[action];
@@ -276,11 +271,11 @@ Chat.prototype.onMessage = function(msg) {
 
     if (['a', 'd'].indexOf(action) !== -1) {
         args = this.checkArgs(msg, args);
-    }
 
-    if (!args) {
-        debug("Args is empty!");
-        return;
+        if (!args) {
+            debug("Args is empty!");
+            return;
+        }
     }
 
     debug("Run action", action, args);

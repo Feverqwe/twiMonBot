@@ -208,7 +208,7 @@ Youtube.prototype.getChannelName = function(userId) {
         }).then(function(data) {
             var id = data.items[0].id;
 
-            return {userId: userId, channelId: id === userId ? undefined : id};
+            return Promise.resolve(userId, id === userId ? undefined : id);
         }).catch(function(err) {
             debug(base.getDate(), 'Request channelName error!', err);
         });
