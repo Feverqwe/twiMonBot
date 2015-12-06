@@ -126,6 +126,7 @@ Chat.prototype.onMessage = function(msg) {
     var responseFunc = this.stateList[chatId];
     if (responseFunc) {
         debug("Has response function!");
+        clearTimeout(responseFunc.timeout);
         delete this.stateList[chatId];
     }
 

@@ -219,7 +219,7 @@ module.exports.getStreamText = function(gOptions, stream) {
 
     line = [];
     if (stream.channel.url) {
-        line.push(this.gOptions.language.watchOn
+        line.push(gOptions.language.watchOn
             .replace('{channelName} ', '')
             .replace('{serviceName}', '['+gOptions.serviceToTitle[stream._service]+']'+'('+stream.channel.url+')')
         );

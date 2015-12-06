@@ -80,8 +80,6 @@ var commands = {
         channelName && data.push(channelName);
         channelName && serviceName && data.push(serviceName);
 
-        var waitMsgTimeout = null;
-
         var onTimeout = function() {
             debug("Wait message timeout, %j", msg);
             msg.text = 'Cancel';
@@ -90,16 +88,12 @@ var commands = {
 
         var waitChannelName = function() {
             var onMessage = _this.stateList[chatId] = function(msg) {
-                clearTimeout(waitMsgTimeout);
-
                 data.push('"' + msg.text + '"');
 
                 return waitServiceName();
             };
             onMessage.command = 'add';
-            onMessage.now = Date.now();
-
-            waitMsgTimeout = setTimeout(function() {
+            onMessage.timeout = setTimeout(function() {
                 return onTimeout();
             }, 3 * 60 * 1000);
 
@@ -111,17 +105,13 @@ var commands = {
 
         var waitServiceName = function() {
             var onMessage = _this.stateList[chatId] = function(msg) {
-                clearTimeout(waitMsgTimeout);
-
                 data.push('"' + msg.text + '"');
 
                 msg.text = '/a ' + data.join(' ');
                 return _this.onMessage(msg);
             };
             onMessage.command = 'add';
-            onMessage.now = Date.now();
-
-            waitMsgTimeout = setTimeout(function() {
+            onMessage.timeout = setTimeout(function() {
                 onTimeout();
             }, 3 * 60 * 1000);
 
