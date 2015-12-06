@@ -8,7 +8,6 @@ var Checker = require('./checker');
 var Chat = require('./chat');
 var TelegramBotApi = require('node-telegram-bot-api');
 var EventEmitter = require('events').EventEmitter;
-var util = require('util');
 var Daemon = require('./daemon');
 
 /**
