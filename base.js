@@ -1,7 +1,6 @@
 /**
  * Created by Anton on 06.12.2015.
  */
-var debug = require('debug')('node-base');
 var path = require('path');
 var Promise = require('bluebird');
 var LocalStorage = require('node-localstorage').LocalStorage;
@@ -13,7 +12,6 @@ var localStorage = null;
  */
 module.exports.loadConfig = function() {
     "use strict";
-    debug('Load config');
     return new Promise(function(resolve, reject) {
         var fs = require('fs');
         return resolve(JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'))));
@@ -26,7 +24,6 @@ module.exports.loadConfig = function() {
  */
 module.exports.loadLanguage = function() {
     "use strict";
-    debug('Load language');
     return new Promise(function(resolve, reject) {
         var fs = require('fs');
 
@@ -46,8 +43,6 @@ module.exports.loadLanguage = function() {
 
 var Storage = function() {
     "use strict";
-    debug('Init storage');
-
     localStorage = new LocalStorage(path.join(__dirname, './storage'));
 
     this.get = function(arr) {

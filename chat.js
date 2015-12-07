@@ -1,7 +1,7 @@
 /**
  * Created by Anton on 06.12.2015.
  */
-var debug = require('debug')('node-chat');
+var debug = require('debug')('chat');
 var base = require('./base');
 var commands = require('./commands');
 
@@ -16,7 +16,7 @@ var Chat = function(options) {
     options.events.on('tickTack', function() {
         var bot = options.bot;
         if (bot._polling.lastUpdate + 60 * 5 * 1000 < Date.now()) {
-            debug(base.getDate(), 'Polling restart!');
+            debug('Polling restart!');
             bot.initPolling();
         }
     });
@@ -118,14 +118,11 @@ Chat.prototype.msgParser = function(text) {
 Chat.prototype.onMessage = function(msg) {
     "use strict";
     var _this = this;
-    debug('Input msg, %j', msg);
-
     var text = msg.text;
     var chatId = msg.chat.id;
 
     var responseFunc = this.stateList[chatId];
     if (responseFunc) {
-        debug("Has response function!");
         clearTimeout(responseFunc.timeout);
         delete this.stateList[chatId];
     }
@@ -164,8 +161,6 @@ Chat.prototype.onMessage = function(msg) {
         }
     }
 
-    debug("Run action", action, args);
-
     args.unshift(msg);
 
     return func.apply(this, args).finally(function() {
@@ -187,7 +182,7 @@ Chat.prototype.track = function(msg, title) {
             date: msg.date
         }, title);
     } catch(e) {
-        debug(base.getDate(), 'Botan track error', e.message);
+        debug('Botan track error', e.message);
     }
 };
 

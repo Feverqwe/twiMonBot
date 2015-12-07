@@ -76,7 +76,6 @@ Twitch.prototype.getStreamList = function(channelList) {
             },
             json: true
         }).then(function(response) {
-            debug("Response %j", response);
             response = response.body;
             return _this.apiNormalization(response);
         }).catch(function(err) {
@@ -96,7 +95,6 @@ Twitch.prototype.getChannelName = function(channelName) {
         },
         json: true
     }).then(function(response) {
-        debug("Response %j", response);
         response = response.body;
         return response.name.toLowerCase();
     });

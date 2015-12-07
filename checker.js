@@ -4,6 +4,8 @@
 var base = require('./base');
 var Promise = require('bluebird');
 var debug = require('debug')('checker');
+var debugLog = require('debug')('checker:log');
+debugLog.log = console.log.bind(console);
 var request = require('request');
 var requestPromise = Promise.promisify(request);
 
@@ -26,7 +28,7 @@ Checker.prototype.cleanStreamList = function(streamList) {
     for (var i = 0, item; item = streamList[i]; i++) {
         if (now - item._addItemTime > this.gOptions.config.timeout && item._isOffline) {
             rmList.push(item);
-            streamLog && debug('[s]', base.getDate(), 'R-', item._service, item._channelName, '#', item.channel.status, '#', item.game);
+            debugLog('[s]', 'R-', item._service, item._channelName, '#', item.channel.status, '#', item.game);
         }
         item._isOffline = true;
     }
@@ -146,7 +148,7 @@ Checker.prototype.onSendMsgError = function(e, chatId) {
     for (var _chatId in storage.chatList) {
         var item = storage.chatList[_chatId];
         if (item.chatId === chatId) {
-            debug(base.getDate(), 'Remove chat', chatId, '\n', JSON.stringify(item));
+            debug('Remove chat', chatId, '\n', JSON.stringify(item));
 
             delete storage.chatList[_chatId];
 
@@ -172,7 +174,7 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
 
             return fileId;
         }).catch(function(e) {
-            debug(base.getDate(), 'Send photo error!', chatId, stream._channelName, '\n', e && e.message);
+            debug('Send photo file error!', chatId, stream._channelName, '\n', e && e.message);
 
             _this.onSendMsgError(e, chatId);
 
@@ -183,7 +185,7 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
     return new Promise(function(resolve, reject) {
         var req = request(stream.preview);
         req.on('error', function() {
-            debug(base.getDate(), 'Request photo error!', stream._channelName, '\n', stream.preview);
+            debug('Request photo error!', stream._channelName, '\n', stream.preview);
             return reject();
         });
 
@@ -202,7 +204,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         }).then(function() {
             _this.track(chatId, stream, 'sendMsg');
         }).catch(function(e) {
-            debug(base.getDate(), 'Send text msg error!', chatId, stream._channelName, '\n', e && e.message);
+            debug('Send text msg error!', chatId, stream._channelName, '\n', e && e.message);
 
             _this.onSendMsgError(e, chatId);
         });
@@ -214,7 +216,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         }).then(function() {
             _this.track(chatId, stream, 'sendPhoto');
         }).catch(function(e) {
-            debug(base.getDate(), 'Send photo msg error!', chatId, stream._channelName, '\n', e && e.message);
+            debug('Send photo msg error!', chatId, stream._channelName, '\n', e && e.message);
 
             _this.onSendMsgError(e, chatId);
         });
@@ -255,7 +257,6 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
 
 Checker.prototype.onNewStream = function(stream) {
     "use strict";
-    debug('onNewStream %j', stream);
     var _this = this;
     var text = base.getNowStreamPhotoText(this.gOptions, stream);
     var noPhotoText = base.getNowStreamText(this.gOptions, stream);
@@ -305,7 +306,6 @@ Checker.prototype.updateList = function() {
     var notifyTimeout = _this.gOptions.config.notifyTimeout;
 
     var onGetStreamList = function(streamList) {
-        debug('streamList %j', streamList);
         var notifyList = [];
         var now = parseInt(Date.now() / 1000);
         streamList.forEach(function(item) {
@@ -322,9 +322,9 @@ Checker.prototype.updateList = function() {
             if (!cItem) {
                 if (item._isNotified = _this.isNotDblItem(item)) {
                     notifyList.push(item);
-                    streamLog && debug('[s]', base.getDate(), 'Nn', item._service, item._channelName, '#', item.channel.status, '#', item.game);
+                    debugLog('[s]', 'Nn', item._service, item._channelName, '#', item.channel.status, '#', item.game);
                 } else {
-                    streamLog && debug('[s]', base.getDate(),'D-', item._service, item._channelName, '#', item.channel.status, '#', item.game);
+                    debugLog('[s]', 'D-', item._service, item._channelName, '#', item.channel.status, '#', item.game);
                 }
             } else {
                 item._isNotified = cItem._isNotified;
@@ -339,7 +339,7 @@ Checker.prototype.updateList = function() {
                 if (!item._isNotified && _this.isStatusChange(cItem, item)) {
                     item._isNotified = true;
                     notifyList.push(item);
-                    streamLog && debug('[s]', base.getDate(),'En', item._service, item._channelName, '#', item.channel.status, '#', item.game);
+                    debugLog('[s]', 'En', item._service, item._channelName, '#', item.channel.status, '#', item.game);
                 }
             }
 
@@ -363,7 +363,7 @@ Checker.prototype.updateList = function() {
 
         for (var service in serviceChannelList) {
             if (!services[service]) {
-                debug(base.getDate(), 'Service is not found!', service);
+                debug('Service is not found!', service);
                 continue;
             }
 
@@ -396,7 +396,7 @@ Checker.prototype.track = function(chatId, stream, title) {
             date: parseInt(Date.now() / 1000)
         }, title);
     } catch(e) {
-        console.error(base.getDate(), 'Botan track error', e.message);
+        debug('Botan track error', e.message);
     }
 };
 

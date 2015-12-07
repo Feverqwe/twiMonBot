@@ -74,7 +74,6 @@ Youtube.prototype.getViewers = function(id) {
             t: Date.now()
         }
     }).then(function(response) {
-        debug("Response %j", response);
         response = response.body;
         if (/^\d+$/.test(response)) {
             return parseInt(response);
@@ -82,7 +81,7 @@ Youtube.prototype.getViewers = function(id) {
 
         throw new Error('Value is not int');
     }).catch(function(err) {
-        debug(base.getDate(), 'Error request viewers!', err);
+        debug('Error request viewers!', err);
 
         return -1;
     });
@@ -112,7 +111,6 @@ Youtube.prototype.getChannelId = function(userId) {
             },
             json: true
         }).then(function(response) {
-            debug("Response %j", response);
             response = response.body;
             var id = response.items[0].id;
 
@@ -152,7 +150,6 @@ Youtube.prototype.getStreamList = function(userList) {
                     },
                     json: true
                 }).then(function(response) {
-                    debug("Response %j", response);
                     response = response.body;
                     if (response.items.length === 0) {
                         return [];
@@ -166,7 +163,7 @@ Youtube.prototype.getStreamList = function(userList) {
                     });
 
                     if (!videoId) {
-                        debug(base.getDate(), 'VideoId is not found!');
+                        debug('VideoId is not found!');
                         return [];
                     }
 
@@ -177,7 +174,7 @@ Youtube.prototype.getStreamList = function(userList) {
             }).then(function(stream) {
                 streamList.push.apply(streamList, stream);
             }).catch(function(err) {
-                debug(base.getDate(), 'Stream list item response error!', err);
+                debug('Stream list item response error!', err);
             });
         });
 
@@ -204,7 +201,6 @@ Youtube.prototype.getChannelName = function(userId) {
             },
             json: true
         }).then(function(response) {
-            debug("Response %j", response);
             response = response.body;
             var id = response.items[0].id;
 

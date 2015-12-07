@@ -1,7 +1,9 @@
 /**
  * Created by Anton on 06.12.2015.
  */
-var debug = require('debug')('node-index');
+var debug = require('debug')('index');
+var debugLog = require('debug')('index:log');
+debugLog.log = console.log.bind(console);
 var Promise = require('bluebird');
 var base = require('./base');
 var Checker = require('./checker');
@@ -73,14 +75,12 @@ var options = {
             options.language = language;
         });
     }).then(function() {
-        debug('Load storage');
         return base.storage.get(Object.keys(options.storage)).then(function(storage) {
             for (var key in storage) {
                 options.storage[key] = storage[key];
             }
         });
     }).then(function() {
-        debug('Load services');
         return Promise.all(options.serviceList.map(function(name) {
             return Promise.resolve().then(function() {
                 var service = require('./services/' + name);
@@ -89,14 +89,12 @@ var options = {
             });
         }));
     }).then(function() {
-        debug('Init daemon');
         options.daemon = new Daemon(options);
 
         (typeof gc === 'function') && options.events.on('tickTack', function() {
             gc();
         });
     }).then(function() {
-        debug('Init telegram bot api');
         /**
          * @type {{
          * sendMessage: function,
@@ -112,19 +110,16 @@ var options = {
             }
         });
     }).then(function() {
-        debug('Init botanio');
         if (options.config.botanToken) {
             options.botan = require('botanio')(options.config.botanToken);
         } else {
-            options.botan = {track: function(data, action){debug("Track %s, %j", action, data)}};
+            options.botan = {track: function(data, action){debugLog("Track %s, %j", action, data)}};
         }
     }).then(function() {
-        debug('Init chat');
         options.chat = new Chat(options);
     }).then(function() {
-        debug('Init checker');
         options.checker = new Checker(options);
     }).catch(function(err) {
-        debug('Error', err);
+        debug('Loading error', err);
     });
 })();

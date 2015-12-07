@@ -1,7 +1,6 @@
 /**
  * Created by Anton on 06.12.2015.
  */
-var debug = require('debug')('daemon');
 var Daemon = function(options) {
     "use strict";
     this.gOptions = options;
@@ -33,7 +32,6 @@ Daemon.prototype.initTickTack = function() {
     var interval = 1;
 
     var onTimer = function() {
-        debug('tickTack');
         _this.gOptions.events.emit('tickTack');
     };
 
@@ -48,7 +46,6 @@ Daemon.prototype.initChecker = function() {
     var interval = _this.gOptions.config.interval;
 
     var onTimer = function() {
-        debug('check');
         _this.gOptions.events.emit('check');
     };
 
