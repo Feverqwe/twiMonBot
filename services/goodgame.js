@@ -37,6 +37,7 @@ GoodGame.prototype.apiNormalization = function (data) {
 
         if (!origItem.thumb) {
             // If don't exists preview, and Live - API bug, it Dead
+            debug('Channel thumb is not exists! %j', origItem);
             continue;
         }
 
