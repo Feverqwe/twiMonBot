@@ -2,7 +2,6 @@
  * Created by Anton on 06.12.2015.
  */
 var debug = require('debug')('hitbox');
-var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = Promise.promisify(request);
@@ -17,6 +16,11 @@ Hitbox.prototype.apiNormalization = function(data) {
     var now = parseInt(Date.now() / 1000);
     var streams = [];
     data.livestream.forEach(function(origItem) {
+        if (!origItem.channel || !origItem.channel.user_name) {
+            debug('Channel without name!');
+            return;
+        }
+
         if (origItem.media_is_live < 1) {
             return;
         }
@@ -90,8 +94,13 @@ Hitbox.prototype.getChannelName = function(channelName) {
         },
         json: true
     }).then(function(response) {
-        var channelName = null;
         response = response.body;
+
+        if (!response || !Array.isArray(response.livestream)) {
+            throw new Error('Response is empty!');
+        }
+
+        var channelName = null;
         response.livestream.some(function(item) {
             if (item.channel && (channelName = item.channel.user_name)) {
                 channelName = channelName.toLowerCase();

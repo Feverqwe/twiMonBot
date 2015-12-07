@@ -17,6 +17,11 @@ Twitch.prototype.apiNormalization = function(data) {
     var now = parseInt(Date.now() / 1000);
     var streams = [];
     for (var i = 0, origItem; origItem = data.streams[i]; i++) {
+        if (!origItem.channel || !origItem.channel.name) {
+            debug('Channel without name!');
+            continue;
+        }
+
         var item = {
             _service: 'twitch',
             _addItemTime: now,
@@ -96,6 +101,11 @@ Twitch.prototype.getChannelName = function(channelName) {
         json: true
     }).then(function(response) {
         response = response.body;
+
+        if (!response || !response.name) {
+            throw new Error('Channel is not exists');
+        }
+
         return response.name.toLowerCase();
     });
 };

@@ -26,6 +26,11 @@ GoodGame.prototype.apiNormalization = function (data) {
             continue;
         }
 
+        if (!origItem.key) {
+            debug('Channel without name!');
+            continue;
+        }
+
         if (!origItem.thumb) {
             // If don't exists preview, and Live - API bug, it Dead
             continue;

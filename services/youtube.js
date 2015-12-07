@@ -32,7 +32,8 @@ Youtube.prototype.apiNormalization = function(userId, data, viewers) {
 
         var videoId = origItem.id && origItem.id.videoId;
         if (!videoId) {
-            throw new Error('Video id is not exists!');
+            debug('Video id is not exists!');
+            return;
         }
 
         var item = {
@@ -112,7 +113,10 @@ Youtube.prototype.getChannelId = function(userId) {
             json: true
         }).then(function(response) {
             response = response.body;
-            var id = response.items[0].id;
+            var id = response && response.items && response.items[0] && response.items[0].id;
+            if (!id) {
+                throw new Error('Channel ID is not found!');
+            }
 
             _this.config.userIdToChannelId[userId] = id;
             base.storage.set({userIdToChannelId: _this.config.userIdToChannelId});
@@ -202,7 +206,10 @@ Youtube.prototype.getChannelName = function(userId) {
             json: true
         }).then(function(response) {
             response = response.body;
-            var id = response.items[0].id;
+            var id = response && response.items && response.items[0] && response.items[0].id;
+            if (!id) {
+                throw new Error('Channel is not found!');
+            }
 
             return Promise.resolve(userId, id === userId ? undefined : id);
         });
