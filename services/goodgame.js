@@ -63,9 +63,7 @@ GoodGame.prototype.apiNormalization = function (data) {
 
         if (typeof item.preview === 'string') {
             var sep = item.preview.indexOf('?') === -1 ? '?' : '&';
-
             item.preview = item.preview.replace(/_240(\.jpg)$/, '$1');
-
             item.preview += sep + '_=' + now;
         }
 
