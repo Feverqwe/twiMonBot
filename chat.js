@@ -136,7 +136,7 @@ Chat.prototype.onMessage = function(msg) {
             return responseFunc.call(this, msg);
         }
 
-        debug("Msg is not command!", text);
+        debug('Msg is not command! %s', text);
         return;
     }
 
@@ -148,15 +148,13 @@ Chat.prototype.onMessage = function(msg) {
     var func = commands[action];
 
     if (!func) {
-        debug("Command is not found!", action);
+        debug('Command is not found! %s', action);
         return;
     }
 
     if (['a', 'd'].indexOf(action) !== -1) {
         args = this.checkArgs(msg, args);
-
         if (!args) {
-            debug("Args is empty!");
             return;
         }
     }
@@ -182,7 +180,7 @@ Chat.prototype.track = function(msg, title) {
             date: msg.date
         }, title);
     } catch(e) {
-        debug('Botan track error', e.message);
+        debug('Botan track error %s', e.message);
     }
 };
 

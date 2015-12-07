@@ -17,7 +17,7 @@ Hitbox.prototype.apiNormalization = function(data) {
     var streams = [];
     data.livestream.forEach(function(origItem) {
         if (!origItem.channel || !origItem.channel.user_name) {
-            debug('Channel without name!');
+            debug('Channel without name! %j', origItem);
             return;
         }
 
@@ -78,7 +78,7 @@ Hitbox.prototype.getStreamList = function(channelList) {
             response = response.body;
             return _this.apiNormalization(response);
         }).catch(function(err) {
-            debug("Request stream list error!", err);
+            debug("Request stream list error! %s", err);
             return [];
         });
     });
@@ -97,22 +97,24 @@ Hitbox.prototype.getChannelName = function(channelName) {
         response = response.body;
 
         if (!response || !Array.isArray(response.livestream)) {
-            throw new Error('Response is empty!');
+            debug('Request channelName is empty $s %j', channelName, response);
+            throw 'Request channelName is empty!';
         }
 
-        var channelName = null;
+        var _channelName = null;
         response.livestream.some(function(item) {
-            if (item.channel && (channelName = item.channel.user_name)) {
-                channelName = channelName.toLowerCase();
+            if (item.channel && (_channelName = item.channel.user_name)) {
+                _channelName = _channelName.toLowerCase();
                 return true;
             }
         });
 
-        if (!channelName) {
-            throw new Error('Channel is not exists!');
+        if (!_channelName) {
+            debug('Channel name is not found %s, %j', channelName, response);
+            throw 'Channel name is not found!';
         }
 
-        return channelName;
+        return _channelName;
     });
 };
 

@@ -186,7 +186,7 @@ var commands = {
         _this.stateList[chatId] = function (msg) {
             var data = msg.text.match(/^(.+) \((.+)\)$/);
             if (!data) {
-                debug("Can't match delete channel");
+                debug("Can't match delete channel %j", msg);
                 return;
             }
             data.shift();

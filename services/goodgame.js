@@ -2,7 +2,6 @@
  * Created by anton on 19.07.15.
  */
 var debug = require('debug')('goodgame');
-var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = Promise.promisify(request);
@@ -27,7 +26,7 @@ GoodGame.prototype.apiNormalization = function (data) {
         }
 
         if (!origItem.key) {
-            debug('Channel without name!');
+            debug('Channel without name! %j', origItem);
             continue;
         }
 
@@ -90,7 +89,7 @@ GoodGame.prototype.getStreamList = function (channelList) {
             response = response.body;
             return _this.apiNormalization(response);
         }).catch(function(err) {
-            debug("Request stream list error!", err);
+            debug("Request stream list error! %s", err);
             return [];
         });
     });
@@ -115,7 +114,8 @@ GoodGame.prototype.getChannelName = function (channelName) {
             }
         }
 
-        throw new Error('Channel is not exists!');
+        debug('Channel name is not found %s %j', channelName, response);
+        throw 'Channel name is not found!';
     });
 };
 

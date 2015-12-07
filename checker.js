@@ -148,7 +148,7 @@ Checker.prototype.onSendMsgError = function(e, chatId) {
     for (var _chatId in storage.chatList) {
         var item = storage.chatList[_chatId];
         if (item.chatId === chatId) {
-            debug('Remove chat', chatId, '\n', JSON.stringify(item));
+            debug('Remove chat %s \n %j', chatId, item);
 
             delete storage.chatList[_chatId];
 
@@ -174,18 +174,18 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
 
             return fileId;
         }).catch(function(e) {
-            debug('Send photo file error!', chatId, stream._channelName, '\n', e && e.message);
+            debug('Send photo file error! %s %s \n %s', chatId, stream._channelName, e && e.message);
 
             _this.onSendMsgError(e, chatId);
 
-            throw new Error('Sent msg with photo file error!');
+            throw 'Send photo file error!';
         });
     };
 
     return new Promise(function(resolve, reject) {
         var req = request(stream.preview);
         req.on('error', function() {
-            debug('Request photo error!', stream._channelName, '\n', stream.preview);
+            debug('Request photo error! %s \n %s', stream._channelName, stream.preview);
             return reject();
         });
 
@@ -204,7 +204,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         }).then(function() {
             _this.track(chatId, stream, 'sendMsg');
         }).catch(function(e) {
-            debug('Send text msg error!', chatId, stream._channelName, '\n', e && e.message);
+            debug('Send text msg error! %s %s \n %s', chatId, stream._channelName, e && e.message);
 
             _this.onSendMsgError(e, chatId);
         });
@@ -216,7 +216,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         }).then(function() {
             _this.track(chatId, stream, 'sendPhoto');
         }).catch(function(e) {
-            debug('Send photo msg error!', chatId, stream._channelName, '\n', e && e.message);
+            debug('Send photo msg error! %s %s \n %s', chatId, stream._channelName, e && e.message);
 
             _this.onSendMsgError(e, chatId);
         });
@@ -363,7 +363,7 @@ Checker.prototype.updateList = function() {
 
         for (var service in serviceChannelList) {
             if (!services[service]) {
-                debug('Service is not found!', service);
+                debug('Service is not found! %s', service);
                 continue;
             }
 
@@ -396,7 +396,7 @@ Checker.prototype.track = function(chatId, stream, title) {
             date: parseInt(Date.now() / 1000)
         }, title);
     } catch(e) {
-        debug('Botan track error', e.message);
+        debug('Botan track error %s', e.message);
     }
 };
 

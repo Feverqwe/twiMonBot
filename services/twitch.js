@@ -84,7 +84,7 @@ Twitch.prototype.getStreamList = function(channelList) {
             response = response.body;
             return _this.apiNormalization(response);
         }).catch(function(err) {
-            debug("Request stream list error!", err);
+            debug("Request stream list error! %s", err);
             return [];
         });
     });
@@ -103,7 +103,8 @@ Twitch.prototype.getChannelName = function(channelName) {
         response = response.body;
 
         if (!response || !response.name) {
-            throw new Error('Channel is not exists');
+            debug('Channel name is not exists %s %j', channelName, response);
+            throw 'Channel name is not exists!';
         }
 
         return response.name.toLowerCase();

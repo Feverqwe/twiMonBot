@@ -32,7 +32,7 @@ Youtube.prototype.apiNormalization = function(userId, data, viewers) {
 
         var videoId = origItem.id && origItem.id.videoId;
         if (!videoId) {
-            debug('Video id is not exists!');
+            debug('Video id is not exists! %j', origItem);
             return;
         }
 
@@ -80,7 +80,8 @@ Youtube.prototype.getViewers = function(id) {
             return parseInt(response);
         }
 
-        throw new Error('Value is not int');
+        debug('Viewers response is not INT! %s %j', id, response);
+        throw 'Viewers response is not INT!';
     }).catch(function(err) {
         debug('Error request viewers!', err);
 
@@ -115,7 +116,8 @@ Youtube.prototype.getChannelId = function(userId) {
             response = response.body;
             var id = response && response.items && response.items[0] && response.items[0].id;
             if (!id) {
-                throw new Error('Channel ID is not found!');
+                debug('Channel ID is not found by userId! %s %j', userId, response);
+                throw 'Channel ID is not found by userId!';
             }
 
             _this.config.userIdToChannelId[userId] = id;
@@ -167,7 +169,7 @@ Youtube.prototype.getStreamList = function(userList) {
                     });
 
                     if (!videoId) {
-                        debug('VideoId is not found!');
+                        debug('VideoId is not found! %j', response);
                         return [];
                     }
 
@@ -178,7 +180,7 @@ Youtube.prototype.getStreamList = function(userList) {
             }).then(function(stream) {
                 streamList.push.apply(streamList, stream);
             }).catch(function(err) {
-                debug('Stream list item response error!', err);
+                debug('Stream list item response error! %s', err);
             });
         });
 
@@ -208,7 +210,8 @@ Youtube.prototype.getChannelName = function(userId) {
             response = response.body;
             var id = response && response.items && response.items[0] && response.items[0].id;
             if (!id) {
-                throw new Error('Channel is not found!');
+                debug('Channel is not found %s %j', channelId, response);
+                throw 'Channel is not found!';
             }
 
             return Promise.resolve(userId, id === userId ? undefined : id);

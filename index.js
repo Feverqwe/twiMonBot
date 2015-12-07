@@ -120,6 +120,6 @@ var options = {
     }).then(function() {
         options.checker = new Checker(options);
     }).catch(function(err) {
-        debug('Loading error', err);
+        debug('Loading error %s', err);
     });
 })();
