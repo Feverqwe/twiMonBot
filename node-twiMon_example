@@ -8,7 +8,7 @@ PID_FILE="$PID_DIR/app.pid"
 LOG_DIR="$APP_DIR/log"
 LOG_FILE="$LOG_DIR/app.log"
 LOG_ERROR="$LOG_DIR/error.log"
-NODE_EXEC="exec sudo -u www-data $(which node) --always-compact --expose-gc"
+NODE_EXEC="exec sudo -u www-data DEBUG=*,-node-telegram-bot-api $(which node) --always-compact --expose-gc"
 
 ###############
 
