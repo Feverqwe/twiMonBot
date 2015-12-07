@@ -97,7 +97,7 @@ Hitbox.prototype.getChannelName = function(channelName) {
         response = response.body;
 
         if (!response || !Array.isArray(response.livestream)) {
-            debug('Request channelName is empty $s %j', channelName, response);
+            debug('Request channelName "%s" is empty %j', channelName, response);
             throw 'Request channelName is empty!';
         }
 
@@ -110,7 +110,7 @@ Hitbox.prototype.getChannelName = function(channelName) {
         });
 
         if (!_channelName) {
-            debug('Channel name is not found %s, %j', channelName, response);
+            debug('Channel name "%s" is not found!, %j', channelName, response);
             throw 'Channel name is not found!';
         }
 

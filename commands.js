@@ -60,8 +60,8 @@ var commands = {
                     _this.templates.hideKeyboard
                 );
             });
-        }).catch(function() {
-            debug('Channel %s (%s) is not found', channelName, service);
+        }).catch(function(err) {
+            debug('Channel "%s" (%s) is not found! %s', channelName, service, err);
             return _this.gOptions.bot.sendMessage(
                 chatId,
                 _this.gOptions.language.channelIsNotFound
@@ -183,7 +183,13 @@ var commands = {
             return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList, _this.templates.hideKeyboard);
         }
 
-        _this.stateList[chatId] = function (msg) {
+        var onTimeout = function() {
+            debug("Wait message timeout, %j", msg);
+            msg.text = 'Cancel';
+            return _this.onMessage(msg);
+        };
+
+        var onMessage = _this.stateList[chatId] = function (msg) {
             var data = msg.text.match(/^(.+) \((.+)\)$/);
             if (!data) {
                 debug("Can't match delete channel %j", msg);
@@ -191,11 +197,17 @@ var commands = {
             }
             data.shift();
 
+            data = data.map(function(item) {
+                return '"' + item + '"';
+            });
+
             msg.text = '/d ' + data.join(' ');
-            _this.onMessage(msg);
+            return _this.onMessage(msg);
         };
-        _this.stateList[chatId].command = 'delete';
-        _this.stateList[chatId].now = Date.now();
+        onMessage.command = 'delete';
+        onMessage.timeout = setTimeout(function() {
+            onTimeout();
+        }, 3 * 60 * 1000);
 
         var btnList = [];
         for (var service in chatItem.serviceList) {
@@ -409,15 +421,17 @@ var commands = {
         var _this = this;
         var chatId = msg.chat.id;
 
-        var liveTime = JSON.parse(require("fs").readFileSync('./liveTime.json', 'utf8'));
+        return Promise.resolve().then(function() {
+            var liveTime = JSON.parse(require("fs").readFileSync('./liveTime.json', 'utf8'));
 
-        var endTime = liveTime.endTime.split(',');
-        endTime = (new Date(endTime[0], endTime[1], endTime[2])).getTime();
-        var count = parseInt((endTime - Date.now()) / 1000 / 60 / 60 / 24 / 30 * 10) / 10;
+            var endTime = liveTime.endTime.split(',');
+            endTime = (new Date(endTime[0], endTime[1], endTime[2])).getTime();
+            var count = parseInt((endTime - Date.now()) / 1000 / 60 / 60 / 24 / 30 * 10) / 10;
 
-        var message = liveTime.message.join('\n').replace('{count}', count);
+            var message = liveTime.message.join('\n').replace('{count}', count);
 
-        return _this.gOptions.bot.sendMessage(chatId, message);
+            return _this.gOptions.bot.sendMessage(chatId, message);
+        });
     }
 };
 

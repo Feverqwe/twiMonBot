@@ -114,7 +114,7 @@ GoodGame.prototype.getChannelName = function (channelName) {
             }
         }
 
-        debug('Channel name is not found %s %j', channelName, response);
+        debug('Channel name "%s" is not found! %j', channelName, response);
         throw 'Channel name is not found!';
     });
 };

@@ -32,7 +32,7 @@ Youtube.prototype.apiNormalization = function(userId, data, viewers) {
 
         var videoId = origItem.id && origItem.id.videoId;
         if (!videoId) {
-            debug('Video id is not exists! %j', origItem);
+            debug('VideoId is not exists! %j', origItem);
             return;
         }
 
@@ -116,7 +116,7 @@ Youtube.prototype.getChannelId = function(userId) {
             response = response.body;
             var id = response && response.items && response.items[0] && response.items[0].id;
             if (!id) {
-                debug('Channel ID is not found by userId! %s %j', userId, response);
+                debug('Channel ID "%s" is not found by userId! %j', userId, response);
                 throw 'Channel ID is not found by userId!';
             }
 
@@ -210,7 +210,7 @@ Youtube.prototype.getChannelName = function(userId) {
             response = response.body;
             var id = response && response.items && response.items[0] && response.items[0].id;
             if (!id) {
-                debug('Channel is not found %s %j', channelId, response);
+                debug('Channel %s is not found! %j', channelId, response);
                 throw 'Channel is not found!';
             }
 

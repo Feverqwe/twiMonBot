@@ -15,8 +15,10 @@ var Chat = function(options) {
 
     options.events.on('tickTack', function() {
         var bot = options.bot;
-        if (bot._polling.lastUpdate + 60 * 5 * 1000 < Date.now()) {
-            debug('Polling restart!');
+        var now = Date.now();
+        var nextUpdate = bot._polling.lastUpdate + 60 * 5 * 1000;
+        if (nextUpdate < Date.now()) {
+            debug('Polling restart! %s < %s', nextUpdate, now);
             bot.initPolling();
         }
     });
@@ -145,10 +147,10 @@ Chat.prototype.onMessage = function(msg) {
     var args = this.msgParser(text);
 
     var action = args.shift().toLowerCase();
-    var func = commands[action];
+    var commandFunc = commands[action];
 
-    if (!func) {
-        debug('Command is not found! %s', action);
+    if (!commandFunc) {
+        debug('Command "%s" is not found!', action);
         return;
     }
 
@@ -161,7 +163,9 @@ Chat.prototype.onMessage = function(msg) {
 
     args.unshift(msg);
 
-    return func.apply(this, args).finally(function() {
+    return commandFunc.apply(this, args).catch(function(err) {
+        debug('Execute command "%s" error! %s', action, err);
+    }).finally(function() {
         _this.track(msg, action)
     });
 };

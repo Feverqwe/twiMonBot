@@ -174,7 +174,7 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
 
             return fileId;
         }).catch(function(e) {
-            debug('Send photo file error! %s %s \n %s', chatId, stream._channelName, e && e.message);
+            debug('Send photo file error! %s %s \n %s', chatId, stream._channelName, e);
 
             _this.onSendMsgError(e, chatId);
 
@@ -204,7 +204,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         }).then(function() {
             _this.track(chatId, stream, 'sendMsg');
         }).catch(function(e) {
-            debug('Send text msg error! %s %s \n %s', chatId, stream._channelName, e && e.message);
+            debug('Send text msg error! %s %s \n %s', chatId, stream._channelName, e);
 
             _this.onSendMsgError(e, chatId);
         });
@@ -216,7 +216,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         }).then(function() {
             _this.track(chatId, stream, 'sendPhoto');
         }).catch(function(e) {
-            debug('Send photo msg error! %s %s \n %s', chatId, stream._channelName, e && e.message);
+            debug('Send photo msg error! %s %s \n %s', chatId, stream._channelName, e);
 
             _this.onSendMsgError(e, chatId);
         });
@@ -248,8 +248,9 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
     chatId = chatIdList.shift();
     return _this.getPicId(chatId, text, stream).then(function(fileId) {
         stream._photoId = fileId;
-    }).catch(function() {
+    }).catch(function(err) {
         chatIdList.unshift(chatId);
+        debug('Function getPicId throw error!', err);
     }).then(function() {
         return send();
     });
@@ -363,7 +364,7 @@ Checker.prototype.updateList = function() {
 
         for (var service in serviceChannelList) {
             if (!services[service]) {
-                debug('Service is not found! %s', service);
+                debug('Service "%s" is not found!', service);
                 continue;
             }
 
