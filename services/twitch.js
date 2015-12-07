@@ -14,6 +14,11 @@ Twitch = function(options) {
 
 Twitch.prototype.apiNormalization = function(data) {
     "use strict";
+    if (!data || !Array.isArray(data.streams)) {
+        debug('Response is empty! %j', data);
+        throw 'Response is empty!';
+    }
+
     var now = parseInt(Date.now() / 1000);
     var streams = [];
     for (var i = 0, origItem; origItem = data.streams[i]; i++) {

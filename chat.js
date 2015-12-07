@@ -73,7 +73,7 @@ Chat.prototype.checkArgs = function(msg, args) {
     service = service || serviceList[0];
     service = service.toLowerCase();
 
-    if (service !== 'youtube' || /^UC/.test(channelName)) {
+    if (service !== 'youtube' || !/^UC/.test(channelName)) {
         channelName = channelName.toLowerCase();
     }
 

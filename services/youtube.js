@@ -21,6 +21,11 @@ Youtube = function(options) {
 
 Youtube.prototype.apiNormalization = function(userId, data, viewers) {
     "use strict";
+    if (!data || !Array.isArray(data.items)) {
+        debug('Response is empty! %j', data);
+        throw 'Response is empty!';
+    }
+
     var now = parseInt(Date.now() / 1000);
     var streams = [];
     data.items.forEach(function(origItem) {

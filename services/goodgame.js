@@ -13,6 +13,11 @@ GoodGame = function(options) {
 
 GoodGame.prototype.apiNormalization = function (data) {
     "use strict";
+    if (!data || typeof data !== 'object') {
+        debug('Response is empty! %j', data);
+        throw 'Response is empty!';
+    }
+
     var now = parseInt(Date.now() / 1000);
     var streams = [];
     for (var streamId in data) {

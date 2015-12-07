@@ -13,6 +13,11 @@ Hitbox = function(options) {
 
 Hitbox.prototype.apiNormalization = function(data) {
     "use strict";
+    if (!data || !Array.isArray(data.livestream)) {
+        debug('Response is empty! %j', data);
+        throw 'Response is empty!';
+    }
+
     var now = parseInt(Date.now() / 1000);
     var streams = [];
     data.livestream.forEach(function(origItem) {
