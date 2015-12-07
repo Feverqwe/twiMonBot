@@ -108,7 +108,7 @@ Twitch.prototype.getChannelName = function(channelName) {
         response = response.body;
 
         if (!response || !response.name) {
-            debug('Channel name %s is not exists! %j', channelName, response);
+            debug('Channel name "%s" is not exists! %j', channelName, response);
             throw 'Channel name is not exists!';
         }
 

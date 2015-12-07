@@ -135,7 +135,9 @@ Chat.prototype.onMessage = function(msg) {
 
     if (text[0] !== '/') {
         if (responseFunc) {
-            return responseFunc.call(this, msg);
+            return responseFunc.call(this, msg).catch(function(err) {
+                debug('Execute responseFunc "%s" error! %s', responseFunc.command, err);
+            });
         }
 
         debug('Msg is not command! %s', text);

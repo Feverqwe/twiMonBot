@@ -215,7 +215,7 @@ Youtube.prototype.getChannelName = function(userId) {
             response = response.body;
             var id = response && response.items && response.items[0] && response.items[0].id;
             if (!id) {
-                debug('Channel %s is not found! %j', channelId, response);
+                debug('Channel "%s" is not found! %j', channelId, response);
                 throw 'Channel is not found!';
             }
 
