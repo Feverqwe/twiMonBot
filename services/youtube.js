@@ -180,12 +180,12 @@ Youtube.prototype.getStreamList = function(userList) {
 
                     return _this.getViewers(videoId).then(function(viewers) {
                         return _this.apiNormalization(userId, response, viewers);
+                    }).then(function(stream) {
+                        streamList.push.apply(streamList, stream);
                     });
                 });
-            }).then(function(stream) {
-                streamList.push.apply(streamList, stream);
             }).catch(function(err) {
-                debug('Stream list item response error! %s', err);
+                debug('Stream list item "%s" response error! %s', userId, err);
             });
         });
 

@@ -6,7 +6,7 @@ var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = Promise.promisify(request);
 
-GoodGame = function(options) {
+GoodGame = function (options) {
     "use strict";
     this.gOptions = options;
 };
@@ -76,7 +76,7 @@ GoodGame.prototype.getStreamList = function (channelList) {
     "use strict";
     var _this = this;
 
-    return Promise.resolve().then(function() {
+    return Promise.resolve().then(function () {
         if (!channelList.length) {
             return [];
         }
@@ -89,12 +89,9 @@ GoodGame.prototype.getStreamList = function (channelList) {
                 id: channelList.join(',')
             },
             json: true
-        }).then(function(response) {
+        }).then(function (response) {
             response = response.body;
             return _this.apiNormalization(response);
-        }).catch(function(err) {
-            debug("Request stream list error! %s", err);
-            return [];
         });
     });
 };
@@ -109,7 +106,7 @@ GoodGame.prototype.getChannelName = function (channelName) {
             id: channelName
         },
         json: true
-    }).then(function(response) {
+    }).then(function (response) {
         response = response.body;
         for (var key in response) {
             var item = response[key];

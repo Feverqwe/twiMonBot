@@ -82,9 +82,6 @@ Hitbox.prototype.getStreamList = function(channelList) {
         }).then(function(response) {
             response = response.body;
             return _this.apiNormalization(response);
-        }).catch(function(err) {
-            debug("Request stream list error! %s", err);
-            return [];
         });
     });
 };
