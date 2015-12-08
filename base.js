@@ -12,9 +12,9 @@ var localStorage = null;
  */
 module.exports.loadConfig = function() {
     "use strict";
-    return new Promise(function(resolve, reject) {
+    return Promise.resolve().then(function() {
         var fs = require('fs');
-        return resolve(JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'))));
+        return Promise.resolve(JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'))));
     });
 };
 
@@ -24,7 +24,7 @@ module.exports.loadConfig = function() {
  */
 module.exports.loadLanguage = function() {
     "use strict";
-    return new Promise(function(resolve, reject) {
+    return Promise.resolve().then(function() {
         var fs = require('fs');
 
         var language = JSON.parse(fs.readFileSync(path.join(__dirname, 'language.json')));
@@ -37,7 +37,7 @@ module.exports.loadLanguage = function() {
             language[key] = item;
         }
 
-        return resolve(language);
+        return Promise.resolve(language);
     });
 };
 
@@ -46,7 +46,7 @@ var Storage = function() {
     localStorage = new LocalStorage(path.join(__dirname, './storage'));
 
     this.get = function(arr) {
-        return new Promise(function(resolve, reject) {
+        return Promise.resolve().then(function() {
             var key, obj = {};
             if (!Array.isArray(arr)) {
                 arr = [arr];
@@ -58,11 +58,11 @@ var Storage = function() {
                     obj[key] = JSON.parse(value);
                 }
             }
-            resolve(obj);
+            return obj;
         });
     };
     this.set = function(obj) {
-        return new Promise(function(resolve, reject) {
+        return Promise.resolve().then(function() {
             for (var key in obj) {
                 var value = obj[key];
                 if (value === undefined) {
@@ -71,12 +71,10 @@ var Storage = function() {
                 }
                 localStorage.setItem(key, JSON.stringify(value));
             }
-
-            resolve();
         });
     };
     this.remove = function(arr) {
-        return new Promise(function(resolve, reject) {
+        return Promise.resolve().then(function() {
             if (!Array.isArray(arr)) {
                 arr = [arr];
             }
@@ -84,8 +82,6 @@ var Storage = function() {
             for (var i = 0, len = arr.length; i < len; i++) {
                 localStorage.removeItem(arr[i]);
             }
-
-            resolve();
         });
     };
 };

@@ -126,9 +126,9 @@ Youtube.prototype.getChannelId = function(userId) {
             }
 
             _this.config.userIdToChannelId[userId] = id;
-            base.storage.set({userIdToChannelId: _this.config.userIdToChannelId});
-
-            return id;
+            return base.storage.set({userIdToChannelId: _this.config.userIdToChannelId}).then(function() {
+                return id;
+            });
         });
     });
 };
