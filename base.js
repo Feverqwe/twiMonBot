@@ -14,7 +14,7 @@ module.exports.loadConfig = function() {
     "use strict";
     return Promise.resolve().then(function() {
         var fs = require('fs');
-        return Promise.resolve(JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'))));
+        return JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json')));
     });
 };
 
@@ -37,7 +37,7 @@ module.exports.loadLanguage = function() {
             language[key] = item;
         }
 
-        return Promise.resolve(language);
+        return language;
     });
 };
 
@@ -58,7 +58,7 @@ var Storage = function() {
                     obj[key] = JSON.parse(value);
                 }
             }
-            return Promise.resolve(obj);
+            return obj;
         });
     };
     this.set = function(obj) {
