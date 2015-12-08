@@ -58,7 +58,7 @@ var Storage = function() {
                     obj[key] = JSON.parse(value);
                 }
             }
-            return obj;
+            return Promise.resolve(obj);
         });
     };
     this.set = function(obj) {
