@@ -2,7 +2,6 @@
  * Created by Anton on 06.12.2015.
  */
 var debug = require('debug')('chat');
-var base = require('./base');
 var commands = require('./commands');
 
 var Chat = function(options) {

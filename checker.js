@@ -7,9 +7,6 @@ var debug = require('debug')('checker');
 var debugLog = require('debug')('checker:log');
 debugLog.log = console.log.bind(console);
 var request = require('request');
-var requestPromise = Promise.promisify(request);
-
-var streamLog = true;
 
 var Checker = function(options) {
     "use strict";
