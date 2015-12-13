@@ -77,8 +77,40 @@ var commands = {
         var chatId = msg.chat.id;
 
         var data = [];
-        channelName && data.push(channelName);
-        channelName && serviceName && data.push(serviceName);
+
+        var readUrl = function(url) {
+            var channelName = null;
+            for (var service in _this.gOptions.serviceMatchRe) {
+                var reList = _this.gOptions.serviceMatchRe[service];
+                if (!Array.isArray(reList)) {
+                    reList = [reList];
+                }
+                reList.some(function(re) {
+                    if (re.test(url)) {
+                        channelName = url.match(re)[1];
+                        return true;
+                    }
+                });
+                if (channelName) {
+                    break;
+                }
+            }
+            return channelName && {
+                channel: channelName,
+                service: service
+            };
+        };
+
+        if (channelName) {
+            var info = readUrl(channelName);
+            if (info) {
+                data.push(info.channel);
+                data.push(info.service);
+            } else {
+                data.push(channelName);
+                serviceName && data.push(serviceName);
+            }
+        }
 
         var onTimeout = function() {
             debug("Wait message timeout, %j", msg);
@@ -88,26 +120,10 @@ var commands = {
 
         var waitChannelName = function() {
             var onMessage = _this.stateList[chatId] = function(msg) {
-                var channelName = null;
-                for (var service in _this.gOptions.serviceMatchRe) {
-                    var reList = _this.gOptions.serviceMatchRe[service];
-                    if (!Array.isArray(reList)) {
-                        reList = [reList];
-                    }
-                    reList.some(function(re) {
-                        if (re.test(msg.text)) {
-                            channelName = msg.text.match(re)[1];
-                            return true;
-                        }
-                    });
-                    if (channelName) {
-                        break;
-                    }
-                }
-
-                if (channelName) {
-                    data.push('"' + channelName + '"');
-                    data.push('"' + service + '"');
+                var info = readUrl(msg.text);
+                if (info) {
+                    data.push('"' + info.channel + '"');
+                    data.push('"' + info.service + '"');
 
                     msg.text = '/a ' + data.join(' ');
                     return _this.onMessage(msg);

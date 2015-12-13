@@ -62,7 +62,7 @@ var options = {
         goodgame: /goodgame\.ru\/channel\/([^\/]+)/i,
         twitch: /twitch\.tv\/([^\/]+)/i,
         youtube: [/youtube\.com\/user\/([^\/]+)/i, /youtube\.com\/channel\/([^\/]+)/],
-        hitbox: [/hitbox\.tv\/([^\/]+)/i]
+        hitbox: /hitbox\.tv\/([^\/]+)/i
     },
     services: {},
     events: null
