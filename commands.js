@@ -88,6 +88,31 @@ var commands = {
 
         var waitChannelName = function() {
             var onMessage = _this.stateList[chatId] = function(msg) {
+                var channelName = null;
+                for (var service in _this.gOptions.serviceMatchRe) {
+                    var reList = _this.gOptions.serviceMatchRe[service];
+                    if (!Array.isArray(reList)) {
+                        reList = [reList];
+                    }
+                    reList.some(function(re) {
+                        if (re.test(msg.text)) {
+                            channelName = msg.text.match(re)[1];
+                            return true;
+                        }
+                    });
+                    if (channelName) {
+                        break;
+                    }
+                }
+
+                if (channelName) {
+                    data.push('"' + channelName + '"');
+                    data.push('"' + service + '"');
+
+                    msg.text = '/a ' + data.join(' ');
+                    return _this.onMessage(msg);
+                }
+
                 data.push('"' + msg.text + '"');
 
                 return waitServiceName();

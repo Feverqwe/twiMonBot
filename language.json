@@ -14,7 +14,7 @@
   ],
   "offline": "All channels in offline",
   "emptyServiceList": "You don't have channels in watch list, yet.",
-  "enterChannelName": "Enter the channel name (example: opergamer):",
+  "enterChannelName": "Enter the channel url or name (example: opergamer):",
   "enterService": "Enter a live streaming video platform",
   "serviceIsNotSupported": "Oops! Platform {serviceName} is not supported!",
   "channelExists": "This channel already exists!",
