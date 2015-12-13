@@ -88,9 +88,21 @@ var Storage = function() {
 
 module.exports.storage = new Storage();
 
-module.exports.markDownSanitize = function(text) {
+module.exports.markDownSanitize = function(text, char) {
     "use strict";
-    text = text.replace(/([*_\[\]])/g, '\\$1');
+    if (char === '*') {
+        text = text.replace(/\*/g, String.fromCharCode(735));
+    }
+    if (char === '_') {
+        text = text.replace(/_/g, String.fromCharCode(717));
+    }
+    if (char === '[') {
+        text = text.replace(/\[/g, '(');
+        text = text.replace(/\]/g, ')');
+    }
+    if (!char) {
+        text = text.replace(/([*_\[])/g, '\\$1');
+    }
 
     return text;
 };
@@ -151,7 +163,7 @@ module.exports.getNowStreamText = function(gOptions, stream) {
         line.push(this.markDownSanitize(stream.channel.status));
     }
     if (stream.game) {
-        line.push('_'+this.markDownSanitize(stream.game)+'_');
+        line.push('_'+this.markDownSanitize(stream.game, '_') + '_');
     }
     if (line.length) {
         textArr.push(line.join(', '));
@@ -159,7 +171,7 @@ module.exports.getNowStreamText = function(gOptions, stream) {
 
     line = [];
     if (stream.channel.url) {
-        var channelName = '*' + this.markDownSanitize(stream.channel.display_name || stream.channel.name) + '*';
+        var channelName = '*' + this.markDownSanitize(stream.channel.display_name || stream.channel.name, '*') + '*';
         line.push(gOptions.language.watchOn
             .replace('{channelName}', channelName)
             .replace('{serviceName}', '['+gOptions.serviceToTitle[stream._service]+']'+'('+stream.channel.url+')')
@@ -192,7 +204,7 @@ module.exports.getNowStreamText = function(gOptions, stream) {
 module.exports.getStreamText = function(gOptions, stream) {
     var textArr = [];
 
-    textArr.push('*' + this.markDownSanitize(stream.channel.display_name || stream.channel.name) + '*');
+    textArr.push('*' + this.markDownSanitize(stream.channel.display_name || stream.channel.name, '*') + '*');
 
     var line = [];
     if (stream.viewers || stream.viewers === 0) {
@@ -202,7 +214,7 @@ module.exports.getStreamText = function(gOptions, stream) {
         line.push(this.markDownSanitize(stream.channel.status));
     }
     if (stream.game) {
-        line.push('_' + this.markDownSanitize(stream.game) + '_');
+        line.push('_' + this.markDownSanitize(stream.game, '_') + '_');
     }
     if (line.length) {
         textArr.push(line.join(', '));
