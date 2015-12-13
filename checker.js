@@ -183,10 +183,10 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
         var req = request(stream.preview);
         req.on('error', function() {
             debug('Request photo error! %s \n %s', stream._channelName, stream.preview);
-            return reject();
+            return reject('Request photo error!');
         });
 
-        resolve(sendPic(chatId, req));
+        return sendPic(chatId, req).then(resolve, reject);
     });
 };
 
