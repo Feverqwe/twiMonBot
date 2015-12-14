@@ -61,7 +61,7 @@ var options = {
     serviceMatchRe: {
         goodgame: /goodgame\.ru\/channel\/([^\/]+)/i,
         twitch: /twitch\.tv\/([^\/]+)/i,
-        youtube: [/youtube\.com\/(?:#\/)user\/([0-9A-Za-z_-]+)/i, /youtube\.com\/(?:#\/)channel\/([0-9A-Za-z_-]+)/i],
+        youtube: [/youtube\.com\/(?:#\/)?user\/([0-9A-Za-z_-]+)/i, /youtube\.com\/(?:#\/)?channel\/([0-9A-Za-z_-]+)/i],
         hitbox: /hitbox\.tv\/([^\/]+)/i
     },
     services: {},
