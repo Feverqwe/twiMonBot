@@ -4,5 +4,6 @@
   "timeout": 900,
   "notifyTimeout": 180,
   "botanToken": "",
-  "ytToken": ""
+  "ytToken": "",
+  "checkOnRun": false
 }

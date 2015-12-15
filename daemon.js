@@ -57,9 +57,11 @@ Daemon.prototype.initChecker = function() {
         onTimer();
     }, _this.getRunTime(interval));
 
-    setTimeout(function() {
-        onTimer();
-    }, 1000);
+    if (this.gOptions.config.checkOnRun) {
+        setTimeout(function () {
+            onTimer();
+        }, 1000);
+    }
 };
 
 Daemon.prototype.abort = function() {
