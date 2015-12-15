@@ -122,38 +122,35 @@ Checker.prototype.getChannelList = function() {
     return serviceList;
 };
 
-Checker.prototype.onSendMsgError = function(e, chatId) {
-    var errorMsg = e && e.message || '';
-
-    var isError = [
-        'Bot was kicked from a chat',
-        'Bad Request: wrong chat id',
-        'PEER_ID_INVALID',
-        'chat not found'
-    ].some(function(desc) {
-        if (errorMsg.indexOf(desc) !== -1) {
+Checker.prototype.onSendMsgError = function(err, chatId) {
+    var needKick = [
+        /Bot was kicked from a chat/,
+        /Bad Request: wrong chat id/,
+        /PEER_ID_INVALID/,
+        /chat not found/
+    ].some(function(re) {
+        if (re.test(err)) {
             return true;
         }
     });
 
-    if (!isError) {
+    if (!needKick) {
         return;
     }
 
     var needSave = false;
-    var storage = this.gOptions.storage;
-    for (var _chatId in storage.chatList) {
-        var item = storage.chatList[_chatId];
+    var chatList = this.gOptions.storage.chatList;
+    for (var _chatId in chatList) {
+        var item = chatList[_chatId];
+
         if (item.chatId === chatId) {
             debug('Remove chat %s \n %j', chatId, item);
-
-            delete storage.chatList[_chatId];
-
+            delete chatList[_chatId];
             needSave = true;
         }
     }
 
-    needSave && base.storage.set({chatList: storage.chatList});
+    needSave && base.storage.set({chatList: chatList});
 };
 
 Checker.prototype.getPicId = function(chatId, text, stream) {
@@ -170,10 +167,10 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
             });
 
             return fileId;
-        }).catch(function(e) {
-            debug('Send photo file error! %s %s \n %s', chatId, stream._channelName, e);
+        }).catch(function(err) {
+            debug('Send photo file error! %s %s \n %s', chatId, stream._channelName, err);
 
-            _this.onSendMsgError(e, chatId);
+            _this.onSendMsgError(err, chatId);
 
             throw 'Send photo file error!';
         });
@@ -201,10 +198,10 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
             parse_mode: 'Markdown'
         }).then(function() {
             _this.track(chatId, stream, 'sendMsg');
-        }).catch(function(e) {
-            debug('Send text msg error! %s %s \n %s', chatId, stream._channelName, e);
+        }).catch(function(err) {
+            debug('Send text msg error! %s %s \n %s', chatId, stream._channelName, err);
 
-            _this.onSendMsgError(e, chatId);
+            _this.onSendMsgError(err, chatId);
         });
     };
 
@@ -213,10 +210,10 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
             caption: text
         }).then(function() {
             _this.track(chatId, stream, 'sendPhoto');
-        }).catch(function(e) {
-            debug('Send photo msg error! %s %s \n %s', chatId, stream._channelName, e);
+        }).catch(function(err) {
+            debug('Send photo msg error! %s %s \n %s', chatId, stream._channelName, err);
 
-            _this.onSendMsgError(e, chatId);
+            _this.onSendMsgError(err, chatId);
         });
     };
 
