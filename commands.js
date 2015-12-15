@@ -33,7 +33,13 @@ var commands = {
         var chatId = msg.chat.id;
         var chatList = _this.gOptions.storage.chatList;
 
-        return _this.gOptions.services[service].getChannelName(channelName).then(function (channelName, channelId) {
+        return _this.gOptions.services[service].getChannelName(channelName).then(function (channelName) {
+            var channelId = null;
+            if (Array.isArray(channelName)) {
+                channelId = channelName[1];
+                channelName = channelName[0];
+            }
+
             var chatItem = chatList[chatId] = chatList[chatId] || {};
             chatItem.chatId = chatId;
 

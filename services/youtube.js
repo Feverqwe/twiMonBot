@@ -219,7 +219,7 @@ Youtube.prototype.getChannelName = function(userId) {
                 throw 'Channel is not found!';
             }
 
-            return Promise.resolve(userId, id === userId ? undefined : id);
+            return [userId, channelId === userId ? undefined : channelId];
         });
     });
 };
