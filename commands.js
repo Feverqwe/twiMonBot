@@ -104,10 +104,10 @@ var commands = {
         if (channelName) {
             var info = readUrl(channelName);
             if (info) {
-                data.push(info.channel);
-                data.push(info.service);
+                data.push('"'+ info.channel + '"');
+                data.push('"' + info.service + '"');
             } else {
-                data.push(channelName);
+                data.push('"'+ channelName + '"');
                 serviceName && data.push(serviceName);
             }
         }
