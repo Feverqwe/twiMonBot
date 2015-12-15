@@ -205,7 +205,7 @@ Youtube.prototype.getChannelName = function(userId) {
             url: 'https://www.googleapis.com/youtube/v3/search',
             qs: {
                 part: 'snippet',
-                id: channelId,
+                channelId: channelId,
                 maxResults: 1,
                 fields: 'items(id,snippet)',
                 key: _this.config.token
