@@ -320,14 +320,20 @@ var commands = {
         var serviceList = [];
 
         for (var service in chatItem.serviceList) {
-            var channelList = chatItem.serviceList[service].map(function (channelName) {
-                return base.markDownSanitize(channelName);
+            var channelList = chatItem.serviceList[service].map(function(channelName) {
+                var url = base.getChannelUrl(service, channelName);
+                if (!url) {
+                    debug('URL is empty!');
+                    return base.markDownSanitize(channelName);
+                }
+                return '[' + base.markDownSanitize(channelName, '[') + ']' + '(' + url + ')';
             });
-            serviceList.push('*' + _this.gOptions.serviceToTitle[service] + '*' + ': ' + channelList.join(', '));
+            serviceList.push('*' + _this.gOptions.serviceToTitle[service] + '*' + ':\n' + channelList.join('\n'));
         }
 
         return _this.gOptions.bot.sendMessage(
             chatId, serviceList.join('\n\n'), {
+                disable_web_page_preview: true,
                 parse_mode: 'Markdown'
             }
         );

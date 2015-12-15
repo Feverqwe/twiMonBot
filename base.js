@@ -236,3 +236,31 @@ module.exports.getStreamText = function(gOptions, stream) {
 
     return textArr.join('\n');
 };
+
+module.exports.getChannelUrl = function(service, channelName) {
+    "use strict";
+    var url = '';
+    if (service === 'youtube') {
+        url = 'https://youtube.com/';
+        if (/^UC/.test(channelName)) {
+            url += 'channel/';
+        } else {
+            url += 'user/';
+        }
+        url += channelName;
+    }
+
+    if (service === 'goodgame') {
+        url = 'http://goodgame.ru/channel/' + channelName;
+    }
+
+    if (service === 'twitch') {
+        url = 'http://twitch.tv/' + channelName;
+    }
+
+    if (service === 'hitbox') {
+        url = 'http://hitbox.tv/' + channelName;
+    }
+
+    return url;
+};
