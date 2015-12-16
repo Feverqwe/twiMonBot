@@ -114,7 +114,7 @@ var commands = {
                 data.push('"' + info.service + '"');
             } else {
                 data.push('"'+ channelName + '"');
-                serviceName && data.push(serviceName);
+                serviceName && data.push('"' + serviceName + '"');
             }
         }
 

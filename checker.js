@@ -144,13 +144,15 @@ Checker.prototype.onSendMsgError = function(err, chatId) {
         var item = chatList[_chatId];
 
         if (item.chatId === chatId) {
-            debug('Remove chat %s \n %j', chatId, item);
+            debug('Remove chat "%s" %j', chatId, item);
             delete chatList[_chatId];
             needSave = true;
         }
     }
 
     needSave && base.storage.set({chatList: chatList});
+
+    return true;
 };
 
 Checker.prototype.getPicId = function(chatId, text, stream) {
@@ -170,7 +172,11 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
         }).catch(function(err) {
             debug('Send photo file error! %s %s \n %s', chatId, stream._channelName, err);
 
-            _this.onSendMsgError(err, chatId);
+            var isKicked = _this.onSendMsgError(err, chatId);
+
+            if (isKicked) {
+                throw 'Send photo file error! Bot was kicked!';
+            }
 
             throw 'Send photo file error!';
         });
@@ -218,14 +224,14 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
     };
 
     var send = function() {
-        var hasPhoto = stream._photoId;
+        var photoId = stream._photoId;
         var promiseList = [];
 
         while (chatId = chatIdList.shift()) {
-            if (!hasPhoto) {
+            if (!photoId) {
                 promiseList.push(sendMsg(chatId));
             } else {
-                promiseList.push(sendPic(chatId, hasPhoto));
+                promiseList.push(sendPic(chatId, photoId));
             }
         }
 
@@ -240,13 +246,26 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         return send();
     }
 
-    chatId = chatIdList.shift();
-    return _this.getPicId(chatId, text, stream).then(function(fileId) {
-        stream._photoId = fileId;
-    }).catch(function(err) {
-        chatIdList.unshift(chatId);
-        debug('Function getPicId throw error!', err);
-    }).then(function() {
+    var requestPicId = function() {
+        if (!chatIdList.length) {
+            debug('chatList is empty! %j', stream);
+            return;
+        }
+
+        chatId = chatIdList.shift();
+
+        return _this.getPicId(chatId, text, stream).then(function(fileId) {
+            stream._photoId = fileId;
+        }).catch(function(err) {
+            if (err === 'Send photo file error! Bot was kicked!') {
+                return requestPicId();
+            }
+
+            chatIdList.unshift(chatId);
+            debug('Function getPicId throw error!', err);
+        });
+    };
+    return requestPicId().then(function() {
         return send();
     });
 };

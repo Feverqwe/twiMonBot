@@ -264,3 +264,18 @@ module.exports.getChannelUrl = function(service, channelName) {
 
     return url;
 };
+
+module.exports.getDdblTitle = function(map, title) {
+    "use strict";
+    if (!map[title]) {
+        return title;
+    }
+    var index = 1;
+    var newTitle = title + ' (' + index + ')';
+    while(map[newTitle]) {
+        index++;
+        newTitle = title + ' (' + index + ')';
+    }
+
+    return newTitle;
+};
