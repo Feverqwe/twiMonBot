@@ -10,10 +10,7 @@
     "/list - Show list of channel",
     "/top - Top 10",
     "/clear - Clear channel list",
-    "/liveTime - How long will it works",
-    "",
-    "⭐️ If you like this bot, please rate us 5 stars in store:",
-    "https://telegram.me/storebot?start=twiMonBot"
+    "/liveTime - How long will it works"
   ],
   "offline": "All channels in offline",
   "emptyServiceList": "You don't have channels in watch list, yet.",
@@ -37,5 +34,10 @@
   "channels": "Channels: {count}",
   "preview": "preview",
   "watchOn": "Watch {channelName} on {serviceName}",
-  "online": "Online: {count}"
+  "online": "Online: {count}",
+  "rateMe": [
+    "", "",
+    "⭐️ If you like this bot, please rate us 5 stars in store:",
+    "https://telegram.me/storebot?start=twimonbot"
+  ]
 }

@@ -25,7 +25,7 @@ var commands = {
         var _this = this;
         var chatId = msg.chat.id;
 
-        return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.help);
+        return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.help + _this.gOptions.language.rateMe);
     },
     a: function (msg, channelName, service) {
         "use strict";
@@ -34,12 +34,6 @@ var commands = {
         var chatList = _this.gOptions.storage.chatList;
 
         return _this.gOptions.services[service].getChannelName(channelName).then(function (channelName) {
-            var channelId = null;
-            if (Array.isArray(channelName)) {
-                channelId = channelName[1];
-                channelName = channelName[0];
-            }
-
             var chatItem = chatList[chatId] = chatList[chatId] || {};
             chatItem.chatId = chatId;
 
@@ -52,18 +46,22 @@ var commands = {
 
             channelList.push(channelName);
 
-            var displayName = [channelName];
-            if (channelId) {
-                displayName.push('(' + channelId + ')');
-            }
+            var title = base.getChannelTitle(_this.gOptions, service, channelName);
+            var url = base.getChannelUrl(service, channelName);
+
+            var displayName = '['+base.markDownSanitize(title, '[')+']'+'('+url+')';
 
             return base.storage.set({chatList: chatList}).then(function () {
                 return _this.gOptions.bot.sendMessage(
                     chatId,
                     _this.gOptions.language.channelAdded
-                        .replace('{channelName}', displayName.join(' '))
+                        .replace('{channelName}', displayName)
                         .replace('{serviceName}', _this.gOptions.serviceToTitle[service]),
-                    _this.templates.hideKeyboard
+                    {
+                        disable_web_page_preview: true,
+                        parse_mode: 'Markdown',
+                        reply_markup: _this.templates.hideKeyboard.reply_markup
+                    }
                 );
             });
         }).catch(function(err) {
@@ -144,10 +142,7 @@ var commands = {
                 return onTimeout();
             }, 3 * 60 * 1000);
 
-            return _this.gOptions.bot.sendMessage(
-                chatId,
-                _this.gOptions.language.enterChannelName
-            );
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.enterChannelName);
         };
 
         var waitServiceName = function() {
@@ -220,7 +215,7 @@ var commands = {
             );
         });
     },
-    delete: function (msg) {
+    delete: function (msg, channelName, serviceName) {
         "use strict";
         var _this = this;
         var chatId = msg.chat.id;
@@ -230,49 +225,91 @@ var commands = {
             return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList, _this.templates.hideKeyboard);
         }
 
-        var onTimeout = function() {
-            debug("Wait message timeout, %j", msg);
-            msg.text = 'Cancel';
-            return _this.onMessage(msg);
-        };
+        var data = [];
 
-        var onMessage = _this.stateList[chatId] = function (msg) {
-            var data = msg.text.match(/^(.+) \((.+)\)$/);
-            if (!data) {
-                debug("Can't match delete channel %j", msg);
-                return;
-            }
-            data.shift();
-
-            data = data.map(function(item) {
-                return '"' + item + '"';
-            });
-
-            msg.text = '/d ' + data.join(' ');
-            return _this.onMessage(msg);
-        };
-        onMessage.command = 'delete';
-        onMessage.timeout = setTimeout(function() {
-            onTimeout();
-        }, 3 * 60 * 1000);
+        var responseMap = {};
 
         var btnList = [];
         for (var service in chatItem.serviceList) {
             var channelList = chatItem.serviceList[service];
-            for (var i = 0, channelName; channelName = channelList[i]; i++) {
-                btnList.push([channelName + ' (' + _this.gOptions.serviceToTitle[service] + ')']);
-            }
+            channelList.forEach(function(channelName) {
+                var title = base.getChannelTitle(_this.gOptions, service, channelName);
+
+                title += ' (' + _this.gOptions.serviceToTitle[service] + ')';
+
+                title = base.getDdblTitle(responseMap, title);
+                responseMap[title] = {name: channelName, service: service};
+
+                btnList.push([title]);
+            });
         }
         btnList.push(['Cancel']);
 
-        return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.selectDelChannel, {
-            reply_markup: JSON.stringify({
-                keyboard: btnList,
-                resize_keyboard: true,
-                one_time_keyboard: true,
-                selective: true
-            })
-        });
+        var waitChannelName = function() {
+            var onTimeout = function() {
+                debug("Wait message timeout, %j", msg);
+                msg.text = 'Cancel';
+                return _this.onMessage(msg);
+            };
+
+            var onMessage = _this.stateList[chatId] = function (msg) {
+                var info = responseMap[msg.text];
+                if (!info) {
+                    debug("Can't match delete channel %j", msg);
+                    return;
+                }
+
+                data.push('"' + info.name + '"');
+                data.push('"' + info.service + '"');
+
+                msg.text = '/d ' + data.join(' ');
+                return _this.onMessage(msg);
+            };
+            onMessage.command = 'delete';
+            onMessage.timeout = setTimeout(function() {
+                onTimeout();
+            }, 3 * 60 * 1000);
+
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.selectDelChannel, {
+                reply_markup: JSON.stringify({
+                    keyboard: btnList,
+                    resize_keyboard: true,
+                    one_time_keyboard: true,
+                    selective: true
+                })
+            });
+        };
+
+        if (channelName && serviceName) {
+            var msgText = channelName;
+            msgText += ' (' + serviceName + ')';
+
+            var info = responseMap[msgText];
+            if (!info) {
+                msgText = msgText.toLowerCase();
+                for (var msgTextItem in responseMap) {
+                    var infoItem = responseMap[msgTextItem];
+                    if (msgTextItem.toLowerCase() === msgText) {
+                        info = infoItem;
+                        break;
+                    }
+                }
+            }
+
+            if (info) {
+                data.push('"' + info.name + '"');
+                data.push('"' + info.service + '"');
+            } else {
+                debug('Delete channel is not found "%s" "%s"', channelName, serviceName);
+            }
+        }
+
+        if (data.length === 0) {
+            return waitChannelName();
+        } else {
+            msg.text = '/d ' + data.join(' ');
+            return _this.onMessage(msg);
+        }
     },
     cancel: function (msg, arg1) {
         "use strict";
@@ -332,7 +369,10 @@ var commands = {
                     debug('URL is empty!');
                     return base.markDownSanitize(channelName);
                 }
-                return '[' + base.markDownSanitize(channelName, '[') + ']' + '(' + url + ')';
+
+                var title = base.getChannelTitle(_this.gOptions, service, channelName);
+
+                return '[' + base.markDownSanitize(title, '[') + ']' + '(' + url + ')';
             });
             serviceList.push('*' + _this.gOptions.serviceToTitle[service] + '*' + ':\n' + channelList.join('\n'));
         }
@@ -463,11 +503,15 @@ var commands = {
                 return a[1] === b[1] ? 0 : a[1] > b[1] ? -1 : 1
             }).splice(10);
             topArr[service].map(function (item, index) {
-                textArr.push((index + 1) + '. ' + item[0]);
+                var title = base.getChannelTitle(_this.gOptions, service, item[0]);
+
+                textArr.push((index + 1) + '. ' + title);
             });
         }
 
-        return _this.gOptions.bot.sendMessage(chatId, textArr.join('\n'));
+        return _this.gOptions.bot.sendMessage(chatId, textArr.join('\n'), {
+            disable_web_page_preview: true
+        });
     },
     livetime: function (msg) {
         "use strict";
@@ -483,7 +527,51 @@ var commands = {
 
             var message = liveTime.message.join('\n').replace('{count}', count);
 
+            message += _this.gOptions.language.rateMe;
+
             return _this.gOptions.bot.sendMessage(chatId, message);
+        });
+    },
+    refreshTitle: function(msg) {
+        "use strict";
+        var _this = this;
+        var chatId = msg.chat.id;
+        var services = _this.gOptions.services;
+
+        var queue = Promise.resolve();
+
+        var serviceChannelList = _this.gOptions.checker.getChannelList();
+        for (var service in serviceChannelList) {
+            if (!serviceChannelList.hasOwnProperty(service)) {
+                continue;
+            }
+
+            if (!services[service]) {
+                debug('Service "%s" is not found!', service);
+                continue;
+            }
+
+            if (service !== 'youtube') {
+                continue;
+            }
+
+            var channelList = JSON.parse(JSON.stringify(serviceChannelList[service]));
+            while (channelList.length) {
+                var arr = channelList.splice(0, 100);
+                (function(service, arr) {
+                    queue = queue.finally(function() {
+                        var promiseList = arr.map(function(item) {
+                            var userId = item.channelId;
+                            return services[service].getChannelName(userId);
+                        });
+                        return Promise.all(promiseList);
+                    });
+                })(service, arr);
+            }
+        }
+
+        return queue.finally(function() {
+            return _this.gOptions.bot.sendMessage(chatId, 'Done!');
         });
     }
 };
