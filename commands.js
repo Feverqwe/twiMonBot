@@ -560,8 +560,7 @@ var commands = {
                 var arr = channelList.splice(0, 100);
                 (function(service, arr) {
                     queue = queue.finally(function() {
-                        var promiseList = arr.map(function(item) {
-                            var userId = item.channelId;
+                        var promiseList = arr.map(function(userId) {
                             return services[service].getChannelName(userId);
                         });
                         return Promise.all(promiseList);
