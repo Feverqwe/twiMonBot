@@ -134,11 +134,13 @@ module.exports.getNowStreamPhotoText = function(gOptions, stream) {
     "use strict";
     var textArr = [];
 
+    var status = '';
+
     var line = [];
     if (stream.channel.status) {
-        line.push(stream.channel.status);
+        line.push(status = stream.channel.status);
     }
-    if (stream.game) {
+    if (stream.game && status.indexOf(stream.game) === -1) {
         line.push(stream.game);
     }
     if (line.length) {
