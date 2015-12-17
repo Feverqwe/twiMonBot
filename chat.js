@@ -174,10 +174,12 @@ Chat.prototype.onMessage = function(msg) {
 
     args.unshift(msg);
 
+    var origMsg = JSON.parse(JSON.stringify(msg));
+
     return commandFunc.apply(this, args).catch(function(err) {
         debug('Execute command "%s" error! %s', action, err);
     }).finally(function() {
-        _this.track(msg, action)
+        _this.track(origMsg, action)
     });
 };
 
