@@ -158,11 +158,13 @@ module.exports.getNowStreamText = function(gOptions, stream) {
     "use strict";
     var textArr = [];
 
+    var status = '';
+
     var line = [];
     if (stream.channel.status) {
-        line.push(this.markDownSanitize(stream.channel.status));
+        line.push(this.markDownSanitize(status = stream.channel.status));
     }
-    if (stream.game) {
+    if (stream.game && status.indexOf(stream.game) === -1) {
         line.push('_'+this.markDownSanitize(stream.game, '_') + '_');
     }
     if (line.length) {
@@ -206,14 +208,16 @@ module.exports.getStreamText = function(gOptions, stream) {
 
     textArr.push('*' + this.markDownSanitize(stream.channel.display_name || stream.channel.name, '*') + '*');
 
+    var status = '';
+
     var line = [];
     if (stream.viewers || stream.viewers === 0) {
         line.push(stream.viewers);
     }
     if (stream.channel.status) {
-        line.push(this.markDownSanitize(stream.channel.status));
+        line.push(this.markDownSanitize(status = stream.channel.status));
     }
-    if (stream.game) {
+    if (stream.game && status.indexOf(stream.game) === -1) {
         line.push('_' + this.markDownSanitize(stream.game, '_') + '_');
     }
     if (line.length) {
