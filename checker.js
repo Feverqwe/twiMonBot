@@ -14,7 +14,9 @@ var Checker = function(options) {
     this.gOptions = options;
 
     options.events.on('check', function() {
-        _this.updateList();
+        _this.updateList().catch(function(err) {
+            debug('updateList error! "%s"', err);
+        });
     });
 };
 

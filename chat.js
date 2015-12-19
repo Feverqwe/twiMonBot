@@ -96,7 +96,7 @@ Chat.prototype.msgParser = function(text) {
     var list = [];
     var templateList = [];
     text = text.replace(/%/g, '').replace(/\r\n\t/g, ' ');
-    text = text.replace(/"([\w\s_-]+)"/g, function(text, value) {
+    text = text.replace(/"([^"]+)"/g, function(text, value) {
         var index = templateList.push(value);
         return '%'+index+'%'
     });
