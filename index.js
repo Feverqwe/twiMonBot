@@ -78,7 +78,6 @@ var options = {
             options.config = config;
 
             config.botName && (config.botName = config.botName.toLowerCase());
-            config.TZ && (process.env.TZ = config.TZ);
         });
     }).then(function() {
         return base.loadLanguage().then(function(language) {
