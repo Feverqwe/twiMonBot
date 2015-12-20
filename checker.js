@@ -161,38 +161,61 @@ Checker.prototype.onSendMsgError = function(err, chatId) {
 Checker.prototype.getPicId = function(chatId, text, stream) {
     "use strict";
     var _this = this;
-    var sendPic = function(chatId, request) {
-        return _this.gOptions.bot.sendPhoto(chatId, request, {
-            caption: text
-        }).then(function (msg) {
-            var fileId = msg.photo[0].file_id;
+    var sendingPic = function(retry) {
+        var sendPic = function(request) {
+            return _this.gOptions.bot.sendPhoto(chatId, request, {
+                caption: text
+            }).then(function (msg) {
+                var fileId = msg.photo[0].file_id;
 
-            setTimeout(function() {
-                _this.track(chatId, stream, 'sendPhoto');
+                setTimeout(function() {
+                    _this.track(chatId, stream, 'sendPhoto');
+                });
+
+                return fileId;
+            }).catch(function(err) {
+                var imgProcessError = [
+                    /IMAGE_PROCESS_FAILED/,
+                    /FILE_PART_0_MISSING/
+                ].some(function(re) {
+                    return re.test(err);
+                });
+
+                if (imgProcessError && retry < 10) {
+                    retry++;
+                    return new Promise(function(resolve) {
+                        setTimeout(resolve, 5000);
+                    }).then(function() {
+                        debug("Retry %s send photo file %s %s! %s", retry, chatId, stream._channelName, err);
+                        return sendingPic(retry);
+                    });
+                }
+
+                throw err;
+            });
+        };
+
+        return new Promise(function(resolve, reject) {
+            var req = request(stream.preview);
+            req.on('error', function() {
+                debug('Request photo error! %s %s', stream._channelName, stream.preview);
+                return reject('Request photo error!');
             });
 
-            return fileId;
-        }).catch(function(err) {
-            debug('Send photo file error! %s %s \n %s', chatId, stream._channelName, err);
-
-            var isKicked = _this.onSendMsgError(err, chatId);
-
-            if (isKicked) {
-                throw 'Send photo file error! Bot was kicked!';
-            }
-
-            throw 'Send photo file error!';
+            return sendPic(req).then(resolve, reject);
         });
     };
 
-    return new Promise(function(resolve, reject) {
-        var req = request(stream.preview);
-        req.on('error', function() {
-            debug('Request photo error! %s \n %s', stream._channelName, stream.preview);
-            return reject('Request photo error!');
-        });
+    return sendingPic(0).catch(function(err) {
+        debug('Send photo file error! %s %s %s', chatId, stream._channelName, err);
 
-        return sendPic(chatId, req).then(resolve, reject);
+        var isKicked = _this.onSendMsgError(err, chatId);
+
+        if (isKicked) {
+            throw 'Send photo file error! Bot was kicked!';
+        }
+
+        throw 'Send photo file error!';
     });
 };
 
@@ -208,7 +231,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         }).then(function() {
             _this.track(chatId, stream, 'sendMsg');
         }).catch(function(err) {
-            debug('Send text msg error! %s %s \n %s', chatId, stream._channelName, err);
+            debug('Send text msg error! %s %s %s', chatId, stream._channelName, err);
 
             _this.onSendMsgError(err, chatId);
         });
@@ -220,7 +243,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         }).then(function() {
             _this.track(chatId, stream, 'sendPhoto');
         }).catch(function(err) {
-            debug('Send photo msg error! %s %s \n %s', chatId, stream._channelName, err);
+            debug('Send photo msg error! %s %s %s', chatId, stream._channelName, err);
 
             _this.onSendMsgError(err, chatId);
         });
