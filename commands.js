@@ -333,12 +333,16 @@ var commands = {
             return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
         }
 
-        if (!isYes) {
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.clearSure);
-        }
+        return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.clearSure);
+    },
+    clearyes: function(msg) {
+        "use strict";
+        var _this = this;
+        var chatId = msg.chat.id;
+        var chatItem = _this.gOptions.storage.chatList[chatId];
 
-        if (isYes !== 'yes') {
-            return;
+        if (!chatItem) {
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
         }
 
         delete _this.gOptions.storage.chatList[chatId];

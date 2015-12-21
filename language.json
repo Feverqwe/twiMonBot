@@ -28,7 +28,7 @@
   "channelIsNotFound": "Oops! Channel {channelName} ({serviceName}) is not found!",
   "clearSure": [
     "If your are sure, enter:",
-    "/clear yes"
+    "/clearYes"
   ],
   "users": "Users: {count}",
   "channels": "Channels: {count}",
