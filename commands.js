@@ -323,7 +323,7 @@ var commands = {
             _this.templates.hideKeyboard
         );
     },
-    clear: function (msg, isYes) {
+    clear: function (msg) {
         "use strict";
         var _this = this;
         var chatId = msg.chat.id;
