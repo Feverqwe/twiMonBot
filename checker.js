@@ -181,10 +181,10 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
                     return re.test(err);
                 });
 
-                if (imgProcessError && retry < 10) {
+                if (imgProcessError && retry < 3) {
                     retry++;
                     return new Promise(function(resolve) {
-                        setTimeout(resolve, 15000);
+                        setTimeout(resolve, 5000);
                     }).then(function() {
                         debug("Retry %s send photo file %s %s! %s", retry, chatId, stream._channelName, err);
                         return sendingPic(retry);
