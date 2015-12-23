@@ -340,6 +340,35 @@ Checker.prototype.notifyAll = function(streamList) {
     return Promise.all(promiseList);
 };
 
+Checker.prototype.cleanServices = function() {
+    "use strict";
+    var _this = this;
+    var serviceChannelList = _this.getChannelList();
+    var services = _this.gOptions.services;
+
+    var promiseList = [];
+
+    for (var service in serviceChannelList) {
+        if (!serviceChannelList.hasOwnProperty(service)) {
+            continue;
+        }
+
+        var currentService = services[service];
+        if (!currentService) {
+            debug('Service "%s" is not found!', service);
+            continue;
+        }
+
+        var channelList = serviceChannelList[service];
+
+        if (currentService.clean) {
+            promiseList.push(currentService.clean(channelList));
+        }
+    }
+
+    return Promise.all(promiseList);
+};
+
 Checker.prototype.updateList = function() {
     "use strict";
     var _this = this;
@@ -406,38 +435,40 @@ Checker.prototype.updateList = function() {
             if (!serviceChannelList.hasOwnProperty(service)) {
                 continue;
             }
+            (function(service){
+                var currentService = services[service];
+                if (!currentService) {
+                    debug('Service "%s" is not found!', service);
+                    return;
+                }
 
-            if (!services[service]) {
-                debug('Service "%s" is not found!', service);
-                continue;
-            }
+                var channelList = serviceChannelList[service];
+                while (channelList.length) {
+                    var arr = channelList.splice(0, 100);
+                    (function(arr) {
+                        var streamListPromise = (function getStreamList(retry) {
+                            return currentService.getStreamList(arr).catch(function(err) {
+                                retry++;
+                                if (retry >= 5) {
+                                    debug("Request stream list %s error! %s", service, err);
+                                    return [];
+                                }
 
-            var channelList = serviceChannelList[service];
-            while (channelList.length) {
-                var arr = channelList.splice(0, 100);
-                (function(service, arr) {
-                    var streamListPromise = (function getStreamList(service, arr, retry) {
-                        return services[service].getStreamList(arr).catch(function(err) {
-                            retry++;
-                            if (retry >= 5) {
-                                debug("Request stream list %s error! %s", service, err);
-                                return [];
-                            }
-
-                            return new Promise(function(resolve) {
-                                setTimeout(resolve, 5 * 1000);
-                            }).then(function() {
-                                debug("Retry %s request stream list %s! %s", retry, service, err);
-                                return getStreamList(service, arr, retry);
+                                return new Promise(function(resolve) {
+                                    setTimeout(resolve, 5 * 1000);
+                                }).then(function() {
+                                    debug("Retry %s request stream list %s! %s", retry, service, err);
+                                    return getStreamList(retry);
+                                });
                             });
-                        });
-                    })(service, arr, 0);
+                        })(0);
 
-                    promiseList.push(streamListPromise.then(function(streamList) {
-                        return onGetStreamList(streamList);
-                    }));
-                })(service, arr);
-            }
+                        promiseList.push(streamListPromise.then(function(streamList) {
+                            return onGetStreamList(streamList);
+                        }));
+                    })(arr);
+                }
+            })(service);
         }
 
         return Promise.all(promiseList).then(function() {

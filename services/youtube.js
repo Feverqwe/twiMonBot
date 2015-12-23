@@ -20,6 +20,44 @@ Youtube = function(options) {
     });
 };
 
+Youtube.prototype.clean = function(channelList) {
+    "use strict";
+    var _this = this;
+    var userIdToChannelId = _this.config.userIdToChannelId;
+    var channelIdToTitle = _this.config.channelIdToTitle;
+
+    var needSave = false;
+
+    for (var userId in userIdToChannelId) {
+        if (channelList.indexOf(userId) === -1) {
+            delete userIdToChannelId[userId];
+            needSave = true;
+            debug('Removed from userIdToChannelId %s', userId);
+        }
+    }
+
+    for (var channelId in channelIdToTitle) {
+        if (channelList.indexOf(channelId) === -1) {
+            delete channelIdToTitle[channelId];
+            needSave = true;
+            debug('Removed from channelIdToTitle %s', channelId);
+        }
+    }
+
+    var promise = Promise.resolve();
+
+    if (needSave) {
+        promise = promise.then(function() {
+            return base.storage.set({
+                userIdToChannelId: userIdToChannelId,
+                channelIdToTitle: channelIdToTitle
+            });
+        });
+    }
+
+    return promise;
+};
+
 Youtube.prototype.apiNormalization = function(userId, data, viewers) {
     "use strict";
     if (!data || !Array.isArray(data.items)) {

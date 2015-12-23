@@ -18,8 +18,9 @@ Daemon.prototype.getRunTime = function(interval) {
     var ms = today.getMilliseconds();
     var sec = today.getSeconds();
     var min = today.getMinutes();
+    var hours = today.getHours();
 
-    var nowMs = min * 60 * 1000 + sec * 1000 + ms;
+    var nowMs = hours * 60 * 60 * 1000 + min * 60 * 1000 + sec * 1000 + ms;
 
     var waitMs = everyMs - nowMs % everyMs;
 
