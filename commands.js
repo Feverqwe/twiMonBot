@@ -142,7 +142,12 @@ var commands = {
                 return onTimeout();
             }, 3 * 60 * 1000);
 
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.enterChannelName);
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.enterChannelName, {
+                reply_markup: JSON.stringify({
+                    force_reply: true,
+                    selective: true
+                })
+            });
         };
 
         var waitServiceName = function() {
@@ -214,6 +219,77 @@ var commands = {
                 _this.templates.hideKeyboard
             );
         });
+    },
+    groupDelete: function(msg) {
+        "use strict";
+        var _this = this;
+        var chatId = msg.chat.id;
+        var chatItem = _this.gOptions.storage.chatList[chatId];
+
+        var map = {};
+
+        var content = [_this.gOptions.language.selectGroupDelChannel];
+
+        var list = [];
+        for (var service in chatItem.serviceList) {
+            var channelList = chatItem.serviceList[service];
+            channelList.forEach(function(channelName) {
+                var title = base.getChannelTitle(_this.gOptions, service, channelName);
+
+                title += ' (' + _this.gOptions.serviceToTitle[service] + ')';
+
+                var index = list.length + 1;
+
+                title = base.getDdblTitle(map, title);
+
+                title = index + '# ' + title;
+
+                map[index] = {name: channelName, service: service};
+
+                list.push([title]);
+            });
+        }
+
+        list.push(['/cancel']);
+
+        content.push.apply(content, list);
+
+        var waitChannelIndex = function() {
+            var onTimeout = function() {
+                debug("Wait message timeout, %j", msg);
+                msg.text = 'Cancel';
+                return _this.onMessage(msg);
+            };
+
+            var onMessage = _this.stateList[chatId] = function (msg) {
+                var index = msg.text.match(/(\d+)/);
+                var info = map[index && index[1]];
+                if (!info) {
+                    debug("Can't match delete channel %j", msg);
+                    return;
+                }
+
+                var data = [];
+                data.push('"' + info.name + '"');
+                data.push('"' + info.service + '"');
+
+                msg.text = '/d ' + data.join(' ');
+                return _this.onMessage(msg);
+            };
+            onMessage.command = 'delete';
+            onMessage.timeout = setTimeout(function () {
+                onTimeout();
+            }, 3 * 60 * 1000);
+
+            return _this.gOptions.bot.sendMessage(chatId, content.join('\n'), {
+                reply_markup: JSON.stringify({
+                    force_reply: true,
+                    selective: true
+                })
+            });
+        };
+
+        return waitChannelIndex();
     },
     delete: function (msg, channelName, serviceName) {
         "use strict";
@@ -305,7 +381,11 @@ var commands = {
         }
 
         if (data.length === 0) {
-            return waitChannelName();
+            if (chatId < 0) {
+                return commands.groupDelete.apply(this, arguments);
+            } else {
+                return waitChannelName();
+            }
         } else {
             msg.text = '/d ' + data.join(' ');
             return _this.onMessage(msg);
