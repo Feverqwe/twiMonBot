@@ -142,7 +142,12 @@ var commands = {
                 return onTimeout();
             }, 3 * 60 * 1000);
 
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.enterChannelName, {
+            var msgText = _this.gOptions.language.enterChannelName;
+            if (chatId < 0) {
+                msgText += _this.gOptions.language.enterChannelNameNote;
+            }
+
+            return _this.gOptions.bot.sendMessage(chatId, msgText, {
                 reply_markup: JSON.stringify({
                     force_reply: true,
                     selective: true
@@ -220,7 +225,7 @@ var commands = {
             );
         });
     },
-    delete: function (msg, channelName, serviceName) {
+    delete: function (msg) {
         "use strict";
         var _this = this;
         var chatId = msg.chat.id;
@@ -242,8 +247,10 @@ var commands = {
 
                 title += ' (' + _this.gOptions.serviceToTitle[service] + ')';
 
-                title = base.getDdblTitle(responseMap, title);
-                responseMap[title] = {name: channelName, service: service};
+                var index = btnList.length + 1;
+                title = index + '. ' + title;
+
+                responseMap[index] = {name: channelName, service: service};
 
                 btnList.push([title]);
             });
@@ -258,10 +265,14 @@ var commands = {
             };
 
             var onMessage = _this.stateList[chatId] = function (msg) {
-                var info = responseMap[msg.text];
+                var index = msg.text.match(/(\d+)/);
+                index = index && index[1];
+
+                var info = responseMap[index];
                 if (!info) {
                     debug("Can't match delete channel %j", msg);
-                    return;
+                    msg.text = '/cancel delete';
+                    return _this.onMessage(msg);
                 }
 
                 data.push('"' + info.name + '"');
@@ -271,11 +282,16 @@ var commands = {
                 return _this.onMessage(msg);
             };
             onMessage.command = 'delete';
-            onMessage.timeout = setTimeout(function() {
+            onMessage.timeout = setTimeout(function () {
                 onTimeout();
             }, 3 * 60 * 1000);
 
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.selectDelChannel, {
+            var msgText = _this.gOptions.language.selectDelChannel;
+            if (chatId < 0) {
+                msgText += _this.gOptions.language.selectDelChannelGroupNote;
+            }
+
+            return _this.gOptions.bot.sendMessage(chatId, msgText, {
                 reply_markup: JSON.stringify({
                     keyboard: btnList,
                     resize_keyboard: true,
@@ -285,36 +301,7 @@ var commands = {
             });
         };
 
-        if (channelName && serviceName) {
-            var msgText = channelName;
-            msgText += ' (' + serviceName + ')';
-
-            var info = responseMap[msgText];
-            if (!info) {
-                msgText = msgText.toLowerCase();
-                for (var msgTextItem in responseMap) {
-                    var infoItem = responseMap[msgTextItem];
-                    if (msgTextItem.toLowerCase() === msgText) {
-                        info = infoItem;
-                        break;
-                    }
-                }
-            }
-
-            if (info) {
-                data.push('"' + info.name + '"');
-                data.push('"' + info.service + '"');
-            } else {
-                debug('Delete channel is not found "%s" "%s"', channelName, serviceName);
-            }
-        }
-
-        if (data.length === 0) {
-            return waitChannelName();
-        } else {
-            msg.text = '/d ' + data.join(' ');
-            return _this.onMessage(msg);
-        }
+        return waitChannelName();
     },
     cancel: function (msg, arg1) {
         "use strict";
@@ -583,5 +570,7 @@ var commands = {
         });
     }
 };
+
+commands.stop = commands.clear;
 
 module.exports = commands;

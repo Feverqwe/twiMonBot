@@ -305,19 +305,19 @@ Youtube.prototype.getChannelName = function(userId) {
                 part: 'snippet',
                 channelId: channelId,
                 maxResults: 1,
-                fields: 'items(id,snippet)',
+                fields: 'items/snippet',
                 key: _this.config.token
             },
             json: true
         }).then(function(response) {
             response = response.body;
-            var firstItem = response && response.items && response.items[0];
-            if (!firstItem || !firstItem.id || !firstItem.snippet) {
+            var snippet = response && response.items && response.items[0] && response.items[0].snippet;
+            if (!snippet) {
                 debug('Channel "%s" is not found! %j', channelId, response);
                 throw 'Channel is not found!';
             }
 
-            var channelTitle = firstItem.snippet.channelTitle;
+            var channelTitle = snippet.channelTitle;
 
             return Promise.try(function() {
                 if (!channelTitle || !/^UC/.test(userId)) {
