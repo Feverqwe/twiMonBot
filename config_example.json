@@ -6,5 +6,6 @@
   "botanToken": "",
   "ytToken": "",
   "checkOnRun": false,
-  "botName": "twiMonBot"
+  "botName": "twiMonBot",
+  "sendPhotoMaxRetry": 3
 }

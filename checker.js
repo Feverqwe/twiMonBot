@@ -162,6 +162,13 @@ Checker.prototype.onSendMsgError = function(err, chatId) {
 Checker.prototype.getPicId = function(chatId, text, stream) {
     "use strict";
     var _this = this;
+    var retryLimit = 3;
+
+    var maxRetry = _this.gOptions.config.sendPhotoMaxRetry;
+    if (maxRetry || maxRetry === 0) {
+        retryLimit = maxRetry;
+    }
+
     var sendingPic = function(retry) {
         var sendPic = function(request) {
             return _this.gOptions.bot.sendPhoto(chatId, request, {
@@ -182,7 +189,7 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
                     return re.test(err);
                 });
 
-                if (imgProcessError && retry < 3) {
+                if (imgProcessError && retry < retryLimit) {
                     retry++;
                     return new Promise(function(resolve) {
                         setTimeout(resolve, 5000);
