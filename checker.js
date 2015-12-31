@@ -162,10 +162,10 @@ Checker.prototype.onSendMsgError = function(err, chatId) {
 Checker.prototype.getPicId = function(chatId, text, stream) {
     "use strict";
     var _this = this;
-    var retryLimit = 3;
+    var retryLimit = 0;
 
     var maxRetry = _this.gOptions.config.sendPhotoMaxRetry;
-    if (maxRetry || maxRetry === 0) {
+    if (maxRetry) {
         retryLimit = maxRetry;
     }
 
