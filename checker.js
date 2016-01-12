@@ -129,7 +129,6 @@ Checker.prototype.onSendMsgError = function(err, chatId) {
         /Bot was kicked from a chat/,
         /bot was kicked from/,
         /Bad Request: wrong chat id/,
-        /PEER_ID_INVALID/,
         /chat not found/,
         /group is deactivated/
     ].some(function(re) {
