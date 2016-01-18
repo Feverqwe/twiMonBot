@@ -126,18 +126,7 @@ Checker.prototype.getChannelList = function() {
 };
 
 Checker.prototype.onSendMsgError = function(err, chatId) {
-    var needKick = [
-        /Bot was kicked from a chat/,
-        /bot was kicked from/,
-        /Bad Request: wrong chat id/,
-        /Bot was blocked by the user/,
-        /chat not found/,
-        /group is deactivated/
-    ].some(function(re) {
-        if (re.test(err)) {
-            return true;
-        }
-    });
+    var needKick = /^Error:\s+403\s+/.test(err);
 
     if (!needKick) {
         return;
