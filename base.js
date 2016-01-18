@@ -294,3 +294,72 @@ module.exports.getChannelUrl = function(service, channelName) {
 
     return url;
 };
+
+var getTime = function() {
+    "use strict";
+    return Math.round(Date.now() / 1000);
+};
+
+var sendTime = {};
+var cbQuote = [];
+
+var nextQuoteItem = function () {
+    "use strict";
+    var promiseList = cbQuote.slice(0, 30).map(function(item, index) {
+        cbQuote[index] = null;
+        return Promise.try(function() {
+            var cb = item[0];
+            var args = item[1];
+            var resolve = item[2];
+            var reject = item[3];
+
+            return cb.apply(null, args).then(resolve).catch(reject);
+        });
+    });
+
+    var count = promiseList.length;
+
+    var now = getTime();
+    if (!sendTime[now]) {
+        for (var key in sendTime) {
+            delete sendTime[key];
+        }
+        sendTime[now] = 0;
+    }
+    sendTime[now] += count;
+
+    Promise.all(promiseList).then(function() {
+        var now = getTime();
+        if (!sendTime[now] || sendTime[now] < 30) {
+            return;
+        }
+
+        return new Promise(function(resolve) {
+            setTimeout(resolve, 1000);
+        });
+    }).then(function() {
+        cbQuote.splice(0, count);
+        if (cbQuote.length) {
+            nextQuoteItem();
+        }
+    });
+};
+
+module.exports.quoteWrapper = function(cb) {
+    "use strict";
+    return function () {
+        var args = [];
+        for (var i = 0, len = arguments.length; i < len; i++) {
+            args.push(arguments[i]);
+        }
+
+        return new Promise(function(resolve, reject) {
+            cbQuote.push([cb, args, resolve, reject]);
+            if (cbQuote.length > 1) {
+                return;
+            }
+
+            nextQuoteItem();
+        });
+    };
+};

@@ -120,6 +120,9 @@ var options = {
                 timeout: options.config.pollongTimeout || 120
             }
         });
+
+        options.bot.sendMessage = base.quoteWrapper(options.bot.sendMessage.bind(options.bot));
+        options.bot.sendPhoto = base.quoteWrapper(options.bot.sendPhoto.bind(options.bot));
     }).then(function() {
         if (options.config.botanToken) {
             options.botan = require('botanio')(options.config.botanToken);
