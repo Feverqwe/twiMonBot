@@ -313,7 +313,9 @@ var nextQuoteItem = function () {
             var resolve = item[2];
             var reject = item[3];
 
-            return cb.apply(null, args).then(resolve).catch(reject);
+            return Promise.try(function() {
+                return cb.apply(null, args);
+            }).then(resolve).catch(reject);
         });
     });
 
