@@ -7,6 +7,7 @@ var debug = require('debug')('checker');
 var debugLog = require('debug')('checker:log');
 debugLog.log = console.log.bind(console);
 var request = require('request');
+var requestPromise = Promise.promisify(request);
 
 var Checker = function(options) {
     "use strict";
@@ -203,14 +204,15 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
             });
         };
 
-        return new Promise(function(resolve, reject) {
-            var req = request(stream.preview);
-            req.on('error', function() {
-                debug('Request photo error! %s %s', stream._channelName, stream.preview);
-                return reject('Request photo error!');
-            });
-
-            return sendPic(req).then(resolve, reject);
+        return requestPromise({
+            url: stream.preview,
+            encoding: null
+        }).catch(function(err) {
+            debug('Request photo error! %s %s %s', stream._channelName, stream.preview, err);
+            throw 'Request photo error!';
+        }).then(function(response) {
+            var image = new Buffer(response.body, 'binary');
+            return sendPic(image);
         });
     };
 
