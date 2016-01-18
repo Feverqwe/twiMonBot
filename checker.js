@@ -161,8 +161,10 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
 
     var sendingPic = function(retry) {
         var sendPic = function(request) {
-            return _this.gOptions.bot.sendPhoto(chatId, request, {
-                caption: text
+            return Promise.try(function() {
+                return _this.gOptions.bot.sendPhoto(chatId, request, {
+                    caption: text
+                });
             }).then(function (msg) {
                 var fileId = msg.photo[0].file_id;
 
