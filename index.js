@@ -123,6 +123,7 @@ var options = {
 
         options.bot.sendMessage = base.quoteWrapper(options.bot.sendMessage.bind(options.bot));
         options.bot.sendPhoto = base.quoteWrapper(options.bot.sendPhoto.bind(options.bot));
+        options.bot.sendChatAction = base.quoteWrapper(options.bot.sendChatAction.bind(options.bot));
     }).then(function() {
         if (options.config.botanToken) {
             options.botan = require('botanio')(options.config.botanToken);

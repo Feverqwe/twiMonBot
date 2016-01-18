@@ -568,6 +568,30 @@ var commands = {
         return queue.finally(function() {
             return _this.gOptions.bot.sendMessage(chatId, 'Done!');
         });
+    },
+    checkuseralive: function(msg) {
+        "use strict";
+        var _this = this;
+        var chatId = msg.chat.id;
+
+        var queue = Promise.resolve();
+
+        var chatList = _this.gOptions.storage.chatList;
+        for (var _chatId in chatList) {
+            var chatItem = chatList[_chatId];
+            (function(chatId) {
+                queue = queue.finally(function () {
+                    return _this.gOptions.bot.sendChatAction(chatId, 'typing').catch(function (err) {
+                        debug('Send chat action error! %s %s', chatId, err);
+                        _this.gOptions.checker.onSendMsgError(err, chatId);
+                    });
+                });
+            })(chatItem.chatId);
+        }
+
+        return queue.finally(function() {
+            return _this.gOptions.bot.sendMessage(chatId, 'Done!');
+        });
     }
 };
 
