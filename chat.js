@@ -190,20 +190,16 @@ Chat.prototype.onMessage = function(msg) {
 
 Chat.prototype.track = function(msg, title) {
     "use strict";
-    try {
-        this.gOptions.botan.track({
-            text: msg.text,
-            from: {
-                id: msg.from.id
-            },
-            chat: {
-                id: msg.chat.id
-            },
-            date: msg.date
-        }, title);
-    } catch(e) {
-        debug('Botan track error %s', e.message);
-    }
+    return this.gOptions.tracker.track({
+        text: msg.text,
+        from: {
+            id: msg.from.id
+        },
+        chat: {
+            id: msg.chat.id
+        },
+        date: msg.date
+    }, title);
 };
 
 module.exports = Chat;

@@ -4,6 +4,7 @@
   "timeout": 900,
   "notifyTimeout": 180,
   "botanToken": "",
+  "gaId": "",
   "ytToken": "",
   "checkOnRun": false,
   "botName": "twiMonBot",

@@ -480,20 +480,16 @@ Checker.prototype.updateList = function() {
 
 Checker.prototype.track = function(chatId, stream, title) {
     "use strict";
-    try {
-        this.gOptions.botan.track({
-            text: stream._channelName,
-            from: {
-                id: 1
-            },
-            chat: {
-                id: chatId
-            },
-            date: parseInt(Date.now() / 1000)
-        }, title);
-    } catch(e) {
-        debug('Botan track error %s', e.message);
-    }
+    return this.gOptions.tracker.track({
+        text: stream._channelName,
+        from: {
+            id: 1
+        },
+        chat: {
+            id: chatId
+        },
+        date: parseInt(Date.now() / 1000)
+    }, title);
 };
 
 module.exports = Checker;
