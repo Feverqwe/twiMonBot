@@ -25,7 +25,7 @@ var Chat = function(options) {
 
 Chat.prototype.bindBot = function() {
     "use strict";
-    this.gOptions.bot.on('message', this.onMessage.bind(this))
+    this.gOptions.bot.on('text', this.onMessage.bind(this))
 };
 
 Chat.prototype.templates = {
@@ -131,11 +131,6 @@ Chat.prototype.onMessage = function(msg) {
     var _this = this;
     var text = msg.text;
     var chatId = msg.chat.id;
-
-    if (!text) {
-        debug('Msg without text! %j', msg);
-        return;
-    }
 
     var responseFunc = this.stateList[chatId];
     if (responseFunc) {
