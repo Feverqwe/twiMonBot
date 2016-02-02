@@ -132,6 +132,11 @@ Chat.prototype.onMessage = function(msg) {
     var text = msg.text;
     var chatId = msg.chat.id;
 
+    if (!text) {
+        debug('Msg without text! %j', msg);
+        return;
+    }
+
     var responseFunc = this.stateList[chatId];
     if (responseFunc) {
         clearTimeout(responseFunc.timeout);
