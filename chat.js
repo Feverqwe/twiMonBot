@@ -183,7 +183,7 @@ Chat.prototype.onMessage = function(msg) {
     var origMsg = JSON.parse(JSON.stringify(msg));
 
     return Promise.try(function() {
-        return commandFunc.apply(this, args);
+        return commandFunc.apply(_this, args);
     }).catch(function(err) {
         debug('Execute command "%s" error! %s', action, err);
     }).finally(function() {
