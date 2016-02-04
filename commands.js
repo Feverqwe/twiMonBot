@@ -119,7 +119,7 @@ var commands = {
         var onTimeout = function() {
             debug("Wait message timeout, %j", msg);
             msg.text = 'Cancel';
-            return _this.onMessage(msg);
+            return _this.onMessagePromise(msg);
         };
 
         var waitChannelName = function() {
@@ -130,7 +130,7 @@ var commands = {
                     data.push('"' + info.service + '"');
 
                     msg.text = '/a ' + data.join(' ');
-                    return _this.onMessage(msg);
+                    return _this.onMessagePromise(msg);
                 }
 
                 data.push('"' + msg.text + '"');
@@ -160,7 +160,7 @@ var commands = {
                 data.push('"' + msg.text + '"');
 
                 msg.text = '/a ' + data.join(' ');
-                return _this.onMessage(msg);
+                return _this.onMessagePromise(msg);
             };
             onMessage.command = 'add';
             onMessage.timeout = setTimeout(function() {
@@ -184,7 +184,7 @@ var commands = {
             return waitServiceName();
         } else {
             msg.text = '/a ' + data.join(' ');
-            return _this.onMessage(msg);
+            return _this.onMessagePromise(msg);
         }
     },
     d: function (msg, channelName, service) {
@@ -261,7 +261,7 @@ var commands = {
             var onTimeout = function() {
                 debug("Wait message timeout, %j", msg);
                 msg.text = 'Cancel';
-                return _this.onMessage(msg);
+                return _this.onMessagePromise(msg);
             };
 
             var onMessage = _this.stateList[chatId] = function (msg) {
@@ -272,14 +272,14 @@ var commands = {
                 if (!info) {
                     debug("Can't match delete channel %j", msg);
                     msg.text = '/cancel delete';
-                    return _this.onMessage(msg);
+                    return _this.onMessagePromise(msg);
                 }
 
                 data.push('"' + info.name + '"');
                 data.push('"' + info.service + '"');
 
                 msg.text = '/d ' + data.join(' ');
-                return _this.onMessage(msg);
+                return _this.onMessagePromise(msg);
             };
             onMessage.command = 'delete';
             onMessage.timeout = setTimeout(function () {

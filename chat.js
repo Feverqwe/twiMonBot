@@ -163,7 +163,12 @@ Chat.prototype.onMessage = function(msg) {
 
     var args = this.msgParser(text);
 
-    var action = (args.shift() || '').toLowerCase();
+    if (args.length === 0) {
+        debug('Args is empty! %s', text);
+        return;
+    }
+
+    var action = args.shift().toLowerCase();
     var commandFunc = commands[action];
 
     if (!commandFunc) {
@@ -182,12 +187,17 @@ Chat.prototype.onMessage = function(msg) {
 
     var origMsg = JSON.parse(JSON.stringify(msg));
 
-    return Promise.try(function() {
-        return commandFunc.apply(_this, args);
-    }).catch(function(err) {
+    return commandFunc.apply(this, args).catch(function(err) {
         debug('Execute command "%s" error! %s', action, err);
     }).finally(function() {
         _this.track(origMsg, action)
+    });
+};
+
+Chat.prototype.onMessagePromise = function(msg) {
+    var _this = this;
+    return Promise.try(function() {
+        return _this.onMessage(msg);
     });
 };
 
