@@ -1,6 +1,7 @@
 /**
  * Created by Anton on 06.12.2015.
  */
+var Promise = require('bluebird');
 var debug = require('debug')('chat');
 var commands = require('./commands');
 
@@ -162,7 +163,7 @@ Chat.prototype.onMessage = function(msg) {
 
     var args = this.msgParser(text);
 
-    var action = args.shift().toLowerCase();
+    var action = (args.shift() || '').toLowerCase();
     var commandFunc = commands[action];
 
     if (!commandFunc) {
@@ -181,7 +182,9 @@ Chat.prototype.onMessage = function(msg) {
 
     var origMsg = JSON.parse(JSON.stringify(msg));
 
-    return commandFunc.apply(this, args).catch(function(err) {
+    return Promise.try(function() {
+        return commandFunc.apply(this, args);
+    }).catch(function(err) {
         debug('Execute command "%s" error! %s', action, err);
     }).finally(function() {
         _this.track(origMsg, action)
