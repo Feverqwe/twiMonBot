@@ -4,6 +4,7 @@
 var Promise = require('bluebird');
 var debug = require('debug')('chat');
 var commands = require('./commands');
+var base = require('./base');
 
 var Chat = function(options) {
     "use strict";
@@ -141,6 +142,8 @@ Chat.prototype.chatMigrate = function(oldChatId, newChatId) {
     }
     delete chatList[oldChatId];
     chatList[newChatId] = chatItem;
+
+    base.storage.set({chatList: chatList});
 };
 
 Chat.prototype.onMessage = function(msg) {
