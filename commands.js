@@ -167,7 +167,12 @@ var commands = {
                 onTimeout();
             }, 3 * 60 * 1000);
 
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.enterService, {
+            var msgText = _this.gOptions.language.enterService;
+            if (chatId < 0) {
+                msgText += _this.gOptions.language.selectDelChannelGroupNote;
+            }
+
+            return _this.gOptions.bot.sendMessage(chatId, msgText, {
                 reply_markup: JSON.stringify({
                     keyboard: _this.getServiceListKeyboard(),
                     resize_keyboard: true,
