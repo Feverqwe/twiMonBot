@@ -128,6 +128,25 @@ Checker.prototype.getChannelList = function() {
 Checker.prototype.onSendMsgError = function(err, chatId) {
     var needKick = /^Error:\s+403\s+/.test(err);
 
+    var jsonRe = /^Error:\s+\d+\s+(\{.+})$/;
+    if (jsonRe.test(err)) {
+        var msg = null;
+        try {
+            msg = err.match(jsonRe);
+            msg = msg && msg[1];
+            msg = JSON.parse(msg);
+        } catch (e) {
+            msg = null;
+        }
+
+        if (msg && msg.parameters) {
+            var parameters = msg.parameters;
+            if (parameters.migrate_to_chat_id) {
+                this.gOptions.chat.chatMigrate(chatId, parameters.migrate_to_chat_id);
+            }
+        }
+    }
+
     if (!needKick) {
         return;
     }

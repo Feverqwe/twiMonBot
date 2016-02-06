@@ -26,7 +26,7 @@ var Chat = function(options) {
 
 Chat.prototype.bindBot = function() {
     "use strict";
-    this.gOptions.bot.on('text', this.onMessage.bind(this))
+    this.gOptions.bot.on('message', this.onMessage.bind(this))
 };
 
 Chat.prototype.templates = {
@@ -127,11 +127,37 @@ Chat.prototype.msgParser = function(text) {
     return list;
 };
 
+Chat.prototype.chatMigrate = function(oldChatId, newChatId) {
+    "use strict";
+    debug('Chat migrate from %s to %s', oldChatId, newChatId);
+    var chatList = this.gOptions.storage.chatList;
+    var chatItem = chatList[oldChatId];
+    if (!chatItem) {
+        debug('Chat migrate error, chatId %s is not found!', oldChatId);
+        return;
+    }
+    if (chatList[newChatId]) {
+        debug('Chat migrate warning, chatId %s exists!', newChatId);
+    }
+    delete chatList[oldChatId];
+    chatList[newChatId] = chatItem;
+};
+
 Chat.prototype.onMessage = function(msg) {
     "use strict";
     var _this = this;
     var text = msg.text;
     var chatId = msg.chat.id;
+
+    if (msg.migrate_from_chat_id) {
+        this.chatMigrate(msg.migrate_from_chat_id, chatId);
+        return;
+    }
+
+    if (msg.migrate_to_chat_id) {
+        this.chatMigrate(chatId, msg.migrate_to_chat_id);
+        return;
+    }
 
     if (!text) {
         debug('Msg without text! %j', msg);
