@@ -251,6 +251,11 @@ Youtube.prototype.getStreamList = function(userList) {
                     json: true
                 }).then(function(response) {
                     response = response.body;
+                    if (!response.items) {
+                        debug('Stream list "%s" without item! %j', userId, response);
+                        return [];
+                    }
+
                     if (response.items.length === 0) {
                         return [];
                     }
