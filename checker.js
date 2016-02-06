@@ -151,20 +151,7 @@ Checker.prototype.onSendMsgError = function(err, chatId) {
         return;
     }
 
-    var needSave = false;
-    var chatList = this.gOptions.storage.chatList;
-    for (var _chatId in chatList) {
-        var item = chatList[_chatId];
-
-        if (item.chatId === chatId) {
-            debug('Remove chat "%s" %j', chatId, item);
-            delete chatList[_chatId];
-            needSave = true;
-        }
-    }
-
-    needSave && base.storage.set({chatList: chatList});
-
+    this.gOptions.chat.removeChat(chatId);
     return true;
 };
 

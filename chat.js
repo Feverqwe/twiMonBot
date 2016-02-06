@@ -128,20 +128,49 @@ Chat.prototype.msgParser = function(text) {
     return list;
 };
 
-Chat.prototype.chatMigrate = function(oldChatId, newChatId) {
+Chat.prototype.removeChat = function(chatId) {
     "use strict";
-    debug('Chat migrate from %s to %s', oldChatId, newChatId);
     var chatList = this.gOptions.storage.chatList;
-    var chatItem = chatList[oldChatId];
+
+    var chatItem = null;
+    var chatKey = null;
+    for (var _chatId in chatList) {
+        var item = chatList[_chatId];
+        if (item.chatId === chatId) {
+            chatItem = item;
+            chatKey = _chatId;
+        }
+    }
     if (!chatItem) {
-        debug('Chat migrate error, chatId %s is not found!', oldChatId);
         return;
     }
-    if (chatList[newChatId]) {
-        debug('Chat migrate warning, chatId %s exists!', newChatId);
+
+    delete chatList[chatKey];
+    debug('Chat %s removed! %j', chatId, chatItem);
+
+    base.storage.set({chatList: chatList});
+};
+
+Chat.prototype.chatMigrate = function(oldChatId, newChatId) {
+    "use strict";
+    var chatList = this.gOptions.storage.chatList;
+
+    var chatItem = null;
+    var oldChatKey = null;
+    for (var _chatId in chatList) {
+        var item = chatList[_chatId];
+        if (item.chatId === oldChatId) {
+            chatItem = item;
+            oldChatKey = _chatId;
+        }
     }
-    delete chatList[oldChatId];
+    if (!chatItem) {
+        return;
+    }
+
+    delete chatList[oldChatKey];
     chatList[newChatId] = chatItem;
+    debug('Chat migrate from %s to %s', oldChatId, newChatId);
 
     base.storage.set({chatList: chatList});
 };
@@ -159,6 +188,11 @@ Chat.prototype.onMessage = function(msg) {
 
     if (msg.migrate_to_chat_id) {
         this.chatMigrate(chatId, msg.migrate_to_chat_id);
+        return;
+    }
+
+    if (msg.left_chat_participant) {
+        this.removeChat(chatId);
         return;
     }
 
