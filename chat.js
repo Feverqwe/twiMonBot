@@ -170,6 +170,7 @@ Chat.prototype.chatMigrate = function(oldChatId, newChatId) {
 
     delete chatList[oldChatKey];
     chatList[newChatId] = chatItem;
+    chatItem.chatId = newChatId;
     debug('Chat migrate from %s to %s', oldChatId, newChatId);
 
     base.storage.set({chatList: chatList});
