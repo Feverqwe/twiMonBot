@@ -126,23 +126,19 @@ Checker.prototype.getChannelList = function() {
 };
 
 Checker.prototype.onSendMsgError = function(err, chatId) {
-    var needKick = /^Error:\s+403\s+/.test(err);
+    var err = err && err.message || err;
+    var needKick = /^403\s+/.test(err);
 
-    var jsonRe = /^Error:\s+\d+\s+(\{.+})$/;
+    var jsonRe = /^\d+\s+(\{.+})$/;
     if (jsonRe.test(err)) {
         var msg = null;
         try {
-            debug(1, err);
-            debug(2, err.message);
             msg = String(err.message || err).match(jsonRe);
             msg = msg && msg[1];
             msg = JSON.parse(msg);
         } catch (e) {
-            debug('Parse err error! %s %j', e.message || e, err);
             msg = null;
         }
-
-        debug('Parsed msg! %j', msg);
 
         if (msg && msg.parameters) {
             var parameters = msg.parameters;
