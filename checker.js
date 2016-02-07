@@ -126,7 +126,7 @@ Checker.prototype.getChannelList = function() {
 };
 
 Checker.prototype.onSendMsgError = function(err, chatId) {
-    var err = err && err.message || err;
+    err = err && err.message || err;
     var needKick = /^403\s+/.test(err);
 
     var jsonRe = /^\d+\s+(\{.+})$/;
