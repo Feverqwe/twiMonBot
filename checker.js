@@ -132,7 +132,9 @@ Checker.prototype.onSendMsgError = function(err, chatId) {
     if (jsonRe.test(err)) {
         var msg = null;
         try {
-            msg = err.match(jsonRe);
+            debug(1, err);
+            debug(2, err.message);
+            msg = String(err.message || err).match(jsonRe);
             msg = msg && msg[1];
             msg = JSON.parse(msg);
         } catch (e) {
