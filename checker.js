@@ -136,8 +136,11 @@ Checker.prototype.onSendMsgError = function(err, chatId) {
             msg = msg && msg[1];
             msg = JSON.parse(msg);
         } catch (e) {
+            debug('Parse err error! %j', msg);
             msg = null;
         }
+
+        debug('Parsed msg! %j', msg);
 
         if (msg && msg.parameters) {
             var parameters = msg.parameters;

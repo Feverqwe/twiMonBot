@@ -574,7 +574,7 @@ var commands = {
             return _this.gOptions.bot.sendMessage(chatId, 'Done!');
         });
     },
-    checkUserAlive: function(msg) {
+    checkuseralive: function(msg) {
         "use strict";
         var _this = this;
         var chatId = msg.chat.id;
