@@ -192,11 +192,6 @@ Chat.prototype.onMessage = function(msg) {
         return;
     }
 
-    if (msg.left_chat_participant) {
-        this.removeChat(chatId);
-        return;
-    }
-
     if (!text) {
         debug('Msg without text! %j', msg);
         return;
