@@ -5,12 +5,12 @@
     "You can control me by sending these commands:",
     "",
     "/online - Online channel list",
+    "/list - Show list of channel",
     "/add - Add channel in list",
     "/delete - Delete channel from list",
-    "/list - Show list of channel",
     "/top - Top 10",
-    "/clear - Clear channel list",
-    "/liveTime - How long will it works"
+    "/liveTime - How long will it works",
+    "/clear - Clear channel list"
   ],
   "offline": "All channels in offline",
   "emptyServiceList": "You don't have channels in watch list, yet.",
