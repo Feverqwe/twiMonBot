@@ -84,7 +84,8 @@ Twitch.prototype.getStreamList = function(channelList) {
             headers: {
                 'Accept': 'application/vnd.twitchtv.v3+json'
             },
-            json: true
+            json: true,
+            forever: true
         }).then(function(response) {
             response = response.body;
             return _this.apiNormalization(response);
@@ -100,7 +101,8 @@ Twitch.prototype.getChannelName = function(channelName) {
         headers: {
             'Accept': 'application/vnd.twitchtv.v3+json'
         },
-        json: true
+        json: true,
+        forever: true
     }).then(function(response) {
         response = response.body;
 

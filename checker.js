@@ -204,7 +204,8 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
 
         return requestPromise({
             url: stream.preview,
-            encoding: null
+            encoding: null,
+            forever: true
         }).catch(function(err) {
             debug('Request photo error! %s %s %s', stream._channelName, stream.preview, err);
             throw 'Request photo error!';

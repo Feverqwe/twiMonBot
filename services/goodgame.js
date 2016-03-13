@@ -88,7 +88,8 @@ GoodGame.prototype.getStreamList = function (channelList) {
                 fmt: 'json',
                 id: channelList.join(',')
             },
-            json: true
+            json: true,
+            forever: true
         }).then(function (response) {
             response = response.body;
             return _this.apiNormalization(response);
@@ -105,7 +106,8 @@ GoodGame.prototype.getChannelName = function (channelName) {
             fmt: 'json',
             id: channelName
         },
-        json: true
+        json: true,
+        forever: true
     }).then(function (response) {
         response = response.body;
         for (var key in response) {

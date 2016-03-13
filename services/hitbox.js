@@ -78,7 +78,8 @@ Hitbox.prototype.getStreamList = function(channelList) {
             qs: {
                 showHidden: 'true'
             },
-            json: true
+            json: true,
+            forever: true
         }).then(function(response) {
             response = response.body;
             return _this.apiNormalization(response);
@@ -94,7 +95,8 @@ Hitbox.prototype.getChannelName = function(channelName) {
         qs: {
             showHidden: 'true'
         },
-        json: true
+        json: true,
+        forever: true
     }).then(function(response) {
         response = response.body;
 

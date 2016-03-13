@@ -140,7 +140,8 @@ Youtube.prototype.getViewers = function(id) {
         qs: {
             v: id,
             t: Date.now()
-        }
+        },
+        forever: true
     }).then(function(response) {
         response = response.body;
         if (/^\d+$/.test(response)) {
@@ -170,7 +171,8 @@ Youtube.prototype.searchChannelIdByTitle = function(channelTitle) {
             fields: 'items(id)',
             key: _this.config.token
         },
-        json: true
+        json: true,
+        forever: true
     }).then(function(response) {
         response = response.body;
         var id = response && response.items && response.items[0] && response.items[0].id && response.items[0].id.channelId;
@@ -205,7 +207,8 @@ Youtube.prototype.getChannelId = function(userId) {
                 fields: 'items/id',
                 key: _this.config.token
             },
-            json: true
+            json: true,
+            forever: true
         }).then(function(response) {
             response = response.body;
             var id = response && response.items && response.items[0] && response.items[0].id;
@@ -248,7 +251,8 @@ Youtube.prototype.getStreamList = function(userList) {
                         fields: 'items(id,snippet)',
                         key: _this.config.token
                     },
-                    json: true
+                    json: true,
+                    forever: true
                 }).then(function(response) {
                     response = response.body;
                     if (!response.items) {
@@ -313,7 +317,8 @@ Youtube.prototype.getChannelName = function(userId) {
                 fields: 'items/snippet',
                 key: _this.config.token
             },
-            json: true
+            json: true,
+            forever: true
         }).then(function(response) {
             response = response.body;
             var snippet = response && response.items && response.items[0] && response.items[0].snippet;
