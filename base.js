@@ -182,7 +182,10 @@ module.exports.getNowStreamText = function(gOptions, stream) {
         );
     }
     if (stream.preview) {
-        line.push('['+gOptions.language.preview+']' + '('+stream.preview+')');
+        var url = Array.isArray(stream.preview) ? stream.preview[0] : stream.preview;
+        if (url) {
+            line.push('['+gOptions.language.preview+']' + '('+ url +')');
+        }
     }
     if (line.length) {
         textArr.push(line.join(', '));
@@ -234,7 +237,10 @@ module.exports.getStreamText = function(gOptions, stream) {
         );
     }
     if (stream.preview) {
-        line.push('['+gOptions.language.preview+']' + '('+stream.preview+')');
+        var url = Array.isArray(stream.preview) ? stream.preview[0] : stream.preview;
+        if (url) {
+            line.push('['+gOptions.language.preview+']' + '('+url+')');
+        }
     }
     if (line.length) {
         textArr.push(line.join(', '));
