@@ -80,6 +80,11 @@ Youtube.prototype.apiNormalization = function(userId, data, viewers) {
             return;
         }
 
+        var previewList = ['maxresdefault_live', 'sddefault_live', 'hqdefault_live', 'mqdefault_live', 'default_live'].map(function(quality) {
+            return 'https://i.ytimg.com/vi/' + videoId + '/' + quality + '.jpg';
+        });
+
+
         var item = {
             _service: 'youtube',
             _addItemTime: now,
@@ -90,7 +95,7 @@ Youtube.prototype.apiNormalization = function(userId, data, viewers) {
 
             viewers: viewers || 0,
             game: '',
-            preview: 'https://i.ytimg.com/vi/' + videoId + '/maxresdefault_live.jpg',
+            preview: previewList,
             created_at: snippet.snippet,
             channel: {
                 display_name: snippet.channelTitle,
@@ -99,11 +104,6 @@ Youtube.prototype.apiNormalization = function(userId, data, viewers) {
                 url: 'https://gaming.youtube.com/watch?v=' + videoId
             }
         };
-
-        if (typeof item.preview === 'string') {
-            var sep = item.preview.indexOf('?') === -1 ? '?' : '&';
-            item.preview += sep + '_=' + now;
-        }
 
         streams.push(item);
     });

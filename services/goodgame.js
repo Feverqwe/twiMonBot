@@ -41,6 +41,16 @@ GoodGame.prototype.apiNormalization = function (data) {
             continue;
         }
 
+        var previewList = [];
+        if (origItem.thumb) {
+            previewList.push(origItem.thumb.replace(/_240(\.jpg)$/, '$1'));
+            previewList.push(origItem.thumb);
+        }
+        previewList = previewList.map(function(url) {
+            var sep = !/\?/.test(url) ? '?' : '&';
+            return url + sep + '_=' + now;
+        });
+
         var item = {
             _service: 'goodgame',
             _addItemTime: now,
@@ -51,7 +61,7 @@ GoodGame.prototype.apiNormalization = function (data) {
 
             viewers: parseInt(origItem.viewers) || 0,
             game: origItem.games,
-            preview: origItem.thumb,
+            preview: previewList,
             created_at: undefined,
             channel: {
                 name: origItem.key,
@@ -60,12 +70,6 @@ GoodGame.prototype.apiNormalization = function (data) {
                 url: origItem.url
             }
         };
-
-        if (typeof item.preview === 'string') {
-            var sep = item.preview.indexOf('?') === -1 ? '?' : '&';
-            item.preview = item.preview.replace(/_240(\.jpg)$/, '$1');
-            item.preview += sep + '_=' + now;
-        }
 
         streams.push(item);
     }

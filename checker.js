@@ -129,6 +129,10 @@ Checker.prototype.onSendMsgError = function(err, chatId) {
     err = err && err.message || err;
     var needKick = /^403\s+/.test(err);
 
+    if (!needKick) {
+        needKick = /group chat is deactivated/.test(err);
+    }
+
     var jsonRe = /^\d+\s+(\{.+})$/;
     if (jsonRe.test(err)) {
         var msg = null;
@@ -166,7 +170,14 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
         retryLimit = maxRetry;
     }
 
-    var sendingPic = function(retry) {
+    var previewList = stream.preview;
+    if (!Array.isArray(previewList)) {
+        previewList = [previewList];
+    }
+
+    var sendingPic = function(index, retry) {
+        var previewUrl = previewList[index];
+
         var sendPic = function(request) {
             return Promise.try(function() {
                 return _this.gOptions.bot.sendPhoto(chatId, request, {
@@ -194,7 +205,7 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
                         setTimeout(resolve, 5000);
                     }).then(function() {
                         debug("Retry %s send photo file %s %s! %s", retry, chatId, stream._channelName, err);
-                        return sendingPic(retry);
+                        return sendingPic(index, retry);
                     });
                 }
 
@@ -202,20 +213,32 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
             });
         };
 
+        var onRequestCatch = function(err) {
+            debug('Request photo error! %s %s %s %s', index, stream._channelName, previewUrl, err);
+
+            index++;
+            if (index >= previewList.length) {
+                throw 'Request photo error!';
+            }
+
+            return sendingPic(index, retry);
+        };
+
         return requestPromise({
             url: stream.preview,
             encoding: null,
             forever: true
-        }).catch(function(err) {
-            debug('Request photo error! %s %s %s', stream._channelName, stream.preview, err);
-            throw 'Request photo error!';
-        }).then(function(response) {
+        }).catch(onRequestCatch).then(function(response) {
+            if (response.statusCode === 404) {
+                return onRequestCatch(new Error('404'));
+            }
+
             var image = new Buffer(response.body, 'binary');
             return sendPic(image);
         });
     };
 
-    return sendingPic(0).catch(function(err) {
+    return sendingPic(0, 0).catch(function(err) {
         debug('Send photo file error! %s %s %s', chatId, stream._channelName, err);
 
         var isKicked = _this.onSendMsgError(err, chatId);
@@ -273,7 +296,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         return Promise.all(promiseList);
     };
 
-    if (!stream.preview) {
+    if (!stream.preview || (Array.isArray(stream.preview) && stream.preview.length === 0)) {
         return send();
     }
 

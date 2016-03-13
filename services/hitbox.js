@@ -30,6 +30,17 @@ Hitbox.prototype.apiNormalization = function(data) {
             return;
         }
 
+        var previewList = [];
+        if (origItem.media_thumbnail_large) {
+            previewList.push(origItem.media_thumbnail_large);
+        }
+        if (origItem.media_thumbnail) {
+            previewList.push(origItem.media_thumbnail);
+        }
+        previewList = previewList.map(function(path) {
+            return 'http://edge.sf.hitbox.tv' + path;
+        });
+
         var item = {
             _service: 'hitbox',
             _addItemTime: now,
@@ -40,7 +51,7 @@ Hitbox.prototype.apiNormalization = function(data) {
 
             viewers: parseInt(origItem.media_views) || 0,
             game: '',
-            preview: origItem.media_thumbnail_large || origItem.media_thumbnail,
+            preview: previewList,
             created_at: origItem.media_live_since,
             channel: {
                 display_name: origItem.media_display_name,
@@ -49,10 +60,6 @@ Hitbox.prototype.apiNormalization = function(data) {
                 url: origItem.channel.channel_link
             }
         };
-
-        if (typeof item.preview === 'string') {
-            item.preview = 'http://edge.sf.hitbox.tv' + item.preview;
-        }
 
         streams.push(item);
     });
