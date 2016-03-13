@@ -225,7 +225,7 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
         };
 
         return requestPromise({
-            url: stream.preview,
+            url: previewUrl,
             encoding: null,
             forever: true
         }).catch(onRequestCatch).then(function(response) {
