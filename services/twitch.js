@@ -27,6 +27,28 @@ Twitch.prototype.apiNormalization = function(data) {
             continue;
         }
 
+        var previewList = [];
+        origItem.preview && ['template', 'large', 'medium', 'small'].forEach(function(quality) {
+            var url = origItem.preview[quality];
+            if (!url) {
+                return;
+            }
+
+            if (quality === 'template') {
+                url = url.replace('{width}', '1280').replace('{height}', '720');
+            }
+
+            previewList.push(url);
+        });
+        previewList = previewList.map(function(url) {
+            var sep = !/\?/.test(url) ? '?' : '&';
+            return url + sep + '_=' + now;
+        });
+
+        if (previewList.length === 0) {
+            previewList = null;
+        }
+
         var item = {
             _service: 'twitch',
             _addItemTime: now,
@@ -37,7 +59,7 @@ Twitch.prototype.apiNormalization = function(data) {
 
             viewers: parseInt(origItem.viewers) || 0,
             game: origItem.game,
-            preview: origItem.preview && origItem.preview.template,
+            preview: previewList,
             created_at: origItem.created_at,
             channel: {
                 display_name: origItem.channel.display_name,
@@ -47,12 +69,6 @@ Twitch.prototype.apiNormalization = function(data) {
                 url: origItem.channel.url
             }
         };
-
-        if (typeof item.preview === 'string') {
-            item.preview = item.preview.replace('{width}', '1280').replace('{height}', '720');
-            var sep = item.preview.indexOf('?') === -1 ? '?' : '&';
-            item.preview += sep + '_=' + now;
-        }
 
         if (!item.channel.url) {
             item.channel.url = 'http://www.twitch.tv/' + item.channel.name;

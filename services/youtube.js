@@ -84,7 +84,6 @@ Youtube.prototype.apiNormalization = function(userId, data, viewers) {
             return 'https://i.ytimg.com/vi/' + videoId + '/' + quality + '.jpg';
         });
 
-
         var item = {
             _service: 'youtube',
             _addItemTime: now,

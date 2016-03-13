@@ -41,6 +41,10 @@ Hitbox.prototype.apiNormalization = function(data) {
             return 'http://edge.sf.hitbox.tv' + path;
         });
 
+        if (previewList.length === 0) {
+            previewList = null;
+        }
+
         var item = {
             _service: 'hitbox',
             _addItemTime: now,
