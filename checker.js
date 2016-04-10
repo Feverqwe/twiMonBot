@@ -259,7 +259,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
     var sendMsg = function(chatId) {
         return bot.sendMessage(chatId, noPhotoText, {
             disable_web_page_preview: true,
-            parse_mode: 'Markdown'
+            parse_mode: 'HTML'
         }).then(function() {
             _this.track(chatId, stream, 'sendMsg');
         }).catch(function(err) {

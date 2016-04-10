@@ -49,7 +49,7 @@ var commands = {
             var title = base.getChannelTitle(_this.gOptions, service, channelName);
             var url = base.getChannelUrl(service, channelName);
 
-            var displayName = '['+base.markDownSanitize(title, '[')+']'+'('+url+')';
+            var displayName = base.htmlSanitize('a', title, url);
 
             return base.storage.set({chatList: chatList}).then(function () {
                 return _this.gOptions.bot.sendMessage(
@@ -59,7 +59,7 @@ var commands = {
                         .replace('{serviceName}', _this.gOptions.serviceToTitle[service]),
                     {
                         disable_web_page_preview: true,
-                        parse_mode: 'Markdown',
+                        parse_mode: 'HTML',
                         reply_markup: _this.templates.hideKeyboard.reply_markup
                     }
                 );
@@ -368,20 +368,20 @@ var commands = {
                 var url = base.getChannelUrl(service, channelName);
                 if (!url) {
                     debug('URL is empty!');
-                    return base.markDownSanitize(channelName);
+                    return base.htmlSanitize(channelName);
                 }
 
                 var title = base.getChannelTitle(_this.gOptions, service, channelName);
 
-                return '[' + base.markDownSanitize(title, '[') + ']' + '(' + url + ')';
+                return base.htmlSanitize('a', title, url);
             });
-            serviceList.push('*' + _this.gOptions.serviceToTitle[service] + '*' + ':\n' + channelList.join('\n'));
+            serviceList.push(base.htmlSanitize('b', _this.gOptions.serviceToTitle[service]) + ':\n' + channelList.join('\n'));
         }
 
         return _this.gOptions.bot.sendMessage(
             chatId, serviceList.join('\n\n'), {
                 disable_web_page_preview: true,
-                parse_mode: 'Markdown'
+                parse_mode: 'HTML'
             }
         );
     },
@@ -424,7 +424,7 @@ var commands = {
 
         return _this.gOptions.bot.sendMessage(chatId, text, {
             disable_web_page_preview: true,
-            parse_mode: 'Markdown'
+            parse_mode: 'HTML'
         });
     },
     top: function (msg) {

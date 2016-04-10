@@ -205,10 +205,10 @@ module.exports.getNowStreamText = function(gOptions, stream) {
 
     var line = [];
     if (stream.channel.status) {
-        line.push(this.markDownSanitize(status = stream.channel.status));
+        line.push(this.htmlSanitize(status = stream.channel.status));
     }
     if (stream.game && status.indexOf(stream.game) === -1) {
-        line.push('_'+this.markDownSanitize(stream.game, '_') + '_');
+        line.push(this.htmlSanitize('i', stream.game));
     }
     if (line.length) {
         textArr.push(line.join(', '));
@@ -216,16 +216,17 @@ module.exports.getNowStreamText = function(gOptions, stream) {
 
     line = [];
     if (stream.channel.url) {
-        var channelName = '*' + this.markDownSanitize(stream.channel.display_name || stream.channel.name, '*') + '*';
+        var channelName = this.htmlSanitize('b', stream.channel.display_name || stream.channel.name);
+        var channelUrl = this.htmlSanitize('a', gOptions.serviceToTitle[stream._service], stream.channel.url);
         line.push(gOptions.language.watchOn
             .replace('{channelName}', channelName)
-            .replace('{serviceName}', '['+gOptions.serviceToTitle[stream._service]+']'+'('+stream.channel.url+')')
+            .replace('{serviceName}', channelUrl)
         );
     }
     if (stream.preview) {
         var url = Array.isArray(stream.preview) ? stream.preview[0] : stream.preview;
         if (url) {
-            line.push('['+gOptions.language.preview+']' + '('+ url +')');
+            line.push(this.htmlSanitize('a', gOptions.language.preview, url));
         }
     }
     if (line.length) {
@@ -252,7 +253,7 @@ module.exports.getNowStreamText = function(gOptions, stream) {
 module.exports.getStreamText = function(gOptions, stream) {
     var textArr = [];
 
-    textArr.push('*' + this.markDownSanitize(stream.channel.display_name || stream.channel.name, '*') + '*');
+    textArr.push(this.htmlSanitize('b', stream.channel.display_name || stream.channel.name));
 
     var status = '';
 
@@ -261,10 +262,10 @@ module.exports.getStreamText = function(gOptions, stream) {
         line.push(stream.viewers);
     }
     if (stream.channel.status) {
-        line.push(this.markDownSanitize(status = stream.channel.status));
+        line.push(this.htmlSanitize(status = stream.channel.status));
     }
     if (stream.game && status.indexOf(stream.game) === -1) {
-        line.push('_' + this.markDownSanitize(stream.game, '_') + '_');
+        line.push(this.htmlSanitize('i', stream.game));
     }
     if (line.length) {
         textArr.push(line.join(', '));
@@ -272,15 +273,16 @@ module.exports.getStreamText = function(gOptions, stream) {
 
     line = [];
     if (stream.channel.url) {
+        var channelUrl = this.htmlSanitize('a', gOptions.serviceToTitle[stream._service], stream.channel.url);
         line.push(gOptions.language.watchOn
             .replace('{channelName} ', '')
-            .replace('{serviceName}', '['+gOptions.serviceToTitle[stream._service]+']'+'('+stream.channel.url+')')
+            .replace('{serviceName}', channelUrl)
         );
     }
     if (stream.preview) {
         var url = Array.isArray(stream.preview) ? stream.preview[0] : stream.preview;
         if (url) {
-            line.push('['+gOptions.language.preview+']' + '('+url+')');
+            line.push(this.htmlSanitize('a', gOptions.language.preview, url));
         }
     }
     if (line.length) {
