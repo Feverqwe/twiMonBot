@@ -88,6 +88,47 @@ var Storage = function() {
 
 module.exports.storage = new Storage();
 
+/**
+ * @param {string} type
+ * @param {string} [text]
+ * @param {string} [url]
+ */
+module.exports.htmlSanitize = function (type, text, url) {
+    if (!text) {
+        text = type;
+        type = '';
+    }
+
+    var sanitize = function (text) {
+        return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    };
+
+    var sanitizeAttr = function (text) {
+        return sanitize(text).replace(/"/g, '&quot;');
+    };
+
+    switch (type) {
+        case '':
+            return sanitize(text);
+        case 'a':
+            return '<a href="'+sanitizeAttr(url)+'">'+sanitize(text)+'</a>';
+        case 'b':
+            return '<b>'+sanitize(text)+'</b>';
+        case 'strong':
+            return '<strong>'+sanitize(text)+'</strong>';
+        case 'i':
+            return '<i>'+sanitize(text)+'</i>';
+        case 'em':
+            return '<em>'+sanitize(text)+'</em>';
+        case 'pre':
+            return '<pre>'+sanitize(text)+'</pre>';
+        case 'code':
+            return '<code>'+sanitize(text)+'</code>';
+    }
+
+    throw "htmlSanitize error! Type: " + type + " is not found!"
+};
+
 module.exports.markDownSanitize = function(text, char) {
     "use strict";
     if (char === '*') {
