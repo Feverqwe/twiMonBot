@@ -1,8 +1,27 @@
 /**
  * Created by Anton on 06.12.2015.
  */
-var debug = require('debug')('index');
-var debugLog = require('debug')('index:log');
+var Debug = require('debug');
+
+(function () {
+    var fn = Debug.formatArgs;
+    Debug.formatArgs = function () {
+        var self = this;
+        var args = arguments;
+        var useColors = this.useColors;
+        var name = this.namespace;
+        if (useColors) {
+            return fn.apply(self, args);
+        } else {
+            args[0] = new Date().toString()
+                + ' ' + name + ' ' + args[0];
+        }
+        return args;
+    };
+})();
+
+var debug = Debug('index');
+var debugLog = Debug('index:log');
 debugLog.log = console.log.bind(console);
 var Promise = require('bluebird');
 var base = require('./base');
