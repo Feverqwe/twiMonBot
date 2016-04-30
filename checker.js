@@ -38,30 +38,12 @@ Checker.prototype.cleanStreamList = function(streamList) {
     }
 };
 
-Checker.prototype.getBrokenItems = function(cItem, nItem) {
-    "use strict";
-    var brokenItems = [];
-    [cItem, nItem].forEach(function(item) {
-        if (!item._isBroken) {
-            return;
-        }
-        for (var n = 0, key; key = item._isBroken[n]; n++) {
-            if (brokenItems.indexOf(key) === -1) {
-                brokenItems.push(key);
-            }
-        }
-    });
-    return brokenItems;
-};
-
 Checker.prototype.isStatusChange = function(cItem, nItem) {
-    var brokenItems = this.getBrokenItems(cItem, nItem);
-
-    if (cItem.game !== nItem.game && brokenItems.indexOf('game') === -1) {
+    if (cItem.game !== nItem.game) {
         return true;
     }
 
-    if (cItem.channel.status !== nItem.channel.status && brokenItems.indexOf('status') === -1) {
+    if (cItem.channel.status !== nItem.channel.status) {
         return true;
     }
 
@@ -69,14 +51,9 @@ Checker.prototype.isStatusChange = function(cItem, nItem) {
 };
 
 Checker.prototype.isEqualChannel = function(cItem, nItem) {
-    var brokenItems = this.getBrokenItems(cItem, nItem);
-
     var a = cItem.channel;
     var b = nItem.channel;
     for (var key in a) {
-        if (brokenItems.indexOf(key) !== -1) {
-            continue;
-        }
         if (a[key] !== b[key]) {
             return false;
         }
