@@ -7,7 +7,7 @@ var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = Promise.promisify(request);
 
-Hitbox = function(options) {
+var Hitbox = function(options) {
     "use strict";
     this.gOptions = options;
 };

@@ -10,7 +10,7 @@ var requestPromise = Promise.promisify(request);
 var apiQuote = new base.Quote(1000);
 requestPromise = apiQuote.wrapper(requestPromise.bind(requestPromise));
 
-Youtube = function(options) {
+var Youtube = function(options) {
     "use strict";
     var _this = this;
     this.gOptions = options;

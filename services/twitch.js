@@ -7,7 +7,7 @@ var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = Promise.promisify(request);
 
-Twitch = function(options) {
+var Twitch = function(options) {
     "use strict";
     this.gOptions = options;
 };
