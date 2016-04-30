@@ -13,13 +13,13 @@ var Tracker = function(options) {
     this.cache = {};
 
     this.tid = options.config.gaId;
-    this.botanToken = options.config.botanToken;
+    /*this.botanToken = options.config.botanToken;
 
     if (this.botanToken) {
         this.botan = require('botanio')(this.botanToken);
     } else {
         this.botan = {track: function(data, action){debug("Send in Botan %s, %j", action, data)}};
-    }
+    }*/
 };
 
 Tracker.prototype.getUuid = function(id) {
@@ -64,8 +64,8 @@ Tracker.prototype.getUuid = function(id) {
 Tracker.prototype.track = function(msg, action) {
     "use strict";
     return Promise.all([
-        this.trackerSend(msg, action),
-        this.botan.track(msg, action)
+        this.trackerSend(msg, action)/*,
+        this.botan.track(msg, action)*/
     ]).catch(function(err) {
         debug('Send error!', err);
     });
