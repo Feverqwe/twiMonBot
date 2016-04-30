@@ -85,27 +85,48 @@ Twitch.prototype.apiNormalization = function(data) {
 Twitch.prototype.getStreamList = function(channelList) {
     "use strict";
     var _this = this;
-    return Promise.resolve().then(function() {
-        if (!channelList.length) {
-            return [];
-        }
 
-        return requestPromise({
-            method: 'GET',
-            url: 'https://api.twitch.tv/kraken/streams',
-            qs: {
-                limit: 100,
-                channel: channelList.join(',')
-            },
-            headers: {
-                'Accept': 'application/vnd.twitchtv.v3+json'
-            },
-            json: true,
-            forever: true
-        }).then(function(response) {
-            response = response.body;
-            return _this.apiNormalization(response);
-        });
+    var videoList = [];
+
+    var promiseList = base.arrToParts(channelList, 100).map(function (arr) {
+        var retryLimit = 5;
+        var getList = function () {
+            return requestPromise({
+                method: 'GET',
+                url: 'https://api.twitch.tv/kraken/streams',
+                qs: {
+                    limit: 100,
+                    channel: arr.join(',')
+                },
+                headers: {
+                    'Accept': 'application/vnd.twitchtv.v3+json'
+                },
+                json: true,
+                forever: true
+            }).then(function(response) {
+                response = response.body;
+                var list = _this.apiNormalization(response);
+                videoList.push.apply(videoList, list);
+            }).catch(function (err) {
+                retryLimit--;
+                if (retryLimit < 0) {
+                    debug("Request stream list error! %s", err);
+                    return;
+                }
+
+                return new Promise(function(resolve) {
+                    return setTimeout(resolve, 5 * 1000);
+                }).then(function() {
+                    debug("Retry request stream list %s! %s", retryLimit, err);
+                    return getList();
+                });
+            });
+        };
+        return getList();
+    });
+
+    return Promise.all(promiseList).then(function () {
+        return videoList;
     });
 };
 

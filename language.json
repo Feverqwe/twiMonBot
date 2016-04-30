@@ -1,20 +1,21 @@
 {
-  "help": [
+  "help": "Hi! I will notify you about the beginning of the broadcasts on Youtube Gaming, Twitch, Hitbox and GoodGame!",
+  "helpGroup": [
     "Hi! I will notify you about the beginning of the broadcasts on Youtube Gaming, Twitch, Hitbox and GoodGame!",
     "",
     "You can control me by sending these commands:",
     "",
-    "/online - Online channel list",
-    "/list - Show list of channel",
-    "/add - Add channel in list",
-    "/delete - Delete channel from list",
+    "/online - Online",
+    "/list - Show the channel list",
+    "/add - Add channel",
+    "/delete - Delete channel",
     "/top - Top 10",
     "/liveTime - How long will it works",
     "/clear - Clear channel list"
   ],
   "offline": "All channels in offline",
   "emptyServiceList": "You don't have channels in watch list, yet.",
-  "enterChannelName": "Enter the channel URL or name (example: opergamer):",
+  "enterChannelName": "Enter the channel URL or name (example: welovegames):",
   "enterService": "Enter a live streaming video platform",
   "serviceIsNotSupported": "Oops! Platform {serviceName} is not supported!",
   "channelExists": "This channel already exists!",
@@ -26,7 +27,8 @@
   "channelNameIsEmpty": "Oops! Channel name is empty!",
   "selectDelChannel": "Select the channel that you want to delete",
   "channelIsNotFound": "Oops! Channel {channelName} ({serviceName}) is not found!",
-  "clearSure": [
+  "clearSure": "Are you sure?",
+  "clearSureGroup": [
     "If your are sure, enter:",
     "/clearYes"
   ],

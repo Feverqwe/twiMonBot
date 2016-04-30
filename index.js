@@ -84,7 +84,10 @@ var options = {
     serviceMatchRe: {
         goodgame: /goodgame\.ru\/channel\/([^\/]+)/i,
         twitch: /twitch\.tv\/([^\/]+)/i,
-        youtube: /youtube\.com\/(?:#\/)?(?:user|channel)\/([0-9A-Za-z_-]+)/i,
+        youtube: [
+            /youtube\.com\/(?:#\/)?(?:user|channel)\/([0-9A-Za-z_-]+)/i,
+            /youtube\.com\/([0-9A-Za-z_-]+)$/i
+        ],
         hitbox: /hitbox\.tv\/([^\/]+)/i
     },
     services: {},
@@ -127,6 +130,32 @@ var options = {
             gc();
         });
     }).then(function() {
+        // todo: rm after update
+        var origProcessUpdate = TelegramBotApi.prototype._processUpdate;
+        TelegramBotApi.prototype.answerCallbackQuery = function (queryId, text, options) {
+            var form = options || {};
+            form.callback_query_id = queryId;
+            return this._request('answerCallbackQuery', {form: form});
+        };
+        TelegramBotApi.prototype.editMessageReplyMarkup = function (chatId, options) {
+            var form = options || {};
+            form.chat_id = chatId;
+            return this._request('editMessageReplyMarkup', {form: form});
+        };
+        TelegramBotApi.prototype.editMessageText = function (chatId, text, options) {
+            var form = options || {};
+            form.chat_id = chatId;
+            form.text = text;
+            return this._request('editMessageText', {form: form});
+        };
+        TelegramBotApi.prototype._processUpdate = function (update) {
+            var callbackQuery = update.callback_query;
+            if (callbackQuery) {
+                this.emit('callback_query', callbackQuery);
+            }
+            origProcessUpdate.call(this, update);
+        };
+        
         /**
          * @type {{
          * sendMessage: function,
@@ -142,9 +171,14 @@ var options = {
             }
         });
 
-        options.bot.sendMessage = base.quoteWrapper(options.bot.sendMessage.bind(options.bot));
-        options.bot.sendPhoto = base.quoteWrapper(options.bot.sendPhoto.bind(options.bot));
-        options.bot.sendChatAction = base.quoteWrapper(options.bot.sendChatAction.bind(options.bot));
+        var quote = new base.Quote(30);
+
+        options.bot.sendMessage = quote.wrapper(options.bot.sendMessage.bind(options.bot));
+        options.bot.sendPhoto = quote.wrapper(options.bot.sendPhoto.bind(options.bot));
+        options.bot.sendChatAction = quote.wrapper(options.bot.sendChatAction.bind(options.bot));
+        options.bot.editMessageText = quote.wrapper(options.bot.editMessageText.bind(options.bot));
+        options.bot.editMessageReplyMarkup = quote.wrapper(options.bot.editMessageReplyMarkup.bind(options.bot));
+        options.bot.answerCallbackQuery = quote.wrapper(options.bot.answerCallbackQuery.bind(options.bot));
     }).then(function() {
         options.tracker = new Tracker(options);
     }).then(function() {

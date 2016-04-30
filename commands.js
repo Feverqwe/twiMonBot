@@ -5,6 +5,41 @@ var Promise = require('bluebird');
 var debug = require('debug')('commands');
 var base = require('./base');
 
+var menuBtnList = function () {
+    return [
+        [
+            {
+                text: 'Online',
+                callback_data: '/online'
+            },
+            {
+                text: 'Show the channel list',
+                callback_data: '/list'
+            }
+        ],
+        [
+            {
+                text: 'Add channel',
+                callback_data: '/add'
+            },
+            {
+                text: 'Delete channel',
+                callback_data: '/delete'
+            }
+        ],
+        [
+            {
+                text: 'Top 10',
+                callback_data: '/top'
+            },
+            {
+                text: 'How long will it works',
+                callback_data: '/liveTime'
+            }
+        ]
+    ];
+};
+
 var commands = {
     ping: function (msg) {
         "use strict";
@@ -18,14 +53,49 @@ var commands = {
         var _this = this;
         var chatId = msg.chat.id;
 
-        return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.help);
+        return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.help, {
+            reply_markup: JSON.stringify({
+                inline_keyboard: menuBtnList()
+            })
+        });
+    },
+    startGroup: function (msg) {
+        "use strict";
+        var _this = this;
+        var chatId = msg.chat.id;
+
+        return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.helpGroup);
     },
     help: function (msg) {
         "use strict";
         var _this = this;
         var chatId = msg.chat.id;
 
-        return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.help + _this.gOptions.language.rateMe);
+        var text = _this.gOptions.language.help;
+        if (base.getRandomInt(0, 100) < 30) {
+            text += _this.gOptions.language.rateMe;
+        }
+
+        return _this.gOptions.bot.sendMessage(chatId, text, {
+            disable_web_page_preview: true,
+            reply_markup: JSON.stringify({
+                inline_keyboard: menuBtnList()
+            })
+        });
+    },
+    helpGroup: function (msg) {
+        "use strict";
+        var _this = this;
+        var chatId = msg.chat.id;
+
+        var text = _this.gOptions.language.helpGroup;
+        if (base.getRandomInt(0, 100) < 30) {
+            text += _this.gOptions.language.rateMe;
+        }
+
+        return _this.gOptions.bot.sendMessage(chatId, text, {
+            disable_web_page_preview: true
+        });
     },
     a: function (msg, channelName, service) {
         "use strict";
@@ -192,7 +262,7 @@ var commands = {
             return _this.onMessagePromise(msg);
         }
     },
-    d: function (msg, channelName, service) {
+    dGroup: function (msg, channelName, service) {
         "use strict";
         var _this = this;
         var chatId = msg.chat.id;
@@ -230,7 +300,88 @@ var commands = {
             );
         });
     },
+    d: function (callbackQuery, channelName, service) {
+        "use strict";
+        var _this = this;
+        var msg = callbackQuery.message;
+        var chatId = msg.chat.id;
+        var chatList = _this.gOptions.storage.chatList;
+        var chatItem = chatList[chatId];
+
+        var channelList = chatItem && chatItem.serviceList && chatItem.serviceList[service];
+
+        if (!channelList) {
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList, _this.templates.hideKeyboard);
+        }
+
+        var pos = channelList.indexOf(channelName);
+        if (pos === -1) {
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.channelDontExist, _this.templates.hideKeyboard);
+        }
+
+        channelList.splice(pos, 1);
+
+        if (channelList.length === 0) {
+            delete chatItem.serviceList[service];
+
+            if (Object.keys(chatItem.serviceList).length === 0) {
+                delete chatList[chatId];
+            }
+        }
+
+        return base.storage.set({chatList: chatList}).then(function () {
+            return _this.gOptions.bot.editMessageText(
+                chatId,
+                _this.gOptions.language.channelDeleted
+                    .replace('{channelName}', channelName)
+                    .replace('{serviceName}', _this.gOptions.serviceToTitle[service]),
+                {
+                    message_id: msg.message_id
+                }
+            );
+        });
+    },
     delete: function (msg) {
+        "use strict";
+        var _this = this;
+        var chatId = msg.chat.id;
+        var chatItem = _this.gOptions.storage.chatList[chatId];
+
+        if (!chatItem) {
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList, _this.templates.hideKeyboard);
+        }
+
+        var msgText = _this.gOptions.language.selectDelChannel;
+
+        var btnList = [];
+
+        Object.keys(chatItem.serviceList).forEach(function (service) {
+            var channelList = chatItem.serviceList[service];
+            channelList.forEach(function(channelName) {
+                var btnItem = {};
+
+                var title = base.getChannelTitle(_this.gOptions, service, channelName);
+                title += ' (' + _this.gOptions.serviceToTitle[service] + ')';
+                btnItem.text = title;
+
+                btnItem.callback_data = '/d "' + channelName + '" "' + service + '"';
+
+                btnList.push([btnItem]);
+            });
+        });
+
+        btnList.push([{
+            text: 'Cancel',
+            callback_data: '/c "delete"'
+        }]);
+
+        return _this.gOptions.bot.sendMessage(chatId, msgText, {
+            reply_markup: JSON.stringify({
+                inline_keyboard: btnList
+            })
+        });
+    },
+    deleteGroup: function (msg) {
         "use strict";
         var _this = this;
         var chatId = msg.chat.id;
@@ -308,6 +459,20 @@ var commands = {
 
         return waitChannelName();
     },
+    c: function (callbackQuery, command) {
+        var _this = this;
+        var msg = callbackQuery.message;
+        var chatId = msg.chat.id;
+
+        return _this.gOptions.bot.editMessageText(
+            chatId,
+            _this.gOptions.language.commandCanceled
+                .replace('{command}', command || ''),
+            {
+                message_id: msg.message_id
+            }
+        );
+    },
     cancel: function (msg, arg1) {
         "use strict";
         var _this = this;
@@ -330,9 +495,56 @@ var commands = {
             return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
         }
 
-        return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.clearSure);
+        var btnList = [[{
+            text: 'Yes',
+            callback_data: '/clearyes'
+        }, {
+            text: 'No',
+            callback_data: '/c "clear"'
+        }]];
+
+        return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.clearSure, {
+            reply_markup: JSON.stringify({
+                inline_keyboard: btnList
+            })
+        });
     },
-    clearyes: function(msg) {
+    clearGroup: function (msg) {
+        "use strict";
+        var _this = this;
+        var chatId = msg.chat.id;
+        var chatItem = _this.gOptions.storage.chatList[chatId];
+
+        if (!chatItem) {
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
+        }
+
+        return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.clearSureGroup);
+    },
+    clearyes: function(callbackQuery) {
+        "use strict";
+        var _this = this;
+        var msg = callbackQuery.message;
+        var chatId = msg.chat.id;
+        var chatItem = _this.gOptions.storage.chatList[chatId];
+
+        if (!chatItem) {
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
+        }
+
+        delete _this.gOptions.storage.chatList[chatId];
+
+        return base.storage.set({chatList: _this.gOptions.storage.chatList}).then(function () {
+            return _this.gOptions.bot.editMessageText(
+                chatId,
+                _this.gOptions.language.cleared,
+                {
+                    message_id: msg.message_id
+                }
+            );
+        });
+    },
+    clearyesGroup: function(msg) {
         "use strict";
         var _this = this;
         var chatId = msg.chat.id;

@@ -27,7 +27,8 @@ var Chat = function(options) {
 
 Chat.prototype.bindBot = function() {
     "use strict";
-    this.gOptions.bot.on('message', this.onMessage.bind(this))
+    this.gOptions.bot.on('message', this.onMessage.bind(this));
+    this.gOptions.bot.on('callback_query', this.onCallbackQuery.bind(this));
 };
 
 Chat.prototype.templates = {
@@ -55,11 +56,15 @@ Chat.prototype.getServiceListKeyboard = function() {
     return btnList;
 };
 
-Chat.prototype.checkArgs = function(msg, args) {
+Chat.prototype.checkArgs = function(msg, args, isCallbackQuery) {
     "use strict";
     var bot = this.gOptions.bot;
     var language = this.gOptions.language;
     var serviceList = this.gOptions.serviceList;
+
+    if (isCallbackQuery) {
+        msg = msg.message;
+    }
 
     var chatId = msg.chat.id;
 
@@ -160,6 +165,70 @@ Chat.prototype.chatMigrate = function(oldChatId, newChatId) {
     base.storage.set({chatList: chatList});
 };
 
+Chat.prototype.callbackQueryToMsg = function (callbackQuery) {
+    var msg = JSON.parse(JSON.stringify(callbackQuery.message));
+    msg.from = callbackQuery.from;
+    msg.text = callbackQuery.data;
+    return msg;
+};
+
+Chat.prototype.onCallbackQuery = function (callbackQuery) {
+    "use strict";
+    var _this = this;
+    this.gOptions.bot.answerCallbackQuery(callbackQuery.id, '...');
+
+    var data = callbackQuery.data;
+
+    if (!data) {
+        debug('Callback query data is empty! %j', callbackQuery);
+        return;
+    }
+
+    if (data[0] !== '/') {
+        debug('Callback query data is not command! %s', data);
+        return;
+    }
+
+    data = data.substr(1);
+
+    var args = this.msgParser(data);
+
+    if (args.length === 0) {
+        debug('Callback query args is empty! %s', data);
+        return;
+    }
+
+    var action = args.shift().toLowerCase();
+
+    if (['online', 'list', 'add', 'delete', 'top', 'livetime', 'clear'].indexOf(action) !== -1) {
+        return this.onMessage(this.callbackQueryToMsg(callbackQuery));
+    }
+
+    var commandFunc = commands[action];
+
+    if (!commandFunc) {
+        debug('Command "%s" is not found!', action);
+        return;
+    }
+
+    if (['d'].indexOf(action) !== -1) {
+        args = this.checkArgs(callbackQuery, args, true);
+        if (!args) {
+            return;
+        }
+    }
+
+    args.unshift(callbackQuery);
+
+    var origMsg = this.callbackQueryToMsg(callbackQuery);
+
+    return commandFunc.apply(this, args).catch(function(err) {
+        debug('Execute callback query command "%s" error! %s', action, err);
+    }).finally(function() {
+        _this.track(origMsg, action)
+    });
+};
+
 Chat.prototype.onMessage = function(msg) {
     "use strict";
     var _this = this;
@@ -207,12 +276,18 @@ Chat.prototype.onMessage = function(msg) {
     var args = this.msgParser(text);
 
     if (args.length === 0) {
-        debug('Args is empty! %s', text);
+        debug('Msg args is empty! %s', text);
         return;
     }
 
     var action = args.shift().toLowerCase();
+    
     var commandFunc = commands[action];
+
+    var groupCommandFunc = commands[action + 'Group'];
+    if (chatId < 0 && groupCommandFunc) {
+        commandFunc = groupCommandFunc;
+    }
 
     if (!commandFunc) {
         debug('Command "%s" is not found!', action);

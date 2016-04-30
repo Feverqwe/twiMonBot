@@ -2,6 +2,7 @@
  * Created by Anton on 06.12.2015.
  */
 var debug = require('debug')('hitbox');
+var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = Promise.promisify(request);
@@ -74,27 +75,48 @@ Hitbox.prototype.apiNormalization = function(data) {
 Hitbox.prototype.getStreamList = function(channelList) {
     "use strict";
     var _this = this;
-    return Promise.resolve().then(function() {
-        if (!channelList.length) {
-            return [];
-        }
 
-        var channels = channelList.map(function(item) {
+    var videoList = [];
+
+    var promiseList = base.arrToParts(channelList, 100).map(function (arr) {
+        var channels = arr.map(function(item) {
             return encodeURIComponent(item);
         }).join(',');
 
-        return requestPromise({
-            method: 'GET',
-            url: 'https://api.hitbox.tv/media/live/' + channels,
-            qs: {
-                showHidden: 'true'
-            },
-            json: true,
-            forever: true
-        }).then(function(response) {
-            response = response.body;
-            return _this.apiNormalization(response);
-        });
+        var retryLimit = 5;
+        var getList = function () {
+            return requestPromise({
+                method: 'GET',
+                url: 'https://api.hitbox.tv/media/live/' + channels,
+                qs: {
+                    showHidden: 'true'
+                },
+                json: true,
+                forever: true
+            }).then(function (response) {
+                response = response.body;
+                var list = _this.apiNormalization(response);
+                videoList.push.apply(videoList, list);
+            }).catch(function (err) {
+                retryLimit--;
+                if (retryLimit < 0) {
+                    debug("Request stream list error! %s", err);
+                    return;
+                }
+
+                return new Promise(function (resolve) {
+                    return setTimeout(resolve, 5 * 1000);
+                }).then(function () {
+                    debug("Retry request stream list %s! %s", retryLimit, err);
+                    return getList();
+                });
+            });
+        };
+        return getList();
+    });
+
+    return Promise.all(promiseList).then(function () {
+        return videoList;
     });
 };
 

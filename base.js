@@ -344,73 +344,94 @@ module.exports.getChannelUrl = function(service, channelName) {
     return url;
 };
 
-var getTime = function() {
+/**
+ * @param {number} callPerSecond
+ * @constructor
+ */
+module.exports.Quote = function (callPerSecond) {
     "use strict";
-    return parseInt(Date.now() / 1000);
-};
+    var getTime = function() {
+        return parseInt(Date.now() / 1000);
+    };
 
-var sendTime = {};
-var cbQuote = [];
+    var sendTime = {};
+    var cbQuote = [];
 
-var nextQuoteItem = function () {
-    "use strict";
-    var promiseList = cbQuote.slice(0, 30).map(function(item, index) {
-        cbQuote[index] = null;
-        return Promise.try(function() {
-            var cb = item[0];
-            var args = item[1];
-            var resolve = item[2];
-            var reject = item[3];
-
+    var next = function () {
+        var promiseList = cbQuote.slice(0, callPerSecond).map(function(item, index) {
+            cbQuote[index] = null;
             return Promise.try(function() {
-                return cb.apply(null, args);
-            }).then(resolve).catch(reject);
+                var cb = item[0];
+                var args = item[1];
+                var resolve = item[2];
+                var reject = item[3];
+
+                return Promise.try(function() {
+                    return cb.apply(null, args);
+                }).then(resolve).catch(reject);
+            });
         });
-    });
 
-    var count = promiseList.length;
+        var count = promiseList.length;
 
-    var now = getTime();
-    if (!sendTime[now]) {
-        for (var key in sendTime) {
-            delete sendTime[key];
-        }
-        sendTime[now] = 0;
-    }
-    sendTime[now] += count;
-
-    Promise.all(promiseList).then(function() {
         var now = getTime();
-        if (!sendTime[now] || sendTime[now] < 30) {
-            return;
+        if (!sendTime[now]) {
+            for (var key in sendTime) {
+                delete sendTime[key];
+            }
+            sendTime[now] = 0;
         }
+        sendTime[now] += count;
 
-        return new Promise(function(resolve) {
-            setTimeout(resolve, 1000);
-        });
-    }).then(function() {
-        cbQuote.splice(0, count);
-        if (cbQuote.length) {
-            nextQuoteItem();
-        }
-    });
-};
-
-module.exports.quoteWrapper = function(cb) {
-    "use strict";
-    return function () {
-        var args = [];
-        for (var i = 0, len = arguments.length; i < len; i++) {
-            args.push(arguments[i]);
-        }
-
-        return new Promise(function(resolve, reject) {
-            cbQuote.push([cb, args, resolve, reject]);
-            if (cbQuote.length > 1) {
+        return Promise.all(promiseList).then(function() {
+            var now = getTime();
+            if (!sendTime[now] || sendTime[now] < callPerSecond) {
                 return;
             }
 
-            nextQuoteItem();
+            return new Promise(function(resolve) {
+                return setTimeout(resolve, 1000);
+            });
+        }).then(function() {
+            cbQuote.splice(0, count);
+            if (cbQuote.length) {
+                next();
+            }
         });
     };
+
+    /**
+     * @param {Function} cb
+     * @returns {Function}
+     */
+    this.wrapper = function(cb) {
+        return function () {
+            var args = [].slice.call(arguments);
+
+            return new Promise(function(resolve, reject) {
+                cbQuote.push([cb, args, resolve, reject]);
+
+                if (cbQuote.length > 1) {
+                    return;
+                }
+
+                next();
+            });
+        };
+    };
+};
+
+module.exports.getRandomInt = function (min, max) {
+    return Math.floor(Math.random() * (max - min)) + min;
+};
+
+module.exports.arrToParts = function (arr, quote) {
+    arr = arr.slice(0);
+
+    var arrList = [];
+    do {
+        arrList.push(arr.splice(0, quote));
+    } while (arr.length);
+
+    return arrList;
 };

@@ -7,6 +7,9 @@ var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = Promise.promisify(request);
 
+var apiQuote = new base.Quote(1000);
+requestPromise = apiQuote.wrapper(requestPromise.bind(requestPromise));
+
 Youtube = function(options) {
     "use strict";
     var _this = this;
@@ -227,68 +230,63 @@ Youtube.prototype.getChannelId = function(userId) {
 Youtube.prototype.getStreamList = function(userList) {
     "use strict";
     var _this = this;
-    return Promise.resolve().then(function() {
-        if (!userList.length) {
-            return [];
-        }
 
-        var streamList = [];
+    var streamList = [];
 
-        var requestList = userList.map(function(userId) {
-            return _this.getChannelId(userId).then(function(channelId) {
-                return requestPromise({
-                    method: 'GET',
-                    url: 'https://www.googleapis.com/youtube/v3/search',
-                    qs: {
-                        part: 'snippet',
-                        channelId: channelId,
-                        eventType: 'live',
-                        maxResults: 1,
-                        order: 'date',
-                        safeSearch: 'none',
-                        type: 'video',
-                        fields: 'items(id,snippet)',
-                        key: _this.config.token
-                    },
-                    json: true,
-                    forever: true
-                }).then(function(response) {
-                    response = response.body;
-                    if (!response.items) {
-                        debug('Stream list "%s" without item! %j', userId, response);
-                        return [];
+    var requestList = userList.map(function(userId) {
+        return _this.getChannelId(userId).then(function(channelId) {
+            return requestPromise({
+                method: 'GET',
+                url: 'https://www.googleapis.com/youtube/v3/search',
+                qs: {
+                    part: 'snippet',
+                    channelId: channelId,
+                    eventType: 'live',
+                    maxResults: 1,
+                    order: 'date',
+                    safeSearch: 'none',
+                    type: 'video',
+                    fields: 'items(id,snippet)',
+                    key: _this.config.token
+                },
+                json: true,
+                forever: true
+            }).then(function(response) {
+                response = response.body || {};
+                if (!response.items) {
+                    debug('Stream list "%s" without item! %j', userId, response);
+                    return [];
+                }
+
+                if (response.items.length === 0) {
+                    return [];
+                }
+
+                var videoId = null;
+                response.items.some(function(item) {
+                    if (item.id && (videoId = item.id.videoId)) {
+                        return true;
                     }
-
-                    if (response.items.length === 0) {
-                        return [];
-                    }
-
-                    var videoId = null;
-                    response.items.some(function(item) {
-                        if (item.id && (videoId = item.id.videoId)) {
-                            return true;
-                        }
-                    });
-
-                    if (!videoId) {
-                        debug('VideoId is not found! %j', response);
-                        return [];
-                    }
-
-                    return _this.getViewers(videoId).then(function(viewers) {
-                        return _this.apiNormalization(userId, response, viewers);
-                    }).then(function(stream) {
-                        streamList.push.apply(streamList, stream);
-                    });
                 });
-            }).catch(function(err) {
-                debug('Stream list item "%s" response error! %s', userId, err);
-            });
-        });
 
-        return Promise.all(requestList).then(function() {
-            return streamList;
+                if (!videoId) {
+                    debug('VideoId is not found! %j', response);
+                    return [];
+                }
+
+                return _this.getViewers(videoId).then(function(viewers) {
+                    return _this.apiNormalization(userId, response, viewers);
+                }).then(function(stream) {
+                    streamList.push.apply(streamList, stream);
+                });
+            });
+        }).catch(function(err) {
+            debug('Stream list item "%s" response error! %s', userId, err);
         });
+    });
+
+    return Promise.all(requestList).then(function() {
+        return streamList;
     });
 };
 

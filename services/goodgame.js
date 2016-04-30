@@ -2,6 +2,7 @@
  * Created by anton on 19.07.15.
  */
 var debug = require('debug')('goodgame');
+var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = Promise.promisify(request);
@@ -84,24 +85,44 @@ GoodGame.prototype.getStreamList = function (channelList) {
     "use strict";
     var _this = this;
 
-    return Promise.resolve().then(function () {
-        if (!channelList.length) {
-            return [];
-        }
+    var videoList = [];
 
-        return requestPromise({
-            method: 'GET',
-            url: 'http://goodgame.ru/api/getchannelstatus',
-            qs: {
-                fmt: 'json',
-                id: channelList.join(',')
-            },
-            json: true,
-            forever: true
-        }).then(function (response) {
-            response = response.body;
-            return _this.apiNormalization(response);
-        });
+    var promiseList = base.arrToParts(channelList, 100).map(function (arr) {
+        var retryLimit = 5;
+        var getList = function () {
+            return requestPromise({
+                method: 'GET',
+                url: 'http://goodgame.ru/api/getchannelstatus',
+                qs: {
+                    fmt: 'json',
+                    id: arr.join(',')
+                },
+                json: true,
+                forever: true
+            }).then(function(response) {
+                response = response.body;
+                var list = _this.apiNormalization(response);
+                videoList.push.apply(videoList, list);
+            }).catch(function (err) {
+                retryLimit--;
+                if (retryLimit < 0) {
+                    debug("Request stream list error! %s", err);
+                    return;
+                }
+
+                return new Promise(function(resolve) {
+                    return setTimeout(resolve, 5 * 1000);
+                }).then(function() {
+                    debug("Retry request stream list %s! %s", retryLimit, err);
+                    return getList();
+                });
+            });
+        };
+        return getList();
+    });
+
+    return Promise.all(promiseList).then(function () {
+        return videoList;
     });
 };
 

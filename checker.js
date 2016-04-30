@@ -457,53 +457,49 @@ Checker.prototype.updateList = function() {
 
     this.cleanStreamList(lastStreamList);
 
+    var queue = Promise.resolve();
+
     return base.storage.set({lastStreamList: lastStreamList}).then(function() {
         var serviceChannelList = _this.getChannelList();
         var services = _this.gOptions.services;
 
-        var promiseList = [];
-
-        for (var service in serviceChannelList) {
-            if (!serviceChannelList.hasOwnProperty(service)) {
-                continue;
+        Object.keys(serviceChannelList).forEach(function (service) {
+            var currentService = services[service];
+            if (!currentService) {
+                debug('Service "%s" is not found!', service);
+                return;
             }
-            (function(service){
-                var currentService = services[service];
-                if (!currentService) {
-                    debug('Service "%s" is not found!', service);
-                    return;
-                }
 
-                var channelList = serviceChannelList[service];
-                while (channelList.length) {
-                    var arr = channelList.splice(0, 100);
-                    (function(arr) {
-                        var streamListPromise = (function getStreamList(retry) {
-                            return currentService.getStreamList(arr).catch(function(err) {
-                                retry++;
-                                if (retry >= 5) {
-                                    debug("Request stream list %s error! %s", service, err);
-                                    return [];
-                                }
+            var channelList = serviceChannelList[service];
 
-                                return new Promise(function(resolve) {
-                                    setTimeout(resolve, 5 * 1000);
-                                }).then(function() {
-                                    debug("Retry %s request stream list %s! %s", retry, service, err);
-                                    return getStreamList(retry);
-                                });
-                            });
-                        })(0);
+            var retryLimit = 5;
+            var getVideoList = function () {
+                return currentService.getStreamList(channelList).catch(function(err) {
+                    retryLimit--;
+                    if (retryLimit < 0) {
+                        debug("Request stream list %s error! %s", service, err);
+                        return [];
+                    }
 
-                        promiseList.push(streamListPromise.then(function(streamList) {
-                            return onGetStreamList(streamList);
-                        }));
-                    })(arr);
-                }
-            })(service);
-        }
+                    return new Promise(function(resolve) {
+                        return setTimeout(resolve, 5 * 1000);
+                    }).then(function() {
+                        debug("Retry %s request stream list %s! %s", retryLimit, service, err);
+                        return getVideoList();
+                    });
+                });
+            };
 
-        return Promise.all(promiseList).then(function() {
+            queue = queue.finally(function() {
+                return getVideoList().then(function(videoList) {
+                    return onGetStreamList(videoList);
+                })
+            });
+
+            return queue;
+        });
+
+        return queue.then(function() {
             return base.storage.set({lastStreamList: lastStreamList});
         });
     });
