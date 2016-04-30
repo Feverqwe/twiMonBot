@@ -435,3 +435,7 @@ module.exports.arrToParts = function (arr, quote) {
 
     return arrList;
 };
+
+module.exports.getNow = function () {
+    return parseInt(Date.now() / 1000);
+};

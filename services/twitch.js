@@ -9,27 +9,78 @@ var requestPromise = Promise.promisify(request);
 
 var Twitch = function(options) {
     "use strict";
+    var _this = this;
     this.gOptions = options;
+    this.config = {};
+
+    this.onReady = base.storage.get(['twitchChannelInfo']).then(function(storage) {
+        _this.config.channelInfo = storage.twitchChannelInfo || {};
+    });
+};
+
+Twitch.prototype.saveChannelInfo = function () {
+    return base.storage.set({
+        twitchChannelInfo: this.config.channelInfo
+    });
+};
+
+Twitch.prototype.getChannelInfo = function (channelId) {
+    var obj = this.config.channelInfo[channelId];
+    if (!obj) {
+        obj = this.config.channelInfo[channelId] = {};
+    }
+    return obj;
+};
+
+Twitch.prototype.setChannelTitle = function (channelId, title) {
+    var info = this.getChannelInfo(channelId);
+    if (info.title !== title) {
+        info.title = title;
+        return this.saveChannelInfo();
+    }
+};
+
+Twitch.prototype.getChannelTitle = function (channelId) {
+    var info = this.getChannelInfo(channelId);
+    return info.title || channelId;
 };
 
 Twitch.prototype.apiNormalization = function(data) {
     "use strict";
-    if (!data || !Array.isArray(data.streams)) {
-        debug('Response is empty! %j', data);
-        throw 'Response is empty!';
+    var _this = this;
+    /**
+     * @type {Array}
+     */
+    var apiStreams = data && data.streams;
+    if (!Array.isArray(apiStreams)) {
+        debug('Invalid response! %j', data);
+        throw 'Invalid response!';
     }
 
-    var now = parseInt(Date.now() / 1000);
-    var streams = [];
-    for (var i = 0, origItem; origItem = data.streams[i]; i++) {
-        if (!origItem.channel || !origItem.channel.name) {
-            debug('Channel without name!');
-            continue;
+    var now = base.getNow();
+
+    var invalidArray = [];
+    var streamArray = [];
+    apiStreams.forEach(function (apiItem) {
+        if (!apiItem.channel || typeof apiItem.channel.name !== 'string') {
+            debug('Item without name! %j', apiItem);
+            return;
+        }
+
+        var channelId = apiItem.channel.name.toLowerCase();
+
+        if (
+            typeof apiItem._id !== 'number' ||
+            typeof apiItem.viewers !== 'number' ||
+            typeof apiItem.channel.url !== 'string'
+        ) {
+            return invalidArray.push(channelId);
         }
 
         var previewList = [];
-        origItem.preview && ['template', 'large', 'medium', 'small'].forEach(function(quality) {
-            var url = origItem.preview[quality];
+
+        apiItem.preview && ['template', 'large', 'medium', 'small'].forEach(function(quality) {
+            var url = apiItem.preview[quality];
             if (!url) {
                 return;
             }
@@ -40,6 +91,7 @@ Twitch.prototype.apiNormalization = function(data) {
 
             previewList.push(url);
         });
+
         previewList = previewList.map(function(url) {
             var sep = !/\?/.test(url) ? '?' : '&';
             return url + sep + '_=' + now;
@@ -53,30 +105,30 @@ Twitch.prototype.apiNormalization = function(data) {
             _service: 'twitch',
             _addItemTime: now,
             _createTime: now,
-            _id: origItem._id,
+            _id: apiItem._id,
             _isOffline: false,
-            _channelName: origItem.channel.name.toLowerCase(),
+            _channelName: channelId,
 
-            viewers: parseInt(origItem.viewers) || 0,
-            game: origItem.game,
+            viewers: apiItem.viewers,
+            game: apiItem.game || '',
             preview: previewList,
-            created_at: origItem.created_at,
             channel: {
-                display_name: origItem.channel.display_name,
-                name: origItem.channel.name,
-                status: origItem.channel.status,
-                logo: origItem.channel.logo,
-                url: origItem.channel.url
+                display_name: apiItem.channel.display_name || '',
+                name: apiItem.channel.name,
+                status: apiItem.channel.status || '',
+                url: apiItem.channel.url
             }
         };
 
-        if (!item.channel.url) {
-            item.channel.url = 'http://www.twitch.tv/' + item.channel.name;
-        }
+        _this.setChannelTitle(channelId, apiItem.channel.display_name);
 
-        streams.push(item);
-    }
-    return streams;
+        streamArray.push(item);
+    });
+
+    return {
+        invalidArray: invalidArray,
+        streamArray: streamArray
+    };
 };
 
 Twitch.prototype.getStreamList = function(channelList) {
@@ -102,8 +154,15 @@ Twitch.prototype.getStreamList = function(channelList) {
                 forever: true
             }).then(function(response) {
                 response = response.body;
-                var list = _this.apiNormalization(response);
-                videoList.push.apply(videoList, list);
+                var obj = _this.apiNormalization(response);
+
+                videoList.push.apply(videoList, obj.streamArray);
+
+                if (obj.invalidArray.length) {
+                    debug('Invalid array %j', obj.invalidArray);
+                    arr = obj.invalidArray;
+                    throw 'Invalid array!';
+                }
             }).catch(function (err) {
                 retryLimit--;
                 if (retryLimit < 0) {
@@ -129,6 +188,7 @@ Twitch.prototype.getStreamList = function(channelList) {
 
 Twitch.prototype.getChannelName = function(channelName) {
     "use strict";
+    var _this = this;
     return requestPromise({
         method: 'GET',
         url: 'https://api.twitch.tv/kraken/channels/' + encodeURIComponent(channelName),
@@ -140,12 +200,16 @@ Twitch.prototype.getChannelName = function(channelName) {
     }).then(function(response) {
         response = response.body;
 
-        if (!response || !response.name) {
+        var channelId = response && response.name && response.name.toLowerCase();
+
+        if (!channelId) {
             debug('Channel name "%s" is not exists! %j', channelName, response);
             throw 'Channel name is not exists!';
         }
 
-        return response.name.toLowerCase();
+        _this.setChannelTitle(channelId, response.display_name);
+
+        return channelId;
     });
 };
 
