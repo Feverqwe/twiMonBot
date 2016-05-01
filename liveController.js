@@ -24,7 +24,7 @@ var LiveController = function (options) {
             item._checkTime = item._addItemTime;
         }
         if (!/^[thgy]/.test(item._id)) {
-            item._id = item.channelId[0] + item._id;
+            item._id = item._service[0] + item._id;
         }
     });
 
