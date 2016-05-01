@@ -72,7 +72,9 @@ Twitch.prototype.apiNormalization = function(data) {
         if (
             typeof apiItem._id !== 'number' ||
             typeof apiItem.viewers !== 'number' ||
-            typeof apiItem.channel.url !== 'string'
+            typeof apiItem.channel.url !== 'string' ||
+            typeof apiItem.created_at !== 'string' ||
+            typeof apiItem.channel.status === 'undefined'
         ) {
             return invalidArray.push(channelId);
         }
@@ -110,12 +112,13 @@ Twitch.prototype.apiNormalization = function(data) {
             _channelName: channelId,
 
             viewers: apiItem.viewers,
-            game: apiItem.game || '',
+            game: apiItem.game,
             preview: previewList,
+            created_at: apiItem.created_at,
             channel: {
-                display_name: apiItem.channel.display_name || '',
+                display_name: apiItem.channel.display_name,
                 name: apiItem.channel.name,
-                status: apiItem.channel.status || '',
+                status: apiItem.channel.status,
                 url: apiItem.channel.url
             }
         };

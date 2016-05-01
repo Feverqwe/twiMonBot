@@ -55,7 +55,7 @@ Hitbox.prototype.apiNormalization = function(data) {
             _channelName: origItem.channel.user_name.toLowerCase(),
 
             viewers: parseInt(origItem.media_views) || 0,
-            game: '',
+            game: origItem.category_name,
             preview: previewList,
             created_at: origItem.media_live_since,
             channel: {
