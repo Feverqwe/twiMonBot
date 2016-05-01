@@ -181,14 +181,14 @@ GoodGame.prototype.requestChannelId = function (channelName) {
             }
         }
 
-        if (!item) {
+        if (!stream) {
             debug('Channel "%s" is not found! %j', channelName, response);
             throw 'Channel is not found!';
         }
 
-        var channelId = item.key.toLowerCase();
+        var channelId = stream.key.toLowerCase();
 
-        _this.setChannelTitle(channelId, item.key);
+        _this.setChannelTitle(channelId, stream.key);
 
         return channelId;
     });
