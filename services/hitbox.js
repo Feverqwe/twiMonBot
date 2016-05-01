@@ -48,24 +48,25 @@ Hitbox.prototype.getChannelTitle = function (channelId) {
 Hitbox.prototype.apiNormalization = function(data) {
     "use strict";
     var _this = this;
-    if (!data || !Array.isArray(data.livestream)) {
-        debug('Response is empty! %j', data);
-        throw 'Response is empty!';
+    var apiStreams = data && data.livestream;
+    if (!Array.isArray(apiStreams)) {
+        debug('Invalid response! %j', data);
+        throw 'Invalid response!';
     }
 
-    var now = parseInt(Date.now() / 1000);
-    var streams = [];
-    data.livestream.forEach(function(origItem) {
+    var now = base.getNow();
+    var streamArray = [];
+    apiStreams.forEach(function(origItem) {
         if (!origItem.channel || !origItem.channel.user_name) {
-            debug('Channel without name! %j', origItem);
+            debug('Item without name! %j', origItem);
             return;
         }
-
-        var channelId = origItem.channel.user_name.toLowerCase();
 
         if (origItem.media_is_live < 1) {
             return;
         }
+
+        var channelId = origItem.channel.user_name.toLowerCase();
 
         var previewList = [];
         if (origItem.media_thumbnail_large) {
@@ -77,7 +78,6 @@ Hitbox.prototype.apiNormalization = function(data) {
         previewList = previewList.map(function(path) {
             return 'http://edge.sf.hitbox.tv' + path;
         });
-
         if (previewList.length === 0) {
             previewList = null;
         }
@@ -104,10 +104,10 @@ Hitbox.prototype.apiNormalization = function(data) {
 
         _this.setChannelTitle(channelId, origItem.media_display_name);
 
-        streams.push(item);
+        streamArray.push(item);
     });
 
-    return streams;
+    return streamArray;
 };
 
 Hitbox.prototype.getStreamList = function(channelList) {

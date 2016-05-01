@@ -49,34 +49,28 @@ GoodGame.prototype.apiNormalization = function (data) {
     "use strict";
     var _this = this;
     if (!data || typeof data !== 'object') {
-        debug('Response is empty! %j', data);
-        throw 'Response is empty!';
+        debug('Invalid response! %j', data);
+        throw 'Invalid response!';
     }
 
-    var now = parseInt(Date.now() / 1000);
-    var streams = [];
-    for (var streamId in data) {
+    var now = base.getNow();
+    var streamArray = [];
+    Object.keys(data).forEach(function (key) {
         var origItem = data[streamId];
+
+        if (origItem.status !== 'Live') {
+            return;
+        }
 
         delete origItem.embed;
         delete origItem.description;
 
-        if (origItem.status !== 'Live') {
-            continue;
-        }
-
-        if (!origItem.key) {
-            debug('Channel without name! %j', origItem);
-            continue;
+        if (!origItem.key || !origItem.thumb) {
+            debug('Skip item! %j', origItem);
+            return;
         }
 
         var channelId = origItem.key.toLowerCase();
-
-        if (!origItem.thumb) {
-            // If don't exists preview, and Live - API bug, it Dead
-            debug('Channel thumb is not exists! %j', origItem);
-            continue;
-        }
 
         var previewList = [];
         if (origItem.thumb) {
@@ -87,7 +81,6 @@ GoodGame.prototype.apiNormalization = function (data) {
             var sep = !/\?/.test(url) ? '?' : '&';
             return url + sep + '_=' + now;
         });
-
         if (previewList.length === 0) {
             previewList = null;
         }
@@ -107,16 +100,15 @@ GoodGame.prototype.apiNormalization = function (data) {
             channel: {
                 name: origItem.key,
                 status: origItem.title,
-                logo: origItem.img,
                 url: origItem.url
             }
         };
 
         _this.setChannelTitle(channelId, origItem.key);
 
-        streams.push(item);
-    }
-    return streams;
+        streamArray.push(item);
+    });
+    return streamArray;
 };
 
 GoodGame.prototype.getStreamList = function (channelList) {
