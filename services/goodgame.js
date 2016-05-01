@@ -56,7 +56,7 @@ GoodGame.prototype.apiNormalization = function (data) {
     var now = base.getNow();
     var streamArray = [];
     Object.keys(data).forEach(function (key) {
-        var origItem = data[streamId];
+        var origItem = data[key];
 
         if (origItem.status !== 'Live') {
             return;
