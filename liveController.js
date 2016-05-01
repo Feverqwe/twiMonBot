@@ -14,7 +14,7 @@ var LiveController = function (options) {
 
     // todo: rm me!
     this.config.liveList.forEach(function (item) {
-        if (!item.channelId && item.channelName) {
+        if (!item.channelId && item._channelName) {
             item.channelId = item._channelName;
         }
         if (!item._insertTime && item._createTime) {

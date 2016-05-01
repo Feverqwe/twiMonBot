@@ -68,7 +68,7 @@ Youtube.prototype.apiNormalization = function(userId, data, viewers) {
         throw 'Response is empty!';
     }
 
-    var now = parseInt(Date.now() / 1000);
+    var now = base.getNow();
     var streams = [];
     data.items.forEach(function(origItem) {
         var snippet = origItem.snippet;
