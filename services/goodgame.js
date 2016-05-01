@@ -166,6 +166,7 @@ GoodGame.prototype.getStreamList = function (channelList) {
 
 GoodGame.prototype.requestChannelId = function (channelName) {
     "use strict";
+    var _this = this;
     return requestPromise({
         method: 'GET',
         url: 'http://goodgame.ru/api/getchannelstatus',
@@ -178,15 +179,26 @@ GoodGame.prototype.requestChannelId = function (channelName) {
     }).then(function (response) {
         response = response.body;
 
+        var stream = null;
+
         for (var key in response) {
             var item = response[key];
             if (item.key) {
-                return item.key.toLowerCase();
+                stream = item;
+                break;
             }
         }
 
-        debug('Channel "%s" is not found! %j', channelName, response);
-        throw 'Channel is not found!';
+        if (!item) {
+            debug('Channel "%s" is not found! %j', channelName, response);
+            throw 'Channel is not found!';
+        }
+
+        var channelId = item.key.toLowerCase();
+
+        _this.setChannelTitle(channelId, item.key);
+
+        return channelId;
     });
 };
 
