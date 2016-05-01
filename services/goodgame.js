@@ -126,7 +126,7 @@ GoodGame.prototype.getStreamList = function (channelList) {
     });
 };
 
-GoodGame.prototype.getChannelName = function (channelName) {
+GoodGame.prototype.requestChannelId = function (channelName) {
     "use strict";
     return requestPromise({
         method: 'GET',

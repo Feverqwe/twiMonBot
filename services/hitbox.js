@@ -158,7 +158,7 @@ Hitbox.prototype.getStreamList = function(channelList) {
     });
 };
 
-Hitbox.prototype.getChannelName = function(channelName) {
+Hitbox.prototype.requestChannelId = function(channelName) {
     "use strict";
     var _this = this;
     return requestPromise({

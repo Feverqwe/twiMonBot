@@ -290,7 +290,7 @@ Youtube.prototype.getStreamList = function(userList) {
     });
 };
 
-Youtube.prototype.getChannelName = function(userId) {
+Youtube.prototype.requestChannelId = function(userId) {
     "use strict";
     var _this = this;
 
