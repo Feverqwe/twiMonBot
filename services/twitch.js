@@ -189,12 +189,14 @@ Twitch.prototype.getStreamList = function(channelList) {
     });
 };
 
-Twitch.prototype.getChannelName = function(channelName) {
-    "use strict";
-    var _this = this;
+Twitch.prototype.requestChannelByName = function (channelName) {
     return requestPromise({
         method: 'GET',
-        url: 'https://api.twitch.tv/kraken/channels/' + encodeURIComponent(channelName),
+        url: 'https://api.twitch.tv/kraken/search/channels',
+        qs: {
+            q: channelName,
+            limit: 1
+        },
         headers: {
             'Accept': 'application/vnd.twitchtv.v3+json'
         },
@@ -203,11 +205,47 @@ Twitch.prototype.getChannelName = function(channelName) {
     }).then(function(response) {
         response = response.body;
 
-        var channelId = response && response.name && response.name.toLowerCase();
+        var firstChannel = response && response.channels && response.channels[0];
 
+        if (!firstChannel || !firstChannel.name) {
+            debug('Channel is not found by name! %j', response);
+            throw 'Channel is not found by name!';
+        }
+
+        return firstChannel;
+    });
+};
+
+Twitch.prototype.requestChannelInfo = function (channelId) {
+    return requestPromise({
+        method: 'GET',
+        url: 'https://api.twitch.tv/kraken/channels/' + encodeURIComponent(channelId),
+        headers: {
+            'Accept': 'application/vnd.twitchtv.v3+json'
+        },
+        json: true,
+        forever: true
+    }).then(function(response) {
+        response = response.body;
+
+        if (!response || !response.name) {
+            debug('Channel is not found by id! %j', response);
+            throw 'Channel is not found by id!';
+        }
+
+        return response;
+    });
+};
+
+Twitch.prototype.getChannelName = function(channelId) {
+    "use strict";
+    var _this = this;
+    return this.requestChannelInfo(channelId).catch(function () {
+        return _this.requestChannelByName(channelId);
+    }).then(function (response) {
+        var channelId = response && response.name && response.name.toLowerCase();
         if (!channelId) {
-            debug('Channel name "%s" is not exists! %j', channelName, response);
-            throw 'Channel name is not exists!';
+            throw 'Channel is not found!';
         }
 
         _this.setChannelTitle(channelId, response.display_name);
