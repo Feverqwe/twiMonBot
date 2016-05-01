@@ -70,7 +70,7 @@ Twitch.prototype.apiNormalization = function(data) {
         var channelId = apiItem.channel.name.toLowerCase();
 
         if (
-            typeof apiItem._id !== 'number' ||
+            !apiItem._id ||
             typeof apiItem.viewers !== 'number' ||
             typeof apiItem.channel.url !== 'string' ||
             typeof apiItem.created_at !== 'string' ||
@@ -105,11 +105,11 @@ Twitch.prototype.apiNormalization = function(data) {
 
         var item = {
             _service: 'twitch',
-            _addItemTime: now,
-            _createTime: now,
-            _id: apiItem._id,
+            _checkTime: now,
+            _insertTime: now,
+            _id: 't' + apiItem._id,
             _isOffline: false,
-            _channelName: channelId,
+            _channelId: channelId,
 
             viewers: apiItem.viewers,
             game: apiItem.game,

@@ -620,7 +620,7 @@ var commands = {
                     continue;
                 }
 
-                if (userChannelList.indexOf(stream._channelName) !== -1) {
+                if (userChannelList.indexOf(stream._channelId) !== -1) {
                     channelList.push(base.getStreamText(_this.gOptions, stream));
                 }
             }

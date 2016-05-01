@@ -31,6 +31,7 @@ var TelegramBotApi = require('node-telegram-bot-api');
 var EventEmitter = require('events').EventEmitter;
 var Daemon = require('./daemon');
 var Tracker = require('./tracker');
+var LiveController = require('./liveController');
 
 /**
  * @type {
@@ -183,6 +184,8 @@ var options = {
         options.tracker = new Tracker(options);
     }).then(function() {
         options.chat = new Chat(options);
+    }).then(function() {
+        options.liveController = new LiveController(options);
     }).then(function() {
         options.checker = new Checker(options);
     }).catch(function(err) {

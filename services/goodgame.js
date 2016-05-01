@@ -65,7 +65,7 @@ GoodGame.prototype.apiNormalization = function (data) {
         delete origItem.embed;
         delete origItem.description;
 
-        if (!origItem.key || !origItem.thumb) {
+        if (!origItem.key || !origItem.thumb || !origItem.stream_id) {
             debug('Skip item! %j', origItem);
             return;
         }
@@ -87,11 +87,11 @@ GoodGame.prototype.apiNormalization = function (data) {
 
         var item = {
             _service: 'goodgame',
-            _addItemTime: now,
-            _createTime: now,
-            _id: origItem.stream_id,
+            _checkTime: now,
+            _insertTime: now,
+            _id: 'g' + origItem.stream_id,
             _isOffline: false,
-            _channelName: channelId,
+            _channelId: channelId,
 
             viewers: parseInt(origItem.viewers) || 0,
             game: origItem.games,

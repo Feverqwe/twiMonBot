@@ -246,7 +246,7 @@ module.exports.getNowStreamText = function(gOptions, stream) {
  * _service,
  * preview,
  * _isOffline,
- * _channelName
+ * _channelId
  * }} stream
  * @returns {string}
  */

@@ -57,7 +57,7 @@ Hitbox.prototype.apiNormalization = function(data) {
     var now = base.getNow();
     var streamArray = [];
     apiStreams.forEach(function(origItem) {
-        if (!origItem.channel || !origItem.channel.user_name) {
+        if (!origItem.channel || !origItem.channel.user_name || !origItem.media_id) {
             debug('Item without name! %j', origItem);
             return;
         }
@@ -84,11 +84,11 @@ Hitbox.prototype.apiNormalization = function(data) {
 
         var item = {
             _service: 'hitbox',
-            _addItemTime: now,
-            _createTime: now,
-            _id: origItem.media_id,
+            _checkTime: now,
+            _insertTime: now,
+            _id: 'h' + origItem.media_id,
             _isOffline: false,
-            _channelName: channelId,
+            _channelId: channelId,
 
             viewers: parseInt(origItem.media_views) || 0,
             game: origItem.category_name,

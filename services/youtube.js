@@ -89,11 +89,11 @@ Youtube.prototype.apiNormalization = function(userId, data, viewers) {
 
         var item = {
             _service: 'youtube',
-            _addItemTime: now,
-            _createTime: now,
-            _id: videoId,
+            _checkTime: now,
+            _insertTime: now,
+            _id: 'y' + videoId,
             _isOffline: false,
-            _channelName: userId,
+            _channelId: userId,
 
             viewers: viewers || 0,
             game: '',

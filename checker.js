@@ -19,64 +19,10 @@ var Checker = function(options) {
             debug('updateList error! "%s"', err);
         });
     });
-};
 
-Checker.prototype.cleanStreamList = function(streamList) {
-    var rmList = [];
-    var now = parseInt(Date.now() / 1000);
-
-    for (var i = 0, item; item = streamList[i]; i++) {
-        if (now - item._addItemTime > this.gOptions.config.timeout && item._isOffline) {
-            rmList.push(item);
-            debugLog('[s]', 'R-', item._service, item._channelName, '#', item.channel.status, '#', item.game);
-        }
-        item._isOffline = true;
-    }
-
-    for (i = 0; item = rmList[i]; i++) {
-        streamList.splice(streamList.indexOf(item), 1);
-    }
-};
-
-Checker.prototype.isStatusChange = function(cItem, nItem) {
-    if (cItem.game !== nItem.game) {
-        return true;
-    }
-
-    if (cItem.channel.status !== nItem.channel.status) {
-        return true;
-    }
-
-    return false;
-};
-
-Checker.prototype.isEqualChannel = function(cItem, nItem) {
-    var a = cItem.channel;
-    var b = nItem.channel;
-    for (var key in a) {
-        if (a[key] !== b[key]) {
-            return false;
-        }
-    }
-    return true;
-};
-
-Checker.prototype.isNotDblItem = function(nItem) {
-    var now = parseInt(Date.now() / 1000);
-
-    var lastStreamList = this.gOptions.storage.lastStreamList;
-
-    for (var i = 0, cItem; cItem = lastStreamList[i]; i++) {
-        if (cItem._service !== nItem._service) {
-            continue;
-        }
-
-        if (now - cItem._addItemTime < this.gOptions.config.timeout && cItem.game === nItem.game && this.isEqualChannel(cItem, nItem)) {
-            return false;
-        }
-    }
-
-    return true;
+    options.events.on('notify', function(streamItem) {
+        _this.notify(streamItem);
+    });
 };
 
 Checker.prototype.getChannelList = function() {
@@ -181,7 +127,7 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
                     return new Promise(function(resolve) {
                         setTimeout(resolve, 5000);
                     }).then(function() {
-                        debug("Retry %s send photo file %s %s! %s", retry, chatId, stream._channelName, err);
+                        debug("Retry %s send photo file %s %s! %s", retry, chatId, stream._channelId, err);
                         return sendingPic(index, retry);
                     });
                 }
@@ -191,7 +137,7 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
         };
 
         var onRequestCatch = function(err) {
-            debug('Request photo error! %s %s %s %s', index, stream._channelName, previewUrl, err);
+            debug('Request photo error! %s %s %s %s', index, stream._channelId, previewUrl, err);
 
             index++;
             if (index >= previewList.length) {
@@ -216,7 +162,7 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
     };
 
     return sendingPic(0, 0).catch(function(err) {
-        debug('Send photo file error! %s %s %s', chatId, stream._channelName, err);
+        debug('Send photo file error! %s %s %s', chatId, stream._channelId, err);
 
         var isKicked = _this.onSendMsgError(err, chatId);
 
@@ -240,7 +186,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         }).then(function() {
             _this.track(chatId, stream, 'sendMsg');
         }).catch(function(err) {
-            debug('Send text msg error! %s %s %s', chatId, stream._channelName, err);
+            debug('Send text msg error! %s %s %s', chatId, stream._channelId, err);
 
             _this.onSendMsgError(err, chatId);
         });
@@ -252,7 +198,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         }).then(function() {
             _this.track(chatId, stream, 'sendPhoto');
         }).catch(function(err) {
-            debug('Send photo msg error! %s %s %s', chatId, stream._channelName, err);
+            debug('Send photo msg error! %s %s %s', chatId, stream._channelId, err);
 
             _this.onSendMsgError(err, chatId);
         });
@@ -305,7 +251,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
     });
 };
 
-Checker.prototype.onNewStream = function(stream) {
+Checker.prototype.notify = function(stream) {
     "use strict";
     var _this = this;
     var text = base.getNowStreamPhotoText(this.gOptions, stream);
@@ -315,20 +261,20 @@ Checker.prototype.onNewStream = function(stream) {
 
     var chatIdList = [];
 
-    for (var chatId in chatList) {
+    Object.keys(chatList).forEach(function (chatId) {
         var chatItem = chatList[chatId];
 
         var userChannelList = chatItem.serviceList && chatItem.serviceList[stream._service];
         if (!userChannelList) {
-            continue;
+            return;
         }
 
-        if (userChannelList.indexOf(stream._channelName) === -1) {
-            continue;
+        if (userChannelList.indexOf(stream._channelId) === -1) {
+            return;
         }
 
         chatIdList.push(chatItem.chatId);
-    }
+    });
 
     if (!chatIdList.length) {
         return;
@@ -337,137 +283,39 @@ Checker.prototype.onNewStream = function(stream) {
     return this.sendNotify(chatIdList, text, noPhotoText, stream);
 };
 
-Checker.prototype.notifyAll = function(streamList) {
-    "use strict";
-    var _this = this;
-
-    var promiseList = [];
-    streamList.forEach(function (stream) {
-        promiseList.push(_this.onNewStream(stream));
-    });
-
-    return Promise.all(promiseList);
-};
-
-Checker.prototype.cleanServices = function() {
+Checker.prototype.updateList = function() {
     "use strict";
     var _this = this;
     var serviceChannelList = _this.getChannelList();
     var services = _this.gOptions.services;
 
-    var promiseList = [];
+    var queue = Promise.resolve();
 
-    for (var service in serviceChannelList) {
-        if (!serviceChannelList.hasOwnProperty(service)) {
-            continue;
-        }
-
+    Object.keys(serviceChannelList).forEach(function (service) {
         var currentService = services[service];
         if (!currentService) {
             debug('Service "%s" is not found!', service);
-            continue;
+            return;
         }
 
         var channelList = serviceChannelList[service];
 
-        if (currentService.clean) {
-            promiseList.push(currentService.clean(channelList));
-        }
-    }
-
-    return Promise.all(promiseList);
-};
-
-Checker.prototype.updateList = function() {
-    "use strict";
-    var _this = this;
-    var lastStreamList = this.gOptions.storage.lastStreamList;
-    var notifyTimeout = _this.gOptions.config.notifyTimeout;
-
-    var onGetStreamList = function(streamList) {
-        var notifyList = [];
-        var now = parseInt(Date.now() / 1000);
-        streamList.forEach(function(item) {
-            var cItem = null;
-
-            lastStreamList.some(function(exItem, index) {
-                if (exItem._service === item._service && exItem._id === item._id) {
-                    cItem = exItem;
-                    lastStreamList.splice(index, 1);
-                    return true;
-                }
+        queue = queue.finally(function() {
+            return currentService.getStreamList(channelList).then(function(videoList) {
+                _this.gOptions.events.emit('updateLiveList', service, videoList, channelList);
             });
-
-            if (!cItem) {
-                if (item._isNotified = _this.isNotDblItem(item)) {
-                    notifyList.push(item);
-                    debugLog('[s]', 'Nn', item._service, item._channelName, '#', item.channel.status, '#', item.game);
-                } else {
-                    debugLog('[s]', 'D-', item._service, item._channelName, '#', item.channel.status, '#', item.game);
-                }
-            } else {
-                item._isNotified = cItem._isNotified;
-                item._notifyTimeout = cItem._notifyTimeout;
-                item._createTime = cItem._createTime;
-
-                if (item._isNotified && item._notifyTimeout < now) {
-                    item._isNotified = false;
-                    delete item._notifyTimeout;
-                }
-
-                if (!item._isNotified && _this.isStatusChange(cItem, item)) {
-                    item._isNotified = true;
-                    notifyList.push(item);
-                    debugLog('[s]', 'En', item._service, item._channelName, '#', item.channel.status, '#', item.game);
-                }
-            }
-
-            if (item._isNotified && !item._notifyTimeout) {
-                item._notifyTimeout = now + notifyTimeout * 60;
-            }
-
-            lastStreamList.push(item);
         });
 
-        return _this.notifyAll(notifyList);
-    };
-
-    this.cleanStreamList(lastStreamList);
-
-    var queue = Promise.resolve();
-
-    return base.storage.set({lastStreamList: lastStreamList}).then(function() {
-        var serviceChannelList = _this.getChannelList();
-        var services = _this.gOptions.services;
-
-        Object.keys(serviceChannelList).forEach(function (service) {
-            var currentService = services[service];
-            if (!currentService) {
-                debug('Service "%s" is not found!', service);
-                return;
-            }
-
-            var channelList = serviceChannelList[service];
-
-            queue = queue.finally(function() {
-                return currentService.getStreamList(channelList).then(function(videoList) {
-                    return onGetStreamList(videoList);
-                });
-            });
-
-            return queue;
-        });
-
-        return queue.then(function() {
-            return base.storage.set({lastStreamList: lastStreamList});
-        });
+        return queue;
     });
+
+    return queue;
 };
 
 Checker.prototype.track = function(chatId, stream, title) {
     "use strict";
     return this.gOptions.tracker.track({
-        text: stream._channelName,
+        text: stream._channelId,
         from: {
             id: 1
         },
