@@ -449,28 +449,10 @@ Checker.prototype.updateList = function() {
 
             var channelList = serviceChannelList[service];
 
-            var retryLimit = 5;
-            var getVideoList = function () {
-                return currentService.getStreamList(channelList).catch(function(err) {
-                    retryLimit--;
-                    if (retryLimit < 0) {
-                        debug("Request stream list %s error! %s", service, err);
-                        return [];
-                    }
-
-                    return new Promise(function(resolve) {
-                        return setTimeout(resolve, 5 * 1000);
-                    }).then(function() {
-                        debug("Retry %s request stream list %s! %s", retryLimit, service, err);
-                        return getVideoList();
-                    });
-                });
-            };
-
             queue = queue.finally(function() {
-                return getVideoList().then(function(videoList) {
+                return currentService.getStreamList(channelList).then(function(videoList) {
                     return onGetStreamList(videoList);
-                })
+                });
             });
 
             return queue;

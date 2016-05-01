@@ -237,7 +237,7 @@ Twitch.prototype.requestChannelInfo = function (channelId) {
     });
 };
 
-Twitch.prototype.requestChannelId = function(channelId) {
+Twitch.prototype.getChannelId = function(channelId) {
     "use strict";
     var _this = this;
     return this.requestChannelInfo(channelId).catch(function () {

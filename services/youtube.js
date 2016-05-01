@@ -187,7 +187,7 @@ Youtube.prototype.searchChannelIdByTitle = function(channelTitle) {
     });
 };
 
-Youtube.prototype.getChannelId = function(userId) {
+Youtube.prototype.searchChannelIdByUsername = function(userId) {
     "use strict";
     var _this = this;
     return Promise.resolve().then(function() {
@@ -234,7 +234,7 @@ Youtube.prototype.getStreamList = function(userList) {
     var streamList = [];
 
     var requestList = userList.map(function(userId) {
-        return _this.getChannelId(userId).then(function(channelId) {
+        return _this.searchChannelIdByUsername(userId).then(function(channelId) {
             return requestPromise({
                 method: 'GET',
                 url: 'https://www.googleapis.com/youtube/v3/search',
@@ -290,18 +290,18 @@ Youtube.prototype.getStreamList = function(userList) {
     });
 };
 
-Youtube.prototype.requestChannelId = function(userId) {
+Youtube.prototype.getChannelId = function(userId) {
     "use strict";
     var _this = this;
 
-    return _this.getChannelId(userId).catch(function(err) {
+    return _this.searchChannelIdByUsername(userId).catch(function(err) {
         if (err !== 'Channel ID is not found by userId!') {
             throw err;
         }
 
         return _this.searchChannelIdByTitle(userId).then(function(newUserId) {
             userId = newUserId;
-            return _this.getChannelId(userId);
+            return _this.searchChannelIdByUsername(userId);
         });
     }).then(function(channelId) {
         return requestPromise({
@@ -333,7 +333,7 @@ Youtube.prototype.requestChannelId = function(userId) {
 
                 var channelTitleLow = channelTitle.toLowerCase();
 
-                return _this.getChannelId(channelTitleLow).then(function(channelId) {
+                return _this.searchChannelIdByUsername(channelTitleLow).then(function(channelId) {
                     if (channelId === userId) {
                         userId = channelTitleLow;
                     }
