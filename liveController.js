@@ -192,11 +192,11 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             // set offline status
             item._isOffline = true;
             item._offlineStartTime = now;
-            debugLog('Offline  %j', item);
+            debugLog('Offline %j', item);
         } else
         if (now - item._offlineStartTime > timeout) {
             // if offline status > timeout - remove item
-            debugLog('Remove  %j', item);
+            debugLog('Remove %j', item);
             removeItemFromLiveList(item);
         }
     });
