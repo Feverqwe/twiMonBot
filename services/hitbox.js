@@ -9,11 +9,45 @@ var requestPromise = Promise.promisify(request);
 
 var Hitbox = function(options) {
     "use strict";
+    var _this = this;
     this.gOptions = options;
+    this.config = {};
+
+    this.onReady = base.storage.get(['hitboxChannelInfo']).then(function(storage) {
+        _this.config.channelInfo = storage.hitboxChannelInfo || {};
+    });
+};
+
+Hitbox.prototype.saveChannelInfo = function () {
+    return base.storage.set({
+        hitboxChannelInfo: this.config.channelInfo
+    });
+};
+
+Hitbox.prototype.getChannelInfo = function (channelId) {
+    var obj = this.config.channelInfo[channelId];
+    if (!obj) {
+        obj = this.config.channelInfo[channelId] = {};
+    }
+    return obj;
+};
+
+Hitbox.prototype.setChannelTitle = function (channelId, title) {
+    var info = this.getChannelInfo(channelId);
+    if (info.title !== title) {
+        info.title = title;
+        return this.saveChannelInfo();
+    }
+};
+
+Hitbox.prototype.getChannelTitle = function (channelId) {
+    var info = this.getChannelInfo(channelId);
+    return info.title || channelId;
 };
 
 Hitbox.prototype.apiNormalization = function(data) {
     "use strict";
+    var _this = this;
     if (!data || !Array.isArray(data.livestream)) {
         debug('Response is empty! %j', data);
         throw 'Response is empty!';
@@ -26,6 +60,8 @@ Hitbox.prototype.apiNormalization = function(data) {
             debug('Channel without name! %j', origItem);
             return;
         }
+
+        var channelId = origItem.channel.user_name.toLowerCase();
 
         if (origItem.media_is_live < 1) {
             return;
@@ -52,7 +88,7 @@ Hitbox.prototype.apiNormalization = function(data) {
             _createTime: now,
             _id: origItem.media_id,
             _isOffline: false,
-            _channelName: origItem.channel.user_name.toLowerCase(),
+            _channelName: channelId,
 
             viewers: parseInt(origItem.media_views) || 0,
             game: origItem.category_name,
@@ -65,6 +101,8 @@ Hitbox.prototype.apiNormalization = function(data) {
                 url: origItem.channel.channel_link
             }
         };
+
+        _this.setChannelTitle(channelId, origItem.media_display_name);
 
         streams.push(item);
     });
@@ -122,6 +160,7 @@ Hitbox.prototype.getStreamList = function(channelList) {
 
 Hitbox.prototype.getChannelName = function(channelName) {
     "use strict";
+    var _this = this;
     return requestPromise({
         method: 'GET',
         url: 'https://api.hitbox.tv/media/live/' + encodeURIComponent(channelName),
@@ -133,25 +172,30 @@ Hitbox.prototype.getChannelName = function(channelName) {
     }).then(function(response) {
         response = response.body;
 
-        if (!response || !Array.isArray(response.livestream)) {
+        var streamArray = response && response.livestream;
+        if (!Array.isArray(streamArray)) {
             debug('Request channelName "%s" is empty %j', channelName, response);
             throw 'Request channelName is empty!';
         }
 
-        var _channelName = null;
-        response.livestream.some(function(item) {
-            if (item.channel && (_channelName = item.channel.user_name)) {
-                _channelName = _channelName.toLowerCase();
+        var stream = null;
+        streamArray.some(function(item) {
+            if (item.channel && item.channel.user_name) {
+                stream = item;
                 return true;
             }
         });
 
-        if (!_channelName) {
-            debug('Channel name "%s" is not found!, %j', channelName, response);
-            throw 'Channel name is not found!';
+        var channelId = stream && stream.channel.user_name.toLowerCase();
+
+        if (!channelId) {
+            debug('Channel "%s" is not found!, %j', channelName, response);
+            throw 'Channel is not found!';
         }
 
-        return _channelName;
+        _this.setChannelTitle(channelId, stream.media_display_name);
+
+        return channelId;
     });
 };
 
