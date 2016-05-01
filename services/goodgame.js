@@ -9,11 +9,45 @@ var requestPromise = Promise.promisify(request);
 
 var GoodGame = function (options) {
     "use strict";
+    var _this = this;
     this.gOptions = options;
+    this.config = {};
+
+    this.onReady = base.storage.get(['ggChannelInfo']).then(function(storage) {
+        _this.config.channelInfo = storage.ggChannelInfo || {};
+    });
+};
+
+GoodGame.prototype.saveChannelInfo = function () {
+    return base.storage.set({
+        ggChannelInfo: this.config.channelInfo
+    });
+};
+
+GoodGame.prototype.getChannelInfo = function (channelId) {
+    var obj = this.config.channelInfo[channelId];
+    if (!obj) {
+        obj = this.config.channelInfo[channelId] = {};
+    }
+    return obj;
+};
+
+GoodGame.prototype.setChannelTitle = function (channelId, title) {
+    var info = this.getChannelInfo(channelId);
+    if (info.title !== title) {
+        info.title = title;
+        return this.saveChannelInfo();
+    }
+};
+
+GoodGame.prototype.getChannelTitle = function (channelId) {
+    var info = this.getChannelInfo(channelId);
+    return info.title || channelId;
 };
 
 GoodGame.prototype.apiNormalization = function (data) {
     "use strict";
+    var _this = this;
     if (!data || typeof data !== 'object') {
         debug('Response is empty! %j', data);
         throw 'Response is empty!';
@@ -35,6 +69,8 @@ GoodGame.prototype.apiNormalization = function (data) {
             debug('Channel without name! %j', origItem);
             continue;
         }
+
+        var channelId = origItem.key.toLowerCase();
 
         if (!origItem.thumb) {
             // If don't exists preview, and Live - API bug, it Dead
@@ -62,7 +98,7 @@ GoodGame.prototype.apiNormalization = function (data) {
             _createTime: now,
             _id: origItem.stream_id,
             _isOffline: false,
-            _channelName: origItem.key.toLowerCase(),
+            _channelName: channelId,
 
             viewers: parseInt(origItem.viewers) || 0,
             game: origItem.games,
@@ -75,6 +111,8 @@ GoodGame.prototype.apiNormalization = function (data) {
                 url: origItem.url
             }
         };
+
+        _this.setChannelTitle(channelId, origItem.key);
 
         streams.push(item);
     }
@@ -139,6 +177,7 @@ GoodGame.prototype.requestChannelId = function (channelName) {
         forever: true
     }).then(function (response) {
         response = response.body;
+
         for (var key in response) {
             var item = response[key];
             if (item.key) {
@@ -146,8 +185,8 @@ GoodGame.prototype.requestChannelId = function (channelName) {
             }
         }
 
-        debug('Channel name "%s" is not found! %j', channelName, response);
-        throw 'Channel name is not found!';
+        debug('Channel "%s" is not found! %j', channelName, response);
+        throw 'Channel is not found!';
     });
 };
 
