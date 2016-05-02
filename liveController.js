@@ -64,15 +64,14 @@ LiveController.prototype.updateObj = function (oldObj, newObj) {
         var oldValue = oldObj[key];
         var value = newObj[key];
 
-        if (typeof value === 'object') {
+        if (typeof value === 'object' && value && oldValue) {
             if (Array.isArray(value)) {
                 if (JSON.stringify(value) !== JSON.stringify(oldValue)) {
                     diff.push(key);
                     oldObj[key] = value;
                 }
-            } else
-            if (value && oldValue) {
-                return diff.push.apply(diff, _this.updateObj(oldValue, value));
+            } else {
+                diff.push.apply(diff, _this.updateObj(oldValue, value));
             }
         } else
         if (oldValue !== value) {
@@ -124,24 +123,30 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
     };
 
     newLiveList.forEach(function (item) {
+        var changes = null;
         var id = item._id;
         var oldItem = lastStreamIdObj[id];
         if (oldItem) {
             // stream exists, update info
             delete lastStreamIdObj[id];
+            // don't inherit insert time
+            delete item._insertTime;
             // rm photo cache
             delete oldItem._photoId;
-            var isOffline = oldItem._isOffline;
-            var changes = _this.updateObj(oldItem, item);
-            if (isOffline && !item._isOffline) {
+            changes = _this.updateObj(oldItem, item);
+
+            if (changes.indexOf('_isOffline') !== -1) {
                 debugLog('Online %s %j', item._channelId, item);
             }
+
             if (changes.indexOf('game') !== -1 || changes.indexOf('status') !== -1) {
                 // notify when status of game change
                 if (now - item._notifyTime > notifyTimeout) {
                     debugLog('Notify changes %s %j', item._channelId, item);
                     item._notifyTime = now;
                     _this.gOptions.events.emit('notify', item);
+                } else {
+                    debugLog('Changes %s %j', item._channelId, item);
                 }
             }
             return;
@@ -162,12 +167,17 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
         if (oldItem) {
             // stream is crash, found prev item update it
             delete lastStreamIdObj[dbId];
+            // don't inherit insert time
+            delete item._insertTime;
             // rm photo cache
             delete oldItem._photoId;
-            _this.updateObj(oldItem, item);
-            // inherit insert time from old item
-            item._insertTime = oldItem._insertTime;
-            debugLog('Dbl %s %j', item._channelId, item);
+            changes = _this.updateObj(oldItem, item);
+
+            if (changes.indexOf('_isOffline') !== -1) {
+                debugLog('Online dbl %s %j', item._channelId, item);
+            } else {
+                debugLog('Dbl %s %j', item._channelId, item);
+            }
             return;
         }
 
