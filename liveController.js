@@ -141,10 +141,10 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
 
             if (changes.indexOf('game') !== -1 || changes.indexOf('status') !== -1) {
                 // notify when status of game change
-                if (now - item._notifyTime > notifyTimeout) {
+                if (now - oldItem._notifyTime > notifyTimeout) {
                     debugLog('Notify changes %s %j', oldItem._channelId, oldItem);
-                    item._notifyTime = now;
-                    _this.gOptions.events.emit('notify', item);
+                    oldItem._notifyTime = now;
+                    _this.gOptions.events.emit('notify', oldItem);
                 } else {
                     debugLog('Changes %s %j', oldItem._channelId, oldItem);
                 }
