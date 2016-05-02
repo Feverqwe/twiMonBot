@@ -184,9 +184,6 @@ module.exports.getNowStreamPhotoText = function(gOptions, stream) {
     var line = [];
     if (stream._isOffline) {
         line.push(getOfflineIcon());
-    } else
-    if (stream.viewers || stream.viewers === 0) {
-        line.push(stream.viewers);
     }
     if (stream.channel.status) {
         line.push(status = stream.channel.status);
@@ -216,9 +213,6 @@ module.exports.getNowStreamText = function(gOptions, stream) {
     var line = [];
     if (stream._isOffline) {
         line.push(getOfflineIcon());
-    } else
-    if (stream.viewers || stream.viewers === 0) {
-        line.push(stream.viewers);
     }
     if (stream.channel.status) {
         line.push(this.htmlSanitize(status = stream.channel.status));
