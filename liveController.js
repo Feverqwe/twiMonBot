@@ -158,7 +158,7 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
         if (!channelStreamList) {
             // is new stream, notify
             liveList.push(item);
-            debugLog('Notify new %s %j', item._channelId, item);
+            debugLog('New (N) %s %j', item._channelId, item);
             item._notifyTime = now;
             return _this.gOptions.events.emit('notify', item);
         }
@@ -185,7 +185,7 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
 
         // more one stream from channelId
         liveList.push(item);
-        debugLog('Notify dbl %s %j', item._channelId, item);
+        debugLog('Dbl (N) %s %j', item._channelId, item);
         item._notifyTime = now;
         return _this.gOptions.events.emit('notify', item);
     });
