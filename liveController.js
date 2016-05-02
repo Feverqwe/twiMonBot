@@ -136,17 +136,17 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             changes = _this.updateObj(oldItem, item);
 
             if (changes.indexOf('_isOffline') !== -1) {
-                debugLog('Online %s %j', item._channelId, item);
+                debugLog('Online %s %j', oldItem._channelId, oldItem);
             }
 
             if (changes.indexOf('game') !== -1 || changes.indexOf('status') !== -1) {
                 // notify when status of game change
                 if (now - item._notifyTime > notifyTimeout) {
-                    debugLog('Notify changes %s %j', item._channelId, item);
+                    debugLog('Notify changes %s %j', oldItem._channelId, oldItem);
                     item._notifyTime = now;
                     _this.gOptions.events.emit('notify', item);
                 } else {
-                    debugLog('Changes %s %j', item._channelId, item);
+                    debugLog('Changes %s %j', oldItem._channelId, oldItem);
                 }
             }
             return;
@@ -174,9 +174,9 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             changes = _this.updateObj(oldItem, item);
 
             if (changes.indexOf('_isOffline') !== -1) {
-                debugLog('Online dbl %s %j', item._channelId, item);
+                debugLog('Online dbl %s %j', oldItem._channelId, oldItem);
             } else {
-                debugLog('Dbl %s %j', item._channelId, item);
+                debugLog('Dbl %s %j', oldItem._channelId, oldItem);
             }
             return;
         }
