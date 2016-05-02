@@ -171,6 +171,10 @@ module.exports.getDate = function() {
         + s;
 };
 
+var getOfflineIcon = function () {
+    return '🏁';
+};
+
 module.exports.getNowStreamPhotoText = function(gOptions, stream) {
     "use strict";
     var textArr = [];
@@ -179,7 +183,7 @@ module.exports.getNowStreamPhotoText = function(gOptions, stream) {
 
     var line = [];
     if (stream._isOffline) {
-        line.push('🔴');
+        line.push(getOfflineIcon());
     } else
     if (stream.viewers || stream.viewers === 0) {
         line.push(stream.viewers);
@@ -211,7 +215,7 @@ module.exports.getNowStreamText = function(gOptions, stream) {
 
     var line = [];
     if (stream._isOffline) {
-        line.push('🔴');
+        line.push(getOfflineIcon());
     } else
     if (stream.viewers || stream.viewers === 0) {
         line.push(stream.viewers);
@@ -271,7 +275,7 @@ module.exports.getStreamText = function(gOptions, stream) {
 
     var line = [];
     if (stream._isOffline) {
-        line.push('🔴');
+        line.push(getOfflineIcon());
     } else
     if (stream.viewers || stream.viewers === 0) {
         line.push(stream.viewers);
