@@ -149,6 +149,12 @@ var options = {
             form.text = text;
             return this._request('editMessageText', {form: form});
         };
+        TelegramBotApi.prototype.editMessageCaption = function (chatId, text, options) {
+            var form = options || {};
+            form.chat_id = chatId;
+            form.caption = text;
+            return this._request('editMessageCaption', {form: form});
+        };
         TelegramBotApi.prototype._processUpdate = function (update) {
             var callbackQuery = update.callback_query;
             if (callbackQuery) {
@@ -178,6 +184,7 @@ var options = {
         options.bot.sendPhoto = quote.wrapper(options.bot.sendPhoto.bind(options.bot));
         options.bot.sendChatAction = quote.wrapper(options.bot.sendChatAction.bind(options.bot));
         options.bot.editMessageText = quote.wrapper(options.bot.editMessageText.bind(options.bot));
+        options.bot.editMessageCaption = quote.wrapper(options.bot.editMessageCaption.bind(options.bot));
         options.bot.editMessageReplyMarkup = quote.wrapper(options.bot.editMessageReplyMarkup.bind(options.bot));
         options.bot.answerCallbackQuery = quote.wrapper(options.bot.answerCallbackQuery.bind(options.bot));
     }).then(function() {
