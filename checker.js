@@ -23,6 +23,10 @@ var Checker = function(options) {
     options.events.on('notify', function(streamItem) {
         _this.notify(streamItem);
     });
+
+    options.events.on('updateNotify', function(streamItem) {
+        _this.updateNotify(streamItem);
+    });
 };
 
 Checker.prototype.getChannelList = function() {
@@ -133,10 +137,6 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
                 return _this.gOptions.bot.sendPhoto(chatId, request, {
                     caption: text
                 });
-            }).then(function (msg) {
-                var fileId = msg.photo[0].file_id;
-
-                return fileId;
             }).catch(function(err) {
                 var imgProcessError = [
                     /IMAGE_PROCESS_FAILED/,
@@ -220,6 +220,39 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
     });
 };
 
+/**
+ * @param {Object} stream
+ * @param {Object} msg
+ * @param {number} msg.chatId
+ * @param {number} msg.id
+ */
+Checker.prototype.addMsgInStream = function (stream, msg) {
+    "use strict";
+    var msgArray = stream.msgArray;
+    if (!msgArray) {
+        msgArray = stream.msgArray = [];
+    }
+    msgArray.push(msg);
+
+    this.gOptions.events.emit('saveStreamList');
+};
+
+Checker.prototype.getMsgFromStream = function (stream) {
+    "use strict";
+    return stream.msgArray || [];
+};
+
+Checker.prototype.removeMsgFromStream = function (stream, msg) {
+    "use strict";
+    var msgArray = this.getMsgFromStream(stream);
+    var pos = msgArray.indexOf(msg);
+    if (pos !== -1) {
+        msgArray.splice(pos, 1);
+    }
+
+    this.gOptions.events.emit('saveStreamList');
+};
+
 Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, useCache) {
     "use strict";
     var _this = this;
@@ -229,7 +262,13 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         return bot.sendMessage(chatId, noPhotoText, {
             disable_web_page_preview: true,
             parse_mode: 'HTML'
-        }).then(function() {
+        }).then(function(msg) {
+            _this.addMsgInStream(stream, {
+                type: 'streamText',
+                chatId: chatId,
+                id: msg.message_id
+            });
+
             _this.track(chatId, stream, 'sendMsg');
         }).catch(function(err) {
             debug('Send text msg error! %s %s %s', chatId, stream._channelId, err);
@@ -241,7 +280,13 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
     var sendPic = function(chatId, fileId) {
         return bot.sendPhoto(chatId, fileId, {
             caption: text
-        }).then(function() {
+        }).then(function(msg) {
+            _this.addMsgInStream(stream, {
+                type: 'streamPhoto',
+                chatId: chatId,
+                id: msg.message_id
+            });
+
             _this.track(chatId, stream, 'sendPhoto');
         }).catch(function(err) {
             debug('Send photo msg error! %s %s %s', chatId, stream._channelId, err);
@@ -281,8 +326,14 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
 
         chatId = chatIdList.shift();
 
-        return _this.getPicId(chatId, text, stream).then(function(fileId) {
-            stream._photoId = fileId;
+        return _this.getPicId(chatId, text, stream).then(function(msg) {
+            _this.addMsgInStream(stream, {
+                type: 'streamPhoto',
+                chatId: chatId,
+                id: msg.message_id
+            });
+
+            stream._photoId = msg.photo[0].file_id;
 
             _this.track(chatId, stream, 'sendPhoto');
         }).catch(function(err) {
@@ -299,12 +350,8 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
     });
 };
 
-Checker.prototype.notify = function(stream) {
+Checker.prototype.getStreamChatIdList = function (stream) {
     "use strict";
-    var _this = this;
-    var text = base.getNowStreamPhotoText(this.gOptions, stream);
-    var noPhotoText = base.getNowStreamText(this.gOptions, stream);
-
     var chatList = this.gOptions.storage.chatList;
 
     var chatIdList = [];
@@ -323,6 +370,78 @@ Checker.prototype.notify = function(stream) {
 
         chatIdList.push(chatItem.chatId);
     });
+
+    return chatIdList;
+};
+
+Checker.prototype.updateMsg = function (msg, text, noPhotoText) {
+    "use strict";
+    var _this = this;
+    var sendPromise = null;
+    if (msg.type === 'streamPhoto') {
+        sendPromise = _this.gOptions.bot.editMessageCaption(
+            msg.chatId,
+            text,
+            {
+                message_id: msg.id
+            }
+        );
+    } else
+    if (msg.type === 'streamText') {
+        sendPromise = _this.gOptions.bot.editMessageText(
+            msg.chatId,
+            noPhotoText,
+            {
+                message_id: msg.id
+            }
+        );
+    }
+    return sendPromise;
+};
+
+Checker.prototype.updateNotify = function (stream) {
+    "use strict";
+    var _this = this;
+    var text = base.getNowStreamPhotoText(this.gOptions, stream);
+    var noPhotoText = base.getNowStreamText(this.gOptions, stream);
+    
+    var chatIdList = this.getStreamChatIdList(stream);
+
+    if (!chatIdList.length) {
+        return Promise.resolve();
+    }
+
+    var msgArray = this.getMsgFromStream(stream).slice(0);
+
+    var queue = Promise.resolve();
+
+    msgArray.forEach(function (msg) {
+        queue = queue.then(function () {
+            return _this.updateMsg(msg, text, noPhotoText).then(function () {
+                if (msg.type === 'streamPhoto') {
+                    _this.track(msg.chatId, stream, 'updatePhoto');
+                } else
+                if (msg.type === 'streamText') {
+                    _this.track(msg.chatId, stream, 'updateText');
+                }
+            }).catch(function (err) {
+                // todo: rm msg
+                // _this.removeMsgFromStream(stream, msg);
+                debug('Edit msg error %s', err);
+            });
+        });
+    });
+
+    return queue;
+};
+
+Checker.prototype.notify = function(stream) {
+    "use strict";
+    var _this = this;
+    var text = base.getNowStreamPhotoText(this.gOptions, stream);
+    var noPhotoText = base.getNowStreamText(this.gOptions, stream);
+
+    var chatIdList = this.getStreamChatIdList(stream);
 
     if (!chatIdList.length) {
         return Promise.resolve();

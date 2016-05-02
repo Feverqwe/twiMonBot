@@ -12,6 +12,8 @@ var LiveController = function (options) {
 
     this.config.liveList = this.gOptions.storage.lastStreamList;
 
+    this.saveStreamListThrottle = base.throttle(this.saveStreamList, 250, this);
+
     // todo: rm me!
     this.config.liveList.forEach(function (item) {
         if (!item.channelId && item._channelName) {
@@ -30,6 +32,10 @@ var LiveController = function (options) {
 
     options.events.on('updateLiveList', function(service, videoList, channelList) {
         _this.update(service, videoList, channelList);
+    });
+
+    options.events.on('saveStreamList', function () {
+        _this.saveStreamListThrottle();
     });
 };
 
@@ -141,13 +147,8 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
 
             if (changes.indexOf('game') !== -1 || changes.indexOf('status') !== -1) {
                 // notify when status of game change
-                if (now - oldItem._notifyTime > notifyTimeout) {
-                    debugLog('Notify changes %s %j', oldItem._channelId, oldItem);
-                    oldItem._notifyTime = now;
-                    _this.gOptions.events.emit('notify', oldItem);
-                } else {
-                    debugLog('Changes %s %j', oldItem._channelId, oldItem);
-                }
+                debugLog('Changes (U) %s %j', oldItem._channelId, oldItem);
+                _this.gOptions.events.emit('updateNotify', oldItem);
             }
             return;
         }
@@ -174,7 +175,8 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             changes = _this.updateObj(oldItem, item);
 
             if (changes.indexOf('_isOffline') !== -1) {
-                debugLog('Online dbl %s %j', oldItem._channelId, oldItem);
+                debugLog('Online dbl (U) %s %j', oldItem._channelId, oldItem);
+                _this.gOptions.events.emit('updateNotify', oldItem);
             } else {
                 debugLog('Dbl %s %j', oldItem._channelId, oldItem);
             }
@@ -206,7 +208,8 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             // set offline status
             item._isOffline = true;
             item._offlineStartTime = now;
-            debugLog('Offline %s %j', item._channelId, item);
+            debugLog('Offline (U) %s %j', item._channelId, item);
+            _this.gOptions.events.emit('updateNotify', item);
         } else
         if (now - item._offlineStartTime > timeout) {
             // if offline status > timeout - remove item
