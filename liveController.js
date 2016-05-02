@@ -142,9 +142,9 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             changes = _this.updateObj(oldItem, item);
 
             if (changes.indexOf('_isOffline') !== -1) {
-                debugLog('Online %s %j', oldItem._channelId, oldItem);
-            }
-
+                debugLog('Online (U) %s %j', oldItem._channelId, oldItem);
+                _this.gOptions.events.emit('updateNotify', oldItem);
+            } else
             if (changes.indexOf('game') !== -1 || changes.indexOf('status') !== -1) {
                 // notify when status of game change
                 debugLog('Changes (U) %s %j', oldItem._channelId, oldItem);
