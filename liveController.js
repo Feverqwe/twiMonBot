@@ -45,10 +45,13 @@ LiveController.prototype.saveStreamList = function () {
     });
 };
 
-LiveController.prototype.prepLiveListCache = function (liveList) {
+LiveController.prototype.prepLiveListCache = function (service, liveList) {
     var streamIdList = {};
     var channelsStreamList = {};
     liveList.forEach(function (item) {
+        if (item._service !== service) {
+            return;
+        }
         streamIdList[item._id] = item;
         var channelStreamList = channelsStreamList[item._channelId];
         if (!channelStreamList) {
@@ -117,7 +120,7 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
     var liveList = this.config.liveList;
     var now = base.getNow();
 
-    var cache = this.prepLiveListCache(liveList);
+    var cache = this.prepLiveListCache(service, liveList);
     var lastStreamIdObj = cache.streamIdList;
     var lastChannelStreamObj = cache.channelsStreamList;
 
