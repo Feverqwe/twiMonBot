@@ -40,10 +40,34 @@ var menuBtnList = function () {
     ];
 };
 
+var getOnlineChannelList = function (chatItem) {
+    var lastStreamList = this.gOptions.storage.lastStreamList;
+    var serviceList = {};
+    for (var service in chatItem.serviceList) {
+        var userChannelList = chatItem.serviceList[service];
+
+        var channelList = serviceList[service];
+        if (!channelList) {
+            channelList = serviceList[service] = {};
+        }
+
+        for (var i = 0, stream; stream = lastStreamList[i]; i++) {
+            if (stream._isOffline || stream._service !== service) {
+                continue;
+            }
+
+            if (userChannelList.indexOf(stream._channelId) !== -1) {
+                channelList[stream._channelId] = stream;
+            }
+        }
+    }
+    return serviceList;
+};
+
 var getOnline = function (chatItem) {
     "use strict";
     var _this = this;
-    var onLineList = [];
+    var onlineList = [];
     var lastStreamList = _this.gOptions.storage.lastStreamList;
 
     for (var service in chatItem.serviceList) {
@@ -52,7 +76,7 @@ var getOnline = function (chatItem) {
         var channelList = [];
 
         for (var i = 0, stream; stream = lastStreamList[i]; i++) {
-            if (stream._isOffline || stream._service !== service) {
+            if (stream._service !== service) {
                 continue;
             }
 
@@ -61,14 +85,14 @@ var getOnline = function (chatItem) {
             }
         }
 
-        channelList.length && onLineList.push(channelList.join('\n\n'));
+        channelList.length && onlineList.push(channelList.join('\n\n'));
     }
 
-    if (!onLineList.length) {
-        onLineList.unshift(_this.gOptions.language.offline);
+    if (!onlineList.length) {
+        onlineList.unshift(_this.gOptions.language.offline);
     }
 
-    return onLineList.join('\n\n');
+    return onlineList.join('\n\n');
 };
 
 var commands = {
@@ -134,21 +158,21 @@ var commands = {
         var chatId = msg.chat.id;
         var chatList = _this.gOptions.storage.chatList;
 
-        return _this.gOptions.services[service].getChannelId(channelName).then(function (channelName) {
+        return _this.gOptions.services[service].getChannelId(channelName).then(function (channelId) {
             var chatItem = chatList[chatId] = chatList[chatId] || {};
             chatItem.chatId = chatId;
 
             var serviceList = chatItem.serviceList = chatItem.serviceList || {};
             var channelList = serviceList[service] = serviceList[service] || [];
 
-            if (channelList.indexOf(channelName) !== -1) {
+            if (channelList.indexOf(channelId) !== -1) {
                 return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.channelExists, _this.templates.hideKeyboard);
             }
 
-            channelList.push(channelName);
+            channelList.push(channelId);
 
-            var title = base.getChannelTitle(_this.gOptions, service, channelName);
-            var url = base.getChannelUrl(service, channelName);
+            var title = base.getChannelTitle(_this.gOptions, service, channelId);
+            var url = base.getChannelUrl(service, channelId);
 
             var displayName = base.htmlSanitize('a', title, url);
 
@@ -163,7 +187,16 @@ var commands = {
                         parse_mode: 'HTML',
                         reply_markup: _this.templates.hideKeyboard.reply_markup
                     }
-                );
+                ).then(function () {
+                    var onlineServiceList = getOnlineChannelList.call(_this, chatItem);
+                    var channelList = onlineServiceList[service] || [];
+                    var stream = channelList[channelId];
+                    if (stream) {
+                        var text = base.getNowStreamPhotoText(_this.gOptions, stream);
+                        var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
+                        return _this.gOptions.checker.sendNotify([chatId], text, noPhotoText, stream, true);
+                    }
+                });
             });
         }).catch(function(err) {
             debug('Channel "%s" (%s) is not found! %s', channelName, service, err);
