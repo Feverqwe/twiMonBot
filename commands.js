@@ -40,6 +40,37 @@ var menuBtnList = function () {
     ];
 };
 
+var getOnline = function (chatItem) {
+    "use strict";
+    var _this = this;
+    var onLineList = [];
+    var lastStreamList = _this.gOptions.storage.lastStreamList;
+
+    for (var service in chatItem.serviceList) {
+        var userChannelList = chatItem.serviceList[service];
+
+        var channelList = [];
+
+        for (var i = 0, stream; stream = lastStreamList[i]; i++) {
+            if (stream._isOffline || stream._service !== service) {
+                continue;
+            }
+
+            if (userChannelList.indexOf(stream._channelId) !== -1) {
+                channelList.push(base.getStreamText(_this.gOptions, stream));
+            }
+        }
+
+        channelList.length && onLineList.push(channelList.join('\n\n'));
+    }
+
+    if (!onLineList.length) {
+        onLineList.unshift(_this.gOptions.language.offline);
+    }
+
+    return onLineList.join('\n\n');
+};
+
 var commands = {
     ping: function (msg) {
         "use strict";
@@ -597,6 +628,34 @@ var commands = {
             }
         );
     },
+    onlinecb: function (callbackQuery) {
+        var _this = this;
+        var msg = callbackQuery.message;
+        var chatId = msg.chat.id;
+        var chatItem = _this.gOptions.storage.chatList[chatId];
+
+        if (!chatItem) {
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
+        }
+
+        var text = getOnline.call(_this, chatItem);
+
+        var btnList = [];
+
+        btnList.push([{
+            text: 'Update',
+            callback_data: '/onlinecb'
+        }]);
+
+        return _this.gOptions.bot.editMessageText(chatId, text, {
+            message_id: msg.message_id,
+            disable_web_page_preview: true,
+            parse_mode: 'HTML',
+            reply_markup: JSON.stringify({
+                inline_keyboard: btnList
+            })
+        });
+    },
     online: function (msg) {
         "use strict";
         var _this = this;
@@ -607,32 +666,34 @@ var commands = {
             return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
         }
 
-        var onLineList = [];
-        var lastStreamList = _this.gOptions.storage.lastStreamList;
+        var text = getOnline.call(_this, chatItem);
 
-        for (var service in chatItem.serviceList) {
-            var userChannelList = chatItem.serviceList[service];
+        var btnList = [];
 
-            var channelList = [];
+        btnList.push([{
+            text: 'Update',
+            callback_data: '/onlinecb'
+        }]);
 
-            for (var i = 0, stream; stream = lastStreamList[i]; i++) {
-                if (stream._isOffline || stream._service !== service) {
-                    continue;
-                }
+        return _this.gOptions.bot.sendMessage(chatId, text, {
+            disable_web_page_preview: true,
+            parse_mode: 'HTML',
+            reply_markup: JSON.stringify({
+                inline_keyboard: btnList
+            })
+        });
+    },
+    onlineGroup: function (msg) {
+        "use strict";
+        var _this = this;
+        var chatId = msg.chat.id;
+        var chatItem = _this.gOptions.storage.chatList[chatId];
 
-                if (userChannelList.indexOf(stream._channelId) !== -1) {
-                    channelList.push(base.getStreamText(_this.gOptions, stream));
-                }
-            }
-
-            channelList.length && onLineList.push(channelList.join('\n\n'));
+        if (!chatItem) {
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
         }
 
-        if (!onLineList.length) {
-            onLineList.unshift(_this.gOptions.language.offline);
-        }
-
-        var text = onLineList.join('\n\n');
+        var text = getOnline.call(_this, chatItem);
 
         return _this.gOptions.bot.sendMessage(chatId, text, {
             disable_web_page_preview: true,
