@@ -325,7 +325,7 @@ Checker.prototype.notify = function(stream) {
     });
 
     if (!chatIdList.length) {
-        return;
+        return Promise.resolve();
     }
 
     return this.sendNotify(chatIdList, text, noPhotoText, stream);
