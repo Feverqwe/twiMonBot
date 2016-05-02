@@ -131,11 +131,15 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             delete lastStreamIdObj[id];
             // rm photo cache
             delete oldItem._photoId;
+            var isOffline = oldItem._isOffline;
             var changes = _this.updateObj(oldItem, item);
+            if (isOffline && !item._isOffline) {
+                debugLog('Online %s %j', item._channelId, item);
+            }
             if (changes.indexOf('game') !== -1 || changes.indexOf('status') !== -1) {
                 // notify when status of game change
                 if (now - item._notifyTime > notifyTimeout) {
-                    debugLog('Notify changes %j', item);
+                    debugLog('Notify changes %s %j', item._channelId, item);
                     item._notifyTime = now;
                     _this.gOptions.events.emit('notify', item);
                 }
@@ -148,7 +152,7 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
         if (!channelStreamList) {
             // is new stream, notify
             liveList.push(item);
-            debugLog('Notify new %j', item);
+            debugLog('Notify new %s %j', item._channelId, item);
             item._notifyTime = now;
             return _this.gOptions.events.emit('notify', item);
         }
@@ -163,13 +167,13 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             _this.updateObj(oldItem, item);
             // inherit insert time from old item
             item._insertTime = oldItem._insertTime;
-            debugLog('Dbl %j', item);
+            debugLog('Dbl %s %j', item._channelId, item);
             return;
         }
 
         // more one stream from channelId
         liveList.push(item);
-        debugLog('Notify dbl %j', item);
+        debugLog('Notify dbl %s %j', item._channelId, item);
         item._notifyTime = now;
         return _this.gOptions.events.emit('notify', item);
     });
@@ -182,7 +186,7 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
         if (channelList.indexOf(channelId) === -1) {
             if (now - item._checkTime > 3600) {
                 // if item don't check more 1h
-                debugLog('Remove unused item %j', item);
+                debugLog('Remove unused %s %j', item._channelId, item);
                 removeItemFromLiveList(item);
             }
             return;
@@ -192,11 +196,11 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             // set offline status
             item._isOffline = true;
             item._offlineStartTime = now;
-            debugLog('Offline %j', item);
+            debugLog('Offline %s %j', item._channelId, item);
         } else
         if (now - item._offlineStartTime > timeout) {
             // if offline status > timeout - remove item
-            debugLog('Remove %j', item);
+            debugLog('Remove %s %j', item._channelId, item);
             removeItemFromLiveList(item);
         }
     });
