@@ -144,7 +144,7 @@ var commands = {
             })
         });
     },
-    startGroup: function (msg) {
+    start__Group: function (msg) {
         "use strict";
         var _this = this;
         var chatId = msg.chat.id;
@@ -168,7 +168,7 @@ var commands = {
             })
         });
     },
-    helpGroup: function (msg) {
+    help__Group: function (msg) {
         "use strict";
         var _this = this;
         var chatId = msg.chat.id;
@@ -356,7 +356,7 @@ var commands = {
             return _this.onMessagePromise(msg);
         }
     },
-    dGroup: function (msg, channelName, service) {
+    d__Group: function (msg, channelName, service) {
         "use strict";
         var _this = this;
         var chatId = msg.chat.id;
@@ -394,7 +394,7 @@ var commands = {
             );
         });
     },
-    d: function (callbackQuery, channelName, service) {
+    d__Cb: function (callbackQuery, channelName, service) {
         "use strict";
         var _this = this;
         var msg = callbackQuery.message;
@@ -475,7 +475,7 @@ var commands = {
             })
         });
     },
-    deleteGroup: function (msg) {
+    delete__Group: function (msg) {
         "use strict";
         var _this = this;
         var chatId = msg.chat.id;
@@ -553,7 +553,7 @@ var commands = {
 
         return waitChannelName();
     },
-    c: function (callbackQuery, command) {
+    c__Cb: function (callbackQuery, command) {
         var _this = this;
         var msg = callbackQuery.message;
         var chatId = msg.chat.id;
@@ -603,7 +603,7 @@ var commands = {
             })
         });
     },
-    clearGroup: function (msg) {
+    clear__Group: function (msg) {
         "use strict";
         var _this = this;
         var chatId = msg.chat.id;
@@ -615,7 +615,7 @@ var commands = {
 
         return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.clearSureGroup);
     },
-    clearyes: function(callbackQuery) {
+    clearyes__Cb: function(callbackQuery) {
         "use strict";
         var _this = this;
         var msg = callbackQuery.message;
@@ -638,7 +638,7 @@ var commands = {
             );
         });
     },
-    clearyesGroup: function(msg) {
+    clearyes__Group: function(msg) {
         "use strict";
         var _this = this;
         var chatId = msg.chat.id;
@@ -772,7 +772,7 @@ var commands = {
             })
         });
     },
-    onlineGroup: function (msg) {
+    online__Group: function (msg) {
         "use strict";
         var _this = this;
         var chatId = msg.chat.id;
@@ -963,6 +963,6 @@ var commands = {
 };
 
 commands.stop = commands.clear;
-commands.stopGroup = commands.clearGroup;
+commands.stop__Group = commands.clear__Group;
 
 module.exports = commands;

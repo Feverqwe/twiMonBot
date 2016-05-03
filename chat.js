@@ -210,7 +210,7 @@ Chat.prototype.onCallbackQuery = function (callbackQuery) {
         return this.onMessage(this.callbackQueryToMsg(callbackQuery));
     }
 
-    var commandFunc = commands[action];
+    var commandFunc = commands[action + '__Cb'];
 
     if (!commandFunc) {
         debug('Command "%s" is not found!', action);
@@ -290,7 +290,7 @@ Chat.prototype.onMessage = function(msg) {
     
     var commandFunc = commands[action];
 
-    var groupCommandFunc = commands[action + 'Group'];
+    var groupCommandFunc = commands[action + '__Group'];
     if (chatId < 0 && groupCommandFunc) {
         commandFunc = groupCommandFunc;
     }
