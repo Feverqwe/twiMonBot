@@ -697,11 +697,6 @@ var commands = {
     watch: function (msg, channelId, service) {
         var _this = this;
         var chatId = msg.chat.id;
-        var chatItem = _this.gOptions.storage.chatList[chatId];
-
-        if (!chatItem) {
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
-        }
 
         var lastStreamList = this.gOptions.storage.lastStreamList;
         var streamList = [];
