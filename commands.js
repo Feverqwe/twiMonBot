@@ -56,8 +56,13 @@ var getOnlineChannelList = function (chatItem) {
                 continue;
             }
 
+            var streamList = channelList[stream._channelId];
+            if (!streamList) {
+                streamList = channelList[stream._channelId] = [];
+            }
+
             if (userChannelList.indexOf(stream._channelId) !== -1) {
-                channelList[stream._channelId] = stream;
+                streamList.push(stream);
             }
         }
     }
@@ -189,13 +194,13 @@ var commands = {
                     }
                 ).then(function () {
                     var onlineServiceList = getOnlineChannelList.call(_this, chatItem);
-                    var channelList = onlineServiceList[service] || [];
-                    var stream = channelList[channelId];
-                    if (stream) {
+                    var channelList = onlineServiceList[service] || {};
+                    var streamList = channelList[channelId] || [];
+                    streamList.forEach(function (stream) {
                         var text = base.getNowStreamPhotoText(_this.gOptions, stream);
                         var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
                         return _this.gOptions.checker.sendNotify([chatId], text, noPhotoText, stream, true);
-                    }
+                    });
                 });
             });
         }).catch(function(err) {
