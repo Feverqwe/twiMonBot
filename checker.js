@@ -413,26 +413,22 @@ Checker.prototype.updateNotify = function (stream) {
 
     var msgArray = this.getMsgFromStream(stream).slice(0);
 
-    var queue = Promise.resolve();
-
-    msgArray.forEach(function (msg) {
-        queue = queue.then(function () {
-            return _this.updateMsg(msg, text, noPhotoText).then(function () {
-                if (msg.type === 'streamPhoto') {
-                    _this.track(msg.chatId, stream, 'updatePhoto');
-                } else
-                if (msg.type === 'streamText') {
-                    _this.track(msg.chatId, stream, 'updateText');
-                }
-            }).catch(function (err) {
-                // todo: rm msg
-                // _this.removeMsgFromStream(stream, msg);
-                debug('Edit msg error %s', err);
-            });
+    var promiseArr = msgArray.map(function (msg) {
+        return _this.updateMsg(msg, text, noPhotoText).then(function () {
+            if (msg.type === 'streamPhoto') {
+                _this.track(msg.chatId, stream, 'updatePhoto');
+            } else
+            if (msg.type === 'streamText') {
+                _this.track(msg.chatId, stream, 'updateText');
+            }
+        }).catch(function (err) {
+            // todo: rm msg
+            // _this.removeMsgFromStream(stream, msg);
+            debug('Edit msg error %s', err);
         });
     });
 
-    return queue;
+    return Promise.all(promiseArr);
 };
 
 Checker.prototype.notify = function(stream) {
