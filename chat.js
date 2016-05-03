@@ -210,6 +210,11 @@ Chat.prototype.onCallbackQuery = function (callbackQuery) {
         return this.onMessage(this.callbackQueryToMsg(callbackQuery));
     }
 
+    // todo: rm me!
+    if (action === 'onlinecb') {
+        action = 'online_upd';
+    }
+
     var commandFunc = commands[action + '__Cb'];
 
     if (!commandFunc) {
