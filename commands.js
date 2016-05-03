@@ -112,13 +112,10 @@ var getWatchBtnList = function (chatItem) {
         Object.keys(channelList).forEach(function (channelId) {
             var title = base.getChannelTitle(_this.gOptions, service, channelId);
 
-            var streamList = channelList[channelId];
-            streamList.forEach(function (stream) {
-                btnList.push([{
-                    text: title,
-                    callback_data: '/watch ' + stream._id
-                }]);
-            });
+            btnList.push([{
+                text: title,
+                callback_data: '/watch ' + channelId + ' ' + service
+            }]);
         });
     });
 
@@ -691,7 +688,7 @@ var commands = {
             }
         );
     },
-    watch: function (msg, streamId) {
+    watch: function (msg, channelId, service) {
         var _this = this;
         var chatId = msg.chat.id;
         var chatItem = _this.gOptions.storage.chatList[chatId];
@@ -701,20 +698,23 @@ var commands = {
         }
 
         var lastStreamList = this.gOptions.storage.lastStreamList;
-        var stream = null;
-        lastStreamList.some(function (_stream) {
-            if (_stream._id === streamId) {
-                stream = _stream;
+        var streamList = [];
+        lastStreamList.forEach(function (stream) {
+            if (stream._channelId === channelId && stream._service === service) {
+                streamList.push(stream);
                 return true;
             }
         });
 
-        if (!stream) {
+        if (!streamList.length) {
             return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.streamIsNotFound);
         } else {
-            var text = base.getNowStreamPhotoText(_this.gOptions, stream);
-            var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
-            return _this.gOptions.checker.sendNotify([chatId], text, noPhotoText, stream, true);
+            var promiseList = streamList.map(function (stream) {
+                var text = base.getNowStreamPhotoText(_this.gOptions, stream);
+                var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
+                return _this.gOptions.checker.sendNotify([chatId], text, noPhotoText, stream, true);
+            });
+            return Promise.all(promiseList);
         }
     },
     online_upd__Cb: function (callbackQuery) {

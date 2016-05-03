@@ -300,7 +300,7 @@ module.exports.getStreamText = function(gOptions, stream, withWatch) {
         }
     }
     if (withWatch) {
-        line.push('/watch_' + stream._id);
+        line.push('/watch_' + stream._channelId + '_' + stream._service);
     }
     if (line.length) {
         textArr.push(line.join(', '));
