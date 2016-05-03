@@ -32,9 +32,11 @@
     "If your are sure, enter:",
     "/clearYes"
   ],
+  "streamIsNotFound": "Oops! Stream is not found!",
   "users": "Users: {count}",
   "channels": "Channels: {count}",
   "preview": "preview",
+  "refresh": "Refresh",
   "watchOn": "Watch {channelName} on {serviceName}",
   "online": "Online: {count}",
   "rateMe": [

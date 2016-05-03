@@ -107,6 +107,12 @@ Chat.prototype.msgParser = function(text) {
         var index = templateList.push(value);
         return '%'+index+'%'
     });
+
+    var watchRe = /^(watch)_/;
+    if (watchRe.test(text)) {
+        text = text.replace(watchRe, '$1 ');
+    }
+
     text.split(/\s+/).forEach(function(value) {
         if (!value) {
             return;
@@ -200,7 +206,7 @@ Chat.prototype.onCallbackQuery = function (callbackQuery) {
 
     var action = args.shift().toLowerCase();
 
-    if (['online', 'list', 'add', 'delete', 'top', 'livetime', 'clear'].indexOf(action) !== -1) {
+    if (['online', 'list', 'add', 'delete', 'top', 'livetime', 'clear', 'watch'].indexOf(action) !== -1) {
         return this.onMessage(this.callbackQueryToMsg(callbackQuery));
     }
 

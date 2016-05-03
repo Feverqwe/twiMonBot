@@ -252,6 +252,7 @@ module.exports.getNowStreamText = function(gOptions, stream) {
  * @param {Object} stream
  * @param {number} stream.viewers
  * @param {string} stream.game
+ * @param {string} stream._id
  * @param {string} stream._service
  * @param {string} stream._channelId
  * @param {Array} stream.preview
@@ -260,7 +261,7 @@ module.exports.getNowStreamText = function(gOptions, stream) {
  * @param {string} stream.channel.display_name
  * @returns {string}
  */
-module.exports.getStreamText = function(gOptions, stream) {
+module.exports.getStreamText = function(gOptions, stream, withWatch) {
     var textArr = [];
 
     textArr.push(this.htmlSanitize('b', stream.channel.display_name || stream.channel.name));
@@ -297,6 +298,9 @@ module.exports.getStreamText = function(gOptions, stream) {
         if (url) {
             line.push(this.htmlSanitize('a', gOptions.language.preview, url));
         }
+    }
+    if (withWatch) {
+        line.push('/watch_' + stream._id);
     }
     if (line.length) {
         textArr.push(line.join(', '));

@@ -72,7 +72,7 @@ var getOnlineChannelList = function (chatItem, skipOffline) {
     return serviceList;
 };
 
-var getOnlineText = function (chatItem) {
+var getOnlineText = function (chatItem, withWatch) {
     "use strict";
     var _this = this;
     var onlineList = [];
@@ -86,7 +86,7 @@ var getOnlineText = function (chatItem) {
         Object.keys(channelList).forEach(function (channelId) {
             var streamList = channelList[channelId];
             streamList.forEach(function (stream) {
-                textChannelList.push(base.getStreamText(_this.gOptions, stream));
+                textChannelList.push(base.getStreamText(_this.gOptions, stream, withWatch));
             });
         });
 
@@ -98,6 +98,31 @@ var getOnlineText = function (chatItem) {
     }
 
     return onlineList.join('\n\n');
+};
+
+var getWatchBtnList = function (chatItem) {
+    "use strict";
+    var _this = this;
+    var btnList = [];
+
+    var serviceList = getOnlineChannelList.call(this, chatItem, true);
+    Object.keys(serviceList).forEach(function (service) {
+        var channelList = serviceList[service];
+
+        Object.keys(channelList).forEach(function (channelId) {
+            var title = base.getChannelTitle(_this.gOptions, service, channelId);
+
+            var streamList = channelList[channelId];
+            streamList.forEach(function (stream) {
+                btnList.push([{
+                    text: title,
+                    callback_data: '/watch ' + stream._id
+                }]);
+            });
+        });
+    });
+
+    return btnList;
 };
 
 var commands = {
@@ -666,7 +691,33 @@ var commands = {
             }
         );
     },
-    onlinecb: function (callbackQuery) {
+    watch: function (msg, streamId) {
+        var _this = this;
+        var chatId = msg.chat.id;
+        var chatItem = _this.gOptions.storage.chatList[chatId];
+
+        if (!chatItem) {
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
+        }
+
+        var lastStreamList = this.gOptions.storage.lastStreamList;
+        var stream = null;
+        lastStreamList.some(function (_stream) {
+            if (_stream._id === streamId) {
+                stream = _stream;
+                return true;
+            }
+        });
+
+        if (!stream) {
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.streamIsNotFound);
+        } else {
+            var text = base.getNowStreamPhotoText(_this.gOptions, stream);
+            var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
+            return _this.gOptions.checker.sendNotify([chatId], text, noPhotoText, stream, true);
+        }
+    },
+    online_upd__Cb: function (callbackQuery) {
         var _this = this;
         var msg = callbackQuery.message;
         var chatId = msg.chat.id;
@@ -678,11 +729,11 @@ var commands = {
 
         var text = getOnlineText.call(_this, chatItem);
 
-        var btnList = [];
+        var btnList = getWatchBtnList.call(_this, chatItem);
 
         btnList.push([{
-            text: 'Update',
-            callback_data: '/onlinecb'
+            text: _this.gOptions.language.refresh,
+            callback_data: '/online_upd'
         }]);
 
         return _this.gOptions.bot.editMessageText(chatId, text, {
@@ -706,11 +757,11 @@ var commands = {
 
         var text = getOnlineText.call(_this, chatItem);
 
-        var btnList = [];
+        var btnList = getWatchBtnList.call(_this, chatItem);
 
         btnList.push([{
-            text: 'Update',
-            callback_data: '/onlinecb'
+            text: _this.gOptions.language.refresh,
+            callback_data: '/online_upd'
         }]);
 
         return _this.gOptions.bot.sendMessage(chatId, text, {
@@ -731,7 +782,7 @@ var commands = {
             return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
         }
 
-        var text = getOnlineText.call(_this, chatItem);
+        var text = getOnlineText.call(_this, chatItem, true);
 
         return _this.gOptions.bot.sendMessage(chatId, text, {
             disable_web_page_preview: true,
