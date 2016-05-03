@@ -105,7 +105,7 @@ var getWatchBtnList = function (chatItem) {
     var _this = this;
     var btnList = [];
 
-    var serviceList = getOnlineChannelList.call(this, chatItem, true);
+    var serviceList = getOnlineChannelList.call(this, chatItem);
     Object.keys(serviceList).forEach(function (service) {
         var channelList = serviceList[service];
 
@@ -218,7 +218,7 @@ var commands = {
                         reply_markup: _this.templates.hideKeyboard.reply_markup
                     }
                 ).then(function () {
-                    var onlineServiceList = getOnlineChannelList.call(_this, chatItem, true);
+                    var onlineServiceList = getOnlineChannelList.call(_this, chatItem);
                     var channelList = onlineServiceList[service] || {};
                     var streamList = channelList[channelId] || [];
                     streamList.forEach(function (stream) {
