@@ -19,12 +19,14 @@ var Hitbox = function(options) {
 };
 
 Hitbox.prototype.saveChannelInfo = function () {
+    "use strict";
     return base.storage.set({
         hitboxChannelInfo: this.config.channelInfo
     });
 };
 
 Hitbox.prototype.getChannelInfo = function (channelId) {
+    "use strict";
     var obj = this.config.channelInfo[channelId];
     if (!obj) {
         obj = this.config.channelInfo[channelId] = {};
@@ -33,6 +35,10 @@ Hitbox.prototype.getChannelInfo = function (channelId) {
 };
 
 Hitbox.prototype.setChannelTitle = function (channelId, title) {
+    "use strict";
+    if (channelId === title) {
+        return;
+    }
     var info = this.getChannelInfo(channelId);
     if (info.title !== title) {
         info.title = title;
@@ -41,6 +47,7 @@ Hitbox.prototype.setChannelTitle = function (channelId, title) {
 };
 
 Hitbox.prototype.getChannelTitle = function (channelId) {
+    "use strict";
     var info = this.getChannelInfo(channelId);
     return info.title || channelId;
 };

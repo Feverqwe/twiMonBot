@@ -19,12 +19,14 @@ var Twitch = function(options) {
 };
 
 Twitch.prototype.saveChannelInfo = function () {
+    "use strict";
     return base.storage.set({
         twitchChannelInfo: this.config.channelInfo
     });
 };
 
 Twitch.prototype.getChannelInfo = function (channelId) {
+    "use strict";
     var obj = this.config.channelInfo[channelId];
     if (!obj) {
         obj = this.config.channelInfo[channelId] = {};
@@ -33,6 +35,10 @@ Twitch.prototype.getChannelInfo = function (channelId) {
 };
 
 Twitch.prototype.setChannelTitle = function (channelId, title) {
+    "use strict";
+    if (channelId === title) {
+        return;
+    }
     var info = this.getChannelInfo(channelId);
     if (info.title !== title) {
         info.title = title;
@@ -41,6 +47,7 @@ Twitch.prototype.setChannelTitle = function (channelId, title) {
 };
 
 Twitch.prototype.getChannelTitle = function (channelId) {
+    "use strict";
     var info = this.getChannelInfo(channelId);
     return info.title || channelId;
 };

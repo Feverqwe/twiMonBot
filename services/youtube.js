@@ -114,6 +114,9 @@ Youtube.prototype.apiNormalization = function(userId, data, viewers) {
 
 Youtube.prototype.setChannelTitle = function(channelId, channelTitle) {
     "use strict";
+    if (channelId === channelTitle) {
+        return;
+    }
     var channelIdToTitle = this.config.channelIdToTitle;
     if (!channelTitle) {
         debug('channelTitle is empty! %s', channelId);

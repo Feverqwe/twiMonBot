@@ -19,12 +19,14 @@ var GoodGame = function (options) {
 };
 
 GoodGame.prototype.saveChannelInfo = function () {
+    "use strict";
     return base.storage.set({
         ggChannelInfo: this.config.channelInfo
     });
 };
 
 GoodGame.prototype.getChannelInfo = function (channelId) {
+    "use strict";
     var obj = this.config.channelInfo[channelId];
     if (!obj) {
         obj = this.config.channelInfo[channelId] = {};
@@ -33,6 +35,10 @@ GoodGame.prototype.getChannelInfo = function (channelId) {
 };
 
 GoodGame.prototype.setChannelTitle = function (channelId, title) {
+    "use strict";
+    if (channelId === title) {
+        return;
+    }
     var info = this.getChannelInfo(channelId);
     if (info.title !== title) {
         info.title = title;
@@ -41,6 +47,7 @@ GoodGame.prototype.setChannelTitle = function (channelId, title) {
 };
 
 GoodGame.prototype.getChannelTitle = function (channelId) {
+    "use strict";
     var info = this.getChannelInfo(channelId);
     return info.title || channelId;
 };
