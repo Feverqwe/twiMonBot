@@ -116,9 +116,10 @@ var getWatchBtnList = function (chatItem) {
             }
 
             var title = base.getChannelTitle(_this.gOptions, service, channelId);
+            var text = title + ' (' + _this.gOptions.serviceToTitle[service] + ')';
 
             btnList.push([{
-                text: title,
+                text: text,
                 callback_data: '/watch ' + channelId + ' ' + service
             }]);
         });
