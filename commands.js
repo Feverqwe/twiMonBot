@@ -40,7 +40,7 @@ var menuBtnList = function () {
     ];
 };
 
-var getOnlineChannelList = function (chatItem) {
+var getOnlineChannelList = function (chatItem, skipOffline) {
     var lastStreamList = this.gOptions.storage.lastStreamList;
     var serviceList = {};
     for (var service in chatItem.serviceList) {
@@ -52,7 +52,10 @@ var getOnlineChannelList = function (chatItem) {
         }
 
         for (var i = 0, stream; stream = lastStreamList[i]; i++) {
-            if (stream._isOffline || stream._service !== service) {
+            if (stream._service !== service) {
+                continue;
+            }
+            if (skipOffline && stream._isOffline) {
                 continue;
             }
 
@@ -69,29 +72,26 @@ var getOnlineChannelList = function (chatItem) {
     return serviceList;
 };
 
-var getOnline = function (chatItem) {
+var getOnlineText = function (chatItem) {
     "use strict";
     var _this = this;
     var onlineList = [];
-    var lastStreamList = _this.gOptions.storage.lastStreamList;
 
-    for (var service in chatItem.serviceList) {
-        var userChannelList = chatItem.serviceList[service];
+    var serviceList = getOnlineChannelList.call(this, chatItem);
+    Object.keys(serviceList).forEach(function (service) {
+        var channelList = serviceList[service];
 
-        var channelList = [];
+        var textChannelList = [];
 
-        for (var i = 0, stream; stream = lastStreamList[i]; i++) {
-            if (stream._service !== service) {
-                continue;
-            }
+        Object.keys(channelList).forEach(function (channelId) {
+            var streamList = channelList[channelId];
+            streamList.forEach(function (stream) {
+                textChannelList.push(base.getStreamText(_this.gOptions, stream));
+            });
+        });
 
-            if (userChannelList.indexOf(stream._channelId) !== -1) {
-                channelList.push(base.getStreamText(_this.gOptions, stream));
-            }
-        }
-
-        channelList.length && onlineList.push(channelList.join('\n\n'));
-    }
+        textChannelList.length && onlineList.push(textChannelList.join('\n\n'));
+    });
 
     if (!onlineList.length) {
         onlineList.unshift(_this.gOptions.language.offline);
@@ -193,7 +193,7 @@ var commands = {
                         reply_markup: _this.templates.hideKeyboard.reply_markup
                     }
                 ).then(function () {
-                    var onlineServiceList = getOnlineChannelList.call(_this, chatItem);
+                    var onlineServiceList = getOnlineChannelList.call(_this, chatItem, true);
                     var channelList = onlineServiceList[service] || {};
                     var streamList = channelList[channelId] || [];
                     streamList.forEach(function (stream) {
@@ -676,7 +676,7 @@ var commands = {
             return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
         }
 
-        var text = getOnline.call(_this, chatItem);
+        var text = getOnlineText.call(_this, chatItem);
 
         var btnList = [];
 
@@ -704,7 +704,7 @@ var commands = {
             return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
         }
 
-        var text = getOnline.call(_this, chatItem);
+        var text = getOnlineText.call(_this, chatItem);
 
         var btnList = [];
 
@@ -731,7 +731,7 @@ var commands = {
             return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
         }
 
-        var text = getOnline.call(_this, chatItem);
+        var text = getOnlineText.call(_this, chatItem);
 
         return _this.gOptions.bot.sendMessage(chatId, text, {
             disable_web_page_preview: true,
