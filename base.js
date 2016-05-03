@@ -249,15 +249,15 @@ module.exports.getNowStreamText = function(gOptions, stream) {
 /**
  *
  * @param gOptions
- * @param {{
- * channel: {display_name},
- * viewers,
- * game,
- * _service,
- * preview,
- * _isOffline,
- * _channelId
- * }} stream
+ * @param {Object} stream
+ * @param {number} stream.viewers
+ * @param {string} stream.game
+ * @param {string} stream._service
+ * @param {string} stream._channelId
+ * @param {Array} stream.preview
+ * @param {boolean} stream._isOffline
+ * @param {Object} stream.channel
+ * @param {string} stream.channel.display_name
  * @returns {string}
  */
 module.exports.getStreamText = function(gOptions, stream) {
@@ -474,4 +474,4 @@ module.exports.throttle = function(fn, threshhold, scope) {
             fn.apply(context, args);
         }
     };
-}
+};

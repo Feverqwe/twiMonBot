@@ -33,41 +33,6 @@ var Daemon = require('./daemon');
 var Tracker = require('./tracker');
 var LiveController = require('./liveController');
 
-/**
- * @type {
- * {
- * config: {},
- * language: {
- * help: string,
- * offline: string,
- * emptyServiceList: string,
- * enterChannelName: string,
- * enterService: string,
- * serviceIsNotSupported: string,
- * channelExists: string,
- * channelAdded: string,
- * commandCanceled: string,
- * channelDontExist: string,
- * channelDeleted: string,
- * cleared: string,
- * channelNameIsEmpty: string,
- * selectDelChannel: string,
- * channelIsNotFound: string,
- * clearSure: string,
- * users: string,
- * channels: string,
- * preview: string,
- * watchOn: string,
- * online: string,
- * rateMe: string,
- * enterChannelNameNote: string,
- * selectDelChannelGroupNote: string
- * },
- * storage: {chatList: {}, lastStreamList: Array},
- * serviceList: string[],
- * serviceToTitle: {goodgame: string, twitch: string, youtube: string, hitbox: string}}
- * }
- */
 var options = {
     config: {},
     language: {},
