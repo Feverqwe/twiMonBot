@@ -110,6 +110,11 @@ var getWatchBtnList = function (chatItem) {
         var channelList = serviceList[service];
 
         Object.keys(channelList).forEach(function (channelId) {
+            var streamList = channelList[channelId];
+            if (!streamList.length) {
+                return;
+            }
+
             var title = base.getChannelTitle(_this.gOptions, service, channelId);
 
             btnList.push([{
