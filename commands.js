@@ -901,37 +901,27 @@ var commands = {
         var _this = this;
         var chatId = msg.chat.id;
         var services = _this.gOptions.services;
-
+        
         var queue = Promise.resolve();
 
         var serviceChannelList = _this.gOptions.checker.getChannelList();
-        for (var service in serviceChannelList) {
-            if (!serviceChannelList.hasOwnProperty(service)) {
-                continue;
-            }
-
+        Object.keys(serviceChannelList).forEach(function (service) {
             if (!services[service]) {
                 debug('Service "%s" is not found!', service);
-                continue;
+                return;
             }
 
             if (service !== 'youtube') {
-                continue;
+                return;
             }
 
-            var channelList = JSON.parse(JSON.stringify(serviceChannelList[service]));
-            while (channelList.length) {
-                var arr = channelList.splice(0, 100);
-                (function(service, arr) {
-                    queue = queue.finally(function() {
-                        var promiseList = arr.map(function(userId) {
-                            return services[service].getChannelId(userId);
-                        });
-                        return Promise.all(promiseList);
-                    });
-                })(service, arr);
-            }
-        }
+            var channelList = serviceChannelList[service];
+            queue = queue.then(function () {
+                return Promise.all(channelList.map(function(userId) {
+                    return services[service].getChannelId(userId);
+                }));
+            });
+        });
 
         return queue.finally(function() {
             return _this.gOptions.bot.sendMessage(chatId, 'Done!');

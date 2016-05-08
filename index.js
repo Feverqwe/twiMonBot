@@ -83,7 +83,7 @@ var options = {
         });
     }).then(function() {
         return Promise.all(options.serviceList.map(function(name) {
-            return Promise.resolve().then(function() {
+            return Promise.try(function() {
                 var service = require('./services/' + name);
                 service = options.services[name] = new service(options);
                 return service.onReady;
