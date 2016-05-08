@@ -125,7 +125,7 @@ Youtube.prototype.getChannelInfo = function (channelId) {
 Youtube.prototype.setChannelTitle = function(channelId, title) {
     "use strict";
     if (channelId === title) {
-        return;
+        return Promise.resolve();
     }
     var info = this.getChannelInfo(channelId);
     if (info.title !== title) {
@@ -148,7 +148,7 @@ Youtube.prototype.getChannelTitle = function (channelName) {
 Youtube.prototype.setChannelUsername = function(channelId, username) {
     "use strict";
     if (channelId === username) {
-        return;
+        return Promise.resolve();
     }
     var info = this.getChannelInfo(channelId);
     if (info.username !== username) {
@@ -243,7 +243,9 @@ Youtube.prototype.requestChannelIdByUsername = function(userId) {
                 throw 'Channel ID is not found by userId!';
             }
 
-            return _this.setChannelUsername(id, userId);
+            return _this.setChannelUsername(id, userId).then(function() {
+                return id;
+            });
         });
     });
 };
