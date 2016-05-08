@@ -54,57 +54,6 @@ Youtube.prototype.refreshCache = function () {
     });
 };
 
-Youtube.prototype.apiNormalization = function(userId, data, viewers) {
-    "use strict";
-    if (!data || !Array.isArray(data.items)) {
-        debug('Response is empty! %j', data);
-        throw 'Response is empty!';
-    }
-
-    var now = base.getNow();
-    var streams = [];
-    data.items.forEach(function(origItem) {
-        var snippet = origItem.snippet;
-
-        if (snippet.liveBroadcastContent !== 'live') {
-            return;
-        }
-
-        var videoId = origItem.id && origItem.id.videoId;
-        if (!videoId) {
-            debug('VideoId is not exists! %j', origItem);
-            return;
-        }
-
-        var previewList = ['maxresdefault_live', 'sddefault_live', 'hqdefault_live', 'mqdefault_live', 'default_live'].map(function(quality) {
-            return 'https://i.ytimg.com/vi/' + videoId + '/' + quality + '.jpg';
-        });
-
-        var item = {
-            _service: 'youtube',
-            _checkTime: now,
-            _insertTime: now,
-            _id: 'y' + videoId,
-            _isOffline: false,
-            _channelId: userId,
-
-            viewers: viewers || 0,
-            game: '',
-            preview: previewList,
-            created_at: snippet.snippet,
-            channel: {
-                display_name: snippet.channelTitle,
-                name: snippet.channelId,
-                status: snippet.title,
-                url: 'https://gaming.youtube.com/watch?v=' + videoId
-            }
-        };
-
-        streams.push(item);
-    });
-    return streams;
-};
-
 Youtube.prototype.saveChannelInfo = function () {
     "use strict";
     this.refreshCache();
@@ -155,6 +104,57 @@ Youtube.prototype.setChannelUsername = function(channelId, username) {
         info.username = username;
         return this.saveChannelInfo();
     }
+};
+
+Youtube.prototype.apiNormalization = function(userId, data, viewers) {
+    "use strict";
+    if (!data || !Array.isArray(data.items)) {
+        debug('Response is empty! %j', data);
+        throw 'Response is empty!';
+    }
+
+    var now = base.getNow();
+    var streams = [];
+    data.items.forEach(function(origItem) {
+        var snippet = origItem.snippet;
+
+        if (snippet.liveBroadcastContent !== 'live') {
+            return;
+        }
+
+        var videoId = origItem.id && origItem.id.videoId;
+        if (!videoId) {
+            debug('VideoId is not exists! %j', origItem);
+            return;
+        }
+
+        var previewList = ['maxresdefault_live', 'sddefault_live', 'hqdefault_live', 'mqdefault_live', 'default_live'].map(function(quality) {
+            return 'https://i.ytimg.com/vi/' + videoId + '/' + quality + '.jpg';
+        });
+
+        var item = {
+            _service: 'youtube',
+            _checkTime: now,
+            _insertTime: now,
+            _id: 'y' + videoId,
+            _isOffline: false,
+            _channelId: userId,
+
+            viewers: viewers || 0,
+            game: '',
+            preview: previewList,
+            created_at: snippet.snippet,
+            channel: {
+                display_name: snippet.channelTitle,
+                name: snippet.channelId,
+                status: snippet.title,
+                url: 'https://gaming.youtube.com/watch?v=' + videoId
+            }
+        };
+
+        streams.push(item);
+    });
+    return streams;
 };
 
 Youtube.prototype.getViewers = function(id) {
