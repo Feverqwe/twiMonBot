@@ -27,6 +27,10 @@ var Checker = function(options) {
     options.events.on('updateNotify', function(streamItem) {
         _this.updateNotify(streamItem);
     });
+
+    options.events.on('clean', function() {
+        _this.cleanServices();
+    });
 };
 
 Checker.prototype.getChannelList = function() {
@@ -444,6 +448,31 @@ Checker.prototype.notify = function(stream) {
     }
 
     return this.sendNotify(chatIdList, text, noPhotoText, stream);
+};
+
+Checker.prototype.cleanServices = function() {
+    "use strict";
+    var _this = this;
+    var serviceChannelList = _this.getChannelList();
+    var services = _this.gOptions.services;
+
+    var promiseList = [];
+
+    Object.keys(serviceChannelList).forEach(function (service) {
+        var currentService = services[service];
+        if (!currentService) {
+            debug('Service "%s" is not found!', service);
+            return;
+        }
+
+        var channelList = serviceChannelList[service];
+
+        if (currentService.clean) {
+            promiseList.push(currentService.clean(channelList));
+        }
+    });
+
+    return Promise.all(promiseList);
 };
 
 Checker.prototype.updateList = function() {

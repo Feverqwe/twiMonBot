@@ -34,6 +34,12 @@ Twitch.prototype.getChannelInfo = function (channelId) {
     return obj;
 };
 
+Twitch.prototype.removeChannelInfo = function (channelId) {
+    "use strict";
+    delete this.config.channelInfo[channelId];
+    return this.saveChannelInfo();
+};
+
 Twitch.prototype.setChannelTitle = function (channelId, title) {
     "use strict";
     if (channelId === title) {
@@ -50,6 +56,20 @@ Twitch.prototype.getChannelTitle = function (channelId) {
     "use strict";
     var info = this.getChannelInfo(channelId);
     return info.title || channelId;
+};
+
+Twitch.prototype.clean = function(channelIdList) {
+    "use strict";
+    var _this = this;
+
+    Object.keys(this.config.channelInfo).forEach(function (channelId) {
+        if (channelIdList.indexOf(channelId) === -1) {
+            _this.removeChannelInfo(channelId);
+            debug('Removed from channelInfo %s', channelId);
+        }
+    });
+
+    return Promise.resolve();
 };
 
 Twitch.prototype.apiNormalization = function(data) {

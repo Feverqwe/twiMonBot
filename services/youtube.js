@@ -71,6 +71,12 @@ Youtube.prototype.getChannelInfo = function (channelId) {
     return obj;
 };
 
+Youtube.prototype.removeChannelInfo = function (channelId) {
+    "use strict";
+    delete this.config.channelInfo[channelId];
+    return this.saveChannelInfo();
+};
+
 Youtube.prototype.setChannelTitle = function(channelId, title) {
     "use strict";
     if (channelId === title) {
@@ -104,6 +110,27 @@ Youtube.prototype.setChannelUsername = function(channelId, username) {
         info.username = username;
         return this.saveChannelInfo();
     }
+};
+
+Youtube.prototype.clean = function(channelNameList) {
+    "use strict";
+    var _this = this;
+
+    var channelIdList = channelNameList.map(function (channelName) {
+        if (channelRe.test(channelName)) {
+            return channelName;
+        }
+        return _this.config.userIdToChannelId[channelName];
+    });
+
+    Object.keys(this.config.channelInfo).forEach(function (channelId) {
+        if (channelIdList.indexOf(channelId) === -1) {
+            _this.removeChannelInfo(channelId);
+            debug('Removed from channelInfo %s', channelId);
+        }
+    });
+
+    return Promise.resolve();
 };
 
 Youtube.prototype.apiNormalization = function(userId, data, viewers) {

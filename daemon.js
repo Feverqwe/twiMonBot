@@ -6,9 +6,11 @@ var Daemon = function(options) {
     this.gOptions = options;
 
     this.TickTackTimer = null;
+    this.CleanerTimer = null;
     this.CheckerTimer = null;
 
     this.initTickTack();
+    this.initCleaner();
     this.initChecker();
 };
 
@@ -37,6 +39,20 @@ Daemon.prototype.initTickTack = function() {
     };
 
     _this.TickTackTimer = setInterval(function() {
+        onTimer();
+    }, interval * 60 * 1000);
+};
+
+Daemon.prototype.initCleaner = function() {
+    "use strict";
+    var _this = this;
+    var interval = 60;
+
+    var onTimer = function() {
+        _this.gOptions.events.emit('clean');
+    };
+
+    _this.CleanerTimer = setInterval(function() {
         onTimer();
     }, interval * 60 * 1000);
 };
