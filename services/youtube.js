@@ -94,6 +94,7 @@ Youtube.prototype.getChannelTitle = function (channelName) {
     var channelId = channelName;
     if (!channelRe.test(channelId)) {
         channelId = this.config.userIdToChannelId[channelId];
+        !channelId && debug('getChannelTitle channelId is not found! %s', channelId);
     }
 
     var info = this.getChannelInfo(channelId);
@@ -125,8 +126,8 @@ Youtube.prototype.clean = function(channelNameList) {
 
     Object.keys(this.config.channelInfo).forEach(function (channelId) {
         if (channelIdList.indexOf(channelId) === -1) {
+            debug('Removed from channelInfo %s', channelId, _this.config.channelInfo[channelId]);
             _this.removeChannelInfo(channelId);
-            debug('Removed from channelInfo %s', channelId);
         }
     });
 
