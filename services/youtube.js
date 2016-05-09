@@ -45,13 +45,14 @@ Youtube.prototype.migrateStorage = function () {
 
 Youtube.prototype.refreshCache = function () {
     var channelInfo = this.config.channelInfo;
-    var userIdToChannelId = this.config.userIdToChannelId = {};
+    var userIdToChannelId = {};
     Object.keys(channelInfo).forEach(function (channelId) {
         var info = channelInfo[channelId];
         if (info.username) {
             userIdToChannelId[info.username] = channelId;
         }
     });
+    this.config.userIdToChannelId = userIdToChannelId;
 };
 
 Youtube.prototype.saveChannelInfo = function () {
