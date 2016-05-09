@@ -94,7 +94,7 @@ Youtube.prototype.getChannelTitle = function (channelName) {
     var channelId = channelName;
     if (!channelRe.test(channelId)) {
         channelId = this.config.userIdToChannelId[channelId];
-        !channelId && debug('getChannelTitle channelId is not found! %s', channelId);
+        !channelId && debug('getChannelTitle channelId is not found! %s', channelName);
     }
 
     var info = this.getChannelInfo(channelId);
