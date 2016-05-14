@@ -744,6 +744,11 @@ var commands = {
             reply_markup: JSON.stringify({
                 inline_keyboard: btnList
             })
+        }).catch(function (e) {
+            var err = e && e.message || e;
+            if (!/message is not modified/.test(err)) {
+                throw e;
+            }
         });
     },
     online: function (msg) {
