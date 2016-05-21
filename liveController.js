@@ -14,22 +14,6 @@ var LiveController = function (options) {
 
     this.saveStreamListThrottle = base.throttle(this.saveStreamList, 250, this);
 
-    // todo: rm me!
-    this.config.liveList.forEach(function (item) {
-        if (!item.channelId && item._channelName) {
-            item.channelId = item._channelName;
-        }
-        if (!item._insertTime && item._createTime) {
-            item._insertTime = item._createTime;
-        }
-        if (!item._checkTime && item._addItemTime) {
-            item._checkTime = item._addItemTime;
-        }
-        if (!/^[thgy]/.test(item._id)) {
-            item._id = item._service[0] + item._id;
-        }
-    });
-
     options.events.on('updateLiveList', function(service, videoList, channelList) {
         _this.update(service, videoList, channelList);
     });
