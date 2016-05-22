@@ -50,7 +50,6 @@ Daemon.prototype.initCleaner = function() {
 
     var onTimer = function() {
         _this.gOptions.events.emit('clean');
-        _this.gOptions.events.emit('checkMsgStack');
     };
 
     setTimeout(function() {

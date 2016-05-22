@@ -19,10 +19,6 @@ var MsgStack = function (options) {
         return _this.notify(stream);
     });
 
-    options.events.on('checkMsgStack', function (stream) {
-        return _this.callStack();
-    });
-
     this.onReady = base.storage.get(['chatMsgStack']).then(function(storage) {
         _this.config.chatMsgStack = storage.chatMsgStack || {};
         _this.stack = _this.initStack();
