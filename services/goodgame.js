@@ -108,9 +108,6 @@ GoodGame.prototype.apiNormalization = function (data) {
             var sep = !/\?/.test(url) ? '?' : '&';
             return url + sep + '_=' + now;
         });
-        if (previewList.length === 0) {
-            previewList = null;
-        }
 
         var item = {
             _service: 'goodgame',

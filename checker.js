@@ -131,9 +131,6 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
     refreshRequestLimit();
 
     var previewList = stream.preview;
-    if (!Array.isArray(previewList)) {
-        previewList = [previewList];
-    }
 
     var sendingPic = function() {
         var sendPic = function(request) {
@@ -314,7 +311,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         return Promise.all(promiseList);
     };
 
-    if (!stream.preview || (Array.isArray(stream.preview) && stream.preview.length === 0)) {
+    if (!stream.preview.length) {
         return send();
     }
 

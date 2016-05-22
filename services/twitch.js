@@ -126,10 +126,6 @@ Twitch.prototype.apiNormalization = function(data) {
             return url + sep + '_=' + now;
         });
 
-        if (previewList.length === 0) {
-            previewList = null;
-        }
-
         var item = {
             _service: 'twitch',
             _checkTime: now,

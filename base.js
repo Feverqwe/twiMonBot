@@ -233,12 +233,17 @@ module.exports.getNowStreamText = function(gOptions, stream) {
             .replace('{serviceName}', channelUrl)
         );
     }
-    if (stream.preview) {
-        var url = Array.isArray(stream.preview) ? stream.preview[0] : stream.preview;
-        if (url) {
-            line.push(this.htmlSanitize('a', gOptions.language.preview, url));
-        }
+
+    //todo: rm me!
+    if (!Array.isArray(stream.preview)) {
+        stream.preview = [];
     }
+
+    var url = stream.preview[0];
+    if (url) {
+        line.push(this.htmlSanitize('a', gOptions.language.preview, url));
+    }
+
     if (line.length) {
         textArr.push(line.join(', '));
     }
@@ -293,12 +298,17 @@ module.exports.getStreamText = function(gOptions, stream, withWatch) {
             .replace('{serviceName}', channelUrl)
         );
     }
-    if (stream.preview) {
-        var url = Array.isArray(stream.preview) ? stream.preview[0] : stream.preview;
-        if (url) {
-            line.push(this.htmlSanitize('a', gOptions.language.preview, url));
-        }
+
+    //todo: rm me!
+    if (!Array.isArray(stream.preview)) {
+        stream.preview = [];
     }
+
+    var url = stream.preview[0];
+    if (url) {
+        line.push(this.htmlSanitize('a', gOptions.language.preview, url));
+    }
+
     if (withWatch) {
         line.push('/watch_' + stream._channelId + '_' + stream._service);
     }
