@@ -227,7 +227,9 @@ var commands = {
                     streamList.forEach(function (stream) {
                         var text = base.getNowStreamPhotoText(_this.gOptions, stream);
                         var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
-                        return _this.gOptions.checker.sendNotify([chatId], text, noPhotoText, stream, true);
+                        return _this.gOptions.checker.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
+                            debug('a commend, sendNotify error! %s', err);
+                        });
                     });
                 });
             });
@@ -713,7 +715,9 @@ var commands = {
             var promiseList = streamList.map(function (stream) {
                 var text = base.getNowStreamPhotoText(_this.gOptions, stream);
                 var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
-                return _this.gOptions.checker.sendNotify([chatId], text, noPhotoText, stream, true);
+                return _this.gOptions.checker.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
+                    debug('watch commend, sendNotify error! %s', err);
+                });
             });
             return Promise.all(promiseList);
         }
