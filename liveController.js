@@ -93,14 +93,6 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
 
     var timeout = this.gOptions.config.timeout;
 
-    // todo fix me!
-    var notifyTimeout = null;
-    if (this.gOptions.config.notifyTimeoutMin) {
-        notifyTimeout = this.gOptions.config.notifyTimeoutMin * 60;
-    } else {
-        notifyTimeout = this.gOptions.config.notifyTimeout * 60;
-    }
-
     var liveList = this.config.liveList;
     var now = base.getNow();
 
