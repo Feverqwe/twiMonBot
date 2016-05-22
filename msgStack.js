@@ -81,15 +81,10 @@ MsgStack.prototype.clear = function () {
     var chatMsgStack = this.config.chatMsgStack;
     var chatList = this.gOptions.storage.chatList;
 
-    var usedMsgId = [];
     Object.keys(chatMsgStack).forEach(function (chatId) {
         if (!chatList[chatId]) {
             delete chatMsgStack[chatId];
-            return;
         }
-
-        var msgStack = chatMsgStack[chatId] || [];
-        usedMsgId.push.apply(usedMsgId, msgStack);
     });
 };
 
