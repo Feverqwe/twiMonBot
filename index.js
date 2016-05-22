@@ -32,6 +32,7 @@ var EventEmitter = require('events').EventEmitter;
 var Daemon = require('./daemon');
 var Tracker = require('./tracker');
 var LiveController = require('./liveController');
+var MsgStack = require('./msgStack');
 
 var options = {
     config: {},
@@ -154,6 +155,10 @@ var options = {
         options.bot.answerCallbackQuery = quote.wrapper(options.bot.answerCallbackQuery.bind(options.bot));
     }).then(function() {
         options.tracker = new Tracker(options);
+    }).then(function() {
+        options.msgStack = new MsgStack(options);
+
+        return options.msgStack.onReady;
     }).then(function() {
         options.chat = new Chat(options);
     }).then(function() {

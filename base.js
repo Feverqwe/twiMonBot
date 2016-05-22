@@ -489,3 +489,40 @@ module.exports.throttle = function(fn, threshhold, scope) {
         }
     };
 };
+
+/**
+ * @param {Object} obj
+ * @param {*} key
+ * @returns {Array} obj[key]
+ */
+module.exports.getObjectItemOrArray = function (obj, key) {
+    var item = obj[key];
+    if (!item) {
+        item = obj[key] = [];
+    }
+    return item;
+};
+
+/**
+ * @param {Object} obj
+ * @param {*} key
+ * @returns {Object} obj[key]
+ */
+module.exports.getObjectItemOrObj = function (obj, key) {
+    var item = obj[key];
+    if (!item) {
+        item = obj[key] = {};
+    }
+    return item;
+};
+
+/**
+ * @param {Array} arr
+ * @param {*} item
+ */
+module.exports.removeItemFromArray = function (arr, item) {
+    var pos = arr.indexOf(item);
+    if (pos !== -1) {
+        arr.splice(pos, 1);
+    }
+};

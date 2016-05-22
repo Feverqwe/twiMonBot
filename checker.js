@@ -22,10 +22,6 @@ var Checker = function(options) {
         });
     });
 
-    options.events.on('notify', function(streamItem) {
-        _this.notify(streamItem);
-    });
-
     options.events.on('updateNotify', function(streamItem) {
         _this.updateNotify(streamItem);
     });
@@ -289,7 +285,10 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         }).catch(function(err) {
             debug('Send text msg error! %s %s %s', chatId, stream._channelId, err);
 
-            _this.onSendMsgError(err, chatId);
+            var isKicked = _this.onSendMsgError(err, chatId);
+            if (!isKicked) {
+                throw err;
+            }
         });
     };
 
@@ -307,7 +306,10 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         }).catch(function(err) {
             debug('Send photo msg error! %s %s %s', chatId, stream._channelId, err);
 
-            _this.onSendMsgError(err, chatId);
+            var isKicked = _this.onSendMsgError(err, chatId);
+            if (!isKicked) {
+                throw err;
+            }
         });
     };
 
@@ -462,21 +464,6 @@ Checker.prototype.updateNotify = function (stream) {
     });
 
     return Promise.all(promiseArr);
-};
-
-Checker.prototype.notify = function(stream) {
-    "use strict";
-    var _this = this;
-    var text = base.getNowStreamPhotoText(this.gOptions, stream);
-    var noPhotoText = base.getNowStreamText(this.gOptions, stream);
-
-    var chatIdList = this.getStreamChatIdList(stream);
-
-    if (!chatIdList.length) {
-        return Promise.resolve();
-    }
-
-    return this.sendNotify(chatIdList, text, noPhotoText, stream);
 };
 
 Checker.prototype.cleanServices = function() {
