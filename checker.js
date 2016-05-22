@@ -543,7 +543,7 @@ Checker.prototype.track = function(chatId, stream, title) {
         chat: {
             id: chatId
         },
-        date: parseInt(Date.now() / 1000)
+        date: base.getNow()
     }, title);
 };
 
