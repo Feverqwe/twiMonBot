@@ -108,7 +108,7 @@ Twitch.prototype.apiNormalization = function(data) {
 
         var previewList = [];
 
-        apiItem.preview && ['template', 'large', 'medium', 'small'].forEach(function(quality) {
+        apiItem.preview && ['template', 'large', 'medium'].forEach(function(quality) {
             var url = apiItem.preview[quality];
             if (!url) {
                 return;
