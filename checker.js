@@ -14,6 +14,8 @@ var Checker = function(options) {
     var _this = this;
     this.gOptions = options;
 
+    this.requestPhotoCache = {};
+
     options.events.on('check', function() {
         _this.updateList().catch(function(err) {
             debug('updateList error! "%s"', err);
@@ -254,11 +256,22 @@ Checker.prototype.removeMsgFromStream = function (stream, msg) {
     this.gOptions.events.emit('saveStreamList');
 };
 
+Checker.prototype.getPicIdCache = function (chatId, text, stream) {
+    var cache = this.requestPhotoCache;
+    return cache[stream._id] = this.getPicId(chatId, text, stream).then(function (msg) {
+        delete cache[stream._id];
+        return msg;
+    }).catch(function (e) {
+        delete cache[stream._id];
+        throw e;
+    });
+};
+
 Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, useCache) {
     "use strict";
     var _this = this;
+
     var bot = _this.gOptions.bot;
-    var chatId = null;
     var sendMsg = function(chatId) {
         return bot.sendMessage(chatId, noPhotoText, {
             disable_web_page_preview: true,
@@ -297,11 +310,12 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
     };
 
     var send = function() {
+        var chatId = null;
         var photoId = stream._photoId;
         var promiseList = [];
 
         while (chatId = chatIdList.shift()) {
-            if (!photoId) {
+            if (!photoId || !text) {
                 promiseList.push(sendMsg(chatId));
             } else {
                 promiseList.push(sendPhoto(chatId, photoId));
@@ -315,6 +329,10 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         return send();
     }
 
+    if (!text) {
+        return send();
+    }
+
     if (useCache && stream._photoId) {
         return send();
     }
@@ -325,9 +343,20 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
             return Promise.resolve();
         }
 
-        chatId = chatIdList.shift();
+        var promise = _this.requestPhotoCache[stream._id];
+        if (promise) {
+            return promise.then(function(msg) {
+                stream._photoId = msg.photo[0].file_id;
+            }).catch(function(err) {
+                if (err === 'Send photo file error! Bot was kicked!') {
+                    return requestPicId();
+                }
+            });
+        }
 
-        return _this.getPicId(chatId, text, stream).then(function(msg) {
+        var chatId = chatIdList.shift();
+
+        return _this.getPicIdCache(chatId, text, stream).then(function(msg) {
             _this.addMsgInStream(stream, {
                 type: 'streamPhoto',
                 chatId: chatId,
@@ -346,6 +375,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
             debug('Function getPicId throw error!', err);
         });
     };
+
     return requestPicId().then(function() {
         return send();
     });
