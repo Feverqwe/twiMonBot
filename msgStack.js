@@ -117,13 +117,8 @@ MsgStack.prototype.callMsgList = function (chatId) {
                 debug('chatItem is not found! %s', msgId);
                 throw 'chatItem is not found!';
             }
-            
-            var options = chatItem.options || {};
 
-            var text = null;
-            if (!options.hidePreview) {
-                text = base.getNowStreamPhotoText(_this.gOptions, videoItem);
-            }
+            var text = base.getNowStreamPhotoText(_this.gOptions, videoItem);
             var noPhotoText = base.getNowStreamText(_this.gOptions, videoItem);
 
             return _this.gOptions.checker.sendNotify([chatId], text, noPhotoText, videoItem, true).then(function () {
