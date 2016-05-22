@@ -23,8 +23,7 @@ var MsgStack = function (options) {
         return _this.callStack();
     });
 
-    this.onReady = base.storage.get(['msgStackObj', 'chatMsgStack']).then(function(storage) {
-        _this.config.msgStackObj = storage.msgStackObj || {};
+    this.onReady = base.storage.get(['chatMsgStack']).then(function(storage) {
         _this.config.chatMsgStack = storage.chatMsgStack || {};
         _this.stack = _this.initStack();
     });
