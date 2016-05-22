@@ -98,7 +98,7 @@ Hitbox.prototype.apiNormalization = function(data) {
         var previewList = [];
         if (origItem.media_thumbnail_large) {
             previewList.push(origItem.media_thumbnail_large);
-        }
+        } else
         if (origItem.media_thumbnail) {
             previewList.push(origItem.media_thumbnail);
         }
