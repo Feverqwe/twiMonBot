@@ -278,7 +278,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         });
     };
 
-    var sendPic = function(chatId, fileId) {
+    var sendPhoto = function(chatId, fileId) {
         return bot.sendPhoto(chatId, fileId, {
             caption: text
         }).then(function(msg) {
@@ -304,7 +304,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
             if (!photoId) {
                 promiseList.push(sendMsg(chatId));
             } else {
-                promiseList.push(sendPic(chatId, photoId));
+                promiseList.push(sendPhoto(chatId, photoId));
             }
         }
 
