@@ -245,7 +245,7 @@ var commands = {
             var channelList = serviceList[service] = serviceList[service] || [];
 
             if (channelList.indexOf(channelId) !== -1) {
-                return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.channelExists, _this.templates.hideKeyboard);
+                return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.channelExists);
             }
 
             channelList.push(channelId);
@@ -395,12 +395,24 @@ var commands = {
         var channelList = chatItem && chatItem.serviceList && chatItem.serviceList[service];
 
         if (!channelList) {
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList, _this.templates.hideKeyboard);
+            return _this.gOptions.bot.editMessageText(
+                chatId,
+                _this.gOptions.language.emptyServiceList,
+                {
+                    message_id: msg.message_id
+                }
+            );
         }
 
         var pos = channelList.indexOf(channelName);
         if (pos === -1) {
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.channelDontExist, _this.templates.hideKeyboard);
+            return _this.gOptions.bot.editMessageText(
+                chatId,
+                _this.gOptions.language.channelDontExist,
+                {
+                    message_id: msg.message_id
+                }
+            );
         }
 
         channelList.splice(pos, 1);
@@ -432,7 +444,7 @@ var commands = {
         var chatItem = _this.gOptions.storage.chatList[chatId];
 
         if (!chatItem) {
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList, _this.templates.hideKeyboard);
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
         }
 
         var msgText = _this.gOptions.language.selectDelChannel;
@@ -486,9 +498,7 @@ var commands = {
 
         return _this.gOptions.bot.sendMessage(
             chatId,
-            _this.gOptions.language.commandCanceled
-                .replace('{command}', arg1 || ''),
-            _this.templates.hideKeyboard
+            _this.gOptions.language.commandCanceled.replace('{command}', arg1 || '')
         );
     },
     clear: function (msg) {
@@ -523,7 +533,13 @@ var commands = {
         var chatItem = _this.gOptions.storage.chatList[chatId];
 
         if (!chatItem) {
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
+            return _this.gOptions.bot.editMessageText(
+                chatId,
+                _this.gOptions.language.emptyServiceList,
+                {
+                    message_id: msg.message_id
+                }
+            );
         }
 
         delete _this.gOptions.storage.chatList[chatId];
@@ -605,7 +621,13 @@ var commands = {
         var chatItem = _this.gOptions.storage.chatList[chatId];
 
         if (!chatItem) {
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
+            return _this.gOptions.bot.editMessageText(
+                chatId, 
+                _this.gOptions.language.emptyServiceList,
+                {
+                    message_id: msg.message_id
+                }
+            );
         }
 
         var text = getOnlineText.call(_this, chatItem);
