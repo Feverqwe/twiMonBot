@@ -299,9 +299,6 @@ var commands = {
             }, 3 * 60 * 1000);
 
             var msgText = _this.gOptions.language.enterChannelName;
-            if (chatId < 0) {
-                msgText += _this.gOptions.language.enterChannelNameGroupNote;
-            }
 
             return _this.gOptions.bot.sendMessage(chatId, msgText, {
                 reply_markup: JSON.stringify({
@@ -312,9 +309,6 @@ var commands = {
 
         var waitServiceName = function() {
             var msgText = _this.gOptions.language.enterService;
-            if (chatId < 0) {
-                msgText += _this.gOptions.language.selectDelChannelGroupNote;
-            }
 
             return _this.gOptions.bot.sendMessage(chatId, msgText, {
                 reply_markup: JSON.stringify({
