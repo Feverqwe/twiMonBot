@@ -210,7 +210,7 @@ Chat.prototype.onCallbackQuery = function (callbackQuery) {
         return;
     }
 
-    if (['d'].indexOf(action) !== -1) {
+    if (['d', 'a'].indexOf(action) !== -1) {
         args = this.checkArgs(callbackQuery, args, true);
         if (!args) {
             return;
