@@ -1,18 +1,5 @@
 {
   "help": "Hi! I will notify you about the beginning of the broadcasts on Youtube Gaming, Twitch, Hitbox and GoodGame!",
-  "helpGroup": [
-    "Hi! I will notify you about the beginning of the broadcasts on Youtube Gaming, Twitch, Hitbox and GoodGame!",
-    "",
-    "You can control me by sending these commands:",
-    "",
-    "/online - Online",
-    "/list - Show the channel list",
-    "/add - Add channel",
-    "/delete - Delete channel",
-    "/top - Top 10",
-    "/liveTime - How long will it works",
-    "/clear - Clear channel list"
-  ],
   "offline": "All channels in offline",
   "emptyServiceList": "You don't have channels in watch list, yet.",
   "enterChannelName": "Enter the channel URL or name (example: welovegames):",
@@ -28,10 +15,6 @@
   "selectDelChannel": "Select the channel that you want to delete",
   "channelIsNotFound": "Oops! Channel {channelName} ({serviceName}) is not found!",
   "clearSure": "Are you sure?",
-  "clearSureGroup": [
-    "If your are sure, enter:",
-    "/clearYes"
-  ],
   "streamIsNotFound": "Oops! Stream is not found!",
   "users": "Users: {count}",
   "channels": "Channels: {count}",
@@ -45,5 +28,5 @@
     "https://telegram.me/storebot?start=twimonbot"
   ],
   "selectDelChannelGroupNote": ["", "Note for groups: Use Reply for open bot keyboard."],
-  "enterChannelNameNote": ["", "Note for groups: Use Reply for sending channel name."]
+  "enterChannelNameGroupNote": ["", "Note for groups: Use Reply for sending channel name."]
 }

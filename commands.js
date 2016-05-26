@@ -147,13 +147,6 @@ var commands = {
             })
         });
     },
-    start__Group: function (msg) {
-        "use strict";
-        var _this = this;
-        var chatId = msg.chat.id;
-
-        return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.helpGroup);
-    },
     help: function (msg) {
         "use strict";
         var _this = this;
@@ -169,20 +162,6 @@ var commands = {
             reply_markup: JSON.stringify({
                 inline_keyboard: menuBtnList()
             })
-        });
-    },
-    help__Group: function (msg) {
-        "use strict";
-        var _this = this;
-        var chatId = msg.chat.id;
-
-        var text = _this.gOptions.language.helpGroup;
-        if (base.getRandomInt(0, 100) < 30) {
-            text += _this.gOptions.language.rateMe;
-        }
-
-        return _this.gOptions.bot.sendMessage(chatId, text, {
-            disable_web_page_preview: true
         });
     },
     a: function (msg, channelName, service) {
@@ -313,7 +292,7 @@ var commands = {
 
             var msgText = _this.gOptions.language.enterChannelName;
             if (chatId < 0) {
-                msgText += _this.gOptions.language.enterChannelNameNote;
+                msgText += _this.gOptions.language.enterChannelNameGroupNote;
             }
 
             return _this.gOptions.bot.sendMessage(chatId, msgText, {
@@ -360,44 +339,6 @@ var commands = {
             msg.text = '/a ' + data.join(' ');
             return _this.onMessagePromise(msg);
         }
-    },
-    d__Group: function (msg, channelName, service) {
-        "use strict";
-        var _this = this;
-        var chatId = msg.chat.id;
-        var chatList = _this.gOptions.storage.chatList;
-        var chatItem = chatList[chatId];
-
-        var channelList = chatItem && chatItem.serviceList && chatItem.serviceList[service];
-
-        if (!channelList) {
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList, _this.templates.hideKeyboard);
-        }
-
-        var pos = channelList.indexOf(channelName);
-        if (pos === -1) {
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.channelDontExist, _this.templates.hideKeyboard);
-        }
-
-        channelList.splice(pos, 1);
-
-        if (channelList.length === 0) {
-            delete chatItem.serviceList[service];
-
-            if (Object.keys(chatItem.serviceList).length === 0) {
-                delete chatList[chatId];
-            }
-        }
-
-        return base.storage.set({chatList: chatList}).then(function () {
-            return _this.gOptions.bot.sendMessage(
-                chatId,
-                _this.gOptions.language.channelDeleted
-                    .replace('{channelName}', channelName)
-                    .replace('{serviceName}', _this.gOptions.serviceToTitle[service]),
-                _this.templates.hideKeyboard
-            );
-        });
     },
     d__Cb: function (callbackQuery, channelName, service) {
         "use strict";
@@ -480,84 +421,6 @@ var commands = {
             })
         });
     },
-    delete__Group: function (msg) {
-        "use strict";
-        var _this = this;
-        var chatId = msg.chat.id;
-        var chatItem = _this.gOptions.storage.chatList[chatId];
-
-        if (!chatItem) {
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList, _this.templates.hideKeyboard);
-        }
-
-        var data = [];
-
-        var responseMap = {};
-
-        var btnList = [];
-        for (var service in chatItem.serviceList) {
-            var channelList = chatItem.serviceList[service];
-            channelList.forEach(function(channelName) {
-                var title = base.getChannelTitle(_this.gOptions, service, channelName);
-
-                title += ' (' + _this.gOptions.serviceToTitle[service] + ')';
-
-                var index = btnList.length + 1;
-                title = index + '. ' + title;
-
-                responseMap[index] = {name: channelName, service: service};
-
-                btnList.push([title]);
-            });
-        }
-        btnList.push(['Cancel']);
-
-        var waitChannelName = function() {
-            var onTimeout = function() {
-                debug("Wait message timeout, %j", msg);
-                msg.text = 'Cancel';
-                return _this.onMessagePromise(msg);
-            };
-
-            var onMessage = _this.stateList[chatId] = function (msg) {
-                var index = msg.text.match(/(\d+)/);
-                index = index && index[1];
-
-                var info = responseMap[index];
-                if (!info) {
-                    debug("Can't match delete channel %j", msg);
-                    msg.text = '/cancel delete';
-                    return _this.onMessagePromise(msg);
-                }
-
-                data.push('"' + info.name + '"');
-                data.push('"' + info.service + '"');
-
-                msg.text = '/d ' + data.join(' ');
-                return _this.onMessagePromise(msg);
-            };
-            onMessage.command = 'delete';
-            onMessage.timeout = setTimeout(function () {
-                onTimeout();
-            }, 3 * 60 * 1000);
-
-            var msgText = _this.gOptions.language.selectDelChannel;
-            if (chatId < 0) {
-                msgText += _this.gOptions.language.selectDelChannelGroupNote;
-            }
-
-            return _this.gOptions.bot.sendMessage(chatId, msgText, {
-                reply_markup: JSON.stringify({
-                    keyboard: btnList,
-                    resize_keyboard: true,
-                    one_time_keyboard: true,
-                    selective: true
-                })
-            });
-        };
-
-        return waitChannelName();
-    },
     c__Cb: function (callbackQuery, command) {
         var _this = this;
         var msg = callbackQuery.message;
@@ -608,18 +471,6 @@ var commands = {
             })
         });
     },
-    clear__Group: function (msg) {
-        "use strict";
-        var _this = this;
-        var chatId = msg.chat.id;
-        var chatItem = _this.gOptions.storage.chatList[chatId];
-
-        if (!chatItem) {
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
-        }
-
-        return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.clearSureGroup);
-    },
     clearyes__Cb: function(callbackQuery) {
         "use strict";
         var _this = this;
@@ -640,25 +491,6 @@ var commands = {
                 {
                     message_id: msg.message_id
                 }
-            );
-        });
-    },
-    clearyes__Group: function(msg) {
-        "use strict";
-        var _this = this;
-        var chatId = msg.chat.id;
-        var chatItem = _this.gOptions.storage.chatList[chatId];
-
-        if (!chatItem) {
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
-        }
-
-        delete _this.gOptions.storage.chatList[chatId];
-
-        return base.storage.set({chatList: _this.gOptions.storage.chatList}).then(function () {
-            return _this.gOptions.bot.sendMessage(
-                chatId,
-                _this.gOptions.language.cleared
             );
         });
     },
@@ -780,23 +612,6 @@ var commands = {
             reply_markup: JSON.stringify({
                 inline_keyboard: btnList
             })
-        });
-    },
-    online__Group: function (msg) {
-        "use strict";
-        var _this = this;
-        var chatId = msg.chat.id;
-        var chatItem = _this.gOptions.storage.chatList[chatId];
-
-        if (!chatItem) {
-            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
-        }
-
-        var text = getOnlineText.call(_this, chatItem, true);
-
-        return _this.gOptions.bot.sendMessage(chatId, text, {
-            disable_web_page_preview: true,
-            parse_mode: 'HTML'
         });
     },
     top: function (msg) {
@@ -963,6 +778,5 @@ var commands = {
 };
 
 commands.stop = commands.clear;
-commands.stop__Group = commands.clear__Group;
 
 module.exports = commands;

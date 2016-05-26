@@ -290,12 +290,6 @@ Chat.prototype.onMessage = function(msg) {
     var action = args.shift().toLowerCase();
     
     var commandFunc = commands[action];
-
-    var groupCommandFunc = commands[action + '__Group'];
-    if (chatId < 0 && groupCommandFunc) {
-        commandFunc = groupCommandFunc;
-    }
-
     if (!commandFunc) {
         debug('Command "%s" is not found!', action);
         return;
