@@ -231,6 +231,63 @@ var commands = {
             );
         });
     },
+    a: function (msg, channelName, service) {
+        "use strict";
+        var _this = this;
+        var chatId = msg.chat.id;
+        var chatList = _this.gOptions.storage.chatList;
+
+        return _this.gOptions.services[service].getChannelId(channelName).then(function (channelId) {
+            var chatItem = chatList[chatId] = chatList[chatId] || {};
+            chatItem.chatId = chatId;
+
+            var serviceList = chatItem.serviceList = chatItem.serviceList || {};
+            var channelList = serviceList[service] = serviceList[service] || [];
+
+            if (channelList.indexOf(channelId) !== -1) {
+                return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.channelExists, _this.templates.hideKeyboard);
+            }
+
+            channelList.push(channelId);
+
+            var title = base.getChannelTitle(_this.gOptions, service, channelId);
+            var url = base.getChannelUrl(service, channelId);
+
+            var displayName = base.htmlSanitize('a', title, url);
+
+            return base.storage.set({chatList: chatList}).then(function () {
+                return _this.gOptions.bot.sendMessage(
+                    chatId,
+                    _this.gOptions.language.channelAdded
+                        .replace('{channelName}', displayName)
+                        .replace('{serviceName}', _this.gOptions.serviceToTitle[service]),
+                    {
+                        disable_web_page_preview: true,
+                        parse_mode: 'HTML'
+                    }
+                ).then(function () {
+                    var onlineServiceList = getOnlineChannelList.call(_this, chatItem);
+                    var channelList = onlineServiceList[service] || {};
+                    var streamList = channelList[channelId] || [];
+                    streamList.forEach(function (stream) {
+                        var text = base.getNowStreamPhotoText(_this.gOptions, stream);
+                        var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
+                        return _this.gOptions.checker.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
+                            debug('a commend, sendNotify error! %s', err);
+                        });
+                    });
+                });
+            });
+        }).catch(function(err) {
+            debug('Channel "%s" (%s) is not found! %s', channelName, service, err);
+            return _this.gOptions.bot.sendMessage(
+                chatId,
+                _this.gOptions.language.channelIsNotFound
+                    .replace('{channelName}', channelName)
+                    .replace('{serviceName}', _this.gOptions.serviceToTitle[service])
+            );
+        });
+    },
     add: function (msg, channelName, serviceName) {
         "use strict";
         var _this = this;
