@@ -164,9 +164,10 @@ var commands = {
             })
         });
     },
-    a: function (msg, channelName, service) {
+    a__Cb: function (callbackQuery, channelName, service) {
         "use strict";
         var _this = this;
+        var msg = callbackQuery.message;
         var chatId = msg.chat.id;
         var chatList = _this.gOptions.storage.chatList;
 
@@ -178,7 +179,12 @@ var commands = {
             var channelList = serviceList[service] = serviceList[service] || [];
 
             if (channelList.indexOf(channelId) !== -1) {
-                return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.channelExists, _this.templates.hideKeyboard);
+                return _this.gOptions.bot.editMessageText(
+                    chatId,
+                    _this.gOptions.language.channelExists,
+                    {
+                        message_id: msg.message_id
+                    });
             }
 
             channelList.push(channelId);
@@ -189,15 +195,15 @@ var commands = {
             var displayName = base.htmlSanitize('a', title, url);
 
             return base.storage.set({chatList: chatList}).then(function () {
-                return _this.gOptions.bot.sendMessage(
+                return _this.gOptions.bot.editMessageText(
                     chatId,
                     _this.gOptions.language.channelAdded
                         .replace('{channelName}', displayName)
                         .replace('{serviceName}', _this.gOptions.serviceToTitle[service]),
                     {
+                        message_id: msg.message_id,
                         disable_web_page_preview: true,
-                        parse_mode: 'HTML',
-                        reply_markup: _this.templates.hideKeyboard.reply_markup
+                        parse_mode: 'HTML'
                     }
                 ).then(function () {
                     var onlineServiceList = getOnlineChannelList.call(_this, chatItem);
@@ -214,12 +220,14 @@ var commands = {
             });
         }).catch(function(err) {
             debug('Channel "%s" (%s) is not found! %s', channelName, service, err);
-            return _this.gOptions.bot.sendMessage(
+            return _this.gOptions.bot.editMessageText(
                 chatId,
                 _this.gOptions.language.channelIsNotFound
                     .replace('{channelName}', channelName)
                     .replace('{serviceName}', _this.gOptions.serviceToTitle[service]),
-                _this.templates.hideKeyboard
+                {
+                    message_id: msg.message_id
+                }
             );
         });
     },
@@ -297,24 +305,12 @@ var commands = {
 
             return _this.gOptions.bot.sendMessage(chatId, msgText, {
                 reply_markup: JSON.stringify({
-                    force_reply: true,
-                    selective: true
+                    force_reply: true
                 })
             });
         };
 
         var waitServiceName = function() {
-            var onMessage = _this.stateList[chatId] = function(msg) {
-                data.push('"' + msg.text + '"');
-
-                msg.text = '/a ' + data.join(' ');
-                return _this.onMessagePromise(msg);
-            };
-            onMessage.command = 'add';
-            onMessage.timeout = setTimeout(function() {
-                onTimeout();
-            }, 3 * 60 * 1000);
-
             var msgText = _this.gOptions.language.enterService;
             if (chatId < 0) {
                 msgText += _this.gOptions.language.selectDelChannelGroupNote;
@@ -322,10 +318,7 @@ var commands = {
 
             return _this.gOptions.bot.sendMessage(chatId, msgText, {
                 reply_markup: JSON.stringify({
-                    keyboard: _this.getServiceListKeyboard(),
-                    resize_keyboard: true,
-                    one_time_keyboard: true,
-                    selective: true
+                    inline_keyboard: _this.getServiceListKeyboard(data)
                 })
             });
         };

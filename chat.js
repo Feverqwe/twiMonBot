@@ -40,7 +40,7 @@ Chat.prototype.templates = {
     }
 };
 
-Chat.prototype.getServiceListKeyboard = function() {
+Chat.prototype.getServiceListKeyboard = function(data) {
     "use strict";
     var last = [];
     var btnList = [last];
@@ -49,9 +49,19 @@ Chat.prototype.getServiceListKeyboard = function() {
             last = [];
             btnList.push(last);
         }
-        last.push(this.gOptions.serviceToTitle[service]);
+
+        var _data = data.slice(0);
+        _data.push('"' + service + '"');
+
+        last.push({
+            text: this.gOptions.serviceToTitle[service],
+            callback_data: '/a ' + _data.join(' ')
+        });
     }
-    btnList.push(['Cancel']);
+    btnList.push([{
+        text: 'Cancel',
+        callback_data: '/c "add"'
+    }]);
 
     return btnList;
 };
@@ -212,7 +222,6 @@ Chat.prototype.onCallbackQuery = function (callbackQuery) {
     }
 
     var commandFunc = commands[action + '__Cb'];
-
     if (!commandFunc) {
         debug('Command "%s" is not found!', action);
         return;
