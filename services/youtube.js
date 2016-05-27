@@ -60,14 +60,15 @@ Youtube.prototype.removeChannelInfo = function (channelId) {
 
 Youtube.prototype.setChannelTitle = function(channelId, title) {
     "use strict";
-    if (channelId === title) {
-        return Promise.resolve();
+    if (channelId !== title) {
+        var info = this.getChannelInfo(channelId);
+        if (info.title !== title) {
+            info.title = title;
+            return this.saveChannelInfo();
+        }
     }
-    var info = this.getChannelInfo(channelId);
-    if (info.title !== title) {
-        info.title = title;
-        return this.saveChannelInfo();
-    }
+
+    return Promise.resolve();
 };
 
 Youtube.prototype.getChannelTitle = function (channelName) {
@@ -322,18 +323,18 @@ Youtube.prototype.getStreamList = function(userList) {
     });
 };
 
-Youtube.prototype.getChannelId = function(userId) {
+Youtube.prototype.getChannelId = function(channelName) {
     "use strict";
     var _this = this;
 
-    return _this.requestChannelIdByUsername(userId).catch(function(err) {
+    return _this.requestChannelIdByUsername(channelName).catch(function(err) {
         if (err !== 'Channel ID is not found by userId!') {
             throw err;
         }
 
-        return _this.requestChannelIdByQuery(userId).then(function(newUserId) {
-            userId = newUserId;
-            return _this.requestChannelIdByUsername(userId);
+        return _this.requestChannelIdByQuery(channelName).then(function(channelId) {
+            channelName = channelId;
+            return _this.requestChannelIdByUsername(channelName);
         });
     }).then(function(channelId) {
         return requestPromise({
@@ -358,24 +359,8 @@ Youtube.prototype.getChannelId = function(userId) {
 
             var channelTitle = snippet.channelTitle;
 
-            return Promise.try(function() {
-                if (!channelTitle || !channelRe.test(userId)) {
-                    return;
-                }
-
-                var channelTitleLow = channelTitle.toLowerCase();
-
-                return _this.requestChannelIdByUsername(channelTitleLow).then(function(channelId) {
-                    if (channelId === userId) {
-                        userId = channelTitleLow;
-                    }
-                }).catch(function() {
-                    debug('Channel title "%s" is not equal userId "%s"', channelTitleLow, userId);
-                });
-            }).then(function() {
-                _this.setChannelTitle(channelId, channelTitle);
-
-                return userId;
+            return _this.setChannelTitle(channelId, channelTitle).then(function () {
+                return channelId;
             });
         });
     });
