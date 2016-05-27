@@ -20,36 +20,6 @@ var Youtube = function(options) {
     this.onReady = base.storage.get(['ytChannelInfo']).then(function(storage) {
         _this.config.channelInfo = storage.ytChannelInfo || {};
         _this.refreshCache();
-        return _this.channelNameToChannelId();
-    });
-};
-
-Youtube.prototype.channelNameToChannelId = function () {
-    "use strict";
-    var userIdToChannelId = this.config.userIdToChannelId;
-    var chatList = this.gOptions.storage.chatList;
-    Object.keys(chatList).forEach(function (chatId) {
-        var chatItem = chatList[chatId];
-        var userChannelList = chatItem.serviceList && chatItem.serviceList.youtube || [];
-        if (!userChannelList.length) {
-            return;
-        }
-
-        userChannelList.slice(0).forEach(function (channelName) {
-            if (channelRe.test(channelName)) {
-                return;
-            }
-
-            var channelId = userIdToChannelId[channelName];
-            if (!channelId) {
-                return debug('ChannelId not found by channelName', channelName);
-            }
-
-            var pos = userChannelList.indexOf(channelName);
-            if (pos !== -1) {
-                userChannelList.splice(pos, 1, channelId);
-            }
-        });
     });
 };
 
