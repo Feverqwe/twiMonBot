@@ -331,7 +331,7 @@ var commands = {
 
         var onTimeout = function() {
             debug("Wait message timeout, %j", msg);
-            msg.text = 'Cancel';
+            msg.text = '/cancel add';
             return _this.onMessage(msg);
         };
 
