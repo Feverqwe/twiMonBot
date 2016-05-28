@@ -98,10 +98,7 @@ Chat.prototype.checkArgs = function(msg, args, isCallbackQuery) {
     return args;
 };
 
-Chat.prototype.msgParser = function(text) {
-    var list = [];
-    var templateList = [];
-
+Chat.prototype.removeBotName = function (text) {
     var botName = this.gOptions.config.botName;
     text = text.replace(/@(\w+bot)/ig, function (str, text) {
         var name = text.toLowerCase();
@@ -111,6 +108,14 @@ Chat.prototype.msgParser = function(text) {
             return '@' + text;
         }
     });
+    return text;
+};
+
+Chat.prototype.msgParser = function(text) {
+    var list = [];
+    var templateList = [];
+
+    text = this.removeBotName(text);
 
     text = text.replace(/%/g, '').replace(/\r\n\t/g, ' ');
     text = text.replace(/"([^"]+)"/g, function(text, value) {
@@ -251,7 +256,11 @@ Chat.prototype.onMessage = function(msg) {
         return;
     }
 
-    var responseFunc = this.stateList[chatId];
+    var responseFunc = this.stateList[chatId] || null;
+    if (responseFunc && msg.from.id !== responseFunc.userId) {
+        responseFunc = null;
+    }
+
     if (responseFunc) {
         clearTimeout(responseFunc.timeout);
         delete this.stateList[chatId];
@@ -263,7 +272,8 @@ Chat.prototype.onMessage = function(msg) {
 
     if (text[0] !== '/') {
         if (responseFunc) {
-            return responseFunc.call(this, msg).catch(function(err) {
+            var text = this.removeBotName(msg.text);
+            return responseFunc.call(this, msg, text).catch(function(err) {
                 debug('Execute responseFunc "%s" error! %s', responseFunc.command, err);
             });
         }

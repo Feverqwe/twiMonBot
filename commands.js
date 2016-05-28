@@ -336,8 +336,8 @@ var commands = {
         };
 
         var waitChannelName = function() {
-            var onMessage = _this.stateList[chatId] = function(msg) {
-                var info = readUrl(msg.text);
+            var onMessage = _this.stateList[chatId] = function(msg, text) {
+                var info = readUrl(text);
                 if (info) {
                     data.push('"' + info.channel + '"');
                     data.push('"' + info.service + '"');
@@ -346,11 +346,12 @@ var commands = {
                     return _this.onMessagePromise(msg);
                 }
 
-                data.push('"' + msg.text + '"');
+                data.push('"' + text + '"');
 
                 return waitServiceName();
             };
             onMessage.command = 'add';
+            onMessage.userId = msg.from.id;
             onMessage.timeout = setTimeout(function() {
                 return onTimeout();
             }, 3 * 60 * 1000);
