@@ -217,8 +217,9 @@ Chat.prototype.onCallbackQuery = function (callbackQuery) {
     var action = args.shift().toLowerCase();
 
     if (['online', 'list', 'add', 'delete', 'top', 'livetime', 'clear', 'watch'].indexOf(action) !== -1) {
-        this.gOptions.bot.answerCallbackQuery(callbackQuery.id, '...');
-        return this.onMessage(this.callbackQueryToMsg(callbackQuery));
+        return this.onMessage(this.callbackQueryToMsg(callbackQuery)).then(function () {
+            return _this.gOptions.bot.answerCallbackQuery(callbackQuery.id, '...');
+        });
     }
 
     var commandFunc = commands[action + '__Cb'];
@@ -242,7 +243,7 @@ Chat.prototype.onCallbackQuery = function (callbackQuery) {
         return _this.gOptions.bot.answerCallbackQuery(callbackQuery.id, '...');
     }).catch(function(err) {
         debug('Execute callback query command "%s" error! %s', action, err);
-    }).finally(function() {
+    }).then(function() {
         _this.track(origMsg, action)
     });
 };
@@ -322,7 +323,7 @@ Chat.prototype.onMessage = function(msg) {
 
     return commandFunc.apply(this, args).catch(function(err) {
         debug('Execute command "%s" error! %s', action, err);
-    }).finally(function() {
+    }).then(function() {
         _this.track(origMsg, action)
     });
 };
