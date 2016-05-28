@@ -283,7 +283,7 @@ Chat.prototype.onMessage = function(msg) {
 
     if (text[0] !== '/') {
         if (responseFunc) {
-            var text = this.removeBotName(msg.text);
+            text = this.removeBotName(msg.text);
             return responseFunc.call(this, msg, text).catch(function(err) {
                 debug('Execute responseFunc "%s" error! %s', responseFunc.command, err);
             });
