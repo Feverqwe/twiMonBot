@@ -101,6 +101,17 @@ Chat.prototype.checkArgs = function(msg, args, isCallbackQuery) {
 Chat.prototype.msgParser = function(text) {
     var list = [];
     var templateList = [];
+
+    var botName = this.gOptions.config.botName;
+    text = text.replace(/@(\w+bot)/ig, function (str, text) {
+        var name = text.toLowerCase();
+        if (name === botName) {
+            return '';
+        } else {
+            return '@' + text;
+        }
+    });
+
     text = text.replace(/%/g, '').replace(/\r\n\t/g, ' ');
     text = text.replace(/"([^"]+)"/g, function(text, value) {
         var index = templateList.push(value.trim());
@@ -120,15 +131,6 @@ Chat.prototype.msgParser = function(text) {
 
         list.push(value);
     });
-
-    if (list.length > 0) {
-        var botName = this.gOptions.config.botName;
-        var arr = list[0].split('@');
-        if (arr.slice(-1)[0].toLowerCase() === botName) {
-            arr.splice(-1);
-            list[0] = arr.join('@');
-        }
-    }
 
     return list;
 };
