@@ -192,7 +192,6 @@ Chat.prototype.callbackQueryToMsg = function (callbackQuery) {
 Chat.prototype.onCallbackQuery = function (callbackQuery) {
     "use strict";
     var _this = this;
-    this.gOptions.bot.answerCallbackQuery(callbackQuery.id, '...');
 
     var data = callbackQuery.data;
 
@@ -218,6 +217,7 @@ Chat.prototype.onCallbackQuery = function (callbackQuery) {
     var action = args.shift().toLowerCase();
 
     if (['online', 'list', 'add', 'delete', 'top', 'livetime', 'clear', 'watch'].indexOf(action) !== -1) {
+        this.gOptions.bot.answerCallbackQuery(callbackQuery.id, '...');
         return this.onMessage(this.callbackQueryToMsg(callbackQuery));
     }
 
@@ -238,7 +238,9 @@ Chat.prototype.onCallbackQuery = function (callbackQuery) {
 
     var origMsg = this.callbackQueryToMsg(callbackQuery);
 
-    return commandFunc.apply(this, args).catch(function(err) {
+    return commandFunc.apply(this, args).then(function () {
+        return _this.gOptions.bot.answerCallbackQuery(callbackQuery.id, '...');
+    }).catch(function(err) {
         debug('Execute callback query command "%s" error! %s', action, err);
     }).finally(function() {
         _this.track(origMsg, action)
