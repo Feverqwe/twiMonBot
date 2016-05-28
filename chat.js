@@ -8,11 +8,21 @@ var base = require('./base');
 
 var Chat = function(options) {
     "use strict";
+    var _this = this;
     this.gOptions = options;
 
     this.stateList = {};
 
     this.bindBot();
+
+    this.onMessage = (function (orig) {
+        return function () {
+            var args = arguments;
+            return Promise.try(function() {
+                return orig.apply(_this, args);
+            });
+        };
+    })(this.onMessage);
 
     options.events.on('tickTack', function() {
         var bot = options.bot;
@@ -314,13 +324,6 @@ Chat.prototype.onMessage = function(msg) {
         debug('Execute command "%s" error! %s', action, err);
     }).finally(function() {
         _this.track(origMsg, action)
-    });
-};
-
-Chat.prototype.onMessagePromise = function(msg) {
-    var _this = this;
-    return Promise.try(function() {
-        return _this.onMessage(msg);
     });
 };
 

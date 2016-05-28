@@ -332,7 +332,7 @@ var commands = {
         var onTimeout = function() {
             debug("Wait message timeout, %j", msg);
             msg.text = 'Cancel';
-            return _this.onMessagePromise(msg);
+            return _this.onMessage(msg);
         };
 
         var waitChannelName = function() {
@@ -343,7 +343,7 @@ var commands = {
                     data.push('"' + info.service + '"');
 
                     msg.text = '/a ' + data.join(' ');
-                    return _this.onMessagePromise(msg);
+                    return _this.onMessage(msg);
                 }
 
                 data.push('"' + text + '"');
@@ -382,7 +382,7 @@ var commands = {
             return waitServiceName();
         } else {
             msg.text = '/a ' + data.join(' ');
-            return _this.onMessagePromise(msg);
+            return _this.onMessage(msg);
         }
     },
     d__Cb: function (callbackQuery, channelName, service) {
