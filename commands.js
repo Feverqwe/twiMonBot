@@ -357,6 +357,9 @@ var commands = {
             }, 3 * 60 * 1000);
 
             var msgText = _this.gOptions.language.enterChannelName;
+            if (chatId < 0) {
+                msgText += _this.gOptions.language.groupNote;
+            }
 
             return _this.gOptions.bot.sendMessage(chatId, msgText, {
                 reply_markup: JSON.stringify({

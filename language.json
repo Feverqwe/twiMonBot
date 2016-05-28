@@ -26,5 +26,6 @@
     "", "",
     "⭐️ If you like this bot, please rate us 5 stars in store:",
     "https://telegram.me/storebot?start=twimonbot"
-  ]
+  ],
+  "groupNote": ["", "Note for groups: Use \"Reply\" to send a answer."]
 }
