@@ -179,7 +179,7 @@ Chat.prototype.chatMigrate = function(oldChatId, newChatId) {
     chatItem.chatId = newChatId;
     debug('Chat migrate from %s to %s', oldChatId, newChatId);
 
-    base.storage.set({chatList: chatList});
+    return base.storage.set({chatList: chatList});
 };
 
 Chat.prototype.callbackQueryToMsg = function (callbackQuery) {
@@ -254,13 +254,11 @@ Chat.prototype.onMessage = function(msg) {
     var chatId = msg.chat.id;
 
     if (msg.migrate_from_chat_id) {
-        this.chatMigrate(msg.migrate_from_chat_id, chatId);
-        return;
+        return this.chatMigrate(msg.migrate_from_chat_id, chatId);
     }
 
     if (msg.migrate_to_chat_id) {
-        this.chatMigrate(chatId, msg.migrate_to_chat_id);
-        return;
+        return this.chatMigrate(chatId, msg.migrate_to_chat_id);
     }
 
     if (!text) {
