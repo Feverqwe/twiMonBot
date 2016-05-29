@@ -234,16 +234,6 @@ module.exports.getNowStreamText = function(gOptions, stream) {
         );
     }
 
-    //todo: rm me!
-    if (!Array.isArray(stream.preview)) {
-        stream.preview = [];
-    }
-
-    var url = stream.preview[0];
-    if (url) {
-        line.push(this.htmlSanitize('a', gOptions.language.preview, url));
-    }
-
     if (line.length) {
         textArr.push(line.join(', '));
     }
@@ -266,7 +256,7 @@ module.exports.getNowStreamText = function(gOptions, stream) {
  * @param {string} stream.channel.display_name
  * @returns {string}
  */
-module.exports.getStreamText = function(gOptions, stream, withWatch) {
+module.exports.getStreamText = function(gOptions, stream) {
     var textArr = [];
 
     textArr.push(this.htmlSanitize('b', stream.channel.display_name || stream.channel.name));
@@ -299,19 +289,11 @@ module.exports.getStreamText = function(gOptions, stream, withWatch) {
         );
     }
 
-    //todo: rm me!
-    if (!Array.isArray(stream.preview)) {
-        stream.preview = [];
-    }
-
     var url = stream.preview[0];
     if (url) {
         line.push(this.htmlSanitize('a', gOptions.language.preview, url));
     }
 
-    if (withWatch) {
-        line.push('/watch_' + stream._channelId + '_' + stream._service);
-    }
     if (line.length) {
         textArr.push(line.join(', '));
     }

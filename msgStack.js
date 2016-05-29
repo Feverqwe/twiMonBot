@@ -105,6 +105,7 @@ MsgStack.prototype.callMsgList = function (chatId) {
 
         return Promise.try(function () {
             var msgId = msgList[0];
+            var chatList = [];
             var videoItem = _this.stack.getItem(msgId);
             if (!videoItem) {
                 debug('VideoItem is not found! %s', msgId);
@@ -118,10 +119,22 @@ MsgStack.prototype.callMsgList = function (chatId) {
                 throw 'chatItem is not found!';
             }
 
-            var text = base.getNowStreamPhotoText(_this.gOptions, videoItem);
+            var options = chatItem.options || {};
+
+            var text = null;
+            if (!options.hidePreview) {
+                text = base.getNowStreamPhotoText(_this.gOptions, videoItem);
+            }
             var noPhotoText = base.getNowStreamText(_this.gOptions, videoItem);
 
-            return _this.gOptions.checker.sendNotify([chatId], text, noPhotoText, videoItem, true).then(function () {
+            if (options.channel) {
+                !options.mute && chatList.push(chatId);
+                chatList.push(options.channel);
+            } else {
+                chatList.push(chatId);
+            }
+
+            return _this.gOptions.checker.sendNotify(chatList, text, noPhotoText, videoItem, true).then(function () {
                 base.removeItemFromArray(msgList, msgId);
                 return _this.saveThrottle();
             });

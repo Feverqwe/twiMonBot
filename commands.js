@@ -5,39 +5,128 @@ var Promise = require('bluebird');
 var debug = require('debug')('commands');
 var base = require('./base');
 
-var menuBtnList = function () {
-    return [
-        [
-            {
-                text: 'Online',
-                callback_data: '/online'
-            },
-            {
-                text: 'Show the channel list',
-                callback_data: '/list'
-            }
-        ],
-        [
-            {
-                text: 'Add channel',
-                callback_data: '/add'
-            },
-            {
-                text: 'Delete channel',
-                callback_data: '/delete'
-            }
-        ],
-        [
-            {
-                text: 'Top 10',
-                callback_data: '/top'
-            },
-            {
-                text: 'How long will it works',
-                callback_data: '/liveTime'
-            }
-        ]
-    ];
+var menuBtnList = function (page) {
+    var btnList = null;
+    if (page === 1) {
+        btnList = [
+            [
+                {
+                    text: 'Options',
+                    callback_data: '/options'
+                }
+            ],
+            [
+                {
+                    text: '<',
+                    callback_data: '/menu_page 0'
+                },
+                {
+                    text: 'Top 10',
+                    callback_data: '/top'
+                },
+                {
+                    text: 'How long will it works',
+                    callback_data: '/liveTime'
+                }
+            ]
+        ];
+    } else {
+        btnList = [
+            [
+                {
+                    text: 'Online',
+                    callback_data: '/online'
+                },
+                {
+                    text: 'Show the channel list',
+                    callback_data: '/list'
+                }
+            ],
+            [
+                {
+                    text: 'Add channel',
+                    callback_data: '/add'
+                },
+                {
+                    text: 'Delete channel',
+                    callback_data: '/delete'
+                },
+                {
+                    text: '>',
+                    callback_data: '/menu_page 1'
+                }
+            ]
+        ];
+    }
+
+    return btnList;
+};
+
+var optionsBtnList = function (chatItem) {
+    var options = chatItem.options || {};
+
+    var btnList = [];
+
+    if (options.hidePreview) {
+        btnList.push([{
+            text: 'Show preview',
+            callback_data: '/option hidePreview 0'
+        }]);
+    } else {
+        btnList.push([{
+            text: 'Hide preview',
+            callback_data: '/option hidePreview 1'
+        }]);
+    }
+
+    if (options.channel) {
+        btnList.push([{
+            text: 'Remove channel (' + options.channel + ')',
+            callback_data: '/setchannel remove'
+        }]);
+    } else {
+        btnList.push([{
+            text: 'Set channel',
+            callback_data: '/setchannel'
+        }]);
+    }
+
+    if (options.channel) {
+        if (options.mute) {
+            btnList.push([{
+                text: 'Unmute',
+                callback_data: '/option mute 0'
+            }]);
+        } else {
+            btnList.push([{
+                text: 'Mute',
+                callback_data: '/option mute 1'
+            }]);
+        }
+    }
+
+    return btnList;
+};
+
+var setOption = function (chatItem, optionName, state) {
+    if (['hidePreview', 'mute'].indexOf(optionName) === -1) {
+        debug('Option is not found! %s', optionName);
+        return Promise.reject(new Error('Option is not found!'));
+    }
+
+    var options = base.getObjectItemOrObj(chatItem, 'options');
+    options[optionName] = state === '1';
+    if (!options[optionName]) {
+        delete options[optionName];
+    }
+
+    if (!Object.keys(options).length) {
+        delete chatItem.options;
+    }
+
+    var msgText = 'Option ' + optionName + ' (' + state + ') changed!';
+
+    return Promise.resolve(msgText);
 };
 
 var getOnlineChannelList = function (chatItem, skipOffline) {
@@ -72,7 +161,7 @@ var getOnlineChannelList = function (chatItem, skipOffline) {
     return serviceList;
 };
 
-var getOnlineText = function (chatItem, withWatch) {
+var getOnlineText = function (chatItem) {
     "use strict";
     var _this = this;
     var onlineList = [];
@@ -86,7 +175,7 @@ var getOnlineText = function (chatItem, withWatch) {
         Object.keys(channelList).forEach(function (channelId) {
             var streamList = channelList[channelId];
             streamList.forEach(function (stream) {
-                textChannelList.push(base.getStreamText(_this.gOptions, stream, withWatch));
+                textChannelList.push(base.getStreamText(_this.gOptions, stream));
             });
         });
 
@@ -143,9 +232,26 @@ var commands = {
 
         return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.help, {
             reply_markup: JSON.stringify({
-                inline_keyboard: menuBtnList()
+                inline_keyboard: menuBtnList(0)
             })
         });
+    },
+    menu_page__Cb: function (callbackQuery, page) {
+        var _this = this;
+        var msg = callbackQuery.message;
+        var chatId = msg.chat.id;
+
+        page = parseInt(page);
+
+        return _this.gOptions.bot.editMessageReplyMarkup(
+            chatId,
+            {
+                message_id: msg.message_id,
+                reply_markup: JSON.stringify({
+                    inline_keyboard: menuBtnList(page)
+                })
+            }
+        );
     },
     help: function (msg) {
         "use strict";
@@ -160,7 +266,7 @@ var commands = {
         return _this.gOptions.bot.sendMessage(chatId, text, {
             disable_web_page_preview: true,
             reply_markup: JSON.stringify({
-                inline_keyboard: menuBtnList()
+                inline_keyboard: menuBtnList(0)
             })
         });
     },
@@ -481,6 +587,67 @@ var commands = {
             })
         });
     },
+    option: function (msg, optionName, state) {
+        var _this = this;
+        var chatId = msg.chat.id;
+        var chatList = _this.gOptions.storage.chatList;
+        var chatItem = chatList[chatId];
+
+        if (!chatItem) {
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
+        }
+
+        return setOption(chatItem, optionName, state).then(function (msgText) {
+            return base.storage.set({chatList: chatList}).then(function () {
+                return _this.gOptions.bot.sendMessage(chatId, msgText);
+            });
+        });
+    },
+    option__Cb: function (callbackQuery, optionName, state) {
+        var _this = this;
+        var msg = callbackQuery.message;
+        var chatId = msg.chat.id;
+
+        var chatList = _this.gOptions.storage.chatList;
+        var chatItem = chatList[chatId];
+
+        if (!chatItem) {
+            return _this.gOptions.bot.editMessageText(
+                chatId,
+                _this.gOptions.language.emptyServiceList,
+                {
+                    message_id: msg.message_id
+                }
+            );
+        }
+
+        return setOption(chatItem, optionName, state).then(function (msgText) {
+            return base.storage.set({chatList: chatList}).then(function () {
+                return _this.gOptions.bot.editMessageReplyMarkup(chatId, {
+                    message_id: msg.message_id,
+                    reply_markup: JSON.stringify({
+                        inline_keyboard: optionsBtnList(chatItem)
+                    })
+                });
+            });
+        });
+    },
+    options: function (msg) {
+        "use strict";
+        var _this = this;
+        var chatId = msg.chat.id;
+        var chatItem = _this.gOptions.storage.chatList[chatId];
+
+        if (!chatItem) {
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
+        }
+
+        return _this.gOptions.bot.sendMessage(chatId, 'Options:', {
+            reply_markup: JSON.stringify({
+                inline_keyboard: optionsBtnList(chatItem)
+            })
+        });
+    },
     c__Cb: function (callbackQuery, command) {
         var _this = this;
         var msg = callbackQuery.message;
@@ -683,6 +850,100 @@ var commands = {
                 inline_keyboard: btnList
             })
         });
+    },
+    setchannel: function (msg, channelName) {
+        "use strict";
+        var _this = this;
+        var chatId = msg.chat.id;
+        var chatList = _this.gOptions.storage.chatList;
+        var chatItem = chatList[chatId];
+
+        if (!chatItem) {
+            return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.emptyServiceList);
+        }
+
+        var onTimeout = function() {
+            msg.text = '/cancel setchannel';
+            return _this.onMessage(msg);
+        };
+
+        var onGetChannelName = function (msg, channelName) {
+            channelName = channelName.trim();
+            return Promise.try(function () {
+                var options = base.getObjectItemOrObj(chatItem, 'options');
+
+                if (channelName === 'remove') {
+                    delete options.channel;
+                    delete options.mute;
+
+                    if (!Object.keys(options).length) {
+                        delete chatItem.options;
+                    }
+                } else {
+                    if (!/^@\w+$/.test(channelName)) {
+                        throw new Error('BAD_FORMAT');
+                    }
+
+                    var exists = Object.keys(chatList).some(function (chatId) {
+                        var item = chatList[chatId];
+                        var options = item.options;
+
+                        if (options && options.channel === channelName) {
+                            return true;
+                        }
+                    });
+
+                    if (exists) {
+                        throw new Error('CHANNEL_EXISTS');
+                    }
+
+                    return _this.gOptions.bot.sendChatAction(channelName, 'typing').then(function () {
+                        options.channel = channelName;
+                    });
+                }
+            }).then(function () {
+                return _this.gOptions.bot.sendMessage(chatId, 'Options:', {
+                    reply_markup: JSON.stringify({
+                        inline_keyboard: optionsBtnList(chatItem)
+                    })
+                });
+            }, function (err) {
+                debug('Set channel error! %s', err);
+
+                var msgText = _this.gOptions.language.telegramChannelError;
+                msgText = msgText.replace('{channelName}', channelName);
+                return _this.gOptions.bot.sendMessage(chatId, msgText);
+            });
+        };
+
+        var waitTelegramChannelName = function() {
+            var onMessage = _this.stateList[chatId] = function(msg, text) {
+                msg.text = '/setchannel "' + text + '"';
+                return _this.onMessage(msg);
+            };
+            onMessage.command = 'setchannel';
+            onMessage.userId = msg.from.id;
+            onMessage.timeout = setTimeout(function() {
+                return onTimeout();
+            }, 3 * 60 * 1000);
+
+            var msgText = _this.gOptions.language.telegramChannelEnter;
+            if (chatId < 0) {
+                msgText += _this.gOptions.language.groupNote;
+            }
+
+            return _this.gOptions.bot.sendMessage(chatId, msgText, {
+                reply_markup: JSON.stringify({
+                    force_reply: true
+                })
+            });
+        };
+
+        if (channelName) {
+            return onGetChannelName(msg, channelName);
+        } else {
+            return waitTelegramChannelName();
+        }
     },
     top: function (msg) {
         "use strict";
