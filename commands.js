@@ -902,10 +902,12 @@ var commands = {
                     });
                 }
             }).then(function () {
-                return _this.gOptions.bot.sendMessage(chatId, 'Options:', {
-                    reply_markup: JSON.stringify({
-                        inline_keyboard: optionsBtnList(chatItem)
-                    })
+                return base.storage.set({chatList: chatList}).then(function () {
+                    return _this.gOptions.bot.sendMessage(chatId, 'Options:', {
+                        reply_markup: JSON.stringify({
+                            inline_keyboard: optionsBtnList(chatItem)
+                        })
+                    });
                 });
             }, function (err) {
                 debug('Set channel error! %s', err);
