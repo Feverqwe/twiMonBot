@@ -234,6 +234,11 @@ module.exports.getNowStreamText = function(gOptions, stream) {
         );
     }
 
+    var url = stream.preview[0];
+    if (url) {
+        line.push(this.htmlSanitize('a', gOptions.language.preview, url));
+    }
+
     if (line.length) {
         textArr.push(line.join(', '));
     }
