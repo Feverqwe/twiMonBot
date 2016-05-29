@@ -762,6 +762,9 @@ var commands = {
     watch: function (msg, channelId, service) {
         var _this = this;
         var chatId = msg.chat.id;
+        
+        var chatItem = this.gOptions.storage.chatList[chatId] || {};
+        var options = chatItem.options || {};
 
         var lastStreamList = this.gOptions.storage.lastStreamList;
         var streamList = [];
@@ -776,8 +779,12 @@ var commands = {
             return _this.gOptions.bot.sendMessage(chatId, _this.gOptions.language.streamIsNotFound);
         } else {
             var promiseList = streamList.map(function (stream) {
-                var text = base.getNowStreamPhotoText(_this.gOptions, stream);
+                var text = null;
+                if (!options.hidePreview) {
+                    text = base.getNowStreamPhotoText(_this.gOptions, stream);
+                }
                 var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
+
                 return _this.gOptions.checker.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
                     debug('watch commend, sendNotify error! %s', err);
                 });
@@ -793,7 +800,7 @@ var commands = {
 
         if (!chatItem) {
             return _this.gOptions.bot.editMessageText(
-                chatId, 
+                chatId,
                 _this.gOptions.language.emptyServiceList,
                 {
                     message_id: msg.message_id
@@ -1058,7 +1065,7 @@ var commands = {
         var _this = this;
         var chatId = msg.chat.id;
         var services = _this.gOptions.services;
-        
+
         var queue = Promise.resolve();
 
         var serviceChannelList = _this.gOptions.checker.getChannelList();
