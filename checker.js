@@ -476,6 +476,10 @@ Checker.prototype.updateNotify = function (stream) {
                 _this.track(msg.chatId, stream, 'updateText');
             }
         }).catch(function (err) {
+            // todo: fix "message is not modified"
+
+            // todo: fix MEDIA_CAPTION_TOO_LONG
+
             // todo: rm msg
             // _this.removeMsgFromStream(stream, msg);
             debug('Edit msg error %s', err);
