@@ -241,6 +241,17 @@ Checker.prototype.addMsgInStream = function (stream, msg) {
     }
     msgArray.push(msg);
 
+    var chatMsgList = msgArray.filter(function (item) {
+        return item.chatId === msg.chatId;
+    }).reverse();
+
+    var limit = 20;
+    if (chatMsgList.length > limit) {
+        chatMsgList.slice(limit).forEach(function (item) {
+            base.removeItemFromArray(msgArray, item);
+        });
+    }
+
     this.gOptions.events.emit('saveStreamList');
 };
 
