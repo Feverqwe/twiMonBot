@@ -97,29 +97,11 @@ Checker.prototype.onSendMsgError = function(err, chatId) {
     return true;
 };
 
-Checker.prototype.getPicId = function(chatId, text, stream) {
+Checker.prototype.downloadImg = function (stream) {
     "use strict";
     var _this = this;
-    var sendPicLimit = 0;
-    var sendPicTimeoutSec = 5;
     var requestLimit = 0;
     var requestTimeoutSec = 30;
-    var tryNumber = 1;
-
-    var refreshRetryLimit = function () {
-        var _retryLimit = _this.gOptions.config.sendPhotoMaxRetry;
-        if (_retryLimit) {
-            sendPicLimit = _retryLimit;
-        }
-
-        var _retryTimeoutSec = _this.gOptions.config.sendPhotoRetryTimeoutSec;
-        if (_retryTimeoutSec) {
-            sendPicTimeoutSec = _retryTimeoutSec;
-        }
-
-        sendPicTimeoutSec *= 1000;
-    };
-    refreshRetryLimit();
 
     var refreshRequestLimit = function () {
         var _requestLimit = _this.gOptions.config.sendPhotoRequestLimit;
@@ -138,10 +120,71 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
 
     var previewList = stream.preview;
 
+    var requestPic = function (index) {
+        var previewUrl = previewList[index];
+        return requestPromise({
+            url: previewUrl,
+            encoding: null,
+            forever: true
+        }).then(function (response) {
+            if (response.statusCode === 404) {
+                throw new Error('404');
+            }
+
+            return response;
+        }).catch(function(err) {
+            // debug('Request photo error! %s %s %s %s', index, stream._channelId, previewUrl, err);
+
+            index++;
+            if (index < previewList.length) {
+                return requestPic(index);
+            }
+
+            if (requestLimit > 0) {
+                requestLimit--;
+                return new Promise(function(resolve) {
+                    setTimeout(resolve, requestTimeoutSec);
+                }).then(function() {
+                    // debug("Retry %s request photo %s %s! %s", requestLimit, chatId, stream._channelId, err);
+                    return requestPic(0);
+                });
+            }
+
+            throw 'Request photo error!';
+        });
+    };
+
+    return requestPic(0).then(function (response) {
+        var image = new Buffer(response.body, 'binary');
+        return image;
+    });
+};
+
+Checker.prototype.getPicId = function(chatId, text, stream) {
+    "use strict";
+    var _this = this;
+    var sendPicLimit = 0;
+    var sendPicTimeoutSec = 5;
+
+    var refreshRetryLimit = function () {
+        var _retryLimit = _this.gOptions.config.sendPhotoMaxRetry;
+        if (_retryLimit) {
+            sendPicLimit = _retryLimit;
+        }
+
+        var _retryTimeoutSec = _this.gOptions.config.sendPhotoRetryTimeoutSec;
+        if (_retryTimeoutSec) {
+            sendPicTimeoutSec = _retryTimeoutSec;
+        }
+
+        sendPicTimeoutSec *= 1000;
+    };
+    refreshRetryLimit();
+
     var sendingPic = function() {
-        var sendPic = function(request) {
+        var sendPic = function(photo) {
             return Promise.try(function() {
-                return _this.gOptions.bot.sendPhoto(chatId, request, {
+                return _this.gOptions.bot.sendPhoto(chatId, photo, {
                     caption: text
                 });
             }).catch(function(err) {
@@ -158,7 +201,6 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
                         setTimeout(resolve, sendPicTimeoutSec);
                     }).then(function() {
                         debug("Retry %s send photo file %s %s! %s", sendPicLimit, chatId, stream._channelId, err);
-                        refreshRequestLimit();
                         return sendingPic();
                     });
                 }
@@ -167,50 +209,8 @@ Checker.prototype.getPicId = function(chatId, text, stream) {
             });
         };
 
-        var picIndex = null;
-        var requestPic = function (index) {
-            var previewUrl = previewList[index];
-            return requestPromise({
-                url: previewUrl,
-                encoding: null,
-                forever: true
-            }).then(function (response) {
-                if (response.statusCode === 404) {
-                    throw new Error('404');
-                }
-
-                picIndex = index;
-                return response;
-            }).catch(function(err) {
-                // debug('Request photo error! %s %s %s %s', index, stream._channelId, previewUrl, err);
-
-                index++;
-                if (index < previewList.length) {
-                    return requestPic(index);
-                }
-
-                if (requestLimit > 0) {
-                    requestLimit--;
-                    return new Promise(function(resolve) {
-                        setTimeout(resolve, requestTimeoutSec);
-                    }).then(function() {
-                        // debug("Retry %s request photo %s %s! %s", requestLimit, chatId, stream._channelId, err);
-                        tryNumber++;
-                        return requestPic(0);
-                    });
-                }
-
-                throw 'Request photo error!';
-            });
-        };
-
-        return requestPic(0).then(function (response) {
-            if (tryNumber > 1 || picIndex > 0) {
-                debug('Try: %s, photo index: %s send! %s %s', tryNumber, picIndex, stream._channelId, stream._videoId);
-            }
-
-            var image = new Buffer(response.body, 'binary');
-            return sendPic(image);
+        return _this.downloadImg(stream).then(function (buffer) {
+            return sendPic(buffer);
         });
     };
 
