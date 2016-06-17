@@ -177,29 +177,48 @@ var getOfflineIcon = function () {
 
 module.exports.getNowStreamPhotoText = function(gOptions, stream) {
     "use strict";
-    var textArr = [];
+    var getText = function (stripLen) {
+        var textArr = [];
 
-    var status = '';
+        var status = '';
 
-    var line = [];
-    if (stream._isOffline) {
-        line.push(getOfflineIcon());
-    }
-    if (stream.channel.status) {
-        line.push(status = stream.channel.status);
-    }
-    if (stream.game && status.indexOf(stream.game) === -1) {
-        line.push(stream.game);
-    }
-    if (line.length) {
-        textArr.push(line.join(', '));
+        var line = [];
+        if (stream._isOffline) {
+            line.push(getOfflineIcon());
+        }
+
+        var descPart = [];
+        if (stream.channel.status) {
+            descPart.push(status = stream.channel.status);
+        }
+        if (stream.game && status.indexOf(stream.game) === -1) {
+            descPart.push(stream.game);
+        }
+        if (descPart.length) {
+            var desc = descPart.join(', ');
+            if (stripLen) {
+                desc = desc.substr(0, desc.length - stripLen - 3) + '...';
+            }
+            line.push(desc);
+        }
+
+        if (line.length) {
+            textArr.push(line.join(', '));
+        }
+
+        if (stream.channel.url) {
+            textArr.push(stream.channel.url);
+        }
+
+        return textArr.join('\n');
+    };
+
+    var text = getText();
+    if (text.length > 200) {
+        text = getText(text.length - 200);
     }
 
-    if (stream.channel.url) {
-        textArr.push(stream.channel.url);
-    }
-
-    return textArr.join('\n');
+    return text;
 };
 
 
