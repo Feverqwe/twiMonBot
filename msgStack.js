@@ -21,7 +21,17 @@ var MsgStack = function (options) {
 
     this.onReady = base.storage.get(['chatMsgStack']).then(function(storage) {
         _this.config.chatMsgStack = storage.chatMsgStack || {};
+        _this.convertMsgStack(_this.config.chatMsgStack);
         _this.stack = _this.initStack();
+    });
+};
+
+MsgStack.prototype.convertMsgStack = function (chatMsgStack) {
+    Object.keys(chatMsgStack).forEach(function (key) {
+        var item = chatMsgStack[key];
+        if (Array.isArray(item)) {
+            chatMsgStack[key] = {stack: item};
+        }
     });
 };
 
@@ -70,9 +80,10 @@ MsgStack.prototype.addInStack = function (videoItem) {
     var msgId = videoItem._id;
 
     this.getChatIdList(videoItem).forEach(function (chatId) {
-        var msgStack = base.getObjectItemOrArray(chatMsgStack, chatId);
-        base.removeItemFromArray(msgStack, msgId);
-        msgStack.push(msgId);
+        var msgStack = base.getObjectItemOrObj(chatMsgStack, chatId);
+        var msgList = base.getObjectItemOrArray(msgStack, 'stack');
+        base.removeItemFromArray(msgList, msgId);
+        msgList.push(msgId);
     });
 };
 
@@ -92,11 +103,17 @@ MsgStack.prototype.callMsgList = function (chatId) {
     var _this = this;
     var chatMsgStack = this.config.chatMsgStack;
 
-    var msgList = chatMsgStack[chatId];
-    if (!msgList) {
-        return Promise.resovle();
+    var msgStack = chatMsgStack[chatId];
+    if (!msgStack) {
+        return Promise.resolve();
     }
 
+    if (msgStack.timeout > base.getNow()) {
+        return Promise.resolve();
+    }
+    delete msgStack.timeout;
+
+    var msgList = msgStack.stack || [];
     var sendNextMsg = function () {
         if (!msgList.length) {
             delete chatMsgStack[chatId];
@@ -141,6 +158,12 @@ MsgStack.prototype.callMsgList = function (chatId) {
         }).then(function () {
             return sendNextMsg();
         }).catch(function (e) {
+            var timeout = 5 * 60;
+            if (/PEER_ID_INVALID/.test(e)) {
+                timeout = 5 * 60 * 60;
+            }
+            msgStack.timeout = base.getNow() + timeout;
+
             debug('sendNextMsg error! %s', e);
         });
     };
