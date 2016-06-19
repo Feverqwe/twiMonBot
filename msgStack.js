@@ -160,7 +160,7 @@ MsgStack.prototype.callMsgList = function (chatId) {
         }).catch(function (e) {
             var timeout = 5 * 60;
             if (/PEER_ID_INVALID/.test(e)) {
-                timeout = 5 * 60 * 60;
+                timeout = 6 * 60 * 60;
             }
             msgStack.timeout = base.getNow() + timeout;
 
