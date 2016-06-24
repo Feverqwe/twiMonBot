@@ -98,7 +98,6 @@ var options = {
         });
     }).then(function() {
         // todo: rm after update
-        var origProcessUpdate = TelegramBotApi.prototype._processUpdate;
         TelegramBotApi.prototype.answerCallbackQuery = function (queryId, text, options) {
             var form = options || {};
             form.callback_query_id = queryId;
@@ -121,12 +120,27 @@ var options = {
             form.caption = text;
             return this._request('editMessageCaption', {form: form});
         };
+        var origProcessUpdate = TelegramBotApi.prototype._processUpdate;
         TelegramBotApi.prototype._processUpdate = function (update) {
             var callbackQuery = update.callback_query;
             if (callbackQuery) {
                 this.emit('callback_query', callbackQuery);
             }
             origProcessUpdate.call(this, update);
+        };
+        var TelegramBotPolling = require('node-telegram-bot-api/src/telegramPolling');
+        var origGetUpdates = TelegramBotPolling.prototype._getUpdates;
+        TelegramBotPolling.prototype._getUpdates = function () {
+            return origGetUpdates.call(this).then(function (updates) {
+                return base.dDblUpdates(updates);
+            });
+        };
+        TelegramBotApi.prototype.initPolling = function () {
+            if (this._polling) {
+                this._polling.abort = true;
+                this._polling.lastRequest.cancel('Polling restart');
+            }
+            this._polling = new TelegramBotPolling(this.token, this.options.polling, this.processUpdate);
         };
         
         /**

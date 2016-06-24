@@ -5,6 +5,7 @@ var path = require('path');
 var Promise = require('bluebird');
 var LocalStorage = require('node-localstorage').LocalStorage;
 var localStorage = null;
+var debug = require('debug')('base');
 
 /**
  *
@@ -531,4 +532,34 @@ module.exports.removeItemFromArray = function (arr, item) {
     if (pos !== -1) {
         arr.splice(pos, 1);
     }
+};
+
+module.exports.dDblUpdates = function (updates) {
+    var _this = this;
+    var dDblUpdates = updates.slice(0);
+    var map = {};
+    updates.reverse().forEach(function (update) {
+        var message = update.message;
+        var callbackQuery = update.callback_query;
+        var key = null;
+        var value = null;
+        if (message) {
+            key = JSON.stringify(message.from) + JSON.stringify(message.chat);
+            value = message.text;
+        } else
+        if (callbackQuery) {
+            key = JSON.stringify(callbackQuery.message.chat) + callbackQuery.message.message_id;
+            value = callbackQuery.data;
+        }
+        if (key && value) {
+            var lines = _this.getObjectItemOrArray(map, key);
+            if (lines[0] === value) {
+                _this.removeItemFromArray(dDblUpdates, update);
+                debug('Skip dbl msg %j', update);
+            } else {
+                lines.unshift(value);
+            }
+        }
+    });
+    return dDblUpdates;
 };
