@@ -66,6 +66,10 @@ Checker.prototype.onSendMsgError = function(err, chatId) {
         needKick = /chat not found"/.test(err);
     }
 
+    if (!needKick) {
+        needKick = /channel not found"/.test(err);
+    }
+
     var jsonRe = /^\d+\s+(\{.+})$/;
     if (jsonRe.test(err)) {
         var msg = null;
