@@ -812,7 +812,7 @@ var commands = {
 
         var btnList = getWatchBtnList.call(_this, chatItem);
 
-        btnList.push([{
+        btnList.unshift([{
             text: _this.gOptions.language.refresh,
             callback_data: '/online_upd'
         }]);
@@ -845,7 +845,7 @@ var commands = {
 
         var btnList = getWatchBtnList.call(_this, chatItem);
 
-        btnList.push([{
+        btnList.unshift([{
             text: _this.gOptions.language.refresh,
             callback_data: '/online_upd'
         }]);
