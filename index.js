@@ -48,7 +48,7 @@ var options = {
         youtube: 'Youtube',
         hitbox: 'Hitbox',
         cybergame: 'CyberGame',
-        sk2tv: 'Sk2tv'
+        sk2tv: 'Sk2tv (beta)'
     },
     serviceMatchRe: {
         goodgame: /goodgame\.ru\/channel\/([^\/]+)/i,
