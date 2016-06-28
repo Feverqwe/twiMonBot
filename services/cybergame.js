@@ -92,7 +92,8 @@ CyberGame.prototype.apiNormalization = function (data) {
             return;
         }
 
-        var channelId = origItem['channel name'].toLowerCase();
+        var name = origItem['channel name'];
+        var channelId = name.toLowerCase();
 
         var previewList = [];
         if (origItem.thumbnail) {
@@ -112,11 +113,11 @@ CyberGame.prototype.apiNormalization = function (data) {
             _channelId: channelId,
 
             viewers: parseInt(origItem.viewers) || 0,
-            game: origItem.channel_game,
+            game: origItem.channel_game || '',
             preview: previewList,
             created_at: undefined,
             channel: {
-                name: channelId,
+                name: name,
                 url: 'http://cybergame.tv/' + channelId + '/'
             }
         };
