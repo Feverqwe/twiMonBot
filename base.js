@@ -375,6 +375,10 @@ module.exports.getChannelUrl = function(service, channelName) {
         url = 'http://hitbox.tv/' + channelName;
     }
 
+    if (service === 'cybergame') {
+        url = 'http://cybergame.tv/' + channelName;
+    }
+
     return url;
 };
 
