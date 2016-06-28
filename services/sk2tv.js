@@ -75,34 +75,29 @@ Sk2tv.prototype.clean = function(channelIdList) {
 Sk2tv.prototype.apiNormalization = function (data) {
     "use strict";
     var _this = this;
-    if (!data || typeof data !== 'object') {
+    if (!Array.isArray(data)) {
         debug('Invalid response! %j', data);
         throw 'Invalid response!';
     }
 
     var now = base.getNow();
     var streamArray = [];
-    Object.keys(data).forEach(function (key) {
-        var origItem = data[key];
-
-        if (origItem.status !== 'Live') {
+    data.forEach(function (origItem) {
+        if (!origItem.live) {
             return;
         }
 
-        delete origItem.embed;
-        delete origItem.description;
-
-        if (!origItem.key || !origItem.thumb || !origItem.stream_id) {
+        if (!origItem.id) {
             debug('Skip item! %j', origItem);
             return;
         }
 
-        var channelId = origItem.key.toLowerCase();
+        var name = origItem.id;
+        var channelId = name.toLowerCase();
 
         var previewList = [];
-        if (origItem.thumb) {
-            previewList.push(origItem.thumb.replace(/_240(\.jpg)$/, '$1'));
-            previewList.push(origItem.thumb);
+        if (origItem.thumbnail) {
+            previewList.push(origItem.thumbnail);
         }
         previewList = previewList.map(function(url) {
             var sep = !/\?/.test(url) ? '?' : '&';
@@ -110,25 +105,23 @@ Sk2tv.prototype.apiNormalization = function (data) {
         });
 
         var item = {
-            _service: 'goodgame',
+            _service: 'sk2tv',
             _checkTime: now,
             _insertTime: now,
-            _id: 'g' + origItem.stream_id,
+            _id: 's' + channelId,
             _isOffline: false,
             _channelId: channelId,
 
             viewers: parseInt(origItem.viewers) || 0,
-            game: origItem.games,
+            game: '',
             preview: previewList,
             created_at: undefined,
             channel: {
-                name: origItem.key,
+                name: name,
                 status: origItem.title,
-                url: origItem.url
+                url: 'http://sk2tv.ru/channel/' + channelId
             }
         };
-
-        _this.setChannelTitle(channelId, origItem.key);
 
         streamArray.push(item);
     });
@@ -141,22 +134,21 @@ Sk2tv.prototype.getStreamList = function (channelList) {
 
     var streamList = [];
 
-    var promiseList = channelList.map(function (channelId) {
+    var promiseList = base.arrToParts(channelList, 100).map(function (arr) {
         return requestPromise({
-            method: 'GET',
-            url: 'http://funstream.tv/api/stream',
-            qs: {
-                owner: channelId
+            method: 'POST',
+            url: 'http://funstream.tv/api/player/live',
+            data: {
+                body: JSON.stringify({
+                    channels: arr.join(',')
+                })
             },
             json: true,
             forever: true
         }).then(function (response) {
-            response = response.body || {};
-            if (!response.id) {
-                return;
-            }
+            response = response.body;
 
-            var list = _this.apiNormalization(channelId, response);
+            var list = _this.apiNormalization(response);
             streamList.push.apply(streamList, list);
         }).catch(function(err) {
             debug('Stream list item "%s" response error! %s', channelId, err);
@@ -172,11 +164,12 @@ Sk2tv.prototype.getChannelId = function (channelName) {
     "use strict";
     var _this = this;
     return requestPromise({
-        method: 'GET',
+        method: 'POST',
         url: 'http://funstream.tv/api/user',
-        qs: {
-            fmt: 'json',
-            name: channelName
+        data: {
+            body: JSON.stringify({
+                name: channelName
+            })
         },
         json: true,
         forever: true
