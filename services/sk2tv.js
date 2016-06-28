@@ -138,10 +138,8 @@ Sk2tv.prototype.getStreamList = function (channelList) {
         return requestPromise({
             method: 'POST',
             url: 'http://funstream.tv/api/player/live',
-            data: {
-                body: JSON.stringify({
-                    channels: arr.join(',')
-                })
+            body: {
+                channels: arr.join(',')
             },
             json: true,
             forever: true
@@ -166,10 +164,8 @@ Sk2tv.prototype.getChannelId = function (channelName) {
     return requestPromise({
         method: 'POST',
         url: 'http://funstream.tv/api/user',
-        data: {
-            body: JSON.stringify({
-                name: channelName
-            })
+        body: {
+            name: channelName
         },
         json: true,
         forever: true
