@@ -135,22 +135,37 @@ Sk2tv.prototype.getStreamList = function (channelList) {
     var streamList = [];
 
     var promiseList = base.arrToParts(channelList, 100).map(function (arr) {
-        return requestPromise({
-            method: 'POST',
-            url: 'http://funstream.tv/api/player/live',
-            body: {
-                channels: arr.join(',')
-            },
-            json: true,
-            forever: true
-        }).then(function (response) {
-            response = response.body;
+        var retryLimit = 5;
+        var getList = function () {
+            return requestPromise({
+                method: 'POST',
+                url: 'http://funstream.tv/api/player/live',
+                body: {
+                    channels: arr.join(',')
+                },
+                json: true,
+                forever: true
+            }).then(function(response) {
+                response = response.body;
 
-            var list = _this.apiNormalization(response);
-            streamList.push.apply(streamList, list);
-        }).catch(function(err) {
-            debug('Request stream list error! %j', err);
-        });
+                var list = _this.apiNormalization(response);
+                streamList.push.apply(streamList, list);
+            }).catch(function (err) {
+                retryLimit--;
+                if (retryLimit < 0) {
+                    debug("Request stream list error! %s", err);
+                    return;
+                }
+
+                return new Promise(function(resolve) {
+                    return setTimeout(resolve, 5 * 1000);
+                }).then(function() {
+                    debug("Retry request stream list %s! %s", retryLimit, err);
+                    return getList();
+                });
+            });
+        };
+        return getList();
     });
 
     return Promise.all(promiseList).then(function () {
