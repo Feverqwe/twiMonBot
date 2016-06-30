@@ -149,7 +149,7 @@ Sk2tv.prototype.getStreamList = function (channelList) {
             var list = _this.apiNormalization(response);
             streamList.push.apply(streamList, list);
         }).catch(function(err) {
-            debug('Stream list item "%s" response error! %s', channelId, err);
+            debug('Request stream list error! %j', err);
         });
     });
 
