@@ -41,14 +41,12 @@ var options = {
         chatList: {},
         lastStreamList: []
     },
-    serviceList: ['twitch', 'goodgame', 'youtube', 'hitbox', 'cybergame', 'sk2tv'],
+    serviceList: ['twitch', 'goodgame', 'youtube', 'hitbox'],
     serviceToTitle: {
         goodgame: 'GoodGame',
         twitch: 'Twitch',
         youtube: 'Youtube',
-        hitbox: 'Hitbox',
-        cybergame: 'CyberGame',
-        sk2tv: 'Sk2tv (beta)'
+        hitbox: 'Hitbox'
     },
     serviceMatchRe: {
         goodgame: /goodgame\.ru\/channel\/([^\/]+)/i,
@@ -57,9 +55,7 @@ var options = {
             /youtube\.com\/(?:#\/)?(?:user|channel)\/([0-9A-Za-z_-]+)/i,
             /youtube\.com\/([0-9A-Za-z_-]+)$/i
         ],
-        hitbox: /hitbox\.tv\/([^\/]+)/i,
-        cybergame: /cybergame\.tv\/([^\/]+)/i,
-        sk2tv: /sc2tv\.ru\/channel\/([^\/]+)/i
+        hitbox: /hitbox\.tv\/([^\/]+)/i
     },
     services: {},
     events: null,
