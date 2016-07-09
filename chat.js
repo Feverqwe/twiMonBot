@@ -312,7 +312,7 @@ Chat.prototype.onMessage = function(msg) {
             });
         }
 
-        debug('Msg is not command! %s', text);
+        debug('Msg is not command! %j', msg);
         return;
     }
 
