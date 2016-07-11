@@ -172,6 +172,10 @@ module.exports.getDate = function() {
         + s;
 };
 
+var getTimeoutIcon = function () {
+    return '⏲';
+};
+
 var getOfflineIcon = function () {
     return '🏁';
 };
@@ -184,6 +188,9 @@ module.exports.getNowStreamPhotoText = function(gOptions, stream) {
         var status = '';
 
         var line = [];
+        if (stream._isTimeout) {
+            line.push(getTimeoutIcon());
+        } else
         if (stream._isOffline) {
             line.push(getOfflineIcon());
         }
@@ -231,9 +238,13 @@ module.exports.getNowStreamText = function(gOptions, stream) {
     var status = '';
 
     var line = [];
+    if (stream._isTimeout) {
+        line.push(getTimeoutIcon());
+    } else
     if (stream._isOffline) {
         line.push(getOfflineIcon());
     }
+
     if (stream.channel.status) {
         line.push(this.htmlSanitize(status = stream.channel.status));
     }
@@ -479,7 +490,7 @@ module.exports.getTimeoutStream = function (service, channelId) {
     return item;
 };
 
-module.exports.getNow = function () {
+var getNow = module.exports.getNow = function () {
     return parseInt(Date.now() / 1000);
 };
 
