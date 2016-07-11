@@ -143,13 +143,13 @@ var getDeleteChannelList = function (chatItem, page) {
         if (page > 0) {
             pageControls.push({
                 text: '<',
-                callback_data: '/del ' + (page - 1)
+                callback_data: '/delete_upd ' + (page - 1)
             });
         }
         if (countItem - offsetEnd > 0) {
             pageControls.push({
                 text: '>',
-                callback_data: '/del ' + (page + 1)
+                callback_data: '/delete_upd ' + (page + 1)
             });
         }
         pageList.push(pageControls);
@@ -597,7 +597,7 @@ var commands = {
             );
         });
     },
-    del__Cb: function (callbackQuery, page) {
+    delete_upd__Cb: function (callbackQuery, page) {
         "use strict";
         var _this = this;
         var msg = callbackQuery.message;
