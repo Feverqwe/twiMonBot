@@ -470,6 +470,15 @@ module.exports.arrToParts = function (arr, quote) {
     return arrList;
 };
 
+module.exports.getTimeoutStream = function (service, channelId) {
+    var item = {
+        _service: service,
+        _channelId: channelId,
+        _isTimeout: true
+    };
+    return item;
+};
+
 module.exports.getNow = function () {
     return parseInt(Date.now() / 1000);
 };

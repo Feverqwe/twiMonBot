@@ -114,6 +114,10 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
     };
 
     newLiveList.forEach(function (item) {
+        if (item._isTimeout) {
+            return;
+        }
+
         var changes = null;
         var id = item._id;
         var oldItem = lastStreamIdObj[id];

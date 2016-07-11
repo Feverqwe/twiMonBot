@@ -160,6 +160,9 @@ GoodGame.prototype.getStreamList = function (channelList) {
             }).catch(function (err) {
                 retryLimit--;
                 if (retryLimit < 0) {
+                    channelList.forEach(function (channelId) {
+                        videoList.push(base.getTimeoutStream('goodgame', channelId));
+                    });
                     debug("Request stream list error! %s", err);
                     return;
                 }

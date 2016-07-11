@@ -278,6 +278,7 @@ Youtube.prototype.getStreamList = function(channelIdList) {
                 streamList.push.apply(streamList, stream);
             });
         }).catch(function(err) {
+            streamList.push(base.getTimeoutStream('youtube', channelId));
             debug('Stream list item "%s" response error! %s', channelId, err);
         });
     });
