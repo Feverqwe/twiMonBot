@@ -575,7 +575,7 @@ module.exports.pageBtnList = function (btnList, updCommand, page) {
         var pageControls = [];
         if (page > 0) {
             pageControls.push({
-                text: '🔚',
+                text: '🔙',
                 callback_data: '/' + updCommand + ' ' + (page - 1)
             });
         }
