@@ -583,7 +583,7 @@ module.exports.pageBtnList = function (btnList, updCommand, page, mediumBtn) {
             });
         }
         if (mediumBtn) {
-            pageControls.push.call(pageControls, mediumBtn);
+            pageControls.push.apply(pageControls, mediumBtn);
         }
         if (countItem - offsetEnd > 0) {
             pageControls.push({
