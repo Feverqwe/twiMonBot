@@ -133,6 +133,9 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             delete item._insertTime;
             // rm photo cache
             delete oldItem._photoId;
+            // rm timeout
+            delete oldItem._isTimeout;
+            
             changes = _this.updateObj(oldItem, item);
 
             if (changes.indexOf('_isOffline') !== -1) {
@@ -166,6 +169,9 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             delete item._insertTime;
             // rm photo cache
             delete oldItem._photoId;
+            // rm timeout
+            delete oldItem._isTimeout;
+
             changes = _this.updateObj(oldItem, item);
 
             if (changes.indexOf('_isOffline') !== -1) {
