@@ -288,6 +288,7 @@ module.exports.getNowStreamText = function(gOptions, stream) {
  * @param {string} stream._channelId
  * @param {Array} stream.preview
  * @param {boolean} stream._isOffline
+ * @param {boolean} stream._isTimeout
  * @param {Object} stream.channel
  * @param {string} stream.channel.display_name
  * @returns {string}
@@ -300,6 +301,9 @@ module.exports.getStreamText = function(gOptions, stream) {
     var status = '';
 
     var line = [];
+    if (stream._isTimeout) {
+        line.push(getTimeoutIcon());
+    } else
     if (stream._isOffline) {
         line.push(getOfflineIcon());
     } else
