@@ -564,8 +564,11 @@ module.exports.dDblUpdates = function (updates) {
     return dDblUpdates;
 };
 
-module.exports.pageBtnList = function (btnList, updCommand, page) {
+module.exports.pageBtnList = function (btnList, updCommand, page, mediumBtn) {
     page = parseInt(page || 0);
+    if (mediumBtn && !Array.isArray(mediumBtn)) {
+        mediumBtn = [mediumBtn];
+    }
     var maxItemCount = 10;
     var offset = page * maxItemCount;
     var offsetEnd = offset + maxItemCount;
@@ -579,6 +582,9 @@ module.exports.pageBtnList = function (btnList, updCommand, page) {
                 callback_data: '/' + updCommand + ' ' + (page - 1)
             });
         }
+        if (mediumBtn) {
+            pageControls.push.call(pageControls, mediumBtn);
+        }
         if (countItem - offsetEnd > 0) {
             pageControls.push({
                 text: '🔜️',
@@ -586,6 +592,9 @@ module.exports.pageBtnList = function (btnList, updCommand, page) {
             });
         }
         pageList.push(pageControls);
+    } else
+    if (mediumBtn) {
+        pageList.push(mediumBtn);
     }
     return pageList;
 };

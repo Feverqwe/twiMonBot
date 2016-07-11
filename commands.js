@@ -111,9 +111,10 @@ var optionsBtnList = function (chatItem) {
 /**
  * @param {Object} chatItem
  * @param {number} page
+ * @param {Object|Array} mediumBtn
  * @returns {Array.<*>}
  */
-var getDeleteChannelList = function (chatItem, page) {
+var getDeleteChannelList = function (chatItem, page, mediumBtn) {
     var _this = this;
     var btnList = [];
 
@@ -132,7 +133,7 @@ var getDeleteChannelList = function (chatItem, page) {
         });
     });
 
-    return base.pageBtnList(btnList, 'delete_upd', page);
+    return base.pageBtnList(btnList, 'delete_upd', page, mediumBtn);
 };
 
 var setOption = function (chatItem, optionName, state) {
@@ -591,12 +592,12 @@ var commands = {
             );
         }
 
-        var btnList = getDeleteChannelList.call(_this, chatItem, page);
-
-        btnList.push([{
+        var mediumBtn = {
             text: 'Cancel',
             callback_data: '/c "delete"'
-        }]);
+        };
+
+        var btnList = getDeleteChannelList.call(_this, chatItem, page, mediumBtn);
 
         return _this.gOptions.bot.editMessageReplyMarkup(chatId, {
             message_id: msg.message_id,
@@ -617,12 +618,12 @@ var commands = {
 
         var msgText = _this.gOptions.language.selectDelChannel;
 
-        var btnList = getDeleteChannelList.call(_this, chatItem, 0);
-
-        btnList.push([{
+        var mediumBtn = {
             text: 'Cancel',
             callback_data: '/c "delete"'
-        }]);
+        };
+
+        var btnList = getDeleteChannelList.call(_this, chatItem, 0, mediumBtn);
 
         return _this.gOptions.bot.sendMessage(chatId, msgText, {
             reply_markup: JSON.stringify({
