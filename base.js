@@ -563,3 +563,28 @@ module.exports.dDblUpdates = function (updates) {
     });
     return dDblUpdates;
 };
+
+module.exports.pageBtnList = function (btnList, updCommand, page) {
+    page = parseInt(page || 0);
+    var maxItemCount = 10;
+    var offset = page * maxItemCount;
+    var offsetEnd = offset + maxItemCount;
+    var countItem = btnList.length;
+    var pageList = btnList.slice(offset, offsetEnd);
+    if (countItem > maxItemCount) {
+        var pageControls = [];
+        if (page > 0) {
+            pageControls.push({
+                text: '<',
+                callback_data: '/' + updCommand + ' ' + (page - 1)
+            });
+        }
+        if (countItem - offsetEnd > 0) {
+            pageControls.push({
+                text: '>',
+                callback_data: '/' + updCommand + ' ' + (page + 1)
+            });
+        }
+        pageList.push(pageControls);
+    }
+};

@@ -115,7 +115,6 @@ var optionsBtnList = function (chatItem) {
  */
 var getDeleteChannelList = function (chatItem, page) {
     var _this = this;
-    page = parseInt(page || 0);
     var btnList = [];
 
     Object.keys(chatItem.serviceList).forEach(function (service) {
@@ -133,29 +132,7 @@ var getDeleteChannelList = function (chatItem, page) {
         });
     });
 
-    var maxItemCount = 10;
-    var offset = page * maxItemCount;
-    var offsetEnd = offset + maxItemCount;
-    var countItem = btnList.length;
-    var pageList = btnList.slice(offset, offsetEnd);
-    if (countItem > maxItemCount) {
-        var pageControls = [];
-        if (page > 0) {
-            pageControls.push({
-                text: '<',
-                callback_data: '/delete_upd ' + (page - 1)
-            });
-        }
-        if (countItem - offsetEnd > 0) {
-            pageControls.push({
-                text: '>',
-                callback_data: '/delete_upd ' + (page + 1)
-            });
-        }
-        pageList.push(pageControls);
-    }
-
-    return pageList;
+    return base.pageBtnList(btnList, 'delete_upd', page);
 };
 
 var setOption = function (chatItem, optionName, state) {
@@ -242,7 +219,6 @@ var getOnlineText = function (chatItem) {
 var getWatchBtnList = function (chatItem, page) {
     "use strict";
     var _this = this;
-    page = parseInt(page || 0);
     var btnList = [];
 
     var serviceList = getOnlineChannelList.call(this, chatItem);
@@ -265,29 +241,7 @@ var getWatchBtnList = function (chatItem, page) {
         });
     });
 
-    var maxItemCount = 10;
-    var offset = page * maxItemCount;
-    var offsetEnd = offset + maxItemCount;
-    var countItem = btnList.length;
-    var pageList = btnList.slice(offset, offsetEnd);
-    if (countItem > maxItemCount) {
-        var pageControls = [];
-        if (page > 0) {
-            pageControls.push({
-                text: '<',
-                callback_data: '/online_upd ' + (page - 1)
-            });
-        }
-        if (countItem - offsetEnd > 0) {
-            pageControls.push({
-                text: '>',
-                callback_data: '/online_upd ' + (page + 1)
-            });
-        }
-        pageList.push(pageControls);
-    }
-
-    return pageList;
+    return base.pageBtnList(btnList, 'online_upd', page);
 };
 
 var commands = {
