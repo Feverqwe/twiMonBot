@@ -578,7 +578,7 @@ module.exports.pageBtnList = function (btnList, updCommand, page, mediumBtn) {
         var pageControls = [];
         if (page > 0) {
             pageControls.push({
-                text: '🔙',
+                text: '<',
                 callback_data: '/' + updCommand + ' ' + (page - 1)
             });
         }
@@ -587,7 +587,7 @@ module.exports.pageBtnList = function (btnList, updCommand, page, mediumBtn) {
         }
         if (countItem - offsetEnd > 0) {
             pageControls.push({
-                text: '🔜️',
+                text: '>',
                 callback_data: '/' + updCommand + ' ' + (page + 1)
             });
         }
