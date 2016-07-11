@@ -8,7 +8,7 @@
   "channelExists": "This channel already exists!",
   "channelAdded": "Success! Channel {channelName} ({serviceName}) added!",
   "telegramChannelEnter": "Enter the channel name (example: @channelname):",
-  "telegramChannelError": "Oops! I can't add channel {channelName}!",
+  "telegramChannelError": "Oops! I can't add channel {channelName}! Bot must be admin in this channel.",
   "commandCanceled": "The command {command} has been cancelled.",
   "channelDontExist": "Oops! Can't find channel in watch list!",
   "channelDeleted": "Success! Channel {channelName} ({serviceName}) deleted!",
