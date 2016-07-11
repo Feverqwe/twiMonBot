@@ -114,7 +114,12 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
     };
 
     newLiveList.forEach(function (item) {
+        var channelStreamList = null;
         if (item._isTimeout) {
+            channelStreamList = lastChannelStreamObj[item._channelId];
+            channelStreamList && channelStreamList.forEach(function (item) {
+                item._offlineStartTime = now;
+            });
             return;
         }
 
@@ -143,7 +148,7 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
         }
 
         var channelId = item._channelId;
-        var channelStreamList = lastChannelStreamObj[channelId];
+        channelStreamList = lastChannelStreamObj[channelId];
         if (!channelStreamList) {
             // is new stream, notify
             liveList.push(item);
