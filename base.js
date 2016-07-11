@@ -571,7 +571,7 @@ module.exports.pageBtnList = function (btnList, updCommand, page) {
     var offsetEnd = offset + maxItemCount;
     var countItem = btnList.length;
     var pageList = btnList.slice(offset, offsetEnd);
-    if (countItem > maxItemCount) {
+    if (countItem > maxItemCount || page > 0) {
         var pageControls = [];
         if (page > 0) {
             pageControls.push({
