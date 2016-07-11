@@ -239,9 +239,10 @@ var getOnlineText = function (chatItem) {
     return onlineList.join('\n\n');
 };
 
-var getWatchBtnList = function (chatItem) {
+var getWatchBtnList = function (chatItem, page) {
     "use strict";
     var _this = this;
+    page = parseInt(page || 0);
     var btnList = [];
 
     var serviceList = getOnlineChannelList.call(this, chatItem);
@@ -264,7 +265,29 @@ var getWatchBtnList = function (chatItem) {
         });
     });
 
-    return btnList;
+    var maxItemCount = 10;
+    var offset = page * maxItemCount;
+    var offsetEnd = offset + maxItemCount;
+    var countItem = btnList.length;
+    var pageList = btnList.slice(offset, offsetEnd);
+    if (countItem > maxItemCount) {
+        var pageControls = [];
+        if (page > 0) {
+            pageControls.push({
+                text: '<',
+                callback_data: '/online_upd ' + (page - 1)
+            });
+        }
+        if (countItem - offsetEnd > 0) {
+            pageControls.push({
+                text: '>',
+                callback_data: '/online_upd ' + (page + 1)
+            });
+        }
+        pageList.push(pageControls);
+    }
+
+    return pageList;
 };
 
 var commands = {
@@ -858,7 +881,7 @@ var commands = {
             return Promise.all(promiseList);
         }
     },
-    online_upd__Cb: function (callbackQuery) {
+    online_upd__Cb: function (callbackQuery, page) {
         var _this = this;
         var msg = callbackQuery.message;
         var chatId = msg.chat.id;
@@ -876,7 +899,7 @@ var commands = {
 
         var text = getOnlineText.call(_this, chatItem);
 
-        var btnList = getWatchBtnList.call(_this, chatItem);
+        var btnList = getWatchBtnList.call(_this, chatItem, page);
 
         btnList.unshift([{
             text: _this.gOptions.language.refresh,
@@ -909,7 +932,7 @@ var commands = {
 
         var text = getOnlineText.call(_this, chatItem);
 
-        var btnList = getWatchBtnList.call(_this, chatItem);
+        var btnList = getWatchBtnList.call(_this, chatItem, 0);
 
         btnList.unshift([{
             text: _this.gOptions.language.refresh,
