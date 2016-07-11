@@ -117,8 +117,8 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
         var channelStreamList = null;
         if (item._isTimeout) {
             channelStreamList = lastChannelStreamObj[item._channelId];
-            channelStreamList && channelStreamList.forEach(function (item) {
-                item._isTimeout = true;
+            channelStreamList && channelStreamList.forEach(function (oldItem) {
+                oldItem._isTimeout = true;
             });
             return;
         }
