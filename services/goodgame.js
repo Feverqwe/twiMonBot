@@ -115,6 +115,7 @@ GoodGame.prototype.apiNormalization = function (data) {
             _insertTime: now,
             _id: 'g' + origItem.stream_id,
             _isOffline: false,
+            _isTimeout: false,
             _channelId: channelId,
 
             viewers: parseInt(origItem.viewers) || 0,

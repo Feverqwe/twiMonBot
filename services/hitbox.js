@@ -112,6 +112,7 @@ Hitbox.prototype.apiNormalization = function(data) {
             _insertTime: now,
             _id: 'h' + origItem.media_id,
             _isOffline: false,
+            _isTimeout: false,
             _channelId: channelId,
 
             viewers: parseInt(origItem.media_views) || 0,

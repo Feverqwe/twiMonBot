@@ -132,6 +132,7 @@ Twitch.prototype.apiNormalization = function(data) {
             _insertTime: now,
             _id: 't' + apiItem._id,
             _isOffline: false,
+            _isTimeout: false,
             _channelId: channelId,
 
             viewers: apiItem.viewers,

@@ -121,11 +121,9 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
                 // stream exists, update info
                 delete lastStreamIdObj[oldItem._id];
                 // set timeout status
-                oldItem._isTimeout = true;
+                if (!oldItem._isTimeout) {
+                    oldItem._isTimeout = true;
 
-                if (!oldItem._isOffline) {
-                    oldItem._isOffline = true;
-                    oldItem._offlineStartTime = now;
                     debugLog('Timeout (U) %s %j', oldItem._channelId, logStream(oldItem));
                     _this.gOptions.events.emit('updateNotify', oldItem);
                 }
@@ -143,12 +141,10 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             delete item._insertTime;
             // rm photo cache
             delete oldItem._photoId;
-            // rm timeout
-            delete oldItem._isTimeout;
             
             changes = _this.updateObj(oldItem, item);
 
-            if (changes.indexOf('_isOffline') !== -1) {
+            if (changes.indexOf('_isOffline') !== -1 || changes.indexOf('_isTimeout') !== -1) {
                 debugLog('Online (U) %s %j', oldItem._channelId, logStream(oldItem));
                 _this.gOptions.events.emit('updateNotify', oldItem);
             } else
@@ -167,7 +163,8 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             liveList.push(item);
             debugLog('New (N) %s %j', item._channelId, logStream(item));
             item._notifyTime = now;
-            return _this.gOptions.events.emit('notify', item);
+            _this.gOptions.events.emit('notify', item);
+            return;
         }
 
         var dbId = _this.findDblStream(channelStreamList, item);
@@ -179,12 +176,10 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             delete item._insertTime;
             // rm photo cache
             delete oldItem._photoId;
-            // rm timeout
-            delete oldItem._isTimeout;
 
             changes = _this.updateObj(oldItem, item);
 
-            if (changes.indexOf('_isOffline') !== -1) {
+            if (changes.indexOf('_isOffline') !== -1 || changes.indexOf('_isTimeout') !== -1) {
                 debugLog('Online dbl (U) %s %j', oldItem._channelId, logStream(oldItem));
                 _this.gOptions.events.emit('updateNotify', oldItem);
             } else {

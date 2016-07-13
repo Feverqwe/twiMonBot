@@ -118,6 +118,7 @@ Youtube.prototype.apiNormalization = function(channelId, data, viewers) {
             _insertTime: now,
             _id: 'y' + videoId,
             _isOffline: false,
+            _isTimeout: false,
             _channelId: channelId,
 
             viewers: viewers || 0,
