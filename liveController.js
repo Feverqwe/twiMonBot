@@ -118,7 +118,17 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
         if (item._isTimeout) {
             channelStreamList = lastChannelStreamObj[item._channelId];
             channelStreamList && channelStreamList.forEach(function (oldItem) {
+                // stream exists, update info
+                delete lastStreamIdObj[oldItem._id];
+                // set timeout status
                 oldItem._isTimeout = true;
+
+                if (!oldItem._isOffline) {
+                    oldItem._isOffline = true;
+                    oldItem._offlineStartTime = now;
+                    debugLog('Timeout (U) %s %j', oldItem._channelId, logStream(oldItem));
+                    _this.gOptions.events.emit('updateNotify', oldItem);
+                }
             });
             return;
         }
@@ -204,15 +214,6 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             return;
         }
 
-        if (item._isTimeout) {
-            // set timeout status
-            if (!item._isOffline) {
-                item._isOffline = true;
-                item._offlineStartTime = now;
-                debugLog('Timeout (U) %s %j', item._channelId, logStream(item));
-                _this.gOptions.events.emit('updateNotify', item);
-            }
-        } else
         if (!item._isOffline) {
             // set offline status
             item._isOffline = true;
