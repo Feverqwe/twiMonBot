@@ -76,7 +76,7 @@ Twitch.prototype.getRecordUrl = function (stream) {
     var broadcastId = stream.broadcastId;
     return requestPromise({
         method: 'GET',
-        url: 'https://api.twitch.tv/kraken/channels/' + stream._channelId + '/channels/videos',
+        url: 'https://api.twitch.tv/kraken/channels/' + stream._channelId + '/videos',
         qs: {
             broadcasts: true,
             limit: 10
