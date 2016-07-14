@@ -74,6 +74,8 @@ Twitch.prototype.clean = function(channelIdList) {
 
 Twitch.prototype.getRecordUrl = function (stream) {
     var broadcastId = stream.broadcastId;
+    delete stream.broadcastId;
+    
     return requestPromise({
         method: 'GET',
         url: 'https://api.twitch.tv/kraken/channels/' + stream._channelId + '/videos',
@@ -96,7 +98,6 @@ Twitch.prototype.getRecordUrl = function (stream) {
                 return true;
             }
         });
-        stream.broadcastId = null;
 
         return true;
     }, function (e) {
