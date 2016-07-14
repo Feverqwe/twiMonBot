@@ -72,6 +72,37 @@ Twitch.prototype.clean = function(channelIdList) {
     return Promise.resolve();
 };
 
+Twitch.prototype.getRecordUrl = function (stream) {
+    var broadcastId = stream.broadcastId;
+    return requestPromise({
+        method: 'GET',
+        url: 'https://api.twitch.tv/kraken/channels/' + stream._channelId + '/channels/videos',
+        qs: {
+            broadcasts: true,
+            limit: 10
+        },
+        headers: {
+            'Accept': 'application/vnd.twitchtv.v3+json'
+        },
+        json: true,
+        forever: true
+    }).then(function(response) {
+        response = response.body;
+
+        var videos = response && response.videos;
+        videos && videos.some(function (item) {
+            if (item.broadcast_type === 'archive' && item.broadcast_id === broadcastId) {
+                stream._recordUrl = item.url;
+                return true;
+            }
+        });
+
+        return true;
+    }, function (e) {
+        debug('getRecordUrl error! %j', e);
+    });
+};
+
 Twitch.prototype.apiNormalization = function(data) {
     "use strict";
     var _this = this;
@@ -135,6 +166,7 @@ Twitch.prototype.apiNormalization = function(data) {
             _isTimeout: false,
             _channelId: channelId,
 
+            broadcastId: apiItem._id,
             viewers: apiItem.viewers,
             game: apiItem.game,
             preview: previewList,

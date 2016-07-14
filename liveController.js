@@ -139,6 +139,8 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             delete lastStreamIdObj[id];
             // don't inherit insert time
             delete item._insertTime;
+            // don't inherit broadcast id
+            delete item.broadcastId;
             // rm photo cache
             delete oldItem._photoId;
             
@@ -174,6 +176,8 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
             delete lastStreamIdObj[dbId];
             // don't inherit insert time
             delete item._insertTime;
+            // don't inherit broadcast id
+            delete item.broadcastId;
             // rm photo cache
             delete oldItem._photoId;
 

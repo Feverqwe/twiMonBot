@@ -215,7 +215,7 @@ module.exports.getNowStreamPhotoText = function(gOptions, stream) {
         }
 
         if (stream.channel.url) {
-            textArr.push(stream.channel.url);
+            textArr.push(stream._recordUrl || stream.channel.url);
         }
 
         return textArr.join('\n');
@@ -258,7 +258,7 @@ module.exports.getNowStreamText = function(gOptions, stream) {
     line = [];
     if (stream.channel.url) {
         var channelName = this.htmlSanitize('b', stream.channel.display_name || stream.channel.name);
-        var channelUrl = this.htmlSanitize('a', gOptions.serviceToTitle[stream._service], stream.channel.url);
+        var channelUrl = this.htmlSanitize('a', gOptions.serviceToTitle[stream._service], stream._recordUrl || stream.channel.url);
         line.push(gOptions.language.watchOn
             .replace('{channelName}', channelName)
             .replace('{serviceName}', channelUrl)
@@ -322,7 +322,7 @@ module.exports.getStreamText = function(gOptions, stream) {
 
     line = [];
     if (stream.channel.url) {
-        var channelUrl = this.htmlSanitize('a', gOptions.serviceToTitle[stream._service], stream.channel.url);
+        var channelUrl = this.htmlSanitize('a', gOptions.serviceToTitle[stream._service], stream._recordUrl || stream.channel.url);
         line.push(gOptions.language.watchOn
             .replace('{channelName} ', '')
             .replace('{serviceName}', channelUrl)
