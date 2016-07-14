@@ -21,17 +21,7 @@ var MsgStack = function (options) {
 
     this.onReady = base.storage.get(['chatMsgStack']).then(function(storage) {
         _this.config.chatMsgStack = storage.chatMsgStack || {};
-        _this.convertMsgStack(_this.config.chatMsgStack);
         _this.stack = _this.initStack();
-    });
-};
-
-MsgStack.prototype.convertMsgStack = function (chatMsgStack) {
-    Object.keys(chatMsgStack).forEach(function (key) {
-        var item = chatMsgStack[key];
-        if (Array.isArray(item)) {
-            chatMsgStack[key] = {stack: item};
-        }
     });
 };
 
