@@ -457,26 +457,11 @@ Checker.prototype.updateMsg = function (msg, text, noPhotoText) {
     return sendPromise;
 };
 
-Checker.prototype.requestRecordUrl = function (stream) {
-    var _this = this;
-    if (!stream._isOffline || !stream.broadcastId || stream._recordUrl) {
-        return Promise.resolve();
-    }
-
-    var services = _this.gOptions.services;
-    var currentService = services[stream._service];
-    if (!currentService.getRecordUrl) {
-        return Promise.resolve();
-    }
-
-    return currentService.getRecordUrl(stream).then(function () {
-        _this.gOptions.events.emit('saveStreamList');
-    });
-};
-
 Checker.prototype.updateNotify = function (stream) {
     "use strict";
     var _this = this;
+    var text = base.getNowStreamPhotoText(this.gOptions, stream);
+    var noPhotoText = base.getNowStreamText(this.gOptions, stream);
     
     var chatIdList = this.getStreamChatIdList(stream);
 
@@ -484,30 +469,25 @@ Checker.prototype.updateNotify = function (stream) {
         return Promise.resolve();
     }
 
-    return _this.requestRecordUrl(stream).then(function () {
-        var text = base.getNowStreamPhotoText(_this.gOptions, stream);
-        var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
+    var msgArray = this.getMsgFromStream(stream).slice(0);
 
-        var msgArray = _this.getMsgFromStream(stream).slice(0);
-
-        var promiseArr = msgArray.map(function (msg) {
-            return _this.updateMsg(msg, text, noPhotoText).then(function () {
-                if (msg.type === 'streamPhoto') {
-                    _this.track(msg.chatId, stream, 'updatePhoto');
-                } else
-                if (msg.type === 'streamText') {
-                    _this.track(msg.chatId, stream, 'updateText');
-                }
-            }).catch(function (e) {
-                var err = e && e.message || e;
-                if (!/message is not modified/.test(err)) {
-                    debug('Edit msg error %s', e);
-                }
-            });
+    var promiseArr = msgArray.map(function (msg) {
+        return _this.updateMsg(msg, text, noPhotoText).then(function () {
+            if (msg.type === 'streamPhoto') {
+                _this.track(msg.chatId, stream, 'updatePhoto');
+            } else
+            if (msg.type === 'streamText') {
+                _this.track(msg.chatId, stream, 'updateText');
+            }
+        }).catch(function (e) {
+            var err = e && e.message || e;
+            if (!/message is not modified/.test(err)) {
+                debug('Edit msg error %s', e);
+            }
         });
-
-        return Promise.all(promiseArr);
     });
+
+    return Promise.all(promiseArr);
 };
 
 Checker.prototype.cleanServices = function() {

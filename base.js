@@ -215,11 +215,7 @@ module.exports.getNowStreamPhotoText = function(gOptions, stream) {
         }
 
         if (stream.channel.url) {
-            var url = stream.channel.url;
-            if (stream._isOffline && stream._recordUrl) {
-                url = stream._recordUrl;
-            }
-            textArr.push(url);
+            textArr.push(stream.channel.url);
         }
 
         return textArr.join('\n');
@@ -261,21 +257,17 @@ module.exports.getNowStreamText = function(gOptions, stream) {
 
     line = [];
     if (stream.channel.url) {
-        var url = stream.channel.url;
-        if (stream._isOffline && stream._recordUrl) {
-            url = stream._recordUrl;
-        }
         var channelName = this.htmlSanitize('b', stream.channel.display_name || stream.channel.name);
-        var channelUrl = this.htmlSanitize('a', gOptions.serviceToTitle[stream._service], url);
+        var channelUrl = this.htmlSanitize('a', gOptions.serviceToTitle[stream._service], stream.channel.url);
         line.push(gOptions.language.watchOn
             .replace('{channelName}', channelName)
             .replace('{serviceName}', channelUrl)
         );
     }
 
-    var previewUrl = stream.preview[0];
-    if (previewUrl) {
-        line.push(this.htmlSanitize('a', gOptions.language.preview, previewUrl));
+    var url = stream.preview[0];
+    if (url) {
+        line.push(this.htmlSanitize('a', gOptions.language.preview, url));
     }
 
     if (line.length) {
@@ -330,20 +322,16 @@ module.exports.getStreamText = function(gOptions, stream) {
 
     line = [];
     if (stream.channel.url) {
-        var url = stream.channel.url;
-        if (stream._isOffline && stream._recordUrl) {
-            url = stream._recordUrl;
-        }
-        var channelUrl = this.htmlSanitize('a', gOptions.serviceToTitle[stream._service], url);
+        var channelUrl = this.htmlSanitize('a', gOptions.serviceToTitle[stream._service], stream.channel.url);
         line.push(gOptions.language.watchOn
             .replace('{channelName} ', '')
             .replace('{serviceName}', channelUrl)
         );
     }
 
-    var previewUrl = stream.preview[0];
-    if (previewUrl) {
-        line.push(this.htmlSanitize('a', gOptions.language.preview, previewUrl));
+    var url = stream.preview[0];
+    if (url) {
+        line.push(this.htmlSanitize('a', gOptions.language.preview, url));
     }
 
     if (line.length) {
