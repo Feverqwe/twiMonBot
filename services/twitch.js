@@ -96,6 +96,7 @@ Twitch.prototype.getRecordUrl = function (stream) {
                 return true;
             }
         });
+        stream.broadcastId = null;
 
         return true;
     }, function (e) {
