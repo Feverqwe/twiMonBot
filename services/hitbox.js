@@ -155,6 +155,7 @@ Hitbox.prototype.getStreamList = function(channelList) {
                     showHidden: 'true'
                 },
                 json: true,
+                gzip: true,
                 forever: true
             }).then(function (response) {
                 response = response.body;
@@ -196,6 +197,7 @@ Hitbox.prototype.getChannelId = function(channelName) {
             showHidden: 'true'
         },
         json: true,
+        gzip: true,
         forever: true
     }).then(function(response) {
         response = response.body;

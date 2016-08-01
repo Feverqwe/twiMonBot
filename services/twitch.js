@@ -178,6 +178,7 @@ Twitch.prototype.getStreamList = function(channelList) {
                     'Accept': 'application/vnd.twitchtv.v3+json'
                 },
                 json: true,
+                gzip: true,
                 forever: true
             }).then(function(response) {
                 response = response.body;
@@ -228,6 +229,7 @@ Twitch.prototype.requestChannelByName = function (channelName) {
             'Accept': 'application/vnd.twitchtv.v3+json'
         },
         json: true,
+        gzip: true,
         forever: true
     }).then(function(response) {
         response = response.body;
@@ -251,6 +253,7 @@ Twitch.prototype.requestChannelInfo = function (channelId) {
             'Accept': 'application/vnd.twitchtv.v3+json'
         },
         json: true,
+        gzip: true,
         forever: true
     }).then(function(response) {
         response = response.body;

@@ -153,6 +153,7 @@ GoodGame.prototype.getStreamList = function (channelList) {
                     id: arr.join(',')
                 },
                 json: true,
+                gzip: true,
                 forever: true
             }).then(function(response) {
                 response = response.body;
@@ -195,6 +196,7 @@ GoodGame.prototype.getChannelId = function (channelName) {
             id: channelName
         },
         json: true,
+        gzip: true,
         forever: true
     }).then(function (response) {
         response = response.body;

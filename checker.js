@@ -129,6 +129,7 @@ Checker.prototype.downloadImg = function (stream) {
         return requestPromise({
             url: previewUrl,
             encoding: null,
+            gzip: true,
             forever: true
         }).then(function (response) {
             if (response.statusCode === 404) {

@@ -116,6 +116,7 @@ Tracker.prototype.send = function(params) {
         url: 'https://www.google-analytics.com/collect',
         method: 'POST',
         form: params,
+        gzip: true,
         forever: true
     });
 };

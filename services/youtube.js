@@ -146,6 +146,7 @@ Youtube.prototype.getViewers = function(id) {
             v: id,
             t: Date.now()
         },
+        gzip: true,
         forever: true
     }).then(function(response) {
         response = response.body;
@@ -177,6 +178,7 @@ Youtube.prototype.requestChannelIdByQuery = function(query) {
             key: _this.config.token
         },
         json: true,
+        gzip: true,
         forever: true
     }).then(function(response) {
         response = response.body;
@@ -211,6 +213,7 @@ Youtube.prototype.requestChannelIdByUsername = function(userId) {
                 key: _this.config.token
             },
             json: true,
+            gzip: true,
             forever: true
         }).then(function(response) {
             response = response.body;
@@ -249,6 +252,7 @@ Youtube.prototype.getStreamList = function(channelIdList) {
                 key: _this.config.token
             },
             json: true,
+            gzip: true,
             forever: true
         }).then(function(response) {
             response = response.body || {};
@@ -314,6 +318,7 @@ Youtube.prototype.getChannelId = function(channelName) {
                 key: _this.config.token
             },
             json: true,
+            gzip: true,
             forever: true
         }).then(function(response) {
             response = response.body;
