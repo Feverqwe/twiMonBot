@@ -90,7 +90,7 @@ Chat.prototype.checkArgs = function(msg, args, isCallbackQuery) {
     service = service || serviceList[0];
     service = service.toLowerCase();
 
-    if (service !== 'youtube' || !/^UC/.test(channelName)) {
+    if (service !== 'youtube' || (!/^UC/.test(channelName) && !/^(?:https?:)?\/\//.test(channelName))) {
         channelName = channelName.toLowerCase();
     }
 

@@ -293,18 +293,70 @@ Youtube.prototype.getStreamList = function(channelIdList) {
     });
 };
 
+Youtube.prototype.requestChannelIdByVideoUrl = function (url) {
+    var _this = this;
+
+    var videoId = '';
+    [
+        /\/\/(?:[^\/]+\.)?youtu\.be\/([\w\-]+)/,
+        /\/\/(?:[^\/]+\.)?youtube\.com\/.+[?&]v=([\w\-]+)/,
+        /\/\/(?:[^\/]+\.)?youtube\.com\/(?:.+\/)?(?:v|embed)\/([\w\-]+)/
+    ].some(function (re) {
+        var m = re.exec(url);
+        if (m) {
+            videoId = m[1];
+            return true;
+        }
+    });
+
+    if (!videoId) {
+        throw 'It not video url!';
+    }
+
+    return requestPromise({
+        method: 'GET',
+        url: 'https://www.googleapis.com/youtube/v3/videos',
+        qs: {
+            part: 'snippet',
+            id: videoId,
+            maxResults: 1,
+            fields: 'items/snippet',
+            key: _this.config.token
+        },
+        json: true,
+        gzip: true,
+        forever: true
+    }).then(function(response) {
+        response = response.body;
+
+        var id = response && response.items && response.items[0] && response.items[0].snippet && response.items[0].snippet.channelId;
+        if (!id) {
+            debug('Channel ID "%s" is not found by videoId! %j', url, response);
+            throw 'Channel ID is not found by videoId!';
+        }
+
+        return id;
+    });
+};
+
 Youtube.prototype.getChannelId = function(channelName) {
     "use strict";
     var _this = this;
 
-    return _this.requestChannelIdByUsername(channelName).catch(function(err) {
-        if (err !== 'Channel ID is not found by userId!') {
+    return _this.requestChannelIdByVideoUrl(channelName).catch(function (err) {
+        if (err !== 'Channel ID is not found by videoId!' && err !== 'It not video url!') {
             throw err;
         }
 
-        return _this.requestChannelIdByQuery(channelName).then(function(channelId) {
-            channelName = channelId;
-            return _this.requestChannelIdByUsername(channelName);
+        return _this.requestChannelIdByUsername(channelName).catch(function(err) {
+            if (err !== 'Channel ID is not found by userId!') {
+                throw err;
+            }
+
+            return _this.requestChannelIdByQuery(channelName).then(function(channelId) {
+                channelName = channelId;
+                return _this.requestChannelIdByUsername(channelId);
+            });
         });
     }).then(function(channelId) {
         return requestPromise({
