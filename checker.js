@@ -70,6 +70,10 @@ Checker.prototype.onSendMsgError = function(err, chatId) {
         needKick = /channel not found"/.test(err);
     }
 
+    if (!needKick) {
+        needKick = /USER_DEACTIVATED/.test(err);
+    }
+
     var jsonRe = /^\d+\s+(\{.+})$/;
     if (jsonRe.test(err)) {
         var msg = null;
