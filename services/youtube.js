@@ -78,7 +78,7 @@ Youtube.prototype.clean = function(channelIdList) {
 
     Object.keys(this.config.channelInfo).forEach(function (channelId) {
         if (channelIdList.indexOf(channelId) === -1) {
-            debug('Removed from channelInfo %s %j', channelId, _this.config.channelInfo[channelId]);
+            // debug('Removed from channelInfo %s %j', channelId, _this.config.channelInfo[channelId]);
             _this.removeChannelInfo(channelId);
         }
     });

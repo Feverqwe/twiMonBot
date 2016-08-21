@@ -65,7 +65,7 @@ Hitbox.prototype.clean = function(channelIdList) {
     Object.keys(this.config.channelInfo).forEach(function (channelId) {
         if (channelIdList.indexOf(channelId) === -1) {
             _this.removeChannelInfo(channelId);
-            debug('Removed from channelInfo %s', channelId);
+            // debug('Removed from channelInfo %s', channelId);
         }
     });
 

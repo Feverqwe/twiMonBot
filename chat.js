@@ -290,7 +290,7 @@ Chat.prototype.onMessage = function(msg) {
     }
 
     if (!text) {
-        debug('Msg without text! %j', msg);
+        // debug('Msg without text! %j', msg);
         return;
     }
 
@@ -312,7 +312,7 @@ Chat.prototype.onMessage = function(msg) {
             });
         }
 
-        debug('Msg is not command! %j', msg);
+        // debug('Msg is not command! %j', msg);
         return;
     }
 
