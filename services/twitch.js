@@ -200,7 +200,7 @@ Twitch.prototype.getStreamList = function(channelList) {
                     arr = obj.invalidArray;
                     throw 'Invalid array!';
                 }
-            }, function (err) {
+            }).catch(function (err) {
                 retryLimit--;
                 if (retryLimit < 0) {
                     channelList.forEach(function (channelId) {
@@ -221,8 +221,6 @@ Twitch.prototype.getStreamList = function(channelList) {
                     debug("Retry request stream list %s! %s", retryLimit, err);
                     return getList();
                 });
-            }).catch(function (err) {
-                debug("Read stream list error! %s", err);
             });
         };
         return getList();
@@ -267,7 +265,7 @@ Twitch.prototype.requestChannelByName = function (channelName) {
             }
 
             return firstChannel;
-        }, function (err) {
+        }).catch(function (err) {
             retryLimit--;
             if (retryLimit < 0) {
                 debug("Request search channel error! %s", err);
@@ -318,7 +316,7 @@ Twitch.prototype.requestChannelInfo = function (channelId) {
             }
 
             return response;
-        }, function (err) {
+        }).catch(function (err) {
             retryLimit--;
             if (retryLimit < 0) {
                 debug("Request channel info error! %s", err);
