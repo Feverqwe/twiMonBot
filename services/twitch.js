@@ -13,9 +13,22 @@ var Twitch = function(options) {
     this.gOptions = options;
     this.config = {};
 
+    this.clientId = 'jzkbprff40iqj646a697cyrvl0zt2m6';
+
     this.onReady = base.storage.get(['twitchChannelInfo']).then(function(storage) {
         _this.config.channelInfo = storage.twitchChannelInfo || {};
     });
+};
+
+Twitch.prototype.isRequireClientId = function (response) {
+    "use strict";
+    if (response.status === 400 &&
+        response.error === 'Bad Request' &&
+        response.message === 'No client id specified') {
+        return true;
+    } else {
+        return false;
+    }
 };
 
 Twitch.prototype.saveChannelInfo = function () {
@@ -158,8 +171,6 @@ Twitch.prototype.apiNormalization = function(data) {
     };
 };
 
-var clientIdRe = /No client id specified/;
-
 Twitch.prototype.getStreamList = function(channelList) {
     "use strict";
     var _this = this;
@@ -175,7 +186,7 @@ Twitch.prototype.getStreamList = function(channelList) {
             };
 
             if (useClientId) {
-                headers['Client-ID'] = 'jzkbprff40iqj646a697cyrvl0zt2m6';
+                headers['Client-ID'] = _this.clientId;
             }
 
             return requestPromise({
@@ -192,10 +203,8 @@ Twitch.prototype.getStreamList = function(channelList) {
             }).then(function(response) {
                 response = response.body;
 
-                if (!useClientId && response.status === 400 && response.error === 'Bad Request' && response.message === 'No client id specified') {
-                    useClientId = true;
-                    retryLimit++;
-                    throw "Require Client-ID header!";
+                if (_this.isRequireClientId(response)) {
+                    throw 'Require ClientId';
                 }
 
                 var obj = _this.apiNormalization(response);
@@ -217,6 +226,11 @@ Twitch.prototype.getStreamList = function(channelList) {
                     return;
                 }
 
+                if (!useClientId && err === 'Require ClientId') {
+                    useClientId = true;
+                    retryLimit++;
+                }
+
                 return new Promise(function(resolve) {
                     return setTimeout(resolve, 5 * 1000);
                 }).then(function() {
@@ -234,6 +248,7 @@ Twitch.prototype.getStreamList = function(channelList) {
 };
 
 Twitch.prototype.requestChannelByName = function (channelName) {
+    var _this = this;
     var useClientId = false;
     var retryLimit = 2;
     var searchChannel = function () {
@@ -242,7 +257,7 @@ Twitch.prototype.requestChannelByName = function (channelName) {
         };
 
         if (useClientId) {
-            headers['Client-ID'] = 'jzkbprff40iqj646a697cyrvl0zt2m6';
+            headers['Client-ID'] = _this.clientId;
         }
 
         return requestPromise({
@@ -259,10 +274,8 @@ Twitch.prototype.requestChannelByName = function (channelName) {
         }).then(function(response) {
             response = response.body;
 
-            if (!useClientId && response.status === 400 && response.error === 'Bad Request' && response.message === 'No client id specified') {
-                useClientId = true;
-                retryLimit++;
-                throw "Require Client-ID header!";
+            if (_this.isRequireClientId(response)) {
+                throw 'Require ClientId';
             }
 
             var firstChannel = response && response.channels && response.channels[0];
@@ -280,6 +293,11 @@ Twitch.prototype.requestChannelByName = function (channelName) {
                 throw err;
             }
 
+            if (!useClientId && err === 'Require ClientId') {
+                useClientId = true;
+                retryLimit++;
+            }
+
             return new Promise(function(resolve) {
                 return setTimeout(resolve, 5 * 1000);
             }).then(function() {
@@ -292,6 +310,7 @@ Twitch.prototype.requestChannelByName = function (channelName) {
 };
 
 Twitch.prototype.requestChannelInfo = function (channelId) {
+    var _this = this;
     var useClientId = false;
     var retryLimit = 2;
     var getInfo = function () {
@@ -300,7 +319,7 @@ Twitch.prototype.requestChannelInfo = function (channelId) {
         };
 
         if (useClientId) {
-            headers['Client-ID'] = 'jzkbprff40iqj646a697cyrvl0zt2m6';
+            headers['Client-ID'] = _this.clientId;
         }
 
         return requestPromise({
@@ -313,10 +332,8 @@ Twitch.prototype.requestChannelInfo = function (channelId) {
         }).then(function(response) {
             response = response.body;
 
-            if (!useClientId && response.status === 400 && response.error === 'Bad Request' && response.message === 'No client id specified') {
-                useClientId = true;
-                retryLimit++;
-                throw "Require Client-ID header!";
+            if (_this.isRequireClientId(response)) {
+                throw 'Require ClientId';
             }
 
             if (!response || !response.name) {
@@ -330,6 +347,11 @@ Twitch.prototype.requestChannelInfo = function (channelId) {
             if (retryLimit < 0) {
                 debug("Request channel info error! %s", err);
                 throw err;
+            }
+
+            if (!useClientId && err === 'Require ClientId') {
+                useClientId = true;
+                retryLimit++;
             }
 
             return new Promise(function(resolve) {
