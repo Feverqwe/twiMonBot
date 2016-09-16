@@ -12,23 +12,11 @@ var Twitch = function(options) {
     var _this = this;
     this.gOptions = options;
     this.config = {};
-
-    this.clientId = 'jzkbprff40iqj646a697cyrvl0zt2m6';
+    this.config.token = options.config.twitchToken;
 
     this.onReady = base.storage.get(['twitchChannelInfo']).then(function(storage) {
         _this.config.channelInfo = storage.twitchChannelInfo || {};
     });
-};
-
-Twitch.prototype.isRequireClientId = function (response) {
-    "use strict";
-    if (response.status === 400 &&
-        response.error === 'Bad Request' &&
-        response.message === 'No client id specified') {
-        return true;
-    } else {
-        return false;
-    }
 };
 
 Twitch.prototype.saveChannelInfo = function () {
@@ -178,17 +166,8 @@ Twitch.prototype.getStreamList = function(channelList) {
     var videoList = [];
 
     var promiseList = base.arrToParts(channelList, 100).map(function (arr) {
-        var useClientId = false;
         var retryLimit = 5;
         var getList = function () {
-            var headers = {
-                'Accept': 'application/vnd.twitchtv.v3+json'
-            };
-
-            if (useClientId) {
-                headers['Client-ID'] = _this.clientId;
-            }
-
             return requestPromise({
                 method: 'GET',
                 url: 'https://api.twitch.tv/kraken/streams',
@@ -196,17 +175,15 @@ Twitch.prototype.getStreamList = function(channelList) {
                     limit: 100,
                     channel: arr.join(',')
                 },
-                headers: headers,
+                headers: {
+                    'Accept': 'application/vnd.twitchtv.v3+json',
+                    'Client-ID': _this.config.token
+                },
                 json: true,
                 gzip: true,
                 forever: true
             }).then(function(response) {
                 response = response.body;
-
-                if (_this.isRequireClientId(response)) {
-                    throw 'Require ClientId';
-                }
-
                 var obj = _this.apiNormalization(response);
 
                 videoList.push.apply(videoList, obj.streamArray);
@@ -224,11 +201,6 @@ Twitch.prototype.getStreamList = function(channelList) {
                     });
                     debug("Request stream list error! %s", err);
                     return;
-                }
-
-                if (!useClientId && err === 'Require ClientId') {
-                    useClientId = true;
-                    retryLimit++;
                 }
 
                 return new Promise(function(resolve) {
@@ -249,120 +221,56 @@ Twitch.prototype.getStreamList = function(channelList) {
 
 Twitch.prototype.requestChannelByName = function (channelName) {
     var _this = this;
-    var useClientId = false;
-    var retryLimit = 2;
-    var searchChannel = function () {
-        var headers = {
-            'Accept': 'application/vnd.twitchtv.v3+json'
-        };
+    return requestPromise({
+        method: 'GET',
+        url: 'https://api.twitch.tv/kraken/search/channels',
+        qs: {
+            q: channelName,
+            limit: 1
+        },
+        headers: {
+            'Accept': 'application/vnd.twitchtv.v3+json',
+            'Client-ID': _this.config.token
+        },
+        json: true,
+        gzip: true,
+        forever: true
+    }).then(function(response) {
+        response = response.body;
 
-        if (useClientId) {
-            headers['Client-ID'] = _this.clientId;
+        var firstChannel = response && response.channels && response.channels[0];
+
+        if (!firstChannel || !firstChannel.name) {
+            debug('Channel is not found by name! %j', response);
+            throw 'Channel is not found by name!';
         }
 
-        return requestPromise({
-            method: 'GET',
-            url: 'https://api.twitch.tv/kraken/search/channels',
-            qs: {
-                q: channelName,
-                limit: 1
-            },
-            headers: headers,
-            json: true,
-            gzip: true,
-            forever: true
-        }).then(function(response) {
-            response = response.body;
-
-            if (_this.isRequireClientId(response)) {
-                throw 'Require ClientId';
-            }
-
-            var firstChannel = response && response.channels && response.channels[0];
-
-            if (!firstChannel || !firstChannel.name) {
-                debug('Channel is not found by name! %j', response);
-                throw 'Channel is not found by name!';
-            }
-
-            return firstChannel;
-        }).catch(function (err) {
-            retryLimit--;
-            if (retryLimit < 0) {
-                debug("Request search channel error! %s", err);
-                throw err;
-            }
-
-            if (!useClientId && err === 'Require ClientId') {
-                useClientId = true;
-                retryLimit++;
-            }
-
-            return new Promise(function(resolve) {
-                return setTimeout(resolve, 5 * 1000);
-            }).then(function() {
-                debug("Retry request search channel %s! %s", retryLimit, err);
-                return searchChannel();
-            });
-        });
-    };
-    return searchChannel();
+        return firstChannel;
+    });
 };
 
 Twitch.prototype.requestChannelInfo = function (channelId) {
     var _this = this;
-    var useClientId = false;
-    var retryLimit = 2;
-    var getInfo = function () {
-        var headers = {
-            'Accept': 'application/vnd.twitchtv.v3+json'
-        };
+    return requestPromise({
+        method: 'GET',
+        url: 'https://api.twitch.tv/kraken/channels/' + encodeURIComponent(channelId),
+        headers: {
+            'Accept': 'application/vnd.twitchtv.v3+json',
+            'Client-ID': _this.config.token
+        },
+        json: true,
+        gzip: true,
+        forever: true
+    }).then(function(response) {
+        response = response.body;
 
-        if (useClientId) {
-            headers['Client-ID'] = _this.clientId;
+        if (!response || !response.name) {
+            debug('Channel is not found by id! %j', response);
+            throw 'Channel is not found by id!';
         }
 
-        return requestPromise({
-            method: 'GET',
-            url: 'https://api.twitch.tv/kraken/channels/' + encodeURIComponent(channelId),
-            headers: headers,
-            json: true,
-            gzip: true,
-            forever: true
-        }).then(function(response) {
-            response = response.body;
-
-            if (_this.isRequireClientId(response)) {
-                throw 'Require ClientId';
-            }
-
-            if (!response || !response.name) {
-                debug('Channel is not found by id! %j', response);
-                throw 'Channel is not found by id!';
-            }
-
-            return response;
-        }).catch(function (err) {
-            retryLimit--;
-            if (retryLimit < 0) {
-                debug("Request channel info error! %s", err);
-                throw err;
-            }
-
-            if (!useClientId && err === 'Require ClientId') {
-                useClientId = true;
-                retryLimit++;
-            }
-
-            return new Promise(function(resolve) {
-                return setTimeout(resolve, 5 * 1000);
-            }).then(function() {
-                debug("Retry request channel info %s! %s", retryLimit, err);
-                return getInfo();
-            });
-        });
-    };
-    return getInfo();
+        return response;
+    });
 };
 
 Twitch.prototype.getChannelId = function(channelId) {

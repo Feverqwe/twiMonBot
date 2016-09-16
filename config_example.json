@@ -5,6 +5,7 @@
   "botanToken": "",
   "gaId": "",
   "ytToken": "",
+  "twitchToken": "",
   "checkOnRun": false,
   "botName": "twiMonBot",
   "sendPhotoMaxRetry": 3
