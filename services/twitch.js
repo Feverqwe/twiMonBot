@@ -192,7 +192,7 @@ Twitch.prototype.getStreamList = function(channelList) {
             }).then(function(response) {
                 response = response.body;
 
-                if (!useClientId && clientIdRe.test(response)) {
+                if (!useClientId && response.status === 400 && response.error === 'Bad Request' && response.message === 'No client id specified') {
                     useClientId = true;
                     retryLimit++;
                     throw "Require Client-ID header!";
@@ -259,7 +259,7 @@ Twitch.prototype.requestChannelByName = function (channelName) {
         }).then(function(response) {
             response = response.body;
 
-            if (!useClientId && clientIdRe.test(response)) {
+            if (!useClientId && response.status === 400 && response.error === 'Bad Request' && response.message === 'No client id specified') {
                 useClientId = true;
                 retryLimit++;
                 throw "Require Client-ID header!";
@@ -313,7 +313,7 @@ Twitch.prototype.requestChannelInfo = function (channelId) {
         }).then(function(response) {
             response = response.body;
 
-            if (!useClientId && clientIdRe.test(response)) {
+            if (!useClientId && response.status === 400 && response.error === 'Bad Request' && response.message === 'No client id specified') {
                 useClientId = true;
                 retryLimit++;
                 throw "Require Client-ID header!";
