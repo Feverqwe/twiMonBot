@@ -191,6 +191,13 @@ Twitch.prototype.getStreamList = function(channelList) {
                 forever: true
             }).then(function(response) {
                 response = response.body;
+
+                if (!useClientId && clientIdRe.test(response)) {
+                    useClientId = true;
+                    retryLimit++;
+                    throw "Require Client-ID header!";
+                }
+
                 var obj = _this.apiNormalization(response);
 
                 videoList.push.apply(videoList, obj.streamArray);
@@ -208,11 +215,6 @@ Twitch.prototype.getStreamList = function(channelList) {
                     });
                     debug("Request stream list error! %s", err);
                     return;
-                }
-
-                if (!useClientId && clientIdRe.test(err)) {
-                    useClientId = true;
-                    retryLimit++;
                 }
 
                 return new Promise(function(resolve) {
@@ -257,6 +259,12 @@ Twitch.prototype.requestChannelByName = function (channelName) {
         }).then(function(response) {
             response = response.body;
 
+            if (!useClientId && clientIdRe.test(response)) {
+                useClientId = true;
+                retryLimit++;
+                throw "Require Client-ID header!";
+            }
+
             var firstChannel = response && response.channels && response.channels[0];
 
             if (!firstChannel || !firstChannel.name) {
@@ -270,11 +278,6 @@ Twitch.prototype.requestChannelByName = function (channelName) {
             if (retryLimit < 0) {
                 debug("Request search channel error! %s", err);
                 throw err;
-            }
-
-            if (!useClientId && clientIdRe.test(err)) {
-                useClientId = true;
-                retryLimit++;
             }
 
             return new Promise(function(resolve) {
@@ -310,6 +313,12 @@ Twitch.prototype.requestChannelInfo = function (channelId) {
         }).then(function(response) {
             response = response.body;
 
+            if (!useClientId && clientIdRe.test(response)) {
+                useClientId = true;
+                retryLimit++;
+                throw "Require Client-ID header!";
+            }
+
             if (!response || !response.name) {
                 debug('Channel is not found by id! %j', response);
                 throw 'Channel is not found by id!';
@@ -321,11 +330,6 @@ Twitch.prototype.requestChannelInfo = function (channelId) {
             if (retryLimit < 0) {
                 debug("Request channel info error! %s", err);
                 throw err;
-            }
-
-            if (!useClientId && clientIdRe.test(err)) {
-                useClientId = true;
-                retryLimit++;
             }
 
             return new Promise(function(resolve) {
