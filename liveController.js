@@ -212,6 +212,7 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
         if (!item._isOffline) {
             // set offline status
             item._isOffline = true;
+            item._isTimeout = false;
             item._offlineStartTime = now;
             debugLog('Offline (U) %s %j', item._channelId, logStream(item));
             _this.gOptions.events.emit('updateNotify', item);
