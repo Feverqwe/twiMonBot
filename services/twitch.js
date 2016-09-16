@@ -158,6 +158,8 @@ Twitch.prototype.apiNormalization = function(data) {
     };
 };
 
+var clientIdRe = /No client id specified/;
+
 Twitch.prototype.getStreamList = function(channelList) {
     "use strict";
     var _this = this;
@@ -165,13 +167,14 @@ Twitch.prototype.getStreamList = function(channelList) {
     var videoList = [];
 
     var promiseList = base.arrToParts(channelList, 100).map(function (arr) {
+        var useClientId = false;
         var retryLimit = 5;
         var getList = function () {
             var headers = {
                 'Accept': 'application/vnd.twitchtv.v3+json'
             };
 
-            if (retryLimit < 2) {
+            if (useClientId) {
                 headers['Client-ID'] = 'jzkbprff40iqj646a697cyrvl0zt2m6';
             }
 
@@ -197,7 +200,7 @@ Twitch.prototype.getStreamList = function(channelList) {
                     arr = obj.invalidArray;
                     throw 'Invalid array!';
                 }
-            }).catch(function (err) {
+            }, function (err) {
                 retryLimit--;
                 if (retryLimit < 0) {
                     channelList.forEach(function (channelId) {
@@ -207,12 +210,19 @@ Twitch.prototype.getStreamList = function(channelList) {
                     return;
                 }
 
+                if (!useClientId && clientIdRe.test(err)) {
+                    useClientId = true;
+                    retryLimit++;
+                }
+
                 return new Promise(function(resolve) {
                     return setTimeout(resolve, 5 * 1000);
                 }).then(function() {
                     debug("Retry request stream list %s! %s", retryLimit, err);
                     return getList();
                 });
+            }).catch(function (err) {
+                debug("Read stream list error! %s", err);
             });
         };
         return getList();
@@ -224,53 +234,111 @@ Twitch.prototype.getStreamList = function(channelList) {
 };
 
 Twitch.prototype.requestChannelByName = function (channelName) {
-    return requestPromise({
-        method: 'GET',
-        url: 'https://api.twitch.tv/kraken/search/channels',
-        qs: {
-            q: channelName,
-            limit: 1
-        },
-        headers: {
+    var useClientId = false;
+    var retryLimit = 2;
+    var searchChannel = function () {
+        var headers = {
             'Accept': 'application/vnd.twitchtv.v3+json'
-        },
-        json: true,
-        gzip: true,
-        forever: true
-    }).then(function(response) {
-        response = response.body;
+        };
 
-        var firstChannel = response && response.channels && response.channels[0];
-
-        if (!firstChannel || !firstChannel.name) {
-            debug('Channel is not found by name! %j', response);
-            throw 'Channel is not found by name!';
+        if (useClientId) {
+            headers['Client-ID'] = 'jzkbprff40iqj646a697cyrvl0zt2m6';
         }
 
-        return firstChannel;
-    });
+        return requestPromise({
+            method: 'GET',
+            url: 'https://api.twitch.tv/kraken/search/channels',
+            qs: {
+                q: channelName,
+                limit: 1
+            },
+            headers: headers,
+            json: true,
+            gzip: true,
+            forever: true
+        }).then(function(response) {
+            response = response.body;
+
+            var firstChannel = response && response.channels && response.channels[0];
+
+            if (!firstChannel || !firstChannel.name) {
+                debug('Channel is not found by name! %j', response);
+                throw 'Channel is not found by name!';
+            }
+
+            return firstChannel;
+        }, function (err) {
+            retryLimit--;
+            if (retryLimit < 0) {
+                debug("Request search channel error! %s", err);
+                throw err;
+            }
+
+            if (!useClientId && clientIdRe.test(err)) {
+                useClientId = true;
+                retryLimit++;
+            }
+
+            return new Promise(function(resolve) {
+                return setTimeout(resolve, 5 * 1000);
+            }).then(function() {
+                debug("Retry request search channel %s! %s", retryLimit, err);
+                return searchChannel();
+            });
+        });
+    };
+    return searchChannel();
 };
 
 Twitch.prototype.requestChannelInfo = function (channelId) {
-    return requestPromise({
-        method: 'GET',
-        url: 'https://api.twitch.tv/kraken/channels/' + encodeURIComponent(channelId),
-        headers: {
+    var useClientId = false;
+    var retryLimit = 2;
+    var getInfo = function () {
+        var headers = {
             'Accept': 'application/vnd.twitchtv.v3+json'
-        },
-        json: true,
-        gzip: true,
-        forever: true
-    }).then(function(response) {
-        response = response.body;
+        };
 
-        if (!response || !response.name) {
-            debug('Channel is not found by id! %j', response);
-            throw 'Channel is not found by id!';
+        if (useClientId) {
+            headers['Client-ID'] = 'jzkbprff40iqj646a697cyrvl0zt2m6';
         }
 
-        return response;
-    });
+        return requestPromise({
+            method: 'GET',
+            url: 'https://api.twitch.tv/kraken/channels/' + encodeURIComponent(channelId),
+            headers: headers,
+            json: true,
+            gzip: true,
+            forever: true
+        }).then(function(response) {
+            response = response.body;
+
+            if (!response || !response.name) {
+                debug('Channel is not found by id! %j', response);
+                throw 'Channel is not found by id!';
+            }
+
+            return response;
+        }, function (err) {
+            retryLimit--;
+            if (retryLimit < 0) {
+                debug("Request channel info error! %s", err);
+                throw err;
+            }
+
+            if (!useClientId && clientIdRe.test(err)) {
+                useClientId = true;
+                retryLimit++;
+            }
+
+            return new Promise(function(resolve) {
+                return setTimeout(resolve, 5 * 1000);
+            }).then(function() {
+                debug("Retry request channel info %s! %s", retryLimit, err);
+                return getInfo();
+            });
+        });
+    };
+    return getInfo();
 };
 
 Twitch.prototype.getChannelId = function(channelId) {
