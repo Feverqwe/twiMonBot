@@ -167,6 +167,14 @@ Twitch.prototype.getStreamList = function(channelList) {
     var promiseList = base.arrToParts(channelList, 100).map(function (arr) {
         var retryLimit = 5;
         var getList = function () {
+            var headers = {
+                'Accept': 'application/vnd.twitchtv.v3+json'
+            };
+
+            if (retryLimit < 2) {
+                headers['Client-ID'] = 'jzkbprff40iqj646a697cyrvl0zt2m6';
+            }
+
             return requestPromise({
                 method: 'GET',
                 url: 'https://api.twitch.tv/kraken/streams',
@@ -174,9 +182,7 @@ Twitch.prototype.getStreamList = function(channelList) {
                     limit: 100,
                     channel: arr.join(',')
                 },
-                headers: {
-                    'Accept': 'application/vnd.twitchtv.v3+json'
-                },
+                headers: headers,
                 json: true,
                 gzip: true,
                 forever: true
