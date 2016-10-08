@@ -346,7 +346,7 @@ var commands = {
                     streamList.forEach(function (stream) {
                         var text = base.getNowStreamPhotoText(_this.gOptions, stream);
                         var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
-                        return _this.gOptions.checker.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
+                        return _this.gOptions.msgSender.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
                             debug('a commend, sendNotify error! %s', err);
                         });
                     });
@@ -406,7 +406,7 @@ var commands = {
                     streamList.forEach(function (stream) {
                         var text = base.getNowStreamPhotoText(_this.gOptions, stream);
                         var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
-                        return _this.gOptions.checker.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
+                        return _this.gOptions.msgSender.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
                             debug('a commend, sendNotify error! %s', err);
                         });
                     });
@@ -829,7 +829,7 @@ var commands = {
                 }
                 var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
 
-                return _this.gOptions.checker.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
+                return _this.gOptions.msgSender.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
                     debug('watch commend, sendNotify error! %s', err);
                 });
             });
@@ -1149,7 +1149,7 @@ var commands = {
                 queue = queue.finally(function () {
                     return _this.gOptions.bot.sendChatAction(chatId, 'typing').catch(function (err) {
                         debug('Send chat action error! %s %s', chatId, err);
-                        _this.gOptions.checker.onSendMsgError(err, chatId);
+                        _this.gOptions.msgSender.onSendMsgError(err, chatId);
                     });
                 });
             })(chatItem.chatId);

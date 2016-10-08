@@ -33,6 +33,7 @@ var Daemon = require('./daemon');
 var Tracker = require('./tracker');
 var LiveController = require('./liveController');
 var MsgStack = require('./msgStack');
+var MsgSender = require('./msgSender');
 
 var options = {
     config: {},
@@ -174,12 +175,14 @@ var options = {
 
         return options.msgStack.onReady;
     }).then(function() {
+        options.msgSender = new MsgSender(options);
+    }).then(function() {
         options.chat = new Chat(options);
     }).then(function() {
         options.liveController = new LiveController(options);
     }).then(function() {
         options.checker = new Checker(options);
     }).catch(function(err) {
-        debug('Loading error %s', err);
+        debug('Loading error', err);
     });
 })();

@@ -141,7 +141,7 @@ MsgStack.prototype.callMsgList = function (chatId) {
                 chatList.push(chatId);
             }
 
-            return _this.gOptions.checker.sendNotify(chatList, text, noPhotoText, videoItem, true).then(function () {
+            return _this.gOptions.msgSender.sendNotify(chatList, text, noPhotoText, videoItem, true).then(function () {
                 base.removeItemFromArray(msgList, msgId);
                 return _this.saveThrottle();
             });
