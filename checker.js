@@ -284,12 +284,8 @@ Checker.prototype.getPicIdCache = function (chatId, text, stream) {
     var cache = this.requestPhotoCache;
     var id = stream._id;
 
-    return cache[id] = this.getPicId(chatId, text, stream).then(function (msg) {
+    return cache[id] = this.getPicId(chatId, text, stream).finally(function () {
         delete cache[id];
-        return msg;
-    }).catch(function (e) {
-        delete cache[id];
-        throw e;
     });
 };
 
@@ -379,7 +375,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
         if (promise) {
             return promise.then(function(msg) {
                 stream._photoId = msg.photo[0].file_id;
-            }).catch(function(err) {
+            }, function(err) {
                 if (err === 'Send photo file error! Bot was kicked!') {
                     return requestPicId();
                 }
@@ -398,7 +394,7 @@ Checker.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, u
             stream._photoId = msg.photo[0].file_id;
 
             _this.track(chatId, stream, 'sendPhoto');
-        }).catch(function(err) {
+        }, function(err) {
             if (err === 'Send photo file error! Bot was kicked!') {
                 return requestPicId();
             }

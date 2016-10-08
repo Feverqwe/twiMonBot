@@ -3,9 +3,8 @@
  */
 var path = require('path');
 var Promise = require('bluebird');
-var LocalStorage = require('node-localstorage').LocalStorage;
-var localStorage = null;
 var debug = require('debug')('base');
+var Storage = require('./storage');
 
 /**
  *
@@ -40,51 +39,6 @@ module.exports.loadLanguage = function() {
 
         return language;
     });
-};
-
-var Storage = function() {
-    "use strict";
-    localStorage = new LocalStorage(path.join(__dirname, './storage'));
-
-    this.get = function(arr) {
-        return Promise.resolve().then(function() {
-            var key, obj = {};
-            if (!Array.isArray(arr)) {
-                arr = [arr];
-            }
-            for (var i = 0, len = arr.length; i < len; i++) {
-                key = arr[i];
-                var value = localStorage.getItem(key);
-                if (value) {
-                    obj[key] = JSON.parse(value);
-                }
-            }
-            return obj;
-        });
-    };
-    this.set = function(obj) {
-        return Promise.resolve().then(function() {
-            for (var key in obj) {
-                var value = obj[key];
-                if (value === undefined) {
-                    localStorage.removeItem(key);
-                    continue;
-                }
-                localStorage.setItem(key, JSON.stringify(value));
-            }
-        });
-    };
-    this.remove = function(arr) {
-        return Promise.resolve().then(function() {
-            if (!Array.isArray(arr)) {
-                arr = [arr];
-            }
-
-            for (var i = 0, len = arr.length; i < len; i++) {
-                localStorage.removeItem(arr[i]);
-            }
-        });
-    };
 };
 
 module.exports.storage = new Storage();
@@ -417,7 +371,9 @@ module.exports.Quote = function (callPerSecond) {
 
                 return Promise.try(function() {
                     return cb.apply(null, args);
-                }).then(resolve).catch(reject);
+                }).then(resolve, reject);
+            }).catch(function (err) {
+                debug('Quote error', err);
             });
         });
 

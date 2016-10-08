@@ -107,7 +107,7 @@ MsgStack.prototype.callMsgList = function (chatId) {
     var sendNextMsg = function () {
         if (!msgList.length) {
             delete chatMsgStack[chatId];
-            return;
+            return Promise.resolve();
         }
 
         return Promise.try(function () {
@@ -117,7 +117,7 @@ MsgStack.prototype.callMsgList = function (chatId) {
             if (!videoItem) {
                 debug('VideoItem is not found! %s', msgId);
                 base.removeItemFromArray(msgList, msgId);
-                return _this.saveThrottle();
+                return;
             }
 
             var chatItem = _this.gOptions.storage.chatList[chatId];
@@ -147,18 +147,18 @@ MsgStack.prototype.callMsgList = function (chatId) {
             });
         }).then(function () {
             return sendNextMsg();
-        }).catch(function (e) {
-            var timeout = 5 * 60;
-            if (/PEER_ID_INVALID/.test(e)) {
-                timeout = 6 * 60 * 60;
-            }
-            msgStack.timeout = base.getNow() + timeout;
-
-            debug('sendNextMsg error! %s', e);
         });
     };
 
-    return sendNextMsg();
+    return sendNextMsg().catch(function (e) {
+        var timeout = 5 * 60;
+        if (/PEER_ID_INVALID/.test(e)) {
+            timeout = 6 * 60 * 60;
+        }
+        msgStack.timeout = base.getNow() + timeout;
+
+        debug('sendNextMsg error! %s', e);
+    });
 };
 
 MsgStack.prototype.save = function () {
@@ -175,7 +175,7 @@ MsgStack.prototype.callStack = function () {
     var inProgressChatId = this.inProgressChatId;
     var promiseList = [];
     var chatMsgStack = this.config.chatMsgStack;
-    Object.keys(chatMsgStack).map(function (chatId) {
+    Object.keys(chatMsgStack).forEach(function (chatId) {
         if (inProgressChatId.indexOf(chatId) !== -1) {
             return;
         }

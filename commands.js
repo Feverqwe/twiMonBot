@@ -1074,7 +1074,7 @@ var commands = {
             topArr[service].sort(function (a, b) {
                 return a[1] === b[1] ? 0 : a[1] > b[1] ? -1 : 1
             }).splice(10);
-            topArr[service].map(function (item, index) {
+            topArr[service].forEach(function (item, index) {
                 var title = base.getChannelTitle(_this.gOptions, service, item[0]);
 
                 textArr.push((index + 1) + '. ' + title);
