@@ -16,92 +16,81 @@ var MsgSender = function (options) {
 };
 
 MsgSender.prototype.onSendMsgError = function(err, chatId) {
+    "use strict";
+    var _this = this;
     err = err && err.message || err;
     var needKick = /^403\s+/.test(err);
 
     if (!needKick) {
-        needKick = /group chat is deactivated/.test(err);
+        needKick = [
+            /group chat is deactivated/,
+            /chat not found"/,
+            /channel not found"/,
+            /USER_DEACTIVATED/
+        ].some(function (re) {
+            return re.test(err);
+        });
     }
 
-    if (!needKick) {
-        needKick = /chat not found"/.test(err);
-    }
-
-    if (!needKick) {
-        needKick = /channel not found"/.test(err);
-    }
-
-    if (!needKick) {
-        needKick = /USER_DEACTIVATED/.test(err);
-    }
-
-    var jsonRe = /^\d+\s+(\{.+})$/;
-    if (jsonRe.test(err)) {
+    var errorJson = /^\d+\s+(\{.+})$/.exec(err);
+    errorJson = errorJson && errorJson[1];
+    if (errorJson) {
         var msg = null;
         try {
-            msg = err.match(jsonRe);
-            msg = msg && msg[1];
-            msg = JSON.parse(msg);
-        } catch (e) {
-            msg = null;
-        }
+            msg = JSON.parse(errorJson);
+        } catch (e) {}
 
         if (msg && msg.parameters) {
             var parameters = msg.parameters;
             if (parameters.migrate_to_chat_id) {
-                this.gOptions.chat.chatMigrate(chatId, parameters.migrate_to_chat_id);
+                _this.gOptions.chat.chatMigrate(chatId, parameters.migrate_to_chat_id);
             }
         }
     }
 
-    if (!needKick) {
-        return;
+    if (needKick) {
+        if (/^@\w+$/.test(chatId)) {
+            _this.gOptions.chat.removeChannel(chatId);
+        } else {
+            _this.gOptions.chat.removeChat(chatId);
+        }
     }
 
-    if (/^@\w+$/.test(chatId)) {
-        this.gOptions.chat.removeChannel(chatId);
-    } else {
-        this.gOptions.chat.removeChat(chatId);
-    }
-    return true;
+    return needKick;
 };
 
 MsgSender.prototype.downloadImg = function (stream) {
     "use strict";
     var _this = this;
+
     var requestLimit = 0;
+    var _requestLimit = _this.gOptions.config.sendPhotoRequestLimit;
+    if (_requestLimit) {
+        requestLimit = _requestLimit;
+    }
+
     var requestTimeoutSec = 30;
-
-    var refreshRequestLimit = function () {
-        var _requestLimit = _this.gOptions.config.sendPhotoRequestLimit;
-        if (_requestLimit) {
-            requestLimit = _requestLimit;
-        }
-
-        var _requestTimeoutSec = _this.gOptions.config.sendPhotoRequestTimeoutSec;
-        if (_requestTimeoutSec) {
-            requestTimeoutSec = _requestTimeoutSec;
-        }
-
-        requestTimeoutSec *= 1000;
-    };
-    refreshRequestLimit();
+    var _requestTimeoutSec = _this.gOptions.config.sendPhotoRequestTimeoutSec;
+    if (_requestTimeoutSec) {
+        requestTimeoutSec = _requestTimeoutSec;
+    }
+    requestTimeoutSec *= 1000;
 
     var previewList = stream.preview;
 
     var requestPic = function (index) {
         var previewUrl = previewList[index];
         return requestPromise({
+            method: 'HEAD',
             url: previewUrl,
-            encoding: null,
             gzip: true,
             forever: true
         }).then(function (response) {
-            if (response.statusCode === 404) {
-                throw new Error('404');
+            if (response.statusCode !== 200) {
+                throw new Error(response.statusCode);
             }
 
-            return response;
+            return response.request.href;
         }).catch(function(err) {
             // debug('Request photo error! %s %s %s %s', index, stream._channelId, previewUrl, err);
 
@@ -120,44 +109,49 @@ MsgSender.prototype.downloadImg = function (stream) {
                 });
             }
 
-            throw 'Request photo error!';
+            throw err;
         });
     };
 
-    return requestPic(0).then(function (response) {
-        var image = new Buffer(response.body, 'binary');
-        return image;
+    return requestPic(0).catch(function (err) {
+        debug('requestPic error %s %s', stream._channelName, err);
+
+        throw err;
     });
 };
 
 MsgSender.prototype.getPicId = function(chatId, text, stream) {
     "use strict";
     var _this = this;
+
     var sendPicLimit = 0;
+    var _retryLimit = _this.gOptions.config.sendPhotoMaxRetry;
+    if (_retryLimit) {
+        sendPicLimit = _retryLimit;
+    }
+
     var sendPicTimeoutSec = 5;
-
-    var refreshRetryLimit = function () {
-        var _retryLimit = _this.gOptions.config.sendPhotoMaxRetry;
-        if (_retryLimit) {
-            sendPicLimit = _retryLimit;
-        }
-
-        var _retryTimeoutSec = _this.gOptions.config.sendPhotoRetryTimeoutSec;
-        if (_retryTimeoutSec) {
-            sendPicTimeoutSec = _retryTimeoutSec;
-        }
-
-        sendPicTimeoutSec *= 1000;
-    };
-    refreshRetryLimit();
+    var _retryTimeoutSec = _this.gOptions.config.sendPhotoRetryTimeoutSec;
+    if (_retryTimeoutSec) {
+        sendPicTimeoutSec = _retryTimeoutSec;
+    }
+    sendPicTimeoutSec *= 1000;
 
     var sendingPic = function() {
-        var sendPic = function(photo) {
-            return Promise.try(function() {
-                return _this.gOptions.bot.sendPhoto(chatId, photo, {
-                    caption: text
-                });
+        var sendPic = function(photoUrl) {
+            var photoStream = request({
+                url: photoUrl,
+                forever: true
+            });
+
+            return _this.gOptions.bot.sendPhoto(chatId, photoStream, {
+                caption: text
             }).catch(function(err) {
+                var isKicked = _this.onSendMsgError(err, chatId);
+                if (isKicked) {
+                    throw 'Send photo file error! Bot was kicked!';
+                }
+
                 var imgProcessError = [
                     /IMAGE_PROCESS_FAILED/,
                     /FILE_PART_0_MISSING/
@@ -175,26 +169,19 @@ MsgSender.prototype.getPicId = function(chatId, text, stream) {
                     });
                 }
 
+                debug('sendPic error %s %s %s', chatId, stream._channelId, err);
+
                 throw err;
             });
         };
 
-        return _this.downloadImg(stream).then(function (buffer) {
-            return sendPic(buffer);
+        return _this.downloadImg(stream).then(function (photoUrl) {
+            var sendPicQuote = _this.gOptions.botQuote.wrapper(sendPic);
+            return sendPicQuote(photoUrl);
         });
     };
 
-    return sendingPic().catch(function(err) {
-        debug('Send photo file error! %s %s %s', chatId, stream._channelId, err);
-
-        var isKicked = _this.onSendMsgError(err, chatId);
-
-        if (isKicked) {
-            throw 'Send photo file error! Bot was kicked!';
-        }
-
-        throw 'Send photo file error!';
-    });
+    return sendingPic();
 };
 
 /**
@@ -239,15 +226,6 @@ MsgSender.prototype.removeMsgFromStream = function (stream, msg) {
     }
 
     this.gOptions.events.emit('saveStreamList');
-};
-
-MsgSender.prototype.getPicIdCache = function (chatId, text, stream) {
-    var cache = this.requestPromiseMap;
-    var id = stream._id;
-
-    return cache[id] = this.getPicId(chatId, text, stream).finally(function () {
-        delete cache[id];
-    });
 };
 
 MsgSender.prototype.getStreamChatIdList = function (stream) {
@@ -321,7 +299,7 @@ MsgSender.prototype.updateNotify = function (stream) {
             if (msg.type === 'streamText') {
                 _this.track(msg.chatId, stream, 'updateText');
             }
-        }).catch(function (e) {
+        }, function (e) {
             var err = e && e.message || e;
             if (!/message is not modified/.test(err)) {
                 debug('Edit msg error %s', e);
@@ -332,102 +310,102 @@ MsgSender.prototype.updateNotify = function (stream) {
     return Promise.all(promiseArr);
 };
 
-MsgSender.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, useCache) {
+MsgSender.prototype.sendMsg = function(chatId, noPhotoText, stream) {
     "use strict";
     var _this = this;
-
     var bot = _this.gOptions.bot;
-    var sendMsg = function(chatId) {
-        return bot.sendMessage(chatId, noPhotoText, {
-            disable_web_page_preview: true,
-            parse_mode: 'HTML'
-        }).then(function(msg) {
-            _this.addMsgInStream(stream, {
-                type: 'streamText',
-                chatId: chatId,
-                id: msg.message_id
-            });
 
-            _this.track(chatId, stream, 'sendMsg');
-        }).catch(function(err) {
-            debug('Send text msg error! %s %s %s', chatId, stream._channelId, err);
+    return bot.sendMessage(chatId, noPhotoText, {
+        disable_web_page_preview: true,
+        parse_mode: 'HTML'
+    }).then(function(msg) {
+        _this.addMsgInStream(stream, {
+            type: 'streamText',
+            chatId: chatId,
+            id: msg.message_id
+        });
 
-            var isKicked = _this.onSendMsgError(err, chatId);
-            if (!isKicked) {
-                throw err;
+        _this.track(chatId, stream, 'sendMsg');
+    }, function(err) {
+        debug('Send text msg error! %s %s %s', chatId, stream._channelId, err);
+
+        var isKicked = _this.onSendMsgError(err, chatId);
+        if (!isKicked) {
+            throw err;
+        }
+    });
+};
+
+MsgSender.prototype.sendPhoto = function(chatId, fileId, text, stream) {
+    "use strict";
+    var _this = this;
+    var bot = _this.gOptions.bot;
+
+    return bot.sendPhotoQuote(chatId, fileId, {
+        caption: text
+    }).then(function(msg) {
+        _this.addMsgInStream(stream, {
+            type: 'streamPhoto',
+            chatId: chatId,
+            id: msg.message_id
+        });
+
+        _this.track(chatId, stream, 'sendPhoto');
+    }, function(err) {
+        debug('Send photo msg error! %s %s %s', chatId, stream._channelId, err);
+
+        var isKicked = _this.onSendMsgError(err, chatId);
+        if (!isKicked) {
+            throw err;
+        }
+    });
+};
+
+MsgSender.prototype.send = function(chatIdList, text, noPhotoText, stream) {
+    "use strict";
+    var _this = this;
+    var photoId = stream._photoId;
+    var promiseList = [];
+
+    var chatId = null;
+    while (chatId = chatIdList.shift()) {
+        if (!photoId || !text) {
+            promiseList.push(_this.sendMsg(chatId, noPhotoText, stream));
+        } else {
+            promiseList.push(_this.sendPhoto(chatId, photoId, text, stream));
+        }
+    }
+
+    return Promise.all(promiseList);
+};
+
+MsgSender.prototype.requestPicId = function(chatIdList, text, stream) {
+    var _this = this;
+    var requestPromiseMap = _this.requestPromiseMap;
+    var requestId = stream._videoId;
+
+    if (!chatIdList.length) {
+        // debug('chatList is empty! %j', stream);
+        return Promise.resolve();
+    }
+
+    var promise = requestPromiseMap[stream._id];
+    if (promise) {
+        return promise.then(function(msg) {
+            stream._photoId = msg.photo[0].file_id;
+        }, function(err) {
+            if (err === 'Send photo file error! Bot was kicked!') {
+                return _this.requestPicId(chatIdList, text, stream);
             }
         });
-    };
-
-    var sendPhoto = function(chatId, fileId) {
-        return bot.sendPhoto(chatId, fileId, {
-            caption: text
-        }).then(function(msg) {
-            _this.addMsgInStream(stream, {
-                type: 'streamPhoto',
-                chatId: chatId,
-                id: msg.message_id
-            });
-
-            _this.track(chatId, stream, 'sendPhoto');
-        }).catch(function(err) {
-            debug('Send photo msg error! %s %s %s', chatId, stream._channelId, err);
-
-            var isKicked = _this.onSendMsgError(err, chatId);
-            if (!isKicked) {
-                throw err;
-            }
-        });
-    };
-
-    var send = function() {
-        var chatId = null;
-        var photoId = stream._photoId;
-        var promiseList = [];
-
-        while (chatId = chatIdList.shift()) {
-            if (!photoId || !text) {
-                promiseList.push(sendMsg(chatId));
-            } else {
-                promiseList.push(sendPhoto(chatId, photoId));
-            }
-        }
-
-        return Promise.all(promiseList);
-    };
-
-    if (!stream.preview.length) {
-        return send();
-    }
-
-    if (!text) {
-        return send();
-    }
-
-    if (useCache && stream._photoId) {
-        return send();
-    }
-
-    var requestPicId = function() {
-        if (!chatIdList.length) {
-            // debug('chatList is empty! %j', stream);
-            return Promise.resolve();
-        }
-
-        var promise = _this.requestPromiseMap[stream._id];
-        if (promise) {
-            return promise.then(function(msg) {
-                stream._photoId = msg.photo[0].file_id;
-            }, function(err) {
-                if (err === 'Send photo file error! Bot was kicked!') {
-                    return requestPicId();
-                }
-            });
-        }
-
+    } else {
         var chatId = chatIdList.shift();
 
-        return _this.getPicIdCache(chatId, text, stream).then(function(msg) {
+        promise = requestPromiseMap[requestId] = _this.getPicId(chatId, text, stream).finally(function () {
+            delete requestPromiseMap[requestId];
+        });
+
+        promise = promise.then(function (msg) {
             _this.addMsgInStream(stream, {
                 type: 'streamPhoto',
                 chatId: chatId,
@@ -437,18 +415,37 @@ MsgSender.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream,
             stream._photoId = msg.photo[0].file_id;
 
             _this.track(chatId, stream, 'sendPhoto');
-        }, function(err) {
+        }, function (err) {
             if (err === 'Send photo file error! Bot was kicked!') {
-                return requestPicId();
+                return _this.requestPicId(chatIdList, text, stream);
             }
 
             chatIdList.unshift(chatId);
             debug('Function getPicId throw error!', err);
         });
-    };
+    }
 
-    return requestPicId().then(function() {
-        return send();
+    return promise;
+};
+
+MsgSender.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, useCache) {
+    "use strict";
+    var _this = this;
+
+    if (!stream.preview.length) {
+        return _this.send(chatIdList, text, noPhotoText, stream);
+    }
+
+    if (!text) {
+        return _this.send(chatIdList, text, noPhotoText, stream);
+    }
+
+    if (useCache && stream._photoId) {
+        return _this.send(chatIdList, text, noPhotoText, stream);
+    }
+
+    return _this.requestPicId(chatIdList, text, stream).then(function() {
+        return _this.send(chatIdList, text, noPhotoText, stream);
     });
 };
 
