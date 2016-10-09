@@ -206,7 +206,7 @@ Twitch.prototype.getStreamList = function(channelList) {
                 }
             }).catch(function (err) {
                 if (retryLimit > 0) {
-                    retryLimit--;
+                retryLimit--;
                     return new Promise(function(resolve) {
                         return setTimeout(resolve, 5 * 1000);
                     }).then(function() {
