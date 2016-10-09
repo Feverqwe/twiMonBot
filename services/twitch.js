@@ -183,6 +183,10 @@ Twitch.prototype.getStreamList = function(channelList) {
                 gzip: true,
                 forever: true
             }).then(function(response) {
+                if (response.statusCode === 500) {
+                    throw new CustomError(response.statusCode);
+                }
+
                 var responseBody = response.body;
 
                 var obj = null;
@@ -201,21 +205,20 @@ Twitch.prototype.getStreamList = function(channelList) {
                     throw new CustomError('Invalid array!');
                 }
             }).catch(function (err) {
-                retryLimit--;
-                if (retryLimit < 0) {
-                    channelList.forEach(function (channelId) {
-                        videoList.push(base.getTimeoutStream('twitch', channelId));
+                if (retryLimit > 0) {
+                    retryLimit--;
+                    return new Promise(function(resolve) {
+                        return setTimeout(resolve, 5 * 1000);
+                    }).then(function() {
+                        debug("Retry request stream list %s! %s", retryLimit, err);
+                        return getList();
                     });
-                    debug("Request stream list error! %s", err);
-                    return;
                 }
 
-                return new Promise(function(resolve) {
-                    return setTimeout(resolve, 5 * 1000);
-                }).then(function() {
-                    debug("Retry request stream list %s! %s", retryLimit, err);
-                    return getList();
+                channelList.forEach(function (channelId) {
+                    videoList.push(base.getTimeoutStream('twitch', channelId));
                 });
+                debug("Request stream list error!", err);
             });
         };
         return getList();
