@@ -429,7 +429,7 @@ MsgSender.prototype.requestPicId = function(chatIdList, text, stream) {
             }
 
             chatIdList.unshift(chatId);
-            debug('Function getPicId throw error!', err);
+            // debug('Function getPicId throw error!', err);
         });
     }
 
