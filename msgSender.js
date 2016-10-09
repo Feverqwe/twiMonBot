@@ -259,24 +259,28 @@ MsgSender.prototype.getStreamChatIdList = function (stream) {
 MsgSender.prototype.updateMsg = function (msg, text, noPhotoText) {
     "use strict";
     var _this = this;
-    var sendPromise = null;
+    var sendPromise = Promise.resolve();
     if (msg.type === 'streamPhoto') {
-        sendPromise = _this.gOptions.bot.editMessageCaption(
-            msg.chatId,
-            text,
-            {
-                message_id: msg.id
-            }
-        );
+        sendPromise = sendPromise.then(function () {
+            return _this.gOptions.bot.editMessageCaption(
+                msg.chatId,
+                text,
+                {
+                    message_id: msg.id
+                }
+            );
+        });
     } else
     if (msg.type === 'streamText') {
-        sendPromise = _this.gOptions.bot.editMessageText(
-            msg.chatId,
-            noPhotoText,
-            {
-                message_id: msg.id
-            }
-        );
+        sendPromise = sendPromise.then(function () {
+            return _this.gOptions.bot.editMessageText(
+                msg.chatId,
+                noPhotoText,
+                {
+                    message_id: msg.id
+                }
+            );
+        });
     }
     return sendPromise;
 };
