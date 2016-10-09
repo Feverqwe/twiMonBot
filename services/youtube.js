@@ -142,6 +142,8 @@ Youtube.prototype.apiNormalization = function(channelId, data, viewers) {
     return streams;
 };
 
+var intRe = /^\d+$/;
+
 Youtube.prototype.getViewers = function(id) {
     "use strict";
     return requestPromise({
@@ -153,17 +155,16 @@ Youtube.prototype.getViewers = function(id) {
         gzip: true,
         forever: true
     }).then(function(response) {
+        var value = -1;
+
         var responseBody = response.body;
-        if (/^\d+$/.test(responseBody)) {
-            return parseInt(responseBody);
+        if (intRe.test(responseBody)) {
+            value = parseInt(responseBody);
+        } else {
+            debug('Viewers response is not INT! %j', response);
         }
 
-        debug('Viewers response is not INT! %s %j', id, response);
-        throw new CustomError('Viewers response is not INT!');
-    }).catch(function(err) {
-        debug('Error request viewers!', err);
-
-        return -1;
+        return value;
     });
 };
 
@@ -277,12 +278,14 @@ Youtube.prototype.getStreamList = function(_channelIdList) {
         }).then(function(response) {
             var responseBody = response.body;
 
-            if (!Array.isArray(responseBody.items)) {
+            var len = 0;
+            try {
+                len = responseBody.items.length;
+            } catch (e) {
                 debug('Unexpected response %j', response, e);
                 throw new CustomError('Unexpected response');
             }
-
-            if (responseBody.items.length === 0) {
+            if (len === 0) {
                 return;
             }
 
