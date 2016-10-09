@@ -276,6 +276,10 @@ Youtube.prototype.getStreamList = function(_channelIdList) {
             gzip: true,
             forever: true
         }).then(function(response) {
+            if (response.statusCode === 503) {
+                throw new CustomError(response.statusCode);
+            }
+
             var responseBody = response.body;
 
             var len = 0;
