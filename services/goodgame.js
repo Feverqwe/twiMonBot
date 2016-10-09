@@ -44,7 +44,7 @@ GoodGame.prototype.removeChannelInfo = function (channelId) {
 GoodGame.prototype.setChannelTitle = function (channelId, title) {
     "use strict";
     if (channelId === title) {
-        return;
+        return Promise.resolve();
     }
     var info = this.getChannelInfo(channelId);
     if (info.title !== title) {
@@ -84,10 +84,6 @@ GoodGame.prototype.clean = function(channelIdList) {
 GoodGame.prototype.apiNormalization = function (data) {
     "use strict";
     var _this = this;
-    if (!data || typeof data !== 'object') {
-        debug('Invalid response! %j', data);
-        throw new CustomError('Invalid response!');
-    }
 
     var now = base.getNow();
     var streamArray = [];
@@ -97,9 +93,6 @@ GoodGame.prototype.apiNormalization = function (data) {
         if (origItem.status !== 'Live') {
             return;
         }
-
-        delete origItem.embed;
-        delete origItem.description;
 
         if (!origItem.key || !origItem.thumb || !origItem.stream_id) {
             debug('Skip item! %j', origItem);
@@ -165,9 +158,15 @@ GoodGame.prototype.getStreamList = function (channelList) {
                 gzip: true,
                 forever: true
             }).then(function(response) {
-                response = response.body;
-                var list = _this.apiNormalization(response);
-                videoList.push.apply(videoList, list);
+                var responseBody = response.body;
+
+                try {
+                    var list = _this.apiNormalization(responseBody);
+                    videoList.push.apply(videoList, list);
+                } catch (e) {
+                    debug('Unexpected response %j', response, e);
+                    throw new CustomError('Unexpected response');
+                }
             }).catch(function (err) {
                 retryLimit--;
                 if (retryLimit < 0) {
@@ -208,12 +207,12 @@ GoodGame.prototype.getChannelId = function (channelName) {
         gzip: true,
         forever: true
     }).then(function (response) {
-        response = response.body;
+        var responseBody = response.body;
 
         var stream = null;
 
-        for (var key in response) {
-            var item = response[key];
+        for (var key in responseBody) {
+            var item = responseBody[key];
             if (item.key) {
                 stream = item;
                 break;
@@ -221,15 +220,15 @@ GoodGame.prototype.getChannelId = function (channelName) {
         }
 
         if (!stream) {
-            debug('Channel "%s" is not found! %j', channelName, response);
+            debug('Channel "%s" is not found! %j', channelName, responseBody);
             throw new CustomError('Channel is not found!');
         }
 
         var channelId = stream.key.toLowerCase();
 
-        _this.setChannelTitle(channelId, stream.key);
-
-        return channelId;
+        return _this.setChannelTitle(channelId, stream.key).then(function () {
+            return channelId;
+        });
     });
 };
 

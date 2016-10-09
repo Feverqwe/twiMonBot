@@ -44,7 +44,7 @@ Hitbox.prototype.removeChannelInfo = function (channelId) {
 Hitbox.prototype.setChannelTitle = function (channelId, title) {
     "use strict";
     if (channelId === title) {
-        return;
+        return Promise.resolve();
     }
     var info = this.getChannelInfo(channelId);
     if (info.title !== title) {
@@ -84,15 +84,10 @@ Hitbox.prototype.clean = function(channelIdList) {
 Hitbox.prototype.apiNormalization = function(data) {
     "use strict";
     var _this = this;
-    var apiStreams = data && data.livestream;
-    if (!Array.isArray(apiStreams)) {
-        debug('Invalid response! %j', data);
-        throw new CustomError('Invalid response!');
-    }
 
     var now = base.getNow();
     var streamArray = [];
-    apiStreams.forEach(function(origItem) {
+    data.livestream.forEach(function(origItem) {
         if (!origItem.channel || !origItem.channel.user_name || !origItem.media_id) {
             debug('Item without name! %j', origItem);
             return;
@@ -167,9 +162,15 @@ Hitbox.prototype.getStreamList = function(channelList) {
                 gzip: true,
                 forever: true
             }).then(function (response) {
-                response = response.body;
-                var list = _this.apiNormalization(response);
-                videoList.push.apply(videoList, list);
+                var responseBody = response.body;
+
+                try {
+                    var list = _this.apiNormalization(responseBody);
+                    videoList.push.apply(videoList, list);
+                } catch (e) {
+                    debug('Unexpected response %j', response, e);
+                    throw new CustomError('Unexpected response');
+                }
             }).catch(function (err) {
                 retryLimit--;
                 if (retryLimit < 0) {
@@ -209,26 +210,27 @@ Hitbox.prototype.getChannelId = function(channelName) {
         gzip: true,
         forever: true
     }).then(function(response) {
-        response = response.body;
+        var responseBody = response.body;
 
-        var streamArray = response && response.livestream;
-        if (!Array.isArray(streamArray)) {
-            debug('Request channelName "%s" is empty %j', channelName, response);
-            throw new CustomError('Request channelName is empty!');
+        var channelId = '';
+        try {
+            var stream = null;
+            responseBody.livestream.some(function(item) {
+                if (item.channel && item.channel.user_name) {
+                    stream = item;
+                    return true;
+                }
+            });
+            if (stream) {
+                channelId = stream.channel.user_name.toLowerCase();
+            }
+        } catch (e) {
+            debug('Unexpected response %j', response, e);
+            throw new CustomError('Unexpected response');
         }
 
-        var stream = null;
-        streamArray.some(function(item) {
-            if (item.channel && item.channel.user_name) {
-                stream = item;
-                return true;
-            }
-        });
-
-        var channelId = stream && stream.channel.user_name.toLowerCase();
-
         if (!channelId) {
-            debug('Channel "%s" is not found!, %j', channelName, response);
+            debug('Channel "%s" is not found!, %j', channelName, responseBody);
             throw new CustomError('Channel is not found!');
         }
 

@@ -45,7 +45,7 @@ Twitch.prototype.removeChannelInfo = function (channelId) {
 Twitch.prototype.setChannelTitle = function (channelId, title) {
     "use strict";
     if (channelId === title) {
-        return;
+        return Promise.resolve();
     }
     var info = this.getChannelInfo(channelId);
     if (info.title !== title) {
@@ -85,20 +85,11 @@ Twitch.prototype.clean = function(channelIdList) {
 Twitch.prototype.apiNormalization = function(data) {
     "use strict";
     var _this = this;
-    /**
-     * @type {Array}
-     */
-    var apiStreams = data && data.streams;
-    if (!Array.isArray(apiStreams)) {
-        debug('Invalid response! %j', data);
-        throw  new CustomError('Invalid response!');
-    }
-
     var now = base.getNow();
 
     var invalidArray = [];
     var streamArray = [];
-    apiStreams.forEach(function (apiItem) {
+    data.streams.forEach(function (apiItem) {
         if (!apiItem.channel || typeof apiItem.channel.name !== 'string') {
             debug('Item without name! %j', apiItem);
             return;
@@ -192,8 +183,15 @@ Twitch.prototype.getStreamList = function(channelList) {
                 gzip: true,
                 forever: true
             }).then(function(response) {
-                response = response.body;
-                var obj = _this.apiNormalization(response);
+                var responseBody = response.body;
+
+                var obj = null;
+                try {
+                    obj = _this.apiNormalization(responseBody);
+                } catch (e) {
+                    debug('Unexpected response %j', response, e);
+                    throw new CustomError('Unexpected response');
+                }
 
                 videoList.push.apply(videoList, obj.streamArray);
 
@@ -245,13 +243,27 @@ Twitch.prototype.requestChannelByName = function (channelName) {
         gzip: true,
         forever: true
     }).then(function(response) {
-        response = response.body;
+        var responseBody = response.body;
 
-        var firstChannel = response && response.channels && response.channels[0];
+        var firstChannel = null;
+        try {
+            if (responseBody.channels.length > 0) {
+                firstChannel = responseBody.channels[0];
+            }
+        } catch (e) {
+            debug('Unexpected response %j', response, e);
+            throw new CustomError('Unexpected response');
+        }
 
-        if (!firstChannel || !firstChannel.name) {
+        if (!firstChannel) {
             debug('Channel is not found by name! %j', response);
             throw new CustomError('Channel is not found by name!');
+        }
+
+        var name = firstChannel.name;
+        if (!name || typeof name !== 'string') {
+            debug('Unexpected response %j', response, e);
+            throw new CustomError('Unexpected response');
         }
 
         return firstChannel;
@@ -271,14 +283,20 @@ Twitch.prototype.requestChannelInfo = function (channelId) {
         gzip: true,
         forever: true
     }).then(function(response) {
-        response = response.body;
+        var responseBody = response.body;
 
-        if (!response || !response.name) {
+        if (!responseBody) {
             debug('Channel is not found by id! %j', response);
             throw new CustomError('Channel is not found by id!');
         }
 
-        return response;
+        var name = responseBody.name;
+        if (!name || typeof name !== 'string') {
+            debug('Unexpected response %j', response, e);
+            throw new CustomError('Unexpected response');
+        }
+
+        return responseBody;
     });
 };
 
@@ -287,13 +305,10 @@ Twitch.prototype.getChannelId = function(channelId) {
     var _this = this;
     return this.requestChannelInfo(channelId).catch(function () {
         return _this.requestChannelByName(channelId);
-    }).then(function (response) {
-        var channelId = response && response.name && response.name.toLowerCase();
-        if (!channelId) {
-            throw new CustomError('Channel is not found!');
-        }
+    }).then(function (channelInfo) {
+        var channelId = channelInfo.name.toLowerCase();
 
-        _this.setChannelTitle(channelId, response.display_name);
+        _this.setChannelTitle(channelId, channelInfo.display_name);
 
         return channelId;
     });
