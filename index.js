@@ -161,8 +161,9 @@ var options = {
 
         var quote = new base.Quote(30);
 
+        options.botQuote = quote;
         options.bot.sendMessage = quote.wrapper(options.bot.sendMessage.bind(options.bot));
-        options.bot.sendPhoto = quote.wrapper(options.bot.sendPhoto.bind(options.bot));
+        options.bot.sendPhotoQuote = quote.wrapper(options.bot.sendPhoto.bind(options.bot));
         options.bot.sendChatAction = quote.wrapper(options.bot.sendChatAction.bind(options.bot));
         options.bot.editMessageText = quote.wrapper(options.bot.editMessageText.bind(options.bot));
         options.bot.editMessageCaption = quote.wrapper(options.bot.editMessageCaption.bind(options.bot));

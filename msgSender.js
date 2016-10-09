@@ -13,6 +13,10 @@ var MsgSender = function (options) {
     _this.gOptions = options;
 
     _this.requestPromiseMap = {};
+
+    options.events.on('updateNotify', function(streamItem) {
+        _this.updateNotify(streamItem);
+    });
 };
 
 MsgSender.prototype.onSendMsgError = function(err, chatId) {
@@ -114,7 +118,7 @@ MsgSender.prototype.downloadImg = function (stream) {
     };
 
     return requestPic(0).catch(function (err) {
-        debug('requestPic error %s %s', stream._channelName, err);
+        debug('requestPic error %s %s', stream._channelId, err);
 
         throw err;
     });
@@ -382,16 +386,16 @@ MsgSender.prototype.send = function(chatIdList, text, noPhotoText, stream) {
 MsgSender.prototype.requestPicId = function(chatIdList, text, stream) {
     var _this = this;
     var requestPromiseMap = _this.requestPromiseMap;
-    var requestId = stream._videoId;
+    var requestId = stream._id;
 
     if (!chatIdList.length) {
         // debug('chatList is empty! %j', stream);
         return Promise.resolve();
     }
 
-    var promise = requestPromiseMap[stream._id];
+    var promise = requestPromiseMap[requestId];
     if (promise) {
-        return promise.then(function(msg) {
+        promise = promise.then(function (msg) {
             stream._photoId = msg.photo[0].file_id;
         }, function(err) {
             if (err === 'Send photo file error! Bot was kicked!') {

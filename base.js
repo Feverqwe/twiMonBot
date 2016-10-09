@@ -363,16 +363,15 @@ module.exports.Quote = function (callPerSecond) {
     var next = function () {
         var promiseList = cbQuote.slice(0, callPerSecond).map(function(item, index) {
             cbQuote[index] = null;
-            return Promise.try(function() {
-                var cb = item[0];
-                var args = item[1];
-                var resolve = item[2];
-                var reject = item[3];
 
-                return Promise.try(function() {
-                    return cb.apply(null, args);
-                }).then(resolve, reject);
-            }).catch(function (err) {
+            var cb = item[0];
+            var args = item[1];
+            var resolve = item[2];
+            var reject = item[3];
+
+            return Promise.try(function() {
+                return cb.apply(null, args);
+            }).then(resolve, reject).catch(function (err) {
                 debug('Quote error', err);
             });
         });
@@ -480,25 +479,13 @@ module.exports.throttle = function(fn, threshhold, scope) {
 /**
  * @param {Object} obj
  * @param {*} key
- * @returns {Array} obj[key]
+ * @param {*} defaultValue
+ * @returns {*}
  */
-module.exports.getObjectItemOrArray = function (obj, key) {
+module.exports.getObjectItem = function (obj, key, defaultValue) {
     var item = obj[key];
     if (!item) {
-        item = obj[key] = [];
-    }
-    return item;
-};
-
-/**
- * @param {Object} obj
- * @param {*} key
- * @returns {Object} obj[key]
- */
-module.exports.getObjectItemOrObj = function (obj, key) {
-    var item = obj[key];
-    if (!item) {
-        item = obj[key] = {};
+        item = obj[key] = defaultValue;
     }
     return item;
 };
@@ -532,7 +519,7 @@ module.exports.dDblUpdates = function (updates) {
             value = callbackQuery.data;
         }
         if (key && value) {
-            var lines = _this.getObjectItemOrArray(map, key);
+            var lines = _this.getObjectItem(map, key, []);
             if (lines[0] === value) {
                 _this.removeItemFromArray(dDblUpdates, update);
                 debug('Skip dbl msg %j', update);

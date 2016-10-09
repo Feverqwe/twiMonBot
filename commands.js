@@ -142,7 +142,7 @@ var setOption = function (chatItem, optionName, state) {
         return Promise.reject(new Error('Option is not found!'));
     }
 
-    var options = base.getObjectItemOrObj(chatItem, 'options');
+    var options = base.getObjectItem(chatItem, 'options', {});
     options[optionName] = state === '1';
     if (!options[optionName]) {
         delete options[optionName];
@@ -921,7 +921,7 @@ var commands = {
         var onGetChannelName = function (msg, channelName) {
             channelName = channelName.trim();
             return Promise.try(function () {
-                var options = base.getObjectItemOrObj(chatItem, 'options');
+                var options = base.getObjectItem(chatItem, 'options', {});
 
                 if (channelName === 'remove') {
                     delete options.channel;

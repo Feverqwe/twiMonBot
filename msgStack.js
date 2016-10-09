@@ -11,8 +11,6 @@ var MsgStack = function (options) {
     this.gOptions = options;
     this.config = {};
 
-    this.saveThrottle = base.throttle(this.save, 100, this);
-
     this.inProgressChatId = [];
 
     options.events.on('notify', function (stream) {
@@ -70,8 +68,8 @@ MsgStack.prototype.addInStack = function (videoItem) {
     var msgId = videoItem._id;
 
     this.getChatIdList(videoItem).forEach(function (chatId) {
-        var msgStack = base.getObjectItemOrObj(chatMsgStack, chatId);
-        var msgList = base.getObjectItemOrArray(msgStack, 'stack');
+        var msgStack = base.getObjectItem(chatMsgStack, chatId, {});
+        var msgList = base.getObjectItem(msgStack, 'stack', []);
         base.removeItemFromArray(msgList, msgId);
         msgList.push(msgId);
     });
@@ -101,7 +99,6 @@ MsgStack.prototype.callMsgList = function (chatId) {
     if (msgStack.timeout > base.getNow()) {
         return Promise.resolve();
     }
-    delete msgStack.timeout;
 
     var msgList = msgStack.stack || [];
     var sendNextMsg = function () {
@@ -143,7 +140,8 @@ MsgStack.prototype.callMsgList = function (chatId) {
 
             return _this.gOptions.msgSender.sendNotify(chatList, text, noPhotoText, videoItem, true).then(function () {
                 base.removeItemFromArray(msgList, msgId);
-                return _this.saveThrottle();
+                delete msgStack.timeout;
+                return _this.saveChatMsgStack();
             });
         }).then(function () {
             return sendNextMsg();
@@ -161,13 +159,17 @@ MsgStack.prototype.callMsgList = function (chatId) {
     });
 };
 
-MsgStack.prototype.save = function () {
-    var _this = this;
+MsgStack.prototype.saveChatMsgStack = function () {
     var chatMsgStack = this.config.chatMsgStack;
 
     return base.storage.set({
         chatMsgStack: chatMsgStack
     });
+};
+
+MsgStack.prototype.save = function () {
+    var _this = this;
+    return _this.saveChatMsgStack();
 };
 
 MsgStack.prototype.callStack = function () {
@@ -176,15 +178,13 @@ MsgStack.prototype.callStack = function () {
     var promiseList = [];
     var chatMsgStack = this.config.chatMsgStack;
     Object.keys(chatMsgStack).forEach(function (chatId) {
-        if (inProgressChatId.indexOf(chatId) !== -1) {
-            return;
+        if (inProgressChatId.indexOf(chatId) === -1) {
+            inProgressChatId.push(chatId);
+            var promise = _this.callMsgList(chatId).finally(function () {
+                base.removeItemFromArray(inProgressChatId, chatId);
+            });
+            promiseList.push(promise);
         }
-        inProgressChatId.push(chatId);
-
-        var promise = _this.callMsgList(chatId).then(function () {
-            base.removeItemFromArray(inProgressChatId, chatId);
-        });
-        promiseList.push(promise);
     });
     return Promise.all(promiseList);
 };

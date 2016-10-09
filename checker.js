@@ -16,10 +16,6 @@ var Checker = function(options) {
         });
     });
 
-    options.events.on('updateNotify', function(streamItem) {
-        _this.updateNotify(streamItem);
-    });
-
     options.events.on('clean', function() {
         _this.cleanServices();
     });
@@ -90,7 +86,7 @@ Checker.prototype.updateList = function() {
 
         var channelList = serviceChannelList[service];
 
-        queue = queue.finally(function() {
+        queue = queue.then(function() {
             return currentService.getStreamList(channelList).then(function(videoList) {
                 _this.gOptions.events.emit('updateLiveList', service, videoList, channelList);
             });
