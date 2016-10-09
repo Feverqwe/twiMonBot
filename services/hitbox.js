@@ -6,6 +6,7 @@ var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = Promise.promisify(request);
+var CustomError = require('../customError').CustomError;
 
 var Hitbox = function(options) {
     "use strict";
@@ -86,7 +87,7 @@ Hitbox.prototype.apiNormalization = function(data) {
     var apiStreams = data && data.livestream;
     if (!Array.isArray(apiStreams)) {
         debug('Invalid response! %j', data);
-        throw 'Invalid response!';
+        throw new CustomError('Invalid response!');
     }
 
     var now = base.getNow();
@@ -213,7 +214,7 @@ Hitbox.prototype.getChannelId = function(channelName) {
         var streamArray = response && response.livestream;
         if (!Array.isArray(streamArray)) {
             debug('Request channelName "%s" is empty %j', channelName, response);
-            throw 'Request channelName is empty!';
+            throw new CustomError('Request channelName is empty!');
         }
 
         var stream = null;
@@ -228,7 +229,7 @@ Hitbox.prototype.getChannelId = function(channelName) {
 
         if (!channelId) {
             debug('Channel "%s" is not found!, %j', channelName, response);
-            throw 'Channel is not found!';
+            throw new CustomError('Channel is not found!');
         }
 
         _this.setChannelTitle(channelId, stream.media_display_name);

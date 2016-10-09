@@ -869,8 +869,8 @@ var commands = {
                 inline_keyboard: btnList
             })
         }).catch(function (e) {
-            var err = e && e.message || e;
-            if (!/message is not modified/.test(err)) {
+            var errMsg = e.message;
+            if (!/message is not modified/.test(errMsg)) {
                 throw e;
             }
         });

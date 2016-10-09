@@ -120,7 +120,7 @@ MsgStack.prototype.callMsgList = function (chatId) {
             var chatItem = _this.gOptions.storage.chatList[chatId];
             if (!chatItem) {
                 debug('chatItem is not found! %s', msgId);
-                throw 'chatItem is not found!';
+                throw new Error('chatItem is not found!');
             }
 
             var options = chatItem.options || {};

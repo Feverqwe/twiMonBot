@@ -6,6 +6,7 @@ var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = Promise.promisify(request);
+var CustomError = require('../customError').CustomError;
 
 var Twitch = function(options) {
     "use strict";
@@ -90,7 +91,7 @@ Twitch.prototype.apiNormalization = function(data) {
     var apiStreams = data && data.streams;
     if (!Array.isArray(apiStreams)) {
         debug('Invalid response! %j', data);
-        throw 'Invalid response!';
+        throw  new CustomError('Invalid response!');
     }
 
     var now = base.getNow();
@@ -199,7 +200,7 @@ Twitch.prototype.getStreamList = function(channelList) {
                 if (obj.invalidArray.length) {
                     debug('Invalid array %j', obj.invalidArray);
                     arr = obj.invalidArray;
-                    throw 'Invalid array!';
+                    throw new CustomError('Invalid array!');
                 }
             }).catch(function (err) {
                 retryLimit--;
@@ -250,7 +251,7 @@ Twitch.prototype.requestChannelByName = function (channelName) {
 
         if (!firstChannel || !firstChannel.name) {
             debug('Channel is not found by name! %j', response);
-            throw 'Channel is not found by name!';
+            throw new CustomError('Channel is not found by name!');
         }
 
         return firstChannel;
@@ -274,7 +275,7 @@ Twitch.prototype.requestChannelInfo = function (channelId) {
 
         if (!response || !response.name) {
             debug('Channel is not found by id! %j', response);
-            throw 'Channel is not found by id!';
+            throw new CustomError('Channel is not found by id!');
         }
 
         return response;
@@ -289,7 +290,7 @@ Twitch.prototype.getChannelId = function(channelId) {
     }).then(function (response) {
         var channelId = response && response.name && response.name.toLowerCase();
         if (!channelId) {
-            throw 'Channel is not found!';
+            throw new CustomError('Channel is not found!');
         }
 
         _this.setChannelTitle(channelId, response.display_name);

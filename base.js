@@ -81,7 +81,8 @@ module.exports.htmlSanitize = function (type, text, url) {
             return '<code>'+sanitize(text)+'</code>';
     }
 
-    throw "htmlSanitize error! Type: " + type + " is not found!"
+    debug("htmlSanitize error, type: " + type + " is not found!");
+    throw new Error("htmlSanitize error");
 };
 
 module.exports.markDownSanitize = function(text, char) {

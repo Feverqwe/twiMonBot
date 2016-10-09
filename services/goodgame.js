@@ -6,6 +6,7 @@ var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = Promise.promisify(request);
+var CustomError = require('../customError').CustomError;
 
 var GoodGame = function (options) {
     "use strict";
@@ -85,7 +86,7 @@ GoodGame.prototype.apiNormalization = function (data) {
     var _this = this;
     if (!data || typeof data !== 'object') {
         debug('Invalid response! %j', data);
-        throw 'Invalid response!';
+        throw new CustomError('Invalid response!');
     }
 
     var now = base.getNow();
@@ -221,7 +222,7 @@ GoodGame.prototype.getChannelId = function (channelName) {
 
         if (!stream) {
             debug('Channel "%s" is not found! %j', channelName, response);
-            throw 'Channel is not found!';
+            throw new CustomError('Channel is not found!');
         }
 
         var channelId = stream.key.toLowerCase();
