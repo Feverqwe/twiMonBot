@@ -220,7 +220,6 @@ GoodGame.prototype.getChannelId = function (channelName) {
         }
 
         if (!stream) {
-            debug('Channel "%s" is not found! %j', channelName, responseBody);
             throw new CustomError('Channel is not found!');
         }
 

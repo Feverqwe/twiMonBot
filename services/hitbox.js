@@ -210,6 +210,10 @@ Hitbox.prototype.getChannelId = function(channelName) {
         gzip: true,
         forever: true
     }).then(function(response) {
+        if (response.statusCode === 404) {
+            throw new CustomError('Channel is not found!');
+        }
+
         var responseBody = response.body;
 
         var channelId = '';
@@ -230,7 +234,6 @@ Hitbox.prototype.getChannelId = function(channelName) {
         }
 
         if (!channelId) {
-            debug('Channel "%s" is not found!, %j', channelName, responseBody);
             throw new CustomError('Channel is not found!');
         }
 

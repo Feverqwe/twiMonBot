@@ -256,7 +256,6 @@ Twitch.prototype.requestChannelByName = function (channelName) {
         }
 
         if (!firstChannel) {
-            debug('Channel is not found by name! %j', response);
             throw new CustomError('Channel is not found by name!');
         }
 
@@ -286,7 +285,6 @@ Twitch.prototype.requestChannelInfo = function (channelId) {
         var responseBody = response.body;
 
         if (!responseBody) {
-            debug('Channel is not found by id! %j', response);
             throw new CustomError('Channel is not found by id!');
         }
 
