@@ -205,8 +205,8 @@ Twitch.prototype.getStreamList = function(channelList) {
                     throw new CustomError('Invalid array!');
                 }
             }).catch(function (err) {
-                if (retryLimit > 0) {
                 retryLimit--;
+                if (retryLimit > 0) {
                     return new Promise(function(resolve) {
                         return setTimeout(resolve, 5 * 1000);
                     }).then(function() {
