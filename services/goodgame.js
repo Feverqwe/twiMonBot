@@ -81,6 +81,9 @@ GoodGame.prototype.clean = function(channelIdList) {
     return Promise.all(promiseList);
 };
 
+var paramsRe = /\?/;
+var noProtocolRe = /^\/\//;
+
 GoodGame.prototype.apiNormalization = function (data) {
     "use strict";
     var _this = this;
@@ -107,7 +110,10 @@ GoodGame.prototype.apiNormalization = function (data) {
             previewList.push(origItem.thumb);
         }
         previewList = previewList.map(function(url) {
-            var sep = !/\?/.test(url) ? '?' : '&';
+            if (noProtocolRe.test(url)) {
+                url = 'http:' + url;
+            }
+            var sep = !paramsRe.test(url) ? '?' : '&';
             return url + sep + '_=' + now;
         });
 
