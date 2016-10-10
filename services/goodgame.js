@@ -158,6 +158,10 @@ GoodGame.prototype.getStreamList = function (channelList) {
                 gzip: true,
                 forever: true
             }).then(function(response) {
+                if (response.statusCode === 500) {
+                    throw new CustomError(response.statusCode);
+                }
+
                 var responseBody = response.body;
 
                 try {
