@@ -173,20 +173,19 @@ Hitbox.prototype.getStreamList = function(channelList) {
                 }
             }).catch(function (err) {
                 retryLimit--;
-                if (retryLimit < 0) {
-                    channelList.forEach(function (channelId) {
-                        videoList.push(base.getTimeoutStream('hitbox', channelId));
+                if (retryLimit > 0) {
+                    return new Promise(function (resolve) {
+                        return setTimeout(resolve, 5 * 1000);
+                    }).then(function () {
+                        debug("Retry request stream list %s! %s", retryLimit, err);
+                        return getList();
                     });
-                    debug("Request stream list error! %s", err);
-                    return;
                 }
 
-                return new Promise(function (resolve) {
-                    return setTimeout(resolve, 5 * 1000);
-                }).then(function () {
-                    debug("Retry request stream list %s! %s", retryLimit, err);
-                    return getList();
+                channelList.forEach(function (channelId) {
+                    videoList.push(base.getTimeoutStream('hitbox', channelId));
                 });
+                debug("Request stream list error! %s", err);
             });
         };
         return getList();
