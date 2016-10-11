@@ -12,7 +12,7 @@ var Checker = function(options) {
 
     options.events.on('check', function() {
         _this.updateList().catch(function(err) {
-            debug('updateList error! "%s"', err);
+            debug('updateList error!', err);
         });
     });
 
@@ -55,7 +55,7 @@ Checker.prototype.cleanServices = function() {
     Object.keys(serviceChannelList).forEach(function (service) {
         var currentService = services[service];
         if (!currentService) {
-            debug('Service "%s" is not found!', service);
+            debug('Service %s is not found!', service);
             return;
         }
 
@@ -80,7 +80,7 @@ Checker.prototype.updateList = function() {
     Object.keys(serviceChannelList).forEach(function (service) {
         var currentService = services[service];
         if (!currentService) {
-            debug('Service "%s" is not found!', service);
+            debug('Service %s is not found!', service);
             return;
         }
 

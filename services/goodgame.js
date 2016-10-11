@@ -183,7 +183,7 @@ GoodGame.prototype.getStreamList = function (channelList) {
                     return new Promise(function(resolve) {
                         return setTimeout(resolve, 5 * 1000);
                     }).then(function() {
-                        debug("Retry request stream list %s! %s", retryLimit, err);
+                        debug("Retry request stream list %s!", retryLimit, err);
                         return getList();
                     });
                 }
@@ -191,7 +191,7 @@ GoodGame.prototype.getStreamList = function (channelList) {
                 channelList.forEach(function (channelId) {
                     videoList.push(base.getTimeoutStream('goodgame', channelId));
                 });
-                debug("Request stream list error! %s", err);
+                debug("Request stream list error!", err);
             });
         };
         return getList();

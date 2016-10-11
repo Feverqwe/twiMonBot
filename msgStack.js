@@ -155,7 +155,7 @@ MsgStack.prototype.callMsgList = function (chatId) {
         }
         msgStack.timeout = base.getNow() + timeout;
 
-        debug('sendNextMsg error! %s', e);
+        debug('sendNextMsg error!', e);
     });
 };
 

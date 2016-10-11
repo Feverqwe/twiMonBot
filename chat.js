@@ -251,7 +251,7 @@ Chat.prototype.onCallbackQuery = function (callbackQuery) {
 
     var commandFunc = commands[action + '__Cb'];
     if (!commandFunc) {
-        debug('Command "%s" is not found!', action);
+        debug('Command %s is not found!', action);
         return;
     }
 
@@ -269,7 +269,7 @@ Chat.prototype.onCallbackQuery = function (callbackQuery) {
     return commandFunc.apply(this, args).then(function () {
         return _this.gOptions.bot.answerCallbackQuery(callbackQuery.id, '...');
     }).catch(function(err) {
-        debug('Execute callback query command "%s" error! %s', action, err);
+        debug('Execute callback query command %s error!', action, err);
     }).then(function() {
         _this.track(origMsg, action)
     });
@@ -308,7 +308,7 @@ Chat.prototype.onMessage = function(msg) {
         if (responseFunc) {
             text = this.removeBotName(msg.text);
             return responseFunc.call(this, msg, text).catch(function(err) {
-                debug('Execute responseFunc "%s" error! %s', responseFunc.command, err);
+                debug('Execute responseFunc %s error!', responseFunc.command, err);
             });
         }
 
@@ -329,7 +329,7 @@ Chat.prototype.onMessage = function(msg) {
     
     var commandFunc = commands[action];
     if (!commandFunc) {
-        debug('Command "%s" is not found!', action);
+        debug('Command %s is not found!', action);
         return;
     }
 
@@ -345,7 +345,7 @@ Chat.prototype.onMessage = function(msg) {
     var origMsg = JSON.parse(JSON.stringify(msg));
 
     return commandFunc.apply(this, args).catch(function(err) {
-        debug('Execute command "%s" error! %s', action, err);
+        debug('Execute command %s error!', action, err);
     }).then(function() {
         _this.track(origMsg, action)
     });

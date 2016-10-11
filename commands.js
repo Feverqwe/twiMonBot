@@ -347,13 +347,13 @@ var commands = {
                         var text = base.getNowStreamPhotoText(_this.gOptions, stream);
                         var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
                         return _this.gOptions.msgSender.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
-                            debug('a commend, sendNotify error! %s', err);
+                            debug('a commend, sendNotify error!', err);
                         });
                     });
                 });
             });
         }).catch(function(err) {
-            debug('Channel "%s" (%s) is not found! %s', channelName, service, err);
+            debug('Channel %s (%s) is not found!', channelName, service, err);
             return _this.gOptions.bot.editMessageText(
                 chatId,
                 _this.gOptions.language.channelIsNotFound
@@ -407,13 +407,13 @@ var commands = {
                         var text = base.getNowStreamPhotoText(_this.gOptions, stream);
                         var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
                         return _this.gOptions.msgSender.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
-                            debug('a commend, sendNotify error! %s', err);
+                            debug('a commend, sendNotify error!', err);
                         });
                     });
                 });
             });
         }).catch(function(err) {
-            debug('Channel "%s" (%s) is not found! %s', channelName, service, err);
+            debug('Channel %s (%s) is not found!', channelName, service, err);
             return _this.gOptions.bot.sendMessage(
                 chatId,
                 _this.gOptions.language.channelIsNotFound
@@ -830,7 +830,7 @@ var commands = {
                 var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
 
                 return _this.gOptions.msgSender.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
-                    debug('watch commend, sendNotify error! %s', err);
+                    debug('watch commend, sendNotify error!', err);
                 });
             });
             return Promise.all(promiseList);
@@ -961,7 +961,7 @@ var commands = {
                     });
                 });
             }, function (err) {
-                debug('Set channel error! %s', err);
+                debug('Set channel error!', err);
 
                 var msgText = _this.gOptions.language.telegramChannelError;
                 msgText = msgText.replace('{channelName}', channelName);
@@ -1115,7 +1115,7 @@ var commands = {
         var serviceChannelList = _this.gOptions.checker.getChannelList();
         Object.keys(serviceChannelList).forEach(function (service) {
             if (!services[service]) {
-                debug('Service "%s" is not found!', service);
+                debug('Service %s is not found!', service);
                 return;
             }
 
@@ -1148,7 +1148,7 @@ var commands = {
             (function(chatId) {
                 queue = queue.finally(function () {
                     return _this.gOptions.bot.sendChatAction(chatId, 'typing').catch(function (err) {
-                        debug('Send chat action error! %s %s', chatId, err);
+                        debug('Send chat action error! %s', chatId, err);
                         _this.gOptions.msgSender.onSendMsgError(err, chatId);
                     });
                 });

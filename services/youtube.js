@@ -343,7 +343,7 @@ Youtube.prototype.getStreamList = function(_channelIdList) {
             });
         }).catch(function(err) {
             streamList.push(base.getTimeoutStream('youtube', channelId));
-            debug('Stream list item "%s" response error! %s', channelId, err);
+            debug('Stream list item %s response error!', channelId, err);
         });
     };
 

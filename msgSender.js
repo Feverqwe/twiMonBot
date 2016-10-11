@@ -96,7 +96,7 @@ MsgSender.prototype.downloadImg = function (stream) {
 
             return response.request.href;
         }).catch(function(err) {
-            // debug('Request photo error! %s %s %s %s', index, stream._channelId, previewUrl, err);
+            // debug('Request photo error! %s %s %s', index, stream._channelId, previewUrl, err);
 
             index++;
             if (index < previewList.length) {
@@ -108,7 +108,7 @@ MsgSender.prototype.downloadImg = function (stream) {
                 return new Promise(function(resolve) {
                     setTimeout(resolve, requestTimeoutSec);
                 }).then(function() {
-                    // debug("Retry %s request photo %s %s! %s", requestLimit, chatId, stream._channelId, err);
+                    // debug("Retry %s request photo %s %s!", requestLimit, chatId, stream._channelId, err);
                     return requestPic(0);
                 });
             }
@@ -118,7 +118,7 @@ MsgSender.prototype.downloadImg = function (stream) {
     };
 
     return requestPic(0).catch(function (err) {
-        debug('requestPic error %s %s', stream._channelId, err);
+        debug('requestPic error %s', stream._channelId, err);
 
         throw err;
     });
@@ -168,12 +168,12 @@ MsgSender.prototype.getPicId = function(chatId, text, stream) {
                     return new Promise(function(resolve) {
                         setTimeout(resolve, sendPicTimeoutSec);
                     }).then(function() {
-                        debug("Retry %s send photo file %s %s! %s", sendPicLimit, chatId, stream._channelId, err);
+                        debug("Retry %s send photo file %s %s!", sendPicLimit, chatId, stream._channelId, err);
                         return sendingPic();
                     });
                 }
 
-                debug('sendPic error %s %s %s', chatId, stream._channelId, err);
+                debug('sendPic error %s %s', chatId, stream._channelId, err);
 
                 throw err;
             });
@@ -310,7 +310,7 @@ MsgSender.prototype.updateNotify = function (stream) {
         }, function (e) {
             var errMsg = e.message;
             if (!/message is not modified/.test(errMsg)) {
-                debug('Edit msg error %s', e);
+                debug('Edit msg error', e);
             }
         });
     });
@@ -335,7 +335,7 @@ MsgSender.prototype.sendMsg = function(chatId, noPhotoText, stream) {
 
         _this.track(chatId, stream, 'sendMsg');
     }, function(err) {
-        debug('Send text msg error! %s %s %s', chatId, stream._channelId, err);
+        debug('Send text msg error! %s %s', chatId, stream._channelId, err);
 
         var isKicked = _this.onSendMsgError(err, chatId);
         if (!isKicked) {
@@ -360,7 +360,7 @@ MsgSender.prototype.sendPhoto = function(chatId, fileId, text, stream) {
 
         _this.track(chatId, stream, 'sendPhoto');
     }, function(err) {
-        debug('Send photo msg error! %s %s %s', chatId, stream._channelId, err);
+        debug('Send photo msg error! %s %s', chatId, stream._channelId, err);
 
         var isKicked = _this.onSendMsgError(err, chatId);
         if (!isKicked) {

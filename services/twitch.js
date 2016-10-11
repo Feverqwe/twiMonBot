@@ -210,7 +210,7 @@ Twitch.prototype.getStreamList = function(channelList) {
                     return new Promise(function(resolve) {
                         return setTimeout(resolve, 5 * 1000);
                     }).then(function() {
-                        debug("Retry request stream list %s! %s", retryLimit, err);
+                        debug("Retry request stream list %s!", retryLimit, err);
                         return getList();
                     });
                 }
