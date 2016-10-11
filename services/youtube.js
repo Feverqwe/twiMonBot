@@ -155,16 +155,18 @@ Youtube.prototype.getViewers = function(id) {
         gzip: true,
         forever: true
     }).then(function(response) {
-        var value = -1;
-
         var responseBody = response.body;
         if (intRe.test(responseBody)) {
-            value = parseInt(responseBody);
+            return parseInt(responseBody);
         } else {
-            debug('Viewers response is not INT! %j', response);
+            debug('Unexpected response %j', response, e);
+            throw new CustomError('Unexpected response');
         }
-
-        return value;
+    }).catch(function (err) {
+        if (!err instanceof CustomError) {
+            debug('getViewers %s error', id, err);
+        }
+        return -1;
     });
 };
 
@@ -257,29 +259,53 @@ Youtube.prototype.getStreamList = function(_channelIdList) {
 
     var streamList = [];
 
-    var requestPage = function (channelId) {
-        return requestPromise({
-            method: 'GET',
-            url: 'https://www.googleapis.com/youtube/v3/search',
-            qs: {
-                part: 'snippet',
-                channelId: channelId,
-                eventType: 'live',
-                maxResults: 1,
-                order: 'date',
-                safeSearch: 'none',
-                type: 'video',
-                fields: 'items(id,snippet)',
-                key: _this.config.token
-            },
-            json: true,
-            gzip: true,
-            forever: true
-        }).then(function(response) {
-            if (response.statusCode === 503) {
-                throw new CustomError(response.statusCode);
-            }
+    var getPage = function (channelId) {
+        var retryLimit = 5;
+        var requestPage = function () {
+            return requestPromise({
+                method: 'GET',
+                url: 'https://www.googleapis.com/youtube/v3/search',
+                qs: {
+                    part: 'snippet',
+                    channelId: channelId,
+                    eventType: 'live',
+                    maxResults: 1,
+                    order: 'date',
+                    safeSearch: 'none',
+                    type: 'video',
+                    fields: 'items(id,snippet)',
+                    key: _this.config.token
+                },
+                json: true,
+                gzip: true,
+                forever: true
+            }).then(function(response) {
+                if (response.statusCode === 503) {
+                    throw new CustomError(response.statusCode);
+                }
 
+                if (response.statusCode !== 200) {
+                    debug('Unexpected response %j', response, e);
+                    throw new CustomError('Unexpected response');
+                }
+
+                return response;
+            }).catch(function (err) {
+                retryLimit--;
+                if (retryLimit > 0) {
+                    return new Promise(function (resolve) {
+                        setTimeout(resolve, 250);
+                    }).then(function () {
+                        debug('Retry %s requestPage %s', retryLimit, channelId, err);
+                        return requestPage();
+                    });
+                }
+
+                throw err;
+            });
+        };
+
+        return requestPage().then(function (response) {
             var responseBody = response.body;
 
             var len = 0;
@@ -328,7 +354,7 @@ Youtube.prototype.getStreamList = function(_channelIdList) {
         var promise = Promise.resolve();
         arr.forEach(function (channelId) {
             promise = promise.then(function () {
-                return requestPage(channelId);
+                return getPage(channelId);
             });
         });
         return promise;
