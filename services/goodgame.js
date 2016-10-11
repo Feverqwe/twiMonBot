@@ -147,7 +147,6 @@ GoodGame.prototype.apiNormalization = function (data) {
 GoodGame.prototype.getStreamList = function (channelList) {
     "use strict";
     var _this = this;
-
     var videoList = [];
 
     var promiseList = base.arrToParts(channelList, 100).map(function (arr) {
@@ -168,33 +167,42 @@ GoodGame.prototype.getStreamList = function (channelList) {
                     throw new CustomError(response.statusCode);
                 }
 
-                var responseBody = response.body;
-
-                try {
-                    var list = _this.apiNormalization(responseBody);
-                    videoList.push.apply(videoList, list);
-                } catch (e) {
+                if (response.statusCode !== 200) {
                     debug('Unexpected response %j', response, e);
                     throw new CustomError('Unexpected response');
                 }
+
+                return response;
             }).catch(function (err) {
                 retryLimit--;
                 if (retryLimit > 0) {
                     return new Promise(function(resolve) {
                         return setTimeout(resolve, 5 * 1000);
                     }).then(function() {
-                        debug("Retry request stream list %s!", retryLimit, err);
+                        debug("Retry %s getList", retryLimit, err);
                         return getList();
                     });
                 }
 
-                channelList.forEach(function (channelId) {
-                    videoList.push(base.getTimeoutStream('goodgame', channelId));
-                });
-                debug("Request stream list error!", err);
+                throw err;
             });
         };
-        return getList();
+
+        return getList().then(function (response) {
+            var responseBody = response.body;
+            try {
+                var list = _this.apiNormalization(responseBody);
+                videoList.push.apply(videoList, list);
+            } catch (e) {
+                debug('Unexpected response %j', response, e);
+                throw new CustomError('Unexpected response');
+            }
+        }).catch(function (err) {
+            arr.forEach(function (channelId) {
+                videoList.push(base.getTimeoutStream('goodgame', channelId));
+            });
+            debug("Request stream list error!", err);
+        });
     });
 
     return Promise.all(promiseList).then(function () {

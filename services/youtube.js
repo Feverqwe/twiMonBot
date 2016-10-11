@@ -256,7 +256,6 @@ Youtube.prototype.requestChannelIdByUsername = function(userId) {
 Youtube.prototype.getStreamList = function(_channelIdList) {
     "use strict";
     var _this = this;
-
     var streamList = [];
 
     var getPage = function (channelId) {
