@@ -381,23 +381,24 @@ module.exports.Quote = function (callPerSecond) {
 
         var count = promiseList.length;
 
-        var now = getTime();
-        if (!sendTime[now]) {
+        var startTime = getTime();
+        if (!sendTime[startTime]) {
             for (var key in sendTime) {
                 delete sendTime[key];
             }
-            sendTime[now] = 0;
+            sendTime[startTime] = 0;
         }
-        sendTime[now] += count;
+        sendTime[startTime] += count;
 
         return Promise.all(promiseList).then(function() {
-            var now = getTime();
-            if (!sendTime[now] || sendTime[now] < callPerSecond) {
-                return;
+            var endTime = getTime();
+            var sleepTime = 1000 - (endTime - startTime);
+            if (sleepTime < 0) {
+                sleepTime = 0;
             }
 
             return new Promise(function(resolve) {
-                return setTimeout(resolve, 1000);
+                return setTimeout(resolve, sleepTime);
             });
         }).then(function() {
             cbQuote.splice(0, count);
@@ -418,11 +419,9 @@ module.exports.Quote = function (callPerSecond) {
             return new Promise(function(resolve, reject) {
                 cbQuote.push([cb, args, resolve, reject]);
 
-                if (cbQuote.length > 1) {
-                    return;
+                if (cbQuote.length === 1) {
+                    setTimeout(next);
                 }
-
-                next();
             });
         };
     };
