@@ -4,6 +4,7 @@
 var Promise = require('bluebird');
 var debug = require('debug')('commands');
 var base = require('./base');
+var CustomError = require('./customError').CustomError;
 
 var menuBtnList = function (page) {
     var btnList = null;
@@ -353,7 +354,9 @@ var commands = {
                 });
             });
         }).catch(function(err) {
-            debug('Channel %s (%s) is not found!', channelName, service, err);
+            if (!err instanceof CustomError) {
+                debug('Channel %s (%s) is not found!', channelName, service, err);
+            }
             return _this.gOptions.bot.editMessageText(
                 chatId,
                 _this.gOptions.language.channelIsNotFound

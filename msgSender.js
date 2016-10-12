@@ -67,13 +67,13 @@ MsgSender.prototype.downloadImg = function (stream) {
     "use strict";
     var _this = this;
 
-    var requestLimit = 0;
+    var requestLimit = 4;
     var _requestLimit = _this.gOptions.config.sendPhotoRequestLimit;
     if (_requestLimit) {
         requestLimit = _requestLimit;
     }
 
-    var requestTimeoutSec = 30;
+    var requestTimeoutSec = 0.25;
     var _requestTimeoutSec = _this.gOptions.config.sendPhotoRequestTimeoutSec;
     if (_requestTimeoutSec) {
         requestTimeoutSec = _requestTimeoutSec;
@@ -103,8 +103,8 @@ MsgSender.prototype.downloadImg = function (stream) {
                 return requestPic(index);
             }
 
+            requestLimit--;
             if (requestLimit > 0) {
-                requestLimit--;
                 return new Promise(function(resolve) {
                     setTimeout(resolve, requestTimeoutSec);
                 }).then(function() {
@@ -163,8 +163,8 @@ MsgSender.prototype.getPicId = function(chatId, text, stream) {
                     return re.test(err);
                 });
 
+                sendPicLimit--;
                 if (imgProcessError && sendPicLimit > 0) {
-                    sendPicLimit--;
                     return new Promise(function(resolve) {
                         setTimeout(resolve, sendPicTimeoutSec);
                     }).then(function() {
