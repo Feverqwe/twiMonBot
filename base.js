@@ -384,13 +384,13 @@ module.exports.Quote = function (callPerSecond) {
 
         return Promise.all(promiseList).then(function() {
             var endTime = getTime();
-            var sleepTime = 1000 - (endTime - startTime);
+            var sleepTime = 1 - (endTime - startTime);
             if (sleepTime < 0) {
                 sleepTime = 0;
             }
 
             return new Promise(function(resolve) {
-                return setTimeout(resolve, sleepTime);
+                return setTimeout(resolve, sleepTime * 1000);
             });
         }).then(function() {
             cbQuote.splice(0, count);
