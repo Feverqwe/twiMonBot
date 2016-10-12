@@ -187,7 +187,7 @@ Twitch.prototype.getStreamList = function(channelList) {
                 }
 
                 if (response.statusCode !== 200) {
-                    debug('Unexpected response %j', response, e);
+                    debug('Unexpected response %j', response);
                     throw new CustomError('Unexpected response');
                 }
 
