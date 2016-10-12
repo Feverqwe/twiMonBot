@@ -370,10 +370,12 @@ module.exports.Quote = function (callPerSecond) {
             var resolve = item[2];
             var reject = item[3];
 
-            return Promise.try(function() {
-                return cb.apply(null, args);
-            }).then(resolve, reject).catch(function (err) {
-                debug('Quote error', err);
+            return new Promise(function (_resolve) {
+                try {
+                    cb.apply(null, args).finally(_resolve).then(resolve, reject);
+                } catch (err) {
+                    debug('Quote error', err);
+                }
             });
         });
 
