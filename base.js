@@ -373,6 +373,7 @@ module.exports.Quote = function (callPerSecond) {
                 try {
                     cb.apply(null, args).finally(_resolve).then(resolve, reject);
                 } catch (err) {
+                    _resolve();
                     debug('Quote error', err);
                 }
             });
