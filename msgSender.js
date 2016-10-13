@@ -175,8 +175,7 @@ MsgSender.prototype.getPicId = function(chatId, text, stream) {
         };
 
         return _this.downloadImg(stream).then(function (photoUrl) {
-            var sendPicQuote = _this.gOptions.botQuote.wrapper(sendPic);
-            return sendPicQuote(photoUrl);
+            return sendPic(photoUrl);
         });
     };
 
