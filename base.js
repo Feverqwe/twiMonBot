@@ -354,13 +354,11 @@ module.exports.getChannelUrl = function(service, channelName) {
  */
 module.exports.Quote = function (callPerSecond) {
     "use strict";
-    var getTime = function() {
-        return parseInt(Date.now() / 1000);
-    };
-
     var cbQuote = [];
 
     var next = function () {
+        var startTime = Date.now();
+
         var promiseList = cbQuote.slice(0, callPerSecond).map(function(item, index) {
             cbQuote[index] = null;
 
@@ -380,11 +378,10 @@ module.exports.Quote = function (callPerSecond) {
         });
 
         var count = promiseList.length;
-        var startTime = getTime();
 
         return Promise.all(promiseList).then(function() {
-            var endTime = getTime();
-            var sleepTime = 1 - (endTime - startTime);
+            var endTime = Date.now();
+            var sleepTime = 1000 - (endTime - startTime);
             if (sleepTime < 0) {
                 sleepTime = 0;
             }
