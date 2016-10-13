@@ -387,7 +387,7 @@ module.exports.Quote = function (callPerSecond) {
             }
 
             return new Promise(function(resolve) {
-                return setTimeout(resolve, sleepTime * 1000);
+                return setTimeout(resolve, sleepTime);
             });
         }).then(function() {
             cbQuote.splice(0, count);
