@@ -159,10 +159,20 @@ var options = {
             }
         });
 
+        var request = require('request');
         var quote = new base.Quote(30);
 
         options.botQuote = quote;
         options.bot.sendMessage = quote.wrapper(options.bot.sendMessage.bind(options.bot));
+        options.bot.sendPhotoUrl = quote.wrapper(function (chatId, photoUrl, options) {
+            var _this = options.bot;
+            var photoStream = request({
+                url: photoUrl,
+                forever: true
+            });
+
+            return _this.gOptions.bot.sendPhoto(chatId, photoStream, options);
+        });
         options.bot.sendPhotoQuote = quote.wrapper(options.bot.sendPhoto.bind(options.bot));
         options.bot.sendChatAction = quote.wrapper(options.bot.sendChatAction.bind(options.bot));
         options.bot.editMessageText = quote.wrapper(options.bot.editMessageText.bind(options.bot));

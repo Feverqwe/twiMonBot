@@ -143,12 +143,7 @@ MsgSender.prototype.getPicId = function(chatId, text, stream) {
 
     var sendingPic = function() {
         var sendPic = function(photoUrl) {
-            var photoStream = request({
-                url: photoUrl,
-                forever: true
-            });
-
-            return _this.gOptions.bot.sendPhoto(chatId, photoStream, {
+            return _this.gOptions.bot.sendPhotoUrl(chatId, photoUrl, {
                 caption: text
             }).catch(function(err) {
                 var isKicked = _this.onSendMsgError(err, chatId);
