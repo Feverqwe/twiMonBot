@@ -165,14 +165,13 @@ var options = {
         options.botQuote = quote;
         options.bot.sendMessage = quote.wrapper(options.bot.sendMessage.bind(options.bot));
         options.bot.sendPhotoUrl = quote.wrapper(function (chatId, photoUrl, options) {
-            var _this = options.bot;
             var photoStream = request({
                 url: photoUrl,
                 forever: true
             });
 
-            return _this.sendPhoto(chatId, photoStream, options);
-        });
+            return this.sendPhoto(chatId, photoStream, options);
+        }.bind(options.bot));
         options.bot.sendPhotoQuote = quote.wrapper(options.bot.sendPhoto.bind(options.bot));
         options.bot.sendChatAction = quote.wrapper(options.bot.sendChatAction.bind(options.bot));
         options.bot.editMessageText = quote.wrapper(options.bot.editMessageText.bind(options.bot));
