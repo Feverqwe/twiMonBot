@@ -171,7 +171,7 @@ var options = {
                 forever: true
             });
 
-            return _this.gOptions.bot.sendPhoto(chatId, photoStream, options);
+            return _this.sendPhoto(chatId, photoStream, options);
         });
         options.bot.sendPhotoQuote = quote.wrapper(options.bot.sendPhoto.bind(options.bot));
         options.bot.sendChatAction = quote.wrapper(options.bot.sendChatAction.bind(options.bot));
