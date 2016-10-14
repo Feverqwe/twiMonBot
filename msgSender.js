@@ -303,6 +303,9 @@ MsgSender.prototype.updateNotify = function (stream) {
             }
         }, function (e) {
             var errMsg = e.message;
+            if (/message not found/.test(errMsg)) {
+                _this.removeMsgFromStream(stream, msg);
+            } else
             if (!/message is not modified/.test(errMsg)) {
                 debug('Edit msg error', e);
             }
