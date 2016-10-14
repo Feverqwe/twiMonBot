@@ -386,9 +386,7 @@ module.exports.Quote = function (callPerSecond) {
             var args = [].slice.call(arguments);
 
             return timeout().then(function () {
-                return Promise.try(function() {
-                    return cb.apply(null, args);
-                });
+                return cb.apply(null, args);
             }).finally(function () {
                 var now = getTime();
                 Object.keys(timeCountMap).forEach(function (time) {
