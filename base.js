@@ -358,52 +358,7 @@ module.exports.Quote = function (callPerSecond) {
         return parseInt(Date.now() / 1000);
     };
 
-    var sendTime = {};
-    var cbQuote = [];
-
-    var next = function () {
-        var promiseList = cbQuote.slice(0, callPerSecond).map(function(item, index) {
-            cbQuote[index] = null;
-
-            var cb = item[0];
-            var args = item[1];
-            var resolve = item[2];
-            var reject = item[3];
-
-            return Promise.try(function() {
-                return cb.apply(null, args);
-            }).then(resolve, reject).catch(function (err) {
-                debug('Quote error', err);
-            });
-        });
-
-        var count = promiseList.length;
-
-        var now = getTime();
-        if (!sendTime[now]) {
-            for (var key in sendTime) {
-                delete sendTime[key];
-            }
-            sendTime[now] = 0;
-        }
-        sendTime[now] += count;
-
-        return Promise.all(promiseList).then(function() {
-            var now = getTime();
-            if (!sendTime[now] || sendTime[now] < callPerSecond) {
-                return;
-            }
-
-            return new Promise(function(resolve) {
-                return setTimeout(resolve, 1000);
-            });
-        }).then(function() {
-            cbQuote.splice(0, count);
-            if (cbQuote.length) {
-                next();
-            }
-        });
-    };
+    var timeCountMap = {};
 
     /**
      * @param {Function} cb
@@ -411,16 +366,30 @@ module.exports.Quote = function (callPerSecond) {
      */
     this.wrapper = function(cb) {
         return function () {
+            var now = getTime();
             var args = [].slice.call(arguments);
 
             return new Promise(function(resolve, reject) {
-                cbQuote.push([cb, args, resolve, reject]);
-
-                if (cbQuote.length > 1) {
-                    return;
+                if (!timeCountMap[now]) {
+                    timeCountMap[now] = 0;
                 }
+                timeCountMap[now]++;
 
-                next();
+                if (timeCountMap[now] > callPerSecond) {
+                    setTimeout(resolve, 1000);
+                } else {
+                    resolve();
+                }
+            }).then(function () {
+                return Promise.try(function() {
+                    return cb.apply(null, args);
+                });
+            }).finally(function () {
+                Object.keys(timeCountMap).forEach(function (time) {
+                    if (time < now) {
+                        delete timeCountMap[time];
+                    }
+                });
             });
         };
     };
