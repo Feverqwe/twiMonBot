@@ -369,7 +369,7 @@ module.exports.Quote = function (callPerSecond) {
             var now = getTime();
             var args = [].slice.call(arguments);
 
-            return new Promise(function(resolve, reject) {
+            return new Promise(function(resolve) {
                 if (!timeCountMap[now]) {
                     timeCountMap[now] = 0;
                 }
