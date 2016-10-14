@@ -7,24 +7,20 @@ var Promise = require('bluebird');
 var debug = require('debug')('storage');
 var fs = require('fs');
 
-var promiseList = {};
+var keyPromiseMap = {};
 
 var inStack = function (key, fn) {
-    return new Promise(function (resolve, reject) {
-        var promise = promiseList[key] || Promise.resolve();
-
-        promise = promise.then(function () {
-            return Promise.try(fn).finally(function () {
-                if (promiseList[key] === promise) {
-                    delete promiseList[key];
-                }
-            }).then(resolve, reject);
-        }).catch(function (err) {
-            debug('inStack error', err);
+    if (!keyPromiseMap[key]) {
+        keyPromiseMap[key] = Promise.resolve();
+    }
+    var promise = keyPromiseMap[key].then(function () {
+        return fn().finally(function () {
+            if (keyPromiseMap[key] === promise) {
+                keyPromiseMap[key] = null;
+            }
         });
-
-        promiseList[key] = promise;
     });
+    return keyPromiseMap[key] = promise;
 };
 
 var Storage = function() {
