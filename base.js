@@ -354,11 +354,14 @@ module.exports.getChannelUrl = function(service, channelName) {
  */
 module.exports.Quote = function (callPerSecond) {
     "use strict";
+    var getTime = function() {
+        return parseInt(Date.now() / 1000);
+    };
+
+    var sendTime = {};
     var cbQuote = [];
 
     var next = function () {
-        var startTime = Date.now();
-
         var promiseList = cbQuote.slice(0, callPerSecond).map(function(item, index) {
             cbQuote[index] = null;
 
@@ -367,27 +370,32 @@ module.exports.Quote = function (callPerSecond) {
             var resolve = item[2];
             var reject = item[3];
 
-            return new Promise(function (_resolve) {
-                try {
-                    cb.apply(null, args).finally(_resolve).then(resolve, reject);
-                } catch (err) {
-                    _resolve();
-                    debug('Quote error', err);
-                }
+            return Promise.try(function() {
+                return cb.apply(null, args);
+            }).then(resolve, reject).catch(function (err) {
+                debug('Quote error', err);
             });
         });
 
         var count = promiseList.length;
 
+        var now = getTime();
+        if (!sendTime[now]) {
+            for (var key in sendTime) {
+                delete sendTime[key];
+            }
+            sendTime[now] = 0;
+        }
+        sendTime[now] += count;
+
         return Promise.all(promiseList).then(function() {
-            var endTime = Date.now();
-            var sleepTime = 1000 - (endTime - startTime);
-            if (sleepTime < 0) {
-                sleepTime = 0;
+            var now = getTime();
+            if (!sendTime[now] || sendTime[now] < callPerSecond) {
+                return;
             }
 
             return new Promise(function(resolve) {
-                return setTimeout(resolve, sleepTime);
+                return setTimeout(resolve, 1000);
             });
         }).then(function() {
             cbQuote.splice(0, count);
@@ -408,16 +416,14 @@ module.exports.Quote = function (callPerSecond) {
             return new Promise(function(resolve, reject) {
                 cbQuote.push([cb, args, resolve, reject]);
 
-                if (cbQuote.length === 1) {
-                    setTimeout(next);
+                if (cbQuote.length > 1) {
+                    return;
                 }
+
+                next();
             });
         };
     };
-};
-
-module.exports.getRandomInt = function (min, max) {
-    return Math.floor(Math.random() * (max - min)) + min;
 };
 
 module.exports.arrToParts = function (arr, quote) {
