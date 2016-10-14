@@ -359,6 +359,23 @@ module.exports.Quote = function (callPerSecond) {
     };
 
     var timeCountMap = {};
+    var timeout = function () {
+        return new Promise(function (resolve) {
+            (function wait() {
+                var now = getTime();
+                if (!timeCountMap[now]) {
+                    timeCountMap[now] = 0;
+                }
+                timeCountMap[now]++;
+
+                if (timeCountMap[now] > callPerSecond) {
+                    setTimeout(wait, 1000);
+                } else {
+                    resolve();
+                }
+            })();
+        });
+    };
 
     /**
      * @param {Function} cb
@@ -366,25 +383,14 @@ module.exports.Quote = function (callPerSecond) {
      */
     this.wrapper = function(cb) {
         return function () {
-            var now = getTime();
             var args = [].slice.call(arguments);
 
-            return new Promise(function(resolve) {
-                if (!timeCountMap[now]) {
-                    timeCountMap[now] = 0;
-                }
-                timeCountMap[now]++;
-
-                if (timeCountMap[now] > callPerSecond) {
-                    setTimeout(resolve, 1000);
-                } else {
-                    resolve();
-                }
-            }).then(function () {
+            return timeout().then(function () {
                 return Promise.try(function() {
                     return cb.apply(null, args);
                 });
             }).finally(function () {
+                var now = getTime();
                 Object.keys(timeCountMap).forEach(function (time) {
                     if (time < now) {
                         delete timeCountMap[time];
