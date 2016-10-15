@@ -112,7 +112,7 @@ MsgStack.prototype.callMsgList = function (chatId) {
             var chatList = [];
             var videoItem = _this.stack.getItem(msgId);
             if (!videoItem) {
-                debug('VideoItem is not found! %s', msgId);
+                debug('VideoItem is not found! %s %s', msgId, chatId);
                 base.removeItemFromArray(msgList, msgId);
                 return;
             }
