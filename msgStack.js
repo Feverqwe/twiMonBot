@@ -11,7 +11,7 @@ var MsgStack = function (options) {
     this.gOptions = options;
     this.config = {};
 
-    this.inProgressChatId = [];
+    this.promiseChatIdMap = {};
 
     options.events.on('notify', function (stream) {
         return _this.notify(stream);
@@ -174,17 +174,21 @@ MsgStack.prototype.save = function () {
 
 MsgStack.prototype.callStack = function () {
     var _this = this;
-    var inProgressChatId = this.inProgressChatId;
+    var promiseChatIdMap = _this.promiseChatIdMap;
     var promiseList = [];
-    var chatMsgStack = this.config.chatMsgStack;
+    var chatMsgStack = _this.config.chatMsgStack;
     Object.keys(chatMsgStack).forEach(function (chatId) {
-        if (inProgressChatId.indexOf(chatId) === -1) {
-            inProgressChatId.push(chatId);
-            var promise = _this.callMsgList(chatId).finally(function () {
-                base.removeItemFromArray(inProgressChatId, chatId);
-            });
-            promiseList.push(promise);
-        }
+        var promise = promiseChatIdMap[chatId] || Promise.resolve();
+
+        promise = promiseChatIdMap[chatId] = promise.then(function () {
+            return _this.callMsgList(chatId);
+        }).finally(function () {
+            if (promiseChatIdMap[chatId] === promise) {
+                delete promiseChatIdMap[chatId];
+            }
+        });
+
+        promiseList.push(promise);
     });
     return Promise.all(promiseList);
 };
