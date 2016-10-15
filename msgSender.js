@@ -301,7 +301,7 @@ MsgSender.prototype.updateNotify = function (stream) {
             if (msg.type === 'streamText') {
                 _this.track(msg.chatId, stream, 'updateText');
             }
-        }, function (e) {
+        }).catch(function (e) {
             var errMsg = e.message;
             if (/message not found/.test(errMsg)) {
                 _this.removeMsgFromStream(stream, msg);
@@ -331,7 +331,7 @@ MsgSender.prototype.sendMsg = function(chatId, noPhotoText, stream) {
         });
 
         _this.track(chatId, stream, 'sendMsg');
-    }, function(err) {
+    }).catch(function(err) {
         debug('Send text msg error! %s %s', chatId, stream._channelId, err);
 
         var isKicked = _this.onSendMsgError(err, chatId);
@@ -356,7 +356,7 @@ MsgSender.prototype.sendPhoto = function(chatId, fileId, text, stream) {
         });
 
         _this.track(chatId, stream, 'sendPhoto');
-    }, function(err) {
+    }).catch(function(err) {
         debug('Send photo msg error! %s %s', chatId, stream._channelId, err);
 
         var isKicked = _this.onSendMsgError(err, chatId);
@@ -398,14 +398,12 @@ MsgSender.prototype.requestPicId = function(chatIdList, text, stream) {
     if (promise) {
         promise = promise.then(function (msg) {
             stream._photoId = msg.photo[0].file_id;
-        }, function(err) {
+        }).catch(function(err) {
             if (err.message === 'Send photo file error! Bot was kicked!') {
                 return _this.requestPicId(chatIdList, text, stream);
             }
 
             debug('requestPicId promise', err);
-        }).catch(function (err) {
-            debug('requestPicId promise catch', err);
         });
     } else {
         var chatId = chatIdList.shift();
@@ -426,7 +424,7 @@ MsgSender.prototype.requestPicId = function(chatIdList, text, stream) {
             stream._photoId = msg.photo[0].file_id;
 
             _this.track(chatId, stream, 'sendPhoto');
-        }, function (err) {
+        }).catch(function (err) {
             if (err.message === 'Send photo file error! Bot was kicked!') {
                 return _this.requestPicId(chatIdList, text, stream);
             }
@@ -435,8 +433,6 @@ MsgSender.prototype.requestPicId = function(chatIdList, text, stream) {
             // debug('Function getPicId throw error!', err);
 
             debug('requestPicId', err);
-        }).catch(function (err) {
-            debug('requestPicId catch', err);
         });
     }
 
