@@ -402,6 +402,10 @@ MsgSender.prototype.requestPicId = function(chatIdList, text, stream) {
             if (err.message === 'Send photo file error! Bot was kicked!') {
                 return _this.requestPicId(chatIdList, text, stream);
             }
+
+            debug('requestPicId promise', err);
+        }).catch(function (err) {
+            debug('requestPicId promise catch', err);
         });
     } else {
         var chatId = chatIdList.shift();
@@ -429,6 +433,10 @@ MsgSender.prototype.requestPicId = function(chatIdList, text, stream) {
 
             chatIdList.unshift(chatId);
             // debug('Function getPicId throw error!', err);
+
+            debug('requestPicId', err);
+        }).catch(function (err) {
+            debug('requestPicId catch', err);
         });
     }
 
