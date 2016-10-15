@@ -112,13 +112,29 @@ Tracker.prototype.send = function(params) {
         }
     }
 
-    return requestPromise({
-        url: 'https://www.google-analytics.com/collect',
-        method: 'POST',
-        form: params,
-        gzip: true,
-        forever: true
-    });
+    var retry = 5;
+    var sendRequest = function () {
+        return requestPromise({
+            url: 'https://www.google-analytics.com/collect',
+            method: 'POST',
+            form: params,
+            gzip: true,
+            forever: true
+        }).catch(function (err) {
+            retry--;
+            if (err.code === 'ECONNRESET' && retry > 0) {
+                return new Promise(function (resolve) {
+                    setTimeout(resolve, 250);
+                }).then(function () {
+                    return sendRequest();
+                })
+            }
+
+            throw err;
+        });
+    };
+
+    return sendRequest();
 };
 
 module.exports = Tracker;
