@@ -981,6 +981,24 @@ var commands = {
                         options.channel = channelName;
                     });
                 }
+            }).catch(function (err) {
+                var msgText = _this.gOptions.language.telegramChannelError;
+                msgText = msgText.replace('{channelName}', channelName);
+                if (err.message === 'BAD_FORMAT') {
+                    msgText += ' Channel name is incorrect.';
+                } else if (err.message === 'CHANNEL_EXISTS') {
+                    msgText += ' The channel has already been added.';
+                } else if (/bot is not a member of the channel chat/.test(err.message)) {
+                    msgText += ' Bot must be admin in this channel.';
+                } else if (/chat not found/.test(err.message)) {
+                    msgText += ' Telegram chat is not found!';
+                } else {
+                    debug('Set channel %s error!', channelName, err);
+                }
+
+                return _this.gOptions.bot.sendMessage(chatId, msgText).then(function () {
+                    throw new CustomError('Set channel ' + channelName + ' error!');
+                })
             }).then(function () {
                 return base.storage.set({chatList: chatList}).then(function () {
                     return _this.gOptions.bot.sendMessage(chatId, 'Options:', {
@@ -989,12 +1007,6 @@ var commands = {
                         })
                     });
                 });
-            }, function (err) {
-                debug('Set channel error!', err);
-
-                var msgText = _this.gOptions.language.telegramChannelError;
-                msgText = msgText.replace('{channelName}', channelName);
-                return _this.gOptions.bot.sendMessage(chatId, msgText);
             });
         };
 
