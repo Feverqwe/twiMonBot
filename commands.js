@@ -495,13 +495,21 @@ var commands = {
                 return onTimeout(onMessage);
             }, 3 * 60 * 1000);
 
+            var options = null;
             var msgText = _this.gOptions.language.enterChannelName;
             if (chatId < 0) {
                 msgText += _this.gOptions.language.groupNote;
+                options = {
+                    reply_markup: JSON.stringify({
+                        force_reply: true
+                    })
+                };
             }
 
-            return _this.gOptions.bot.sendMessage(chatId, msgText).then(function (msg) {
-                onMessage.messageId = msg.message_id;
+            return _this.gOptions.bot.sendMessage(chatId, msgText, options).then(function (msg) {
+                if (chatId > 0) {
+                    onMessage.messageId = msg.message_id;
+                }
             });
         };
 
@@ -1001,13 +1009,22 @@ var commands = {
                 return onTimeout(onMessage);
             }, 3 * 60 * 1000);
 
+
+            var options = null;
             var msgText = _this.gOptions.language.telegramChannelEnter;
             if (chatId < 0) {
                 msgText += _this.gOptions.language.groupNote;
+                options = {
+                    reply_markup: JSON.stringify({
+                        force_reply: true
+                    })
+                };
             }
 
-            return _this.gOptions.bot.sendMessage(chatId, msgText).then(function (msg) {
-                onMessage.messageId = msg.message_id;
+            return _this.gOptions.bot.sendMessage(chatId, msgText, options).then(function (msg) {
+                if (chatId > 0) {
+                    onMessage.messageId = msg.message_id;
+                }
             });
         };
 
