@@ -320,7 +320,6 @@ MsgSender.prototype.sendMsg = function(chatId, noPhotoText, stream) {
     var bot = _this.gOptions.bot;
 
     return bot.sendMessage(chatId, noPhotoText, {
-        disable_web_page_preview: true,
         parse_mode: 'HTML'
     }).then(function(msg) {
         _this.addMsgInStream(stream, {
