@@ -152,8 +152,7 @@ MsgSender.prototype.getPicId = function(chatId, text, stream) {
                 }
 
                 var imgProcessError = [
-                    /IMAGE_PROCESS_FAILED/,
-                    /FILE_PART_0_MISSING/
+                    /Failed to get HTTP URL content/
                 ].some(function(re) {
                     return re.test(err);
                 });
