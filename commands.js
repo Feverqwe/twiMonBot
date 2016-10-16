@@ -997,7 +997,7 @@ var commands = {
                 }
 
                 return _this.gOptions.bot.sendMessage(chatId, msgText).then(function () {
-                    throw new CustomError('Set channel ' + channelName + ' error!');
+                    throw new CustomError('SET_CHANNEL_ERROR');
                 })
             }).then(function () {
                 return base.storage.set({chatList: chatList}).then(function () {
@@ -1007,6 +1007,10 @@ var commands = {
                         })
                     });
                 });
+            }).catch(function (err) {
+               if (err.message !== 'SET_CHANNEL_ERROR') {
+                   throw err;
+               }
             });
         };
 
