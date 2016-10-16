@@ -107,7 +107,8 @@ Hitbox.prototype.apiNormalization = function(data) {
             previewList.push(origItem.media_thumbnail);
         }
         previewList = previewList.map(function(path) {
-            return 'http://edge.sf.hitbox.tv' + path;
+            var url = 'http://edge.sf.hitbox.tv' + path;
+            return base.noCacheUrl(url);
         });
 
         var item = {

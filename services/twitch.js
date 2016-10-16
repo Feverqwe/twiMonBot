@@ -122,10 +122,7 @@ Twitch.prototype.apiNormalization = function(data) {
             previewList.push(url);
         });
 
-        previewList = previewList.map(function(url) {
-            var sep = !/\?/.test(url) ? '?' : '&';
-            return url + sep + '_=' + now;
-        });
+        previewList = previewList.map(base.noCacheUrl);
 
         var item = {
             _service: 'twitch',

@@ -165,12 +165,12 @@ var options = {
         options.botQuote = quote;
         options.bot.sendMessage = quote.wrapper(options.bot.sendMessage.bind(options.bot));
         options.bot.sendPhotoUrl = quote.wrapper(function (chatId, photoUrl, options) {
-            var photoStream = request({
-                url: photoUrl,
-                forever: true
-            });
-
-            return this.sendPhoto(chatId, photoStream, options);
+            var opts = {
+                qs: options || {}
+            };
+            opts.qs.chat_id = chatId;
+            opts.qs.photo = photoUrl;
+            return this._request('sendPhoto', opts);
         }.bind(options.bot));
         options.bot.sendPhotoQuote = quote.wrapper(options.bot.sendPhoto.bind(options.bot));
         options.bot.sendChatAction = quote.wrapper(options.bot.sendChatAction.bind(options.bot));

@@ -81,7 +81,6 @@ GoodGame.prototype.clean = function(channelIdList) {
     return Promise.all(promiseList);
 };
 
-var paramsRe = /\?/;
 var noProtocolRe = /^\/\//;
 
 GoodGame.prototype.apiNormalization = function (data) {
@@ -113,8 +112,7 @@ GoodGame.prototype.apiNormalization = function (data) {
             if (noProtocolRe.test(url)) {
                 url = 'http:' + url;
             }
-            var sep = !paramsRe.test(url) ? '?' : '&';
-            return url + sep + '_=' + now;
+            return base.noCacheUrl(url);
         });
 
         var item = {

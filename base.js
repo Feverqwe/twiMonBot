@@ -539,3 +539,9 @@ module.exports.pageBtnList = function (btnList, updCommand, page, mediumBtn) {
     }
     return pageList;
 };
+
+var sepRe = /\?/;
+module.exports.noCacheUrl = function (url) {
+    var sep = sepRe.test(url) ? '&' : '?';
+    return url + sep + '_=' + getNow();
+};
