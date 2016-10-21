@@ -132,10 +132,10 @@ MsgStack.prototype.callMsgList = function (chatId) {
             var noPhotoText = base.getNowStreamText(_this.gOptions, videoItem);
 
             if (options.channel) {
-                !options.mute && chatList.push(chatId);
+                !options.mute && chatList.push(chatItem.chatId);
                 chatList.push(options.channel);
             } else {
-                chatList.push(chatId);
+                chatList.push(chatItem.chatId);
             }
 
             return _this.gOptions.msgSender.sendNotify(chatList, text, noPhotoText, videoItem, true).then(function () {
