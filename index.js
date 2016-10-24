@@ -163,14 +163,37 @@ var options = {
 
         options.botQuote = quote;
         options.bot.sendMessage = quote.wrapper(options.bot.sendMessage.bind(options.bot));
-        options.bot.sendPhotoUrl = quote.wrapper(function (chatId, photoUrl, options) {
-            var opts = {
-                qs: options || {}
+
+        (function () {
+            var request = require('request');
+            var errList = [
+                /Failed to get HTTP URL content/,
+                /HTTP URL specified/
+            ];
+            options.bot.sendPhotoUrl = function (chatId, photoUrl, options) {
+                var _this = this;
+                var opts = {
+                    qs: options || {}
+                };
+                opts.qs.chat_id = chatId;
+                opts.qs.photo = photoUrl;
+                return this._request('sendPhoto', opts).catch(function (err) {
+                    var manualUpload = errList.some(function (re) {
+                        return re.test(err);
+                    });
+                    if (manualUpload) {
+                        return _this.sendPhoto(chatId, request({
+                            url: photoUrl,
+                            forever: true
+                        }), options);
+                    }
+
+                    throw err;
+                });
             };
-            opts.qs.chat_id = chatId;
-            opts.qs.photo = photoUrl;
-            return this._request('sendPhoto', opts);
-        }.bind(options.bot));
+        })();
+        options.bot.sendPhotoUrl = quote.wrapper(options.bot.sendPhotoUrl.bind(options.bot));
+
         options.bot.sendPhotoQuote = quote.wrapper(options.bot.sendPhoto.bind(options.bot));
         options.bot.sendChatAction = quote.wrapper(options.bot.sendChatAction.bind(options.bot));
         options.bot.editMessageText = quote.wrapper(options.bot.editMessageText.bind(options.bot));
