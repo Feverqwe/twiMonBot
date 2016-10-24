@@ -179,7 +179,7 @@ var options = {
                 opts.qs.photo = photoUrl;
                 return this._request('sendPhoto', opts).catch(function (err) {
                     var manualUpload = errList.some(function (re) {
-                        return re.test(err);
+                        return re.test(err.message);
                     });
                     if (manualUpload) {
                         return _this.sendPhoto(chatId, request({
