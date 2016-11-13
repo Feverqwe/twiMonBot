@@ -350,13 +350,9 @@ Youtube.prototype.getStreamList = function(_channelIdList) {
     var partSize = Math.ceil(_channelIdList.length / threadCount);
 
     var requestList = base.arrToParts(_channelIdList, partSize).map(function (arr) {
-        var promise = Promise.resolve();
-        arr.forEach(function (channelId) {
-            promise = promise.then(function () {
-                return getPage(channelId);
-            });
+        return base.arrayToChainPromise(arr, function (channelId) {
+            return getPage(channelId);
         });
-        return promise;
     });
 
     return Promise.all(requestList).then(function() {

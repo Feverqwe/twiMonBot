@@ -540,3 +540,17 @@ module.exports.noCacheUrl = function (url) {
     var sep = sepRe.test(url) ? '&' : '?';
     return url + sep + '_=' + getNow();
 };
+
+module.exports.arrayToChainPromise = function (arr, callbackPromise) {
+    var next = function () {
+        var promise = null;
+        var item = arr.shift();
+        if (item) {
+            promise = callbackPromise(item).then(next);
+        } else {
+            promise = Promise.resolve();
+        }
+        return promise;
+    };
+    return next();
+};
