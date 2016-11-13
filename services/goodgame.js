@@ -224,7 +224,7 @@ GoodGame.prototype.getChannelId = function (channelName) {
     var _this = this;
     return requestPromise({
         method: 'GET',
-        url: 'https://api2.goodgame.ru/v2/streams/' + channelName,
+        url: 'https://api2.goodgame.ru/v2/streams/' + encodeURIComponent(channelName),
         headers: {
             'Accept': 'application/vnd.goodgame.v2+json'
         },
