@@ -154,7 +154,7 @@ GoodGame.prototype.getStreamList = function (channelList) {
     var _this = this;
     var videoList = [];
 
-    var promiseList = base.arrToParts(channelList, 50).map(function (arr) {
+    var promiseList = base.arrToParts(channelList, 25).map(function (arr) {
         var retryLimit = 5;
         var getList = function () {
             return requestPromise({
