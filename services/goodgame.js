@@ -89,24 +89,26 @@ GoodGame.prototype.apiNormalization = function (data) {
 
     var now = base.getNow();
     var streamArray = [];
-    Object.keys(data).forEach(function (key) {
-        var origItem = data[key];
-
+    data._embedded.streams.forEach(function (origItem) {
         if (origItem.status !== 'Live') {
             return;
         }
 
-        if (!origItem.key || !origItem.thumb || !origItem.stream_id) {
+        if (!origItem.key || !origItem.id || !origItem.channel) {
             debug('Skip item! %j', origItem);
             return;
         }
 
-        var channelId = origItem.key.toLowerCase();
+        var id = origItem.id;
+        var viewers = parseInt(origItem.viewers) || 0;
+        var name = origItem.key;
+        var channelId = name.toLowerCase();
+        var channel = origItem.channel;
 
         var previewList = [];
-        if (origItem.thumb) {
-            previewList.push(origItem.thumb.replace(/_240(\.jpg)$/, '$1'));
-            previewList.push(origItem.thumb);
+        if (channel.thumb) {
+            previewList.push(channel.thumb.replace(/_240(\.jpg)$/, '$1'));
+            previewList.push(channel.thumb);
         }
         previewList = previewList.map(function(url) {
             if (noProtocolRe.test(url)) {
@@ -115,27 +117,32 @@ GoodGame.prototype.apiNormalization = function (data) {
             return base.noCacheUrl(url);
         });
 
+        var game = channel.games && channel.games[0];
+        if (game) {
+            game = game.title;
+        }
+
         var item = {
             _service: 'goodgame',
             _checkTime: now,
             _insertTime: now,
-            _id: 'g' + origItem.stream_id,
+            _id: 'g' + id,
             _isOffline: false,
             _isTimeout: false,
             _channelId: channelId,
 
-            viewers: parseInt(origItem.viewers) || 0,
-            game: origItem.games,
+            viewers: viewers,
+            game: game,
             preview: previewList,
             created_at: undefined,
             channel: {
-                name: origItem.key,
-                status: origItem.title,
-                url: origItem.url
+                name: name,
+                status: channel.title,
+                url: channel.url
             }
         };
 
-        _this.setChannelTitle(channelId, origItem.key);
+        _this.setChannelTitle(channelId, name);
 
         streamArray.push(item);
     });
@@ -147,15 +154,19 @@ GoodGame.prototype.getStreamList = function (channelList) {
     var _this = this;
     var videoList = [];
 
-    var promiseList = base.arrToParts(channelList, 100).map(function (arr) {
+    var promiseList = base.arrToParts(channelList, 50).map(function (arr) {
         var retryLimit = 5;
         var getList = function () {
             return requestPromise({
                 method: 'GET',
-                url: 'http://goodgame.ru/api/getchannelstatus',
+                url: 'https://api2.goodgame.ru/v2/streams',
                 qs: {
-                    fmt: 'json',
-                    id: arr.join(',')
+                    ids: arr.join(','),
+                    adult: true,
+                    hidden: true
+                },
+                headers: {
+                    'Accept': 'application/vnd.goodgame.v2+json'
                 },
                 json: true,
                 gzip: true,
@@ -213,34 +224,32 @@ GoodGame.prototype.getChannelId = function (channelName) {
     var _this = this;
     return requestPromise({
         method: 'GET',
-        url: 'http://goodgame.ru/api/getchannelstatus',
-        qs: {
-            fmt: 'json',
-            id: channelName
+        url: 'https://api2.goodgame.ru/v2/streams/' + channelName,
+        headers: {
+            'Accept': 'application/vnd.goodgame.v2+json'
         },
         json: true,
         gzip: true,
         forever: true
     }).then(function (response) {
-        var responseBody = response.body;
-
-        var stream = null;
-
-        for (var key in responseBody) {
-            var item = responseBody[key];
-            if (item.key) {
-                stream = item;
-                break;
-            }
+        if (response.statusCode === 404) {
+            throw new CustomError(response.statusCode);
         }
 
-        if (!stream) {
+        if (response.statusCode !== 200) {
+            debug('Unexpected response %j', response);
+            throw new CustomError(response.statusCode);
+        }
+
+        var responseJson = response.body;
+
+        var channelId = responseJson.key;
+        if (!channelId) {
             throw new CustomError('Channel is not found!');
         }
 
-        var channelId = stream.key.toLowerCase();
-
-        return _this.setChannelTitle(channelId, stream.key).then(function () {
+        channelId = channelId.toLowerCase();
+        return _this.setChannelTitle(channelId, responseJson.key).then(function () {
             return channelId;
         });
     });
