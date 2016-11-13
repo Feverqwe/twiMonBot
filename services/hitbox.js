@@ -172,9 +172,9 @@ Hitbox.prototype.getStreamList = function(channelList) {
                 retryLimit--;
                 if (retryLimit > 0) {
                     return new Promise(function (resolve) {
-                        return setTimeout(resolve, 5 * 1000);
+                        return setTimeout(resolve, 250);
                     }).then(function () {
-                        debug("Retry %s getList", retryLimit, err);
+                        // debug("Retry %s getList", retryLimit, err);
                         return getList();
                     });
                 }

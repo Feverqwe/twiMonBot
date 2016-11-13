@@ -295,7 +295,7 @@ Youtube.prototype.getStreamList = function(_channelIdList) {
                     return new Promise(function (resolve) {
                         setTimeout(resolve, 250);
                     }).then(function () {
-                        debug('Retry %s requestPage %s', retryLimit, channelId, err);
+                        // debug('Retry %s requestPage %s', retryLimit, channelId, err);
                         return requestPage();
                     });
                 }
