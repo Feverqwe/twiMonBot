@@ -270,7 +270,8 @@ MsgSender.prototype.updateMsg = function (msg, text, noPhotoText) {
                 msg.chatId,
                 noPhotoText,
                 {
-                    message_id: msg.id
+                    message_id: msg.id,
+                    parse_mode: 'HTML'
                 }
             );
         });
