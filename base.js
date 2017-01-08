@@ -212,6 +212,8 @@ module.exports.getNowStreamText = function(gOptions, stream) {
 
     line = [];
     if (stream.channel.url) {
+        var channelName = this.htmlSanitize('b', stream.channel.display_name || stream.channel.name);
+        line.push(channelName);
         line.push(stream.channel.url);
     }
 
