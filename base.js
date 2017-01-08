@@ -212,12 +212,7 @@ module.exports.getNowStreamText = function(gOptions, stream) {
 
     line = [];
     if (stream.channel.url) {
-        var channelName = this.htmlSanitize('b', stream.channel.display_name || stream.channel.name);
-        var channelUrl = this.htmlSanitize('a', gOptions.serviceToTitle[stream._service], stream.channel.url);
-        line.push(gOptions.language.watchOn
-            .replace('{channelName}', channelName)
-            .replace('{serviceName}', channelUrl)
-        );
+        line.push(stream.channel.url);
     }
 
     if (line.length) {
@@ -272,11 +267,7 @@ module.exports.getStreamText = function(gOptions, stream) {
 
     line = [];
     if (stream.channel.url) {
-        var channelUrl = this.htmlSanitize('a', gOptions.serviceToTitle[stream._service], stream.channel.url);
-        line.push(gOptions.language.watchOn
-            .replace('{channelName} ', '')
-            .replace('{serviceName}', channelUrl)
-        );
+        line.push(stream.channel.url);
     }
 
     var url = stream.preview[0];
