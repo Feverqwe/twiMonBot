@@ -3,7 +3,7 @@
  */
 "use strict";
 var Promise = require('bluebird');
-var debug = require('debug')('chat');
+var debug = require('debug')('app:chat');
 var commands = require('./commands');
 var base = require('./base');
 

@@ -2,11 +2,7 @@
  * Created by Anton on 06.12.2015.
  */
 "use strict";
-var Debug = require('debug');
-
-var debug = Debug('index');
-var debugLog = Debug('index:log');
-debugLog.log = console.log.bind(console);
+var debug = require('debug')('app:index');
 var Promise = require('bluebird');
 var base = require('./base');
 var Checker = require('./checker');

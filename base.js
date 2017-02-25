@@ -4,7 +4,7 @@
 "use strict";
 var path = require('path');
 var Promise = require('bluebird');
-var debug = require('debug')('base');
+var debug = require('debug')('app:base');
 var Storage = require('./storage');
 
 /**

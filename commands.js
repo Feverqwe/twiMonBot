@@ -3,7 +3,7 @@
  */
 "use strict";
 var Promise = require('bluebird');
-var debug = require('debug')('commands');
+var debug = require('debug')('app:commands');
 var base = require('./base');
 var CustomError = require('./customError').CustomError;
 

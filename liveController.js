@@ -1,6 +1,6 @@
 "use strict";
-var debug = require('debug')('liveController');
-var debugLog = require('debug')('liveController:log');
+var debug = require('debug')('app:liveController');
+var debugLog = require('debug')('app:liveController:log');
 debugLog.log = console.log.bind(console);
 var base = require('./base');
 var Promise = require('bluebird');

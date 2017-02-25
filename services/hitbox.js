@@ -2,7 +2,7 @@
  * Created by Anton on 06.12.2015.
  */
 "use strict";
-var debug = require('debug')('hitbox');
+var debug = require('debug')('app:hitbox');
 var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');

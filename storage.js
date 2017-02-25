@@ -4,7 +4,7 @@
 "use strict";
 var path = require('path');
 var Promise = require('bluebird');
-var debug = require('debug')('storage');
+var debug = require('debug')('app:storage');
 var fs = require('fs');
 
 var keyPromiseMap = {};

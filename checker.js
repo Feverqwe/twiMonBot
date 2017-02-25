@@ -4,7 +4,7 @@
 "use strict";
 var base = require('./base');
 var Promise = require('bluebird');
-var debug = require('debug')('checker');
+var debug = require('debug')('app:checker');
 
 var Checker = function(options) {
     var _this = this;
