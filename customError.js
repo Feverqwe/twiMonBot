@@ -1,3 +1,4 @@
+"use strict";
 function CustomError(message) {
     this.name = "CustomError";
     this.message = message;

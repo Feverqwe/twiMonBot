@@ -3,7 +3,6 @@
  */
 "use strict";
 var debug = require('debug')('app:index');
-var Promise = require('bluebird');
 var base = require('./base');
 var Checker = require('./checker');
 var Chat = require('./chat');
@@ -64,7 +63,7 @@ var options = {
         });
     }).then(function() {
         return Promise.all(options.serviceList.map(function(name) {
-            return Promise.try(function() {
+            return Promise.resolve().then(function() {
                 var service = require('./services/' + name);
                 service = options.services[name] = new service(options);
                 return service.onReady;

@@ -2,7 +2,6 @@
  * Created by Anton on 06.12.2015.
  */
 "use strict";
-var Promise = require('bluebird');
 var debug = require('debug')('app:chat');
 var commands = require('./commands');
 var base = require('./base');
@@ -18,7 +17,7 @@ var Chat = function(options) {
     this.onMessage = (function (orig) {
         return function () {
             var args = arguments;
-            return Promise.try(function() {
+            return Promise.resolve().then(function() {
                 return orig.apply(_this, args);
             });
         };
@@ -66,7 +65,7 @@ Chat.prototype.getServiceListKeyboard = function(data) {
 };
 
 Chat.prototype.checkArgs = function(msg, args, isCallbackQuery) {
-    var bot = this.gOptions.bot;
+    var _this = this;
     var language = this.gOptions.language;
     var serviceList = this.gOptions.serviceList;
 
@@ -80,7 +79,7 @@ Chat.prototype.checkArgs = function(msg, args, isCallbackQuery) {
     var service = args[1];
 
     if (!channelName) {
-        bot.sendMessage(chatId, language.channelNameIsEmpty);
+        _this.gOptions.bot.sendMessage(chatId, language.channelNameIsEmpty);
         return;
     }
 
@@ -92,7 +91,7 @@ Chat.prototype.checkArgs = function(msg, args, isCallbackQuery) {
     }
 
     if (serviceList.indexOf(service) === -1) {
-        bot.sendMessage(
+        _this.gOptions.bot.sendMessage(
             chatId,
             language.serviceIsNotSupported.replace('{serviceName}', service)
         );
@@ -262,7 +261,9 @@ Chat.prototype.onCallbackQuery = function (callbackQuery) {
     return commandFunc.apply(this, args).then(function () {
         return _this.gOptions.bot.answerCallbackQuery(callbackQuery.id, '...');
     }).catch(function(err) {
-        debug('Execute callback query command %s error!', action, err);
+        if (!/message is not modified/.test(err.message)) {
+            debug('Execute callback query command %s error!', action, err);
+        }
     }).then(function() {
         _this.track(origMsg, action)
     });

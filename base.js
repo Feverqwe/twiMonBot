@@ -11,7 +11,7 @@ var utils = {};
 
 /**
  *
- * @returns {bluebird|exports|module.exports}
+ * @returns {Promise}
  */
 utils.loadConfig = function() {
     return Promise.resolve().then(function() {
@@ -21,7 +21,7 @@ utils.loadConfig = function() {
 
 /**
  *
- * @returns {bluebird|exports|module.exports}
+ * @returns {Promise}
  */
 utils.loadLanguage = function() {
     return Promise.resolve().then(function() {

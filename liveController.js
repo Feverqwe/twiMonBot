@@ -3,7 +3,6 @@ var debug = require('debug')('app:liveController');
 var debugLog = require('debug')('app:liveController:log');
 debugLog.log = console.log.bind(console);
 var base = require('./base');
-var Promise = require('bluebird');
 
 var LiveController = function (options) {
     var _this = this;
