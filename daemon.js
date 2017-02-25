@@ -1,8 +1,8 @@
 /**
  * Created by Anton on 06.12.2015.
  */
+"use strict";
 var Daemon = function(options) {
-    "use strict";
     this.gOptions = options;
 
     this.TickTackTimer = null;
@@ -30,7 +30,6 @@ Daemon.prototype.getRunTime = function(interval) {
 };
 
 Daemon.prototype.initTickTack = function() {
-    "use strict";
     var _this = this;
     var interval = 1;
 
@@ -44,7 +43,6 @@ Daemon.prototype.initTickTack = function() {
 };
 
 Daemon.prototype.initCleaner = function() {
-    "use strict";
     var _this = this;
     var interval = 60;
 
@@ -62,7 +60,6 @@ Daemon.prototype.initCleaner = function() {
 };
 
 Daemon.prototype.initChecker = function() {
-    "use strict";
     var _this = this;
     var interval = _this.gOptions.config.interval;
 
@@ -86,7 +83,6 @@ Daemon.prototype.initChecker = function() {
 };
 
 Daemon.prototype.abort = function() {
-    "use strict";
     clearInterval(this.TickTackTimer);
     clearInterval(this.CheckerTimer);
 };

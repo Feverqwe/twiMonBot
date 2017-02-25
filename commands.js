@@ -1,6 +1,7 @@
 /**
  * Created by anton on 06.12.15.
  */
+"use strict";
 var Promise = require('bluebird');
 var debug = require('debug')('commands');
 var base = require('./base');
@@ -191,7 +192,6 @@ var getOnlineChannelList = function (chatItem, skipOffline) {
 };
 
 var getOnlineText = function (chatItem) {
-    "use strict";
     var _this = this;
     var onlineList = [];
 
@@ -219,7 +219,6 @@ var getOnlineText = function (chatItem) {
 };
 
 var getWatchBtnList = function (chatItem, page) {
-    "use strict";
     var _this = this;
     var btnList = [];
 
@@ -248,14 +247,12 @@ var getWatchBtnList = function (chatItem, page) {
 
 var commands = {
     ping: function (msg) {
-        "use strict";
         var _this = this;
         var chatId = msg.chat.id;
 
         return _this.gOptions.bot.sendMessage(chatId, "pong");
     },
     start: function (msg) {
-        "use strict";
         var _this = this;
         var chatId = msg.chat.id;
 
@@ -283,7 +280,6 @@ var commands = {
         );
     },
     help: function (msg) {
-        "use strict";
         var _this = this;
         var chatId = msg.chat.id;
 
@@ -300,7 +296,6 @@ var commands = {
         });
     },
     a__Cb: function (callbackQuery, channelName, service) {
-        "use strict";
         var _this = this;
         var msg = callbackQuery.message;
         var chatId = msg.chat.id;
@@ -369,7 +364,6 @@ var commands = {
         });
     },
     a: function (msg, channelName, service) {
-        "use strict";
         var _this = this;
         var chatId = msg.chat.id;
         var chatList = _this.gOptions.storage.chatList;
@@ -426,7 +420,6 @@ var commands = {
         });
     },
     add: function (msg, channelName, serviceName) {
-        "use strict";
         var _this = this;
         var chatId = msg.chat.id;
 
@@ -534,7 +527,6 @@ var commands = {
         }
     },
     d__Cb: function (callbackQuery, channelName, service) {
-        "use strict";
         var _this = this;
         var msg = callbackQuery.message;
         var chatId = msg.chat.id;
@@ -587,7 +579,6 @@ var commands = {
         });
     },
     delete_upd__Cb: function (callbackQuery, page) {
-        "use strict";
         var _this = this;
         var msg = callbackQuery.message;
         var chatId = msg.chat.id;
@@ -618,7 +609,6 @@ var commands = {
         });
     },
     delete: function (msg) {
-        "use strict";
         var _this = this;
         var chatId = msg.chat.id;
         var chatItem = _this.gOptions.storage.chatList[chatId];
@@ -688,7 +678,6 @@ var commands = {
         });
     },
     options: function (msg) {
-        "use strict";
         var _this = this;
         var chatId = msg.chat.id;
         var chatItem = _this.gOptions.storage.chatList[chatId];
@@ -718,7 +707,6 @@ var commands = {
         );
     },
     cancel: function (msg, arg1, messageId) {
-        "use strict";
         var _this = this;
         var chatId = msg.chat.id;
         var promise = null;
@@ -743,7 +731,6 @@ var commands = {
         return promise;
     },
     clear: function (msg) {
-        "use strict";
         var _this = this;
         var chatId = msg.chat.id;
         var chatItem = _this.gOptions.storage.chatList[chatId];
@@ -767,7 +754,6 @@ var commands = {
         });
     },
     clearyes__Cb: function(callbackQuery) {
-        "use strict";
         var _this = this;
         var msg = callbackQuery.message;
         var chatId = msg.chat.id;
@@ -796,7 +782,6 @@ var commands = {
         });
     },
     list: function (msg) {
-        "use strict";
         var _this = this;
         var chatId = msg.chat.id;
         var chatItem = _this.gOptions.storage.chatList[chatId];
@@ -902,7 +887,6 @@ var commands = {
         });
     },
     online: function (msg) {
-        "use strict";
         var _this = this;
         var chatId = msg.chat.id;
         var chatItem = _this.gOptions.storage.chatList[chatId];
@@ -929,7 +913,6 @@ var commands = {
         });
     },
     setchannel: function (msg, channelName) {
-        "use strict";
         var _this = this;
         var chatId = msg.chat.id;
         var chatList = _this.gOptions.storage.chatList;
@@ -1051,7 +1034,6 @@ var commands = {
         }
     },
     top: function (msg) {
-        "use strict";
         var service, channelList, channelName;
         var _this = this;
         var chatId = msg.chat.id;
@@ -1138,7 +1120,6 @@ var commands = {
         });
     },
     about: function (msg) {
-        "use strict";
         var _this = this;
         var chatId = msg.chat.id;
 
@@ -1157,7 +1138,6 @@ var commands = {
         });
     },
     refreshTitle: function(msg) {
-        "use strict";
         var _this = this;
         var chatId = msg.chat.id;
         var services = _this.gOptions.services;
@@ -1188,7 +1168,6 @@ var commands = {
         });
     },
     checkUserAlive: function(msg) {
-        "use strict";
         var _this = this;
         var chatId = msg.chat.id;
 

@@ -1,6 +1,7 @@
 /**
  * Created by Anton on 02.10.2016.
  */
+"use strict";
 var base = require('./base');
 var debug = require('debug')('MsgSender');
 var Promise = require('bluebird');
@@ -8,7 +9,6 @@ var request = require('request');
 var requestPromise = Promise.promisify(request);
 
 var MsgSender = function (options) {
-    "use strict";
     var _this = this;
     _this.gOptions = options;
 
@@ -20,7 +20,6 @@ var MsgSender = function (options) {
 };
 
 MsgSender.prototype.onSendMsgError = function(err, chatId) {
-    "use strict";
     var _this = this;
     var errMsg = err.message;
     var needKick = /^403\s+/.test(errMsg);
@@ -64,7 +63,6 @@ MsgSender.prototype.onSendMsgError = function(err, chatId) {
 };
 
 MsgSender.prototype.downloadImg = function (stream) {
-    "use strict";
     var _this = this;
 
     var requestLimit = 4;
@@ -125,7 +123,6 @@ MsgSender.prototype.downloadImg = function (stream) {
 };
 
 MsgSender.prototype.getPicId = function(chatId, text, stream) {
-    "use strict";
     var _this = this;
 
     var sendPicLimit = 0;
@@ -188,7 +185,6 @@ MsgSender.prototype.getPicId = function(chatId, text, stream) {
  * @param {number} msg.id
  */
 MsgSender.prototype.addMsgInStream = function (stream, msg) {
-    "use strict";
     var msgArray = stream.msgArray;
     if (!msgArray) {
         msgArray = stream.msgArray = [];
@@ -210,12 +206,10 @@ MsgSender.prototype.addMsgInStream = function (stream, msg) {
 };
 
 MsgSender.prototype.getMsgFromStream = function (stream) {
-    "use strict";
     return stream.msgArray || [];
 };
 
 MsgSender.prototype.removeMsgFromStream = function (stream, msg) {
-    "use strict";
     var msgArray = this.getMsgFromStream(stream);
     var pos = msgArray.indexOf(msg);
     if (pos !== -1) {
@@ -226,7 +220,6 @@ MsgSender.prototype.removeMsgFromStream = function (stream, msg) {
 };
 
 MsgSender.prototype.getStreamChatIdList = function (stream) {
-    "use strict";
     var chatList = this.gOptions.storage.chatList;
 
     var chatIdList = [];
@@ -250,7 +243,6 @@ MsgSender.prototype.getStreamChatIdList = function (stream) {
 };
 
 MsgSender.prototype.updateMsg = function (msg, text, noPhotoText) {
-    "use strict";
     var _this = this;
     var sendPromise = Promise.resolve();
     if (msg.type === 'streamPhoto') {
@@ -280,7 +272,6 @@ MsgSender.prototype.updateMsg = function (msg, text, noPhotoText) {
 };
 
 MsgSender.prototype.updateNotify = function (stream) {
-    "use strict";
     var _this = this;
     var text = base.getNowStreamPhotoText(this.gOptions, stream);
     var noPhotoText = base.getNowStreamText(this.gOptions, stream);
@@ -316,7 +307,6 @@ MsgSender.prototype.updateNotify = function (stream) {
 };
 
 MsgSender.prototype.sendMsg = function(chatId, noPhotoText, stream) {
-    "use strict";
     var _this = this;
     var bot = _this.gOptions.bot;
 
@@ -341,7 +331,6 @@ MsgSender.prototype.sendMsg = function(chatId, noPhotoText, stream) {
 };
 
 MsgSender.prototype.sendPhoto = function(chatId, fileId, text, stream) {
-    "use strict";
     var _this = this;
     var bot = _this.gOptions.bot;
 
@@ -366,7 +355,6 @@ MsgSender.prototype.sendPhoto = function(chatId, fileId, text, stream) {
 };
 
 MsgSender.prototype.send = function(chatIdList, text, noPhotoText, stream) {
-    "use strict";
     var _this = this;
     var photoId = stream._photoId;
     var promiseList = [];
@@ -435,7 +423,6 @@ MsgSender.prototype.requestPicId = function(chatIdList, text, stream) {
 };
 
 MsgSender.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, useCache) {
-    "use strict";
     var _this = this;
 
     if (!stream.preview.length) {
@@ -456,7 +443,6 @@ MsgSender.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream,
 };
 
 MsgSender.prototype.track = function(chatId, stream, title) {
-    "use strict";
     return this.gOptions.tracker.track({
         text: stream._channelId,
         from: {

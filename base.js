@@ -1,6 +1,7 @@
 /**
  * Created by Anton on 06.12.2015.
  */
+"use strict";
 var path = require('path');
 var Promise = require('bluebird');
 var debug = require('debug')('base');
@@ -11,7 +12,6 @@ var Storage = require('./storage');
  * @returns {bluebird|exports|module.exports}
  */
 module.exports.loadConfig = function() {
-    "use strict";
     return Promise.resolve().then(function() {
         var fs = require('fs');
         return JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json')));
@@ -23,7 +23,6 @@ module.exports.loadConfig = function() {
  * @returns {bluebird|exports|module.exports}
  */
 module.exports.loadLanguage = function() {
-    "use strict";
     return Promise.resolve().then(function() {
         var fs = require('fs');
 
@@ -86,7 +85,6 @@ module.exports.htmlSanitize = function (type, text, url) {
 };
 
 module.exports.markDownSanitize = function(text, char) {
-    "use strict";
     if (char === '*') {
         text = text.replace(/\*/g, String.fromCharCode(735));
     }
@@ -105,7 +103,6 @@ module.exports.markDownSanitize = function(text, char) {
 };
 
 module.exports.getDate = function() {
-    "use strict";
     var today = new Date();
     var h = today.getHours();
     var m = today.getMinutes();
@@ -136,7 +133,6 @@ var getOfflineIcon = function () {
 };
 
 module.exports.getNowStreamPhotoText = function(gOptions, stream) {
-    "use strict";
     var getText = function (stripLen) {
         var textArr = [];
 
@@ -187,7 +183,6 @@ module.exports.getNowStreamPhotoText = function(gOptions, stream) {
 
 
 module.exports.getNowStreamText = function(gOptions, stream) {
-    "use strict";
     var textArr = [];
 
     var status = '';
@@ -285,7 +280,6 @@ module.exports.getStreamText = function(gOptions, stream) {
 };
 
 module.exports.extend = function() {
-    "use strict";
     var obj = arguments[0];
     for (var i = 1, len = arguments.length; i < len; i++) {
         var item = arguments[i];
@@ -297,7 +291,6 @@ module.exports.extend = function() {
 };
 
 module.exports.getChannelTitle = function(gOptions, service, channelName) {
-    "use strict";
     var title = channelName;
 
     var services = gOptions.services;
@@ -309,7 +302,6 @@ module.exports.getChannelTitle = function(gOptions, service, channelName) {
 };
 
 module.exports.getChannelUrl = function(service, channelName) {
-    "use strict";
     var url = '';
     if (service === 'youtube') {
         url = 'https://youtube.com/';
@@ -341,7 +333,6 @@ module.exports.getChannelUrl = function(service, channelName) {
  * @constructor
  */
 module.exports.Quote = function (callPerSecond) {
-    "use strict";
     var getTime = function() {
         return parseInt(Date.now() / 1000);
     };

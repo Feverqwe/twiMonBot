@@ -1,6 +1,7 @@
 /**
  * Created by Anton on 06.12.2015.
  */
+"use strict";
 var Debug = require('debug');
 
 var debug = Debug('index');
@@ -47,7 +48,6 @@ var options = {
 };
 
 (function() {
-    "use strict";
     return Promise.resolve().then(function() {
         options.events = new EventEmitter();
     }).then(function() {

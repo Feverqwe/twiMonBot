@@ -1,6 +1,7 @@
 /**
  * Created by Anton on 06.12.2015.
  */
+"use strict";
 var debug = require('debug')('twitch');
 var base = require('../base');
 var Promise = require('bluebird');
@@ -9,7 +10,6 @@ var requestPromise = Promise.promisify(request);
 var CustomError = require('../customError').CustomError;
 
 var Twitch = function(options) {
-    "use strict";
     var _this = this;
     this.gOptions = options;
     this.config = {};
@@ -21,14 +21,12 @@ var Twitch = function(options) {
 };
 
 Twitch.prototype.saveChannelInfo = function () {
-    "use strict";
     return base.storage.set({
         twitchChannelInfo: this.config.channelInfo
     });
 };
 
 Twitch.prototype.getChannelInfo = function (channelId) {
-    "use strict";
     var obj = this.config.channelInfo[channelId];
     if (!obj) {
         obj = this.config.channelInfo[channelId] = {};
@@ -37,13 +35,11 @@ Twitch.prototype.getChannelInfo = function (channelId) {
 };
 
 Twitch.prototype.removeChannelInfo = function (channelId) {
-    "use strict";
     delete this.config.channelInfo[channelId];
     return this.saveChannelInfo();
 };
 
 Twitch.prototype.setChannelTitle = function (channelId, title) {
-    "use strict";
     if (channelId === title) {
         return Promise.resolve();
     }
@@ -55,13 +51,11 @@ Twitch.prototype.setChannelTitle = function (channelId, title) {
 };
 
 Twitch.prototype.getChannelTitle = function (channelId) {
-    "use strict";
     var info = this.getChannelInfo(channelId);
     return info.title || channelId;
 };
 
 Twitch.prototype.clean = function(channelIdList) {
-    "use strict";
     var _this = this;
     var promiseList = [];
 
@@ -83,7 +77,6 @@ Twitch.prototype.clean = function(channelIdList) {
 };
 
 Twitch.prototype.apiNormalization = function(data) {
-    "use strict";
     var _this = this;
     var now = base.getNow();
 
@@ -157,7 +150,6 @@ Twitch.prototype.apiNormalization = function(data) {
 };
 
 Twitch.prototype.getStreamList = function(channelList) {
-    "use strict";
     var _this = this;
     var videoList = [];
 
@@ -308,7 +300,6 @@ Twitch.prototype.requestChannelInfo = function (channelId) {
 };
 
 Twitch.prototype.getChannelId = function(channelId) {
-    "use strict";
     var _this = this;
     return this.requestChannelInfo(channelId).catch(function () {
         return _this.requestChannelByName(channelId);

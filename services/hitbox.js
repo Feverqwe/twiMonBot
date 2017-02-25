@@ -1,6 +1,7 @@
 /**
  * Created by Anton on 06.12.2015.
  */
+"use strict";
 var debug = require('debug')('hitbox');
 var base = require('../base');
 var Promise = require('bluebird');
@@ -9,7 +10,6 @@ var requestPromise = Promise.promisify(request);
 var CustomError = require('../customError').CustomError;
 
 var Hitbox = function(options) {
-    "use strict";
     var _this = this;
     this.gOptions = options;
     this.config = {};
@@ -20,14 +20,12 @@ var Hitbox = function(options) {
 };
 
 Hitbox.prototype.saveChannelInfo = function () {
-    "use strict";
     return base.storage.set({
         hitboxChannelInfo: this.config.channelInfo
     });
 };
 
 Hitbox.prototype.getChannelInfo = function (channelId) {
-    "use strict";
     var obj = this.config.channelInfo[channelId];
     if (!obj) {
         obj = this.config.channelInfo[channelId] = {};
@@ -36,13 +34,11 @@ Hitbox.prototype.getChannelInfo = function (channelId) {
 };
 
 Hitbox.prototype.removeChannelInfo = function (channelId) {
-    "use strict";
     delete this.config.channelInfo[channelId];
     return this.saveChannelInfo();
 };
 
 Hitbox.prototype.setChannelTitle = function (channelId, title) {
-    "use strict";
     if (channelId === title) {
         return Promise.resolve();
     }
@@ -54,13 +50,11 @@ Hitbox.prototype.setChannelTitle = function (channelId, title) {
 };
 
 Hitbox.prototype.getChannelTitle = function (channelId) {
-    "use strict";
     var info = this.getChannelInfo(channelId);
     return info.title || channelId;
 };
 
 Hitbox.prototype.clean = function(channelIdList) {
-    "use strict";
     var _this = this;
     var promiseList = [];
 
@@ -82,7 +76,6 @@ Hitbox.prototype.clean = function(channelIdList) {
 };
 
 Hitbox.prototype.apiNormalization = function(data) {
-    "use strict";
     var _this = this;
 
     var now = base.getNow();
@@ -141,7 +134,6 @@ Hitbox.prototype.apiNormalization = function(data) {
 };
 
 Hitbox.prototype.getStreamList = function(channelList) {
-    "use strict";
     var _this = this;
     var videoList = [];
 
@@ -206,7 +198,6 @@ Hitbox.prototype.getStreamList = function(channelList) {
 };
 
 Hitbox.prototype.getChannelId = function(channelName) {
-    "use strict";
     var _this = this;
     return requestPromise({
         method: 'GET',

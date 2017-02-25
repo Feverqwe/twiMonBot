@@ -1,6 +1,7 @@
 /**
  * Created by Anton on 06.12.2015.
  */
+"use strict";
 var debug = require('debug')('youtube');
 var base = require('../base');
 var Promise = require('bluebird');
@@ -12,7 +13,6 @@ var apiQuote = new base.Quote(1000);
 requestPromise = apiQuote.wrapper(requestPromise.bind(requestPromise));
 
 var Youtube = function(options) {
-    "use strict";
     var _this = this;
     this.gOptions = options;
     this.config = {};
@@ -24,14 +24,12 @@ var Youtube = function(options) {
 };
 
 Youtube.prototype.saveChannelInfo = function () {
-    "use strict";
     return base.storage.set({
         ytChannelInfo: this.config.channelInfo
     });
 };
 
 Youtube.prototype.getChannelInfo = function (channelId) {
-    "use strict";
     var obj = this.config.channelInfo[channelId];
     if (!obj) {
         obj = this.config.channelInfo[channelId] = {};
@@ -40,13 +38,11 @@ Youtube.prototype.getChannelInfo = function (channelId) {
 };
 
 Youtube.prototype.removeChannelInfo = function (channelId) {
-    "use strict";
     delete this.config.channelInfo[channelId];
     return this.saveChannelInfo();
 };
 
 Youtube.prototype.setChannelTitle = function(channelId, title) {
-    "use strict";
     var info = this.getChannelInfo(channelId);
     if (info.title !== title) {
         info.title = title;
@@ -57,13 +53,11 @@ Youtube.prototype.setChannelTitle = function(channelId, title) {
 };
 
 Youtube.prototype.getChannelTitle = function (channelId) {
-    "use strict";
     var info = this.getChannelInfo(channelId);
     return info.title || channelId;
 };
 
 Youtube.prototype.setChannelUsername = function(channelId, username) {
-    "use strict";
     var info = this.getChannelInfo(channelId);
     if (info.username !== username) {
         info.username = username;
@@ -74,7 +68,6 @@ Youtube.prototype.setChannelUsername = function(channelId, username) {
 };
 
 Youtube.prototype.clean = function(channelIdList) {
-    "use strict";
     var _this = this;
     var promiseList = [];
 
@@ -96,7 +89,6 @@ Youtube.prototype.clean = function(channelIdList) {
 };
 
 Youtube.prototype.apiNormalization = function(channelId, data, viewers) {
-    "use strict";
     var now = base.getNow();
     var streams = [];
     data.items.forEach(function(origItem) {
@@ -145,7 +137,6 @@ Youtube.prototype.apiNormalization = function(channelId, data, viewers) {
 var intRe = /^\d+$/;
 
 Youtube.prototype.getViewers = function(id) {
-    "use strict";
     return requestPromise({
         url: 'https://gaming.youtube.com/live_stats',
         qs: {
@@ -171,7 +162,6 @@ Youtube.prototype.getViewers = function(id) {
 };
 
 Youtube.prototype.requestChannelIdByQuery = function(query) {
-    "use strict";
     var _this = this;
     return requestPromise({
         method: 'GET',
@@ -211,7 +201,6 @@ Youtube.prototype.requestChannelIdByQuery = function(query) {
 var channelRe = /^UC/;
 
 Youtube.prototype.requestChannelIdByUsername = function(userId) {
-    "use strict";
     var _this = this;
     if (channelRe.test(userId)) {
         return Promise.resolve(userId);
@@ -254,7 +243,6 @@ Youtube.prototype.requestChannelIdByUsername = function(userId) {
 };
 
 Youtube.prototype.getStreamList = function(_channelIdList) {
-    "use strict";
     var _this = this;
     var streamList = [];
 
@@ -415,7 +403,6 @@ Youtube.prototype.requestChannelIdByVideoUrl = function (url) {
 };
 
 Youtube.prototype.getChannelId = function(channelName) {
-    "use strict";
     var _this = this;
 
     return _this.requestChannelIdByVideoUrl(channelName).catch(function (err) {

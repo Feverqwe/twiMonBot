@@ -1,12 +1,12 @@
 /**
  * Created by Anton on 21.05.2016.
  */
+"use strict";
 var base = require('./base');
 var debug = require('debug')('MsgStack');
 var Promise = require('bluebird');
 
 var MsgStack = function (options) {
-    "use strict";
     var _this = this;
     this.gOptions = options;
     this.config = {};

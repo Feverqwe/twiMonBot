@@ -1,3 +1,4 @@
+"use strict";
 var debug = require('debug')('liveController');
 var debugLog = require('debug')('liveController:log');
 debugLog.log = console.log.bind(console);
@@ -5,7 +6,6 @@ var base = require('./base');
 var Promise = require('bluebird');
 
 var LiveController = function (options) {
-    "use strict";
     var _this = this;
     this.gOptions = options;
     this.config = {};

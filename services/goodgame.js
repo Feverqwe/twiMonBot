@@ -1,6 +1,7 @@
 /**
  * Created by anton on 19.07.15.
  */
+"use strict";
 var debug = require('debug')('goodgame');
 var base = require('../base');
 var Promise = require('bluebird');
@@ -9,7 +10,6 @@ var requestPromise = Promise.promisify(request);
 var CustomError = require('../customError').CustomError;
 
 var GoodGame = function (options) {
-    "use strict";
     var _this = this;
     this.gOptions = options;
     this.config = {};
@@ -20,14 +20,12 @@ var GoodGame = function (options) {
 };
 
 GoodGame.prototype.saveChannelInfo = function () {
-    "use strict";
     return base.storage.set({
         ggChannelInfo: this.config.channelInfo
     });
 };
 
 GoodGame.prototype.getChannelInfo = function (channelId) {
-    "use strict";
     var obj = this.config.channelInfo[channelId];
     if (!obj) {
         obj = this.config.channelInfo[channelId] = {};
@@ -36,13 +34,11 @@ GoodGame.prototype.getChannelInfo = function (channelId) {
 };
 
 GoodGame.prototype.removeChannelInfo = function (channelId) {
-    "use strict";
     delete this.config.channelInfo[channelId];
     return this.saveChannelInfo();
 };
 
 GoodGame.prototype.setChannelTitle = function (channelId, title) {
-    "use strict";
     if (channelId === title) {
         return Promise.resolve();
     }
@@ -54,13 +50,11 @@ GoodGame.prototype.setChannelTitle = function (channelId, title) {
 };
 
 GoodGame.prototype.getChannelTitle = function (channelId) {
-    "use strict";
     var info = this.getChannelInfo(channelId);
     return info.title || channelId;
 };
 
 GoodGame.prototype.clean = function(channelIdList) {
-    "use strict";
     var _this = this;
     var promiseList = [];
 
@@ -84,7 +78,6 @@ GoodGame.prototype.clean = function(channelIdList) {
 var noProtocolRe = /^\/\//;
 
 GoodGame.prototype.apiNormalization = function (data) {
-    "use strict";
     var _this = this;
 
     var now = base.getNow();
@@ -150,7 +143,6 @@ GoodGame.prototype.apiNormalization = function (data) {
 };
 
 GoodGame.prototype.getStreamList = function (channelList) {
-    "use strict";
     var _this = this;
     var videoList = [];
 
@@ -220,7 +212,6 @@ GoodGame.prototype.getStreamList = function (channelList) {
 };
 
 GoodGame.prototype.getChannelId = function (channelName) {
-    "use strict";
     var _this = this;
     return requestPromise({
         method: 'GET',

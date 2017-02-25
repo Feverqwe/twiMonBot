@@ -1,12 +1,12 @@
 /**
  * Created by Anton on 06.12.2015.
  */
+"use strict";
 var base = require('./base');
 var Promise = require('bluebird');
 var debug = require('debug')('checker');
 
 var Checker = function(options) {
-    "use strict";
     var _this = this;
     this.gOptions = options;
 
@@ -22,7 +22,6 @@ var Checker = function(options) {
 };
 
 Checker.prototype.getChannelList = function() {
-    "use strict";
     var serviceList = {};
     var chatList = this.gOptions.storage.chatList;
 
@@ -45,7 +44,6 @@ Checker.prototype.getChannelList = function() {
 };
 
 Checker.prototype.cleanServices = function() {
-    "use strict";
     var _this = this;
     var serviceChannelList = _this.getChannelList();
     var services = _this.gOptions.services;
@@ -70,7 +68,6 @@ Checker.prototype.cleanServices = function() {
 };
 
 Checker.prototype.updateList = function() {
-    "use strict";
     var _this = this;
     var serviceChannelList = _this.getChannelList();
     var services = _this.gOptions.services;
