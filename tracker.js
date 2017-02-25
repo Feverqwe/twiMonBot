@@ -1,33 +1,24 @@
 /**
  * Created by anton on 31.01.16.
  */
-var Promise = require('bluebird');
-var debug = require('debug')('tracker');
+"use strict";
+var debug = require('debug')('app:tracker');
 var request = require('request');
-var Uuid = require('node-uuid');
-var requestPromise = Promise.promisify(request);
+var Uuid = require('uuid');
+var requestPromise = require('request-promise');
 
 var Tracker = function(options) {
-    "use strict";
     this.gOptions = options;
-    this.cache = {};
-
     this.tid = options.config.gaId;
-    /*this.botanToken = options.config.botanToken;
-
-    if (this.botanToken) {
-        this.botan = require('botanio')(this.botanToken);
-    } else {
-        this.botan = {track: function(data, action){debug("Send in Botan %s, %j", action, data)}};
-    }*/
+    this.idCache = [];
+    this.idUuidMap = {};
 };
 
 Tracker.prototype.getUuid = function(id) {
-    "use strict";
-
-    var cid = this.cache[id];
-    if (cid) {
-        return cid;
+    var _this = this;
+    var uuid = this.idUuidMap[id];
+    if (uuid) {
+        return uuid;
     }
 
     var arr = [];
@@ -46,55 +37,44 @@ Tracker.prototype.getUuid = function(id) {
     var idArr = vId.toString().split('').reverse().join('').match(/(\d{0,2})/g).reverse();
 
     var index = arr.length;
-    var chank;
-    while (chank = idArr.pop()) {
+    var chunk;
+    while (chunk = idArr.pop()) {
         index--;
-        arr[index] = parseInt(prefix + chank, 10);
+        arr[index] = parseInt(prefix + chunk, 10);
     }
 
-    cid = Uuid.v4({
+    uuid = Uuid.v4({
         random: arr
     });
 
-    this.cache[id] = cid;
+    _this.idCache.unshift(id);
+    _this.idUuidMap[id] = uuid;
+    _this.idCache.splice(50).forEach(function (id) {
+        delete _this.idUuidMap[id];
+    });
 
-    return cid;
+    return uuid;
 };
 
 Tracker.prototype.track = function(msg, action) {
-    "use strict";
-    return Promise.all([
-        this.trackerSend(msg, action)/*,
-        this.botan.track(msg, action)*/
-    ]).catch(function(err) {
-        debug('Send error!', err);
-    });
+    return this.trackerSend(msg, action);
 };
 
 Tracker.prototype.trackerSend = function(msg, action) {
-    "use strict";
     var id = msg.chat.id;
 
-    var params = this.sendEvent('bot', action, msg.text);
-    params.cid = this.getUuid(id);
+    var params = {
+        ec: 'bot',
+        ea: action,
+        el: msg.text,
+        t: 'event',
+        cid: this.getUuid(id)
+    };
 
     return this.send(params);
 };
 
-Tracker.prototype.sendEvent = function(category, action, label) {
-    "use strict";
-    var params = {
-        ec: category,
-        ea: action,
-        el: label,
-        t: 'event'
-    };
-
-    return params;
-};
-
 Tracker.prototype.send = function(params) {
-    "use strict";
     if (!this.tid) {
         debug('Send in ga %j', params);
         return;
@@ -112,8 +92,8 @@ Tracker.prototype.send = function(params) {
         }
     }
 
-    var retry = 5;
-    var sendRequest = function () {
+    var limit = 5;
+    var send = function () {
         return requestPromise({
             url: 'https://www.google-analytics.com/collect',
             method: 'POST',
@@ -121,20 +101,18 @@ Tracker.prototype.send = function(params) {
             gzip: true,
             forever: true
         }).catch(function (err) {
-            retry--;
-            if (err.code === 'ECONNRESET' && retry > 0) {
+            if (limit-- < 1) {
+                debug('Track error %s %s %s', err.name, err.statusCode, err.message);
+            } else {
                 return new Promise(function (resolve) {
                     setTimeout(resolve, 250);
                 }).then(function () {
-                    return sendRequest();
-                })
+                    return send();
+                });
             }
-
-            throw err;
         });
     };
-
-    return sendRequest();
+    return send();
 };
 
 module.exports = Tracker;
