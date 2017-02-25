@@ -2,18 +2,19 @@
  * Created by Anton on 06.12.2015.
  */
 "use strict";
-var path = require('path');
-var Promise = require('bluebird');
-var debug = require('debug')('app:base');
+const fs = require('fs');
+const path = require('path');
+const debug = require('debug')('app:base');
 var Storage = require('./storage');
+
+var utils = {};
 
 /**
  *
  * @returns {bluebird|exports|module.exports}
  */
-module.exports.loadConfig = function() {
+utils.loadConfig = function() {
     return Promise.resolve().then(function() {
-        var fs = require('fs');
         return JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json')));
     });
 };
@@ -22,7 +23,7 @@ module.exports.loadConfig = function() {
  *
  * @returns {bluebird|exports|module.exports}
  */
-module.exports.loadLanguage = function() {
+utils.loadLanguage = function() {
     return Promise.resolve().then(function() {
         var fs = require('fs');
 
@@ -40,14 +41,14 @@ module.exports.loadLanguage = function() {
     });
 };
 
-module.exports.storage = new Storage();
+utils.storage = new Storage();
 
 /**
  * @param {string} type
  * @param {string} [text]
  * @param {string} [url]
  */
-module.exports.htmlSanitize = function (type, text, url) {
+utils.htmlSanitize = function (type, text, url) {
     if (!text) {
         text = type;
         type = '';
@@ -84,46 +85,6 @@ module.exports.htmlSanitize = function (type, text, url) {
     throw new Error("htmlSanitize error");
 };
 
-module.exports.markDownSanitize = function(text, char) {
-    if (char === '*') {
-        text = text.replace(/\*/g, String.fromCharCode(735));
-    }
-    if (char === '_') {
-        text = text.replace(/_/g, String.fromCharCode(717));
-    }
-    if (char === '[') {
-        text = text.replace(/\[/g, '(');
-        text = text.replace(/\]/g, ')');
-    }
-    if (!char) {
-        text = text.replace(/([*_\[])/g, '\\$1');
-    }
-
-    return text;
-};
-
-module.exports.getDate = function() {
-    var today = new Date();
-    var h = today.getHours();
-    var m = today.getMinutes();
-    var s = today.getSeconds();
-    if (h < 10) {
-        h = '0' + h;
-    }
-    if (m < 10) {
-        m = '0' + m;
-    }
-    if (s < 10) {
-        s = '0' + s;
-    }
-    return today.getDate() + "/"
-        + (today.getMonth()+1)  + "/"
-        + today.getFullYear() + " @ "
-        + h + ":"
-        + m + ":"
-        + s;
-};
-
 var getTimeoutIcon = function () {
     return '⏲';
 };
@@ -132,7 +93,7 @@ var getOfflineIcon = function () {
     return '🏁';
 };
 
-module.exports.getNowStreamPhotoText = function(gOptions, stream) {
+utils.getNowStreamPhotoText = function(gOptions, stream) {
     var getText = function (stripLen) {
         var textArr = [];
 
@@ -180,9 +141,7 @@ module.exports.getNowStreamPhotoText = function(gOptions, stream) {
     return text;
 };
 
-
-
-module.exports.getNowStreamText = function(gOptions, stream) {
+utils.getNowStreamText = function(gOptions, stream) {
     var textArr = [];
 
     var status = '';
@@ -235,7 +194,7 @@ module.exports.getNowStreamText = function(gOptions, stream) {
  * @param {string} stream.channel.display_name
  * @returns {string}
  */
-module.exports.getStreamText = function(gOptions, stream) {
+utils.getStreamText = function(gOptions, stream) {
     var textArr = [];
 
     textArr.push(this.htmlSanitize('b', stream.channel.display_name || stream.channel.name));
@@ -279,7 +238,7 @@ module.exports.getStreamText = function(gOptions, stream) {
     return textArr.join('\n');
 };
 
-module.exports.extend = function() {
+utils.extend = function() {
     var obj = arguments[0];
     for (var i = 1, len = arguments.length; i < len; i++) {
         var item = arguments[i];
@@ -290,7 +249,7 @@ module.exports.extend = function() {
     return obj;
 };
 
-module.exports.getChannelTitle = function(gOptions, service, channelName) {
+utils.getChannelTitle = function(gOptions, service, channelName) {
     var title = channelName;
 
     var services = gOptions.services;
@@ -301,7 +260,7 @@ module.exports.getChannelTitle = function(gOptions, service, channelName) {
     return title;
 };
 
-module.exports.getChannelUrl = function(service, channelName) {
+utils.getChannelUrl = function(service, channelName) {
     var url = '';
     if (service === 'youtube') {
         url = 'https://youtube.com/';
@@ -329,61 +288,69 @@ module.exports.getChannelUrl = function(service, channelName) {
 };
 
 /**
- * @param {number} callPerSecond
+ * @param {number} limitPerSecond
  * @constructor
  */
-module.exports.Quote = function (callPerSecond) {
-    var getTime = function() {
-        return parseInt(Date.now() / 1000);
-    };
+utils.Quote = function (limitPerSecond) {
+    var queue = [];
+    var time = 0;
+    var count = 0;
+    var timer = null;
+    var next = function () {
+        if (timer !== null) return;
 
-    var timeCountMap = {};
-    var timeout = function () {
-        return new Promise(function (resolve) {
-            (function wait() {
-                var now = getTime();
-                if (!timeCountMap[now]) {
-                    timeCountMap[now] = 0;
-                }
-                timeCountMap[now]++;
+        var now = Date.now();
+        if (now - time >= 1000) {
+            time = now;
+            count = 0;
+        }
 
-                if (timeCountMap[now] > callPerSecond) {
-                    setTimeout(wait, 1000);
-                } else {
-                    resolve();
-                }
-            })();
-        });
+        while (queue.length && count < limitPerSecond) {
+            count++;
+            queue.shift()();
+        }
+
+        if (count === limitPerSecond) {
+            timer = setTimeout(function () {
+                timer = null;
+                next();
+            }, 1000 - (Date.now() - time));
+        }
     };
 
     /**
-     * @param {Function} cb
+     * @param {Function} callback
+     * @param {Object} [thisArg]
      * @returns {Function}
      */
-    this.wrapper = function(cb) {
+    this.wrapper = function(callback, thisArg) {
         return function () {
             var args = [].slice.call(arguments);
 
-            return timeout().then(function () {
-                return cb.apply(null, args);
-            }).finally(function () {
-                var now = getTime();
-                Object.keys(timeCountMap).forEach(function (time) {
-                    if (time < now) {
-                        delete timeCountMap[time];
+            return new Promise(function (resolve, reject) {
+                queue.push(function () {
+                    try {
+                        resolve(callback.apply(thisArg, args));
+                    } catch (err) {
+                        reject(err);
                     }
                 });
+                next();
             });
         };
     };
 };
 
-module.exports.getRandomInt = function (min, max) {
+utils.getRandomInt = function (min, max) {
     return Math.floor(Math.random() * (max - min)) + min;
 };
 
-module.exports.arrToParts = function (arr, quote) {
+utils.arrToParts = function (arr, quote) {
     arr = arr.slice(0);
+
+    if (isNaN(quote)) {
+        return arr;
+    }
 
     var arrList = [];
     do {
@@ -393,7 +360,7 @@ module.exports.arrToParts = function (arr, quote) {
     return arrList;
 };
 
-module.exports.getTimeoutStream = function (service, channelId) {
+utils.getTimeoutStream = function (service, channelId) {
     var item = {
         _service: service,
         _channelId: channelId,
@@ -402,11 +369,11 @@ module.exports.getTimeoutStream = function (service, channelId) {
     return item;
 };
 
-var getNow = module.exports.getNow = function () {
+utils.getNow = function () {
     return parseInt(Date.now() / 1000);
 };
 
-module.exports.throttle = function(fn, threshhold, scope) {
+utils.throttle = function(fn, threshhold, scope) {
     threshhold = threshhold || 250;
     var last;
     var deferTimer;
@@ -435,7 +402,7 @@ module.exports.throttle = function(fn, threshhold, scope) {
  * @param {*} defaultValue
  * @returns {*}
  */
-module.exports.getObjectItem = function (obj, key, defaultValue) {
+utils.getObjectItem = function (obj, key, defaultValue) {
     var item = obj[key];
     if (!item) {
         item = obj[key] = defaultValue;
@@ -447,14 +414,14 @@ module.exports.getObjectItem = function (obj, key, defaultValue) {
  * @param {Array} arr
  * @param {*} item
  */
-module.exports.removeItemFromArray = function (arr, item) {
+utils.removeItemFromArray = function (arr, item) {
     var pos = arr.indexOf(item);
     if (pos !== -1) {
         arr.splice(pos, 1);
     }
 };
 
-module.exports.dDblUpdates = function (updates) {
+utils.dDblUpdates = function (updates) {
     var _this = this;
     var dDblUpdates = updates.slice(0);
     var map = {};
@@ -484,7 +451,7 @@ module.exports.dDblUpdates = function (updates) {
     return dDblUpdates;
 };
 
-module.exports.pageBtnList = function (btnList, updCommand, page, mediumBtn) {
+utils.pageBtnList = function (btnList, updCommand, page, mediumBtn) {
     page = parseInt(page || 0);
     if (mediumBtn && !Array.isArray(mediumBtn)) {
         mediumBtn = [mediumBtn];
@@ -520,21 +487,100 @@ module.exports.pageBtnList = function (btnList, updCommand, page, mediumBtn) {
 };
 
 var sepRe = /\?/;
-module.exports.noCacheUrl = function (url) {
+utils.noCacheUrl = function (url) {
     var sep = sepRe.test(url) ? '&' : '?';
-    return url + sep + '_=' + getNow();
+    return url + sep + '_=' + utils.getNow();
 };
 
-module.exports.arrayToChainPromise = function (arr, callbackPromise) {
+utils.arrayToChainPromise = function (arr, callbackPromise) {
     var next = function () {
-        var promise = null;
+        var result = null;
         var item = arr.shift();
         if (item) {
-            promise = callbackPromise(item).then(next);
+            result = callbackPromise(item).then(next);
         } else {
-            promise = Promise.resolve();
+            result = Promise.resolve();
         }
-        return promise;
+        return result;
     };
     return next();
 };
+
+utils.Pool = function (limit) {
+    var queuePush = [];
+    var activeCountPush = 0;
+    var end = function (cb) {
+        return function (result) {
+            activeCountPush--;
+            nextPush();
+            return cb(result);
+        };
+    };
+    var nextPush = function () {
+        var item;
+        while (queuePush.length && activeCountPush < limit) {
+            item = queuePush.shift();
+            activeCountPush++;
+            item[0]().then(end(item[1]), end(item[2]));
+        }
+    };
+    this.push = function (callbackPromise) {
+        return new Promise(function (resolve, reject) {
+            queuePush.push([callbackPromise, resolve, reject]);
+            nextPush();
+        });
+    };
+
+    var waitArr = [];
+    var activeCountDo = 0;
+    var getPromiseFnArr = [];
+    var rejectAll = function (err) {
+        getPromiseFnArr.splice(0);
+        activeCountDo = 0;
+
+        var item;
+        while (item = waitArr.shift()) {
+            item[1](err);
+        }
+    };
+    var resolveAll = function () {
+        var item;
+        while (item = waitArr.shift()) {
+            item[0]();
+        }
+    };
+    var runPromise = function () {
+        if (!getPromiseFnArr.length) return;
+
+        var promise = getPromiseFnArr[0]();
+        if (!promise) {
+            getPromiseFnArr.shift();
+            return runPromise();
+        } else {
+            activeCountDo++;
+            return promise.then(function () {
+                activeCountDo--;
+                nextDo();
+            }, rejectAll);
+        }
+    };
+    var nextDo = function () {
+        while (activeCountDo < limit) {
+            if (!runPromise()) {
+                break;
+            }
+        }
+        if (!activeCountDo) {
+            resolveAll();
+        }
+    };
+    this.do = function (getPromiseFn) {
+        return new Promise(function (resolve, reject) {
+            getPromiseFnArr.push(getPromiseFn);
+            waitArr.push([resolve, reject]);
+            nextDo();
+        });
+    };
+};
+
+module.exports = utils;
