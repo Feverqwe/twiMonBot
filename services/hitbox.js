@@ -14,46 +14,143 @@ var Hitbox = function(options) {
     this.gOptions = options;
     this.config = {};
 
-    this.onReady = base.storage.get(['hitboxChannelInfo']).then(function(storage) {
-        _this.config.channelInfo = storage.hitboxChannelInfo || {};
-    });
+    this.onReady = _this.init();
 };
 
-Hitbox.prototype.saveChannelInfo = function () {
-    return base.storage.set({
-        hitboxChannelInfo: this.config.channelInfo
+Hitbox.prototype.init = function () {
+    var _this = this;
+    var db = this.gOptions.db;
+    var promise = Promise.resolve();
+    promise = promise.then(function () {
+        return new Promise(function (resolve, reject) {
+            db.connection.query('\
+            CREATE TABLE IF NOT EXISTS `hbChannels` ( \
+                `id` VARCHAR(255) NOT NULL, \
+                `title` TEXT NOT NULL, \
+            UNIQUE INDEX `id_UNIQUE` (`id` ASC)); \
+        ', function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    });
+    promise = promise.then(function () {
+        return _this.migrate();
+    });
+    return promise;
+};
+
+Hitbox.prototype.migrate = function () {
+    var _this = this;
+    var db = this.gOptions.db;
+
+    return base.storage.get(['hitboxChannelInfo']).then(function(storage) {
+        var channelInfo = storage.hitboxChannelInfo || {};
+
+        var channels = Object.keys(channelInfo);
+        var threadCount = 100;
+        var partSize = Math.ceil(channels.length / threadCount);
+
+        var migrateChannel = function (connection, channelId, data) {
+            var info = {
+                id: channelId,
+                title: data.title
+            };
+            return new Promise(function (resolve, reject) {
+                connection.query('\
+                    INSERT INTO hbChannels SET ? ON DUPLICATE KEY UPDATE id = id \
+                ', info, function (err, results) {
+                    if (err) {
+                        if (err.code === 'ER_DUP_ENTRY') {
+                            resolve();
+                        } else {
+                            reject(err);
+                        }
+                    } else {
+                        resolve();
+                    }
+                });
+            }).catch(function (err) {
+                debug('Migrate', err);
+            });
+        };
+
+        return Promise.all(base.arrToParts(channels, partSize).map(function (arr) {
+            return base.arrayToChainPromise(arr, function (channelId) {
+                return db.newConnection().then(function (connection) {
+                    return migrateChannel(connection, channelId, channelInfo[channelId]).then(function () {
+                        connection.end();
+                    });
+                });
+            });
+        }));
     });
 };
 
 /**
+ * @typedef {{}} ChannelInfo
+ * @property {String} id
+ * @property {String} title
+ */
+
+/**
  * @private
- * @param channelId
- * @return {*}
+ * @param {String} channelId
+ * @return {Promise}
  */
 Hitbox.prototype.getChannelInfo = function (channelId) {
-    var obj = this.config.channelInfo[channelId];
-    if (!obj) {
-        obj = this.config.channelInfo[channelId] = {};
-    }
-    return obj;
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            SELECT * FROM hbChannels WHERE id = ? LIMIT 1 \
+        ', [channelId], function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(results[0] || {});
+            }
+        });
+    }).catch(function (err) {
+        debug('getChannelInfo', err);
+        return {};
+    });
 };
 
-Hitbox.prototype.setChannelTitle = function (channelId, title) {
-    if (channelId === title) {
-        return Promise.resolve();
-    }
-    var info = this.getChannelInfo(channelId);
-    if (info.title !== title) {
-        info.title = title;
-        return this.saveChannelInfo();
-    }
-
-    return Promise.resolve();
+/**
+ * @param {ChannelInfo} info
+ * @return {String}
+ */
+var getChannelTitleFromInfo = function (info) {
+    return info.title || info.id;
 };
 
 Hitbox.prototype.getChannelTitle = function (channelId) {
-    var info = this.getChannelInfo(channelId);
-    return Promise.resolve(info.title || channelId);
+    return this.getChannelInfo(channelId).then(function (info) {
+        return getChannelTitleFromInfo(info) || channelId;
+    });
+};
+
+/**
+ * @param {Object} info
+ * @return {Promise}
+ */
+Hitbox.prototype.setChannelInfo = function(info) {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            INSERT INTO hbChannels SET ? ON DUPLICATE KEY UPDATE ? \
+        ', [info, info], function (err, results) {
+            if (err) {
+                debug('setChannelInfo', err);
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
 };
 
 Hitbox.prototype.clean = function(channelIdList) {
@@ -129,7 +226,7 @@ Hitbox.prototype.apiNormalization = function(data) {
             }
         };
 
-        _this.setChannelTitle(channelId, origItem.media_display_name);
+        // _this.setChannelTitle(channelId, origItem.media_display_name);
 
         streamArray.push(item);
     });
@@ -239,9 +336,12 @@ Hitbox.prototype.getChannelId = function(channelName) {
             throw new CustomError('Channel is not found!');
         }
 
-        _this.setChannelTitle(channelId, stream.media_display_name);
-
-        return channelId;
+        return _this.setChannelInfo({
+            id: channelId,
+            title: stream.media_display_name
+        }).then(function () {
+            return channelId;
+        });
     });
 };
 
