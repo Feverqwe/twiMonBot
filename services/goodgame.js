@@ -251,54 +251,58 @@ GoodGame.prototype.getStreamList = function (channelList) {
     var _this = this;
     var videoList = [];
 
-    var promiseList = base.arrToParts(channelList, 25).map(function (arr) {
-        var retryLimit = 5;
-        var getList = function () {
-            return requestPromise({
-                method: 'GET',
-                url: 'https://api2.goodgame.ru/v2/streams',
-                qs: {
-                    ids: arr.join(','),
-                    adult: true,
-                    hidden: true
-                },
-                headers: {
-                    'Accept': 'application/vnd.goodgame.v2+json'
-                },
-                json: true,
-                gzip: true,
-                forever: true
-            }).catch(function (err) {
-                if (retryLimit-- < 1) {
-                    throw err;
-                }
+    var promise = Promise.resolve();
 
-                return new Promise(function(resolve) {
-                    return setTimeout(resolve, 250);
-                }).then(function() {
-                    // debug("Retry %s getList", retryLimit, err);
-                    return getList();
+    base.arrToParts(channelList, 25).forEach(function (channelIds) {
+        promise = promise.then(function () {
+            var retryLimit = 5;
+            var getList = function () {
+                return requestPromise({
+                    method: 'GET',
+                    url: 'https://api2.goodgame.ru/v2/streams',
+                    qs: {
+                        ids: channelIds.join(','),
+                        adult: true,
+                        hidden: true
+                    },
+                    headers: {
+                        'Accept': 'application/vnd.goodgame.v2+json'
+                    },
+                    json: true,
+                    gzip: true,
+                    forever: true
+                }).catch(function (err) {
+                    if (retryLimit-- < 1) {
+                        throw err;
+                    }
+
+                    return new Promise(function(resolve) {
+                        return setTimeout(resolve, 250);
+                    }).then(function() {
+                        // debug("Retry %s getList", retryLimit, err);
+                        return getList();
+                    });
                 });
-            });
-        };
+            };
 
-        return getList().then(function (responseBody) {
-            try {
-                var list = _this.apiNormalization(responseBody);
-                videoList.push.apply(videoList, list);
-            } catch (e) {
-                debug('Unexpected response %j', responseBody, e);
-                throw new CustomError('Unexpected response');
-            }
-        }).catch(function (err) {
-            arr.forEach(function (channelId) {
-                videoList.push(base.getTimeoutStream('goodgame', channelId));
+            return getList().then(function (responseBody) {
+                try {
+                    var list = _this.apiNormalization(responseBody);
+                    videoList.push.apply(videoList, list);
+                } catch (e) {
+                    debug('Unexpected response %j', responseBody, e);
+                    throw new CustomError('Unexpected response');
+                }
+            }).catch(function (err) {
+                channelIds.forEach(function (channelId) {
+                    videoList.push(base.getTimeoutStream('goodgame', channelId));
+                });
+                debug("Request stream list error!", err);
             });
-            debug("Request stream list error!", err);
         });
     });
 
-    return Promise.all(promiseList).then(function () {
+    return promise.then(function () {
         return videoList;
     });
 };

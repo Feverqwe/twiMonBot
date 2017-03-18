@@ -255,62 +255,66 @@ Twitch.prototype.getStreamList = function(channelList) {
     var _this = this;
     var videoList = [];
 
-    var promiseList = base.arrToParts(channelList, 100).map(function (arr) {
-        var retryLimit = 5;
-        var getList = function () {
-            return requestPromise({
-                method: 'GET',
-                url: 'https://api.twitch.tv/kraken/streams',
-                qs: {
-                    limit: 100,
-                    channel: arr.join(',')
-                },
-                headers: {
-                    'Accept': 'application/vnd.twitchtv.v3+json',
-                    'Client-ID': _this.config.token
-                },
-                json: true,
-                gzip: true,
-                forever: true
-            }).catch(function (err) {
-                if (retryLimit-- < 1) {
-                    throw err;
+    var promise = Promise.resolve();
+
+    base.arrToParts(channelList, 100).forEach(function (channelIds) {
+        promise = promise.then(function () {
+            var retryLimit = 5;
+            var getList = function () {
+                return requestPromise({
+                    method: 'GET',
+                    url: 'https://api.twitch.tv/kraken/streams',
+                    qs: {
+                        limit: 100,
+                        channel: channelIds.join(',')
+                    },
+                    headers: {
+                        'Accept': 'application/vnd.twitchtv.v3+json',
+                        'Client-ID': _this.config.token
+                    },
+                    json: true,
+                    gzip: true,
+                    forever: true
+                }).catch(function (err) {
+                    if (retryLimit-- < 1) {
+                        throw err;
+                    }
+
+                    return new Promise(function(resolve) {
+                        return setTimeout(resolve, 250);
+                    }).then(function() {
+                        // debug("Retry %s getList", retryLimit, err);
+                        return getList();
+                    });
+                });
+            };
+
+            return getList().then(function (responseBody) {
+                var obj = null;
+                try {
+                    obj = _this.apiNormalization(responseBody);
+                } catch (e) {
+                    debug('Unexpected response %j', responseBody, e);
+                    throw new CustomError('Unexpected response');
                 }
 
-                return new Promise(function(resolve) {
-                    return setTimeout(resolve, 250);
-                }).then(function() {
-                    // debug("Retry %s getList", retryLimit, err);
-                    return getList();
+                videoList.push.apply(videoList, obj.streamArray);
+
+                if (obj.invalidArray.length) {
+                    debug('Invalid array %j', obj.invalidArray);
+                    channelIds = obj.invalidArray;
+                    throw new CustomError('Invalid array!');
+                }
+            }).catch(function (err) {
+                channelIds.forEach(function (channelId) {
+                    videoList.push(base.getTimeoutStream('twitch', channelId));
                 });
+                debug("Request stream list error!", err);
             });
-        };
-
-        return getList().then(function (responseBody) {
-            var obj = null;
-            try {
-                obj = _this.apiNormalization(responseBody);
-            } catch (e) {
-                debug('Unexpected response %j', responseBody, e);
-                throw new CustomError('Unexpected response');
-            }
-
-            videoList.push.apply(videoList, obj.streamArray);
-
-            if (obj.invalidArray.length) {
-                debug('Invalid array %j', obj.invalidArray);
-                arr = obj.invalidArray;
-                throw new CustomError('Invalid array!');
-            }
-        }).catch(function (err) {
-            arr.forEach(function (channelId) {
-                videoList.push(base.getTimeoutStream('twitch', channelId));
-            });
-            debug("Request stream list error!", err);
         });
     });
 
-    return Promise.all(promiseList).then(function () {
+    return promise.then(function () {
         return videoList;
     });
 };

@@ -238,53 +238,57 @@ Hitbox.prototype.getStreamList = function(channelList) {
     var _this = this;
     var videoList = [];
 
-    var promiseList = base.arrToParts(channelList, 100).map(function (arr) {
-        var channels = arr.map(function(item) {
-            return encodeURIComponent(item);
-        }).join(',');
+    var promise = Promise.resolve();
 
-        var retryLimit = 5;
-        var getList = function () {
-            return requestPromise({
-                method: 'GET',
-                url: 'https://api.hitbox.tv/media/live/' + channels,
-                qs: {
-                    showHidden: 'true'
-                },
-                json: true,
-                gzip: true,
-                forever: true
-            }).catch(function (err) {
-                if (retryLimit-- < 1) {
-                    throw err;
-                }
+    base.arrToParts(channelList, 100).forEach(function (channelIds) {
+        promise = promise.then(function () {
+            var query = channelIds.map(function (item) {
+                return encodeURIComponent(item);
+            }).join(',');
 
-                return new Promise(function (resolve) {
-                    return setTimeout(resolve, 250);
-                }).then(function () {
-                    // debug("Retry %s getList", retryLimit, err);
-                    return getList();
+            var retryLimit = 5;
+            var getList = function () {
+                return requestPromise({
+                    method: 'GET',
+                    url: 'https://api.hitbox.tv/media/live/' + query,
+                    qs: {
+                        showHidden: 'true'
+                    },
+                    json: true,
+                    gzip: true,
+                    forever: true
+                }).catch(function (err) {
+                    if (retryLimit-- < 1) {
+                        throw err;
+                    }
+
+                    return new Promise(function (resolve) {
+                        return setTimeout(resolve, 250);
+                    }).then(function () {
+                        // debug("Retry %s getList", retryLimit, err);
+                        return getList();
+                    });
                 });
-            });
-        };
+            };
 
-        return getList().then(function (responseBody) {
-            try {
-                var list = _this.apiNormalization(responseBody);
-                videoList.push.apply(videoList, list);
-            } catch (e) {
-                debug('Unexpected response %j', responseBody, e);
-                throw new CustomError('Unexpected response');
-            }
-        }).catch(function (err) {
-            arr.forEach(function (channelId) {
-                videoList.push(base.getTimeoutStream('hitbox', channelId));
+            return getList().then(function (responseBody) {
+                try {
+                    var list = _this.apiNormalization(responseBody);
+                    videoList.push.apply(videoList, list);
+                } catch (e) {
+                    debug('Unexpected response %j', responseBody, e);
+                    throw new CustomError('Unexpected response');
+                }
+            }).catch(function (err) {
+                channelIds.forEach(function (channelId) {
+                    videoList.push(base.getTimeoutStream('hitbox', channelId));
+                });
+                debug("Request stream list error!", err);
             });
-            debug("Request stream list error!", err);
         });
     });
 
-    return Promise.all(promiseList).then(function () {
+    return promise.then(function () {
         return videoList;
     });
 };
