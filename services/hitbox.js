@@ -301,32 +301,24 @@ Hitbox.prototype.getChannelId = function(channelName) {
         gzip: true,
         forever: true
     }).then(function(responseBody) {
-        var channelId = '';
-        try {
-            var stream = null;
-            responseBody.livestream.some(function(item) {
-                if (item.channel && item.channel.user_name) {
-                    stream = item;
-                    return true;
-                }
-            });
-            if (stream) {
-                channelId = stream.channel.user_name.toLowerCase();
+        var stream = null;
+        responseBody.livestream.some(function(item) {
+            if (item.channel && item.channel.user_name) {
+                return stream = item;
             }
-        } catch (e) {
-            debug('Unexpected response %j', responseBody, e);
-            throw new CustomError('Unexpected response');
-        }
-
-        if (!channelId) {
+        });
+        if (!stream) {
             throw new CustomError('Channel is not found!');
         }
 
+        var username = stream.channel.user_name.toLowerCase();
+        var title = stream.media_display_name;
+
         return _this.setChannelInfo({
-            id: channelId,
-            title: stream.media_display_name
+            id: username,
+            title: title
         }).then(function () {
-            return channelId;
+            return username;
         });
     });
 };

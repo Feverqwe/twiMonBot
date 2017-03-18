@@ -319,17 +319,17 @@ GoodGame.prototype.getChannelId = function (channelName) {
         gzip: true,
         forever: true
     }).then(function (responseBody) {
-        var channelId = responseBody.key;
-        if (!channelId) {
+        var title = responseBody.key;
+        if (!title) {
             throw new CustomError('Channel is not found!');
         }
 
-        channelId = channelId.toLowerCase();
+        var id = title.toLowerCase();
         return _this.setChannelInfo({
-            id: channelId,
-            title: responseBody.key
+            id: id,
+            title: title
         }).then(function () {
-            return channelId;
+            return id;
         });
     });
 };

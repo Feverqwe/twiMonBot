@@ -315,6 +315,23 @@ Twitch.prototype.getStreamList = function(channelList) {
     });
 };
 
+Twitch.prototype.requestChannelInfo = function (channelId) {
+    var _this = this;
+    return requestPromise({
+        method: 'GET',
+        url: 'https://api.twitch.tv/kraken/channels/' + encodeURIComponent(channelId),
+        headers: {
+            'Accept': 'application/vnd.twitchtv.v3+json',
+            'Client-ID': _this.config.token
+        },
+        json: true,
+        gzip: true,
+        forever: true
+    }).then(function(responseBody) {
+        return responseBody;
+    });
+};
+
 Twitch.prototype.requestChannelByName = function (channelName) {
     var _this = this;
     return requestPromise({
@@ -332,69 +349,30 @@ Twitch.prototype.requestChannelByName = function (channelName) {
         gzip: true,
         forever: true
     }).then(function(responseBody) {
-        var firstChannel = null;
-        try {
-            if (responseBody.channels.length > 0) {
-                firstChannel = responseBody.channels[0];
-            }
-        } catch (e) {
-            debug('Unexpected response %j', responseBody, e);
-            throw new CustomError('Unexpected response');
-        }
-
-        if (!firstChannel) {
+        var channel = null;
+        responseBody.channels.some(function (item) {
+            return channel = item;
+        });
+        if (!channel) {
             throw new CustomError('Channel is not found by name!');
         }
-
-        var name = firstChannel.name;
-        if (!name || typeof name !== 'string') {
-            debug('Unexpected response %j', responseBody, e);
-            throw new CustomError('Unexpected response');
-        }
-
-        return firstChannel;
-    });
-};
-
-Twitch.prototype.requestChannelInfo = function (channelId) {
-    var _this = this;
-    return requestPromise({
-        method: 'GET',
-        url: 'https://api.twitch.tv/kraken/channels/' + encodeURIComponent(channelId),
-        headers: {
-            'Accept': 'application/vnd.twitchtv.v3+json',
-            'Client-ID': _this.config.token
-        },
-        json: true,
-        gzip: true,
-        forever: true
-    }).then(function(responseBody) {
-        if (!responseBody) {
-            throw new CustomError('Channel is not found by id!');
-        }
-
-        var name = responseBody.name;
-        if (!name || typeof name !== 'string') {
-            debug('Unexpected response %j', responseBody, e);
-            throw new CustomError('Unexpected response');
-        }
-
-        return responseBody;
+        return channel;
     });
 };
 
 Twitch.prototype.getChannelId = function(channelId) {
     var _this = this;
-    return this.requestChannelInfo(channelId).catch(function () {
+    return this.requestChannelInfo(channelId).catch(function (err) {
         return _this.requestChannelByName(channelId);
     }).then(function (channelInfo) {
-        var channelId = channelInfo.name.toLowerCase();
+        var id = channelInfo.name.toLowerCase();
+        var title = channelInfo.display_name;
 
         return _this.setChannelInfo({
-            id: channelId,
-            title: channelInfo.display_name
+            id: id,
+            title: title
         }).then(function () {
-            return channelId
+            return id;
         });
     });
 };
