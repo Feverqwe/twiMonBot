@@ -6,7 +6,7 @@ var debug = require('debug')('app:hitbox');
 var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
-var requestPromise = Promise.promisify(request);
+var requestPromise = require('request-promise');
 var CustomError = require('../customError').CustomError;
 
 var Hitbox = function(options) {
@@ -254,13 +254,6 @@ Hitbox.prototype.getStreamList = function(channelList) {
                 json: true,
                 gzip: true,
                 forever: true
-            }).then(function (response) {
-                if (response.statusCode !== 200) {
-                    debug('Unexpected response %j', response, e);
-                    throw new CustomError('Unexpected response');
-                }
-
-                return response;
             }).catch(function (err) {
                 if (retryLimit-- < 1) {
                     throw err;
@@ -275,13 +268,12 @@ Hitbox.prototype.getStreamList = function(channelList) {
             });
         };
 
-        return getList().then(function (response) {
-            var responseBody = response.body;
+        return getList().then(function (responseBody) {
             try {
                 var list = _this.apiNormalization(responseBody);
                 videoList.push.apply(videoList, list);
             } catch (e) {
-                debug('Unexpected response %j', response, e);
+                debug('Unexpected response %j', responseBody, e);
                 throw new CustomError('Unexpected response');
             }
         }).catch(function (err) {
@@ -308,13 +300,7 @@ Hitbox.prototype.getChannelId = function(channelName) {
         json: true,
         gzip: true,
         forever: true
-    }).then(function(response) {
-        if (response.statusCode === 404) {
-            throw new CustomError('Channel is not found!');
-        }
-
-        var responseBody = response.body;
-
+    }).then(function(responseBody) {
         var channelId = '';
         try {
             var stream = null;
@@ -328,7 +314,7 @@ Hitbox.prototype.getChannelId = function(channelName) {
                 channelId = stream.channel.user_name.toLowerCase();
             }
         } catch (e) {
-            debug('Unexpected response %j', response, e);
+            debug('Unexpected response %j', responseBody, e);
             throw new CustomError('Unexpected response');
         }
 

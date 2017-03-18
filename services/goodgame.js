@@ -6,7 +6,7 @@ var debug = require('debug')('app:goodgame');
 var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
-var requestPromise = Promise.promisify(request);
+var requestPromise = require('request-promise');
 var CustomError = require('../customError').CustomError;
 
 var GoodGame = function (options) {
@@ -268,17 +268,6 @@ GoodGame.prototype.getStreamList = function (channelList) {
                 json: true,
                 gzip: true,
                 forever: true
-            }).then(function(response) {
-                if (response.statusCode === 500) {
-                    throw new CustomError(response.statusCode);
-                }
-
-                if (response.statusCode !== 200) {
-                    debug('Unexpected response %j', response);
-                    throw new CustomError('Unexpected response');
-                }
-
-                return response;
             }).catch(function (err) {
                 if (retryLimit-- < 1) {
                     throw err;
@@ -293,13 +282,12 @@ GoodGame.prototype.getStreamList = function (channelList) {
             });
         };
 
-        return getList().then(function (response) {
-            var responseBody = response.body;
+        return getList().then(function (responseBody) {
             try {
                 var list = _this.apiNormalization(responseBody);
                 videoList.push.apply(videoList, list);
             } catch (e) {
-                debug('Unexpected response %j', response, e);
+                debug('Unexpected response %j', responseBody, e);
                 throw new CustomError('Unexpected response');
             }
         }).catch(function (err) {
@@ -330,19 +318,8 @@ GoodGame.prototype.getChannelId = function (channelName) {
         json: true,
         gzip: true,
         forever: true
-    }).then(function (response) {
-        if (response.statusCode === 404) {
-            throw new CustomError(response.statusCode);
-        }
-
-        if (response.statusCode !== 200) {
-            debug('Unexpected response %j', response);
-            throw new CustomError(response.statusCode);
-        }
-
-        var responseJson = response.body;
-
-        var channelId = responseJson.key;
+    }).then(function (responseBody) {
+        var channelId = responseBody.key;
         if (!channelId) {
             throw new CustomError('Channel is not found!');
         }
@@ -350,7 +327,7 @@ GoodGame.prototype.getChannelId = function (channelName) {
         channelId = channelId.toLowerCase();
         return _this.setChannelInfo({
             id: channelId,
-            title: responseJson.key
+            title: responseBody.key
         }).then(function () {
             return channelId;
         });

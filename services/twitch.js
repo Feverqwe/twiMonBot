@@ -6,7 +6,7 @@ var debug = require('debug')('app:twitch');
 var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
-var requestPromise = Promise.promisify(request);
+var requestPromise = require('request-promise');
 var CustomError = require('../customError').CustomError;
 
 var Twitch = function(options) {
@@ -272,17 +272,6 @@ Twitch.prototype.getStreamList = function(channelList) {
                 json: true,
                 gzip: true,
                 forever: true
-            }).then(function(response) {
-                if (response.statusCode === 500) {
-                    throw new CustomError(response.statusCode);
-                }
-
-                if (response.statusCode !== 200) {
-                    debug('Unexpected response %j', response);
-                    throw new CustomError('Unexpected response');
-                }
-
-                return response;
             }).catch(function (err) {
                 if (retryLimit-- < 1) {
                     throw err;
@@ -297,14 +286,12 @@ Twitch.prototype.getStreamList = function(channelList) {
             });
         };
 
-        return getList().then(function (response) {
-            var responseBody = response.body;
-
+        return getList().then(function (responseBody) {
             var obj = null;
             try {
                 obj = _this.apiNormalization(responseBody);
             } catch (e) {
-                debug('Unexpected response %j', response, e);
+                debug('Unexpected response %j', responseBody, e);
                 throw new CustomError('Unexpected response');
             }
 
@@ -344,16 +331,14 @@ Twitch.prototype.requestChannelByName = function (channelName) {
         json: true,
         gzip: true,
         forever: true
-    }).then(function(response) {
-        var responseBody = response.body;
-
+    }).then(function(responseBody) {
         var firstChannel = null;
         try {
             if (responseBody.channels.length > 0) {
                 firstChannel = responseBody.channels[0];
             }
         } catch (e) {
-            debug('Unexpected response %j', response, e);
+            debug('Unexpected response %j', responseBody, e);
             throw new CustomError('Unexpected response');
         }
 
@@ -363,7 +348,7 @@ Twitch.prototype.requestChannelByName = function (channelName) {
 
         var name = firstChannel.name;
         if (!name || typeof name !== 'string') {
-            debug('Unexpected response %j', response, e);
+            debug('Unexpected response %j', responseBody, e);
             throw new CustomError('Unexpected response');
         }
 
@@ -383,16 +368,14 @@ Twitch.prototype.requestChannelInfo = function (channelId) {
         json: true,
         gzip: true,
         forever: true
-    }).then(function(response) {
-        var responseBody = response.body;
-
+    }).then(function(responseBody) {
         if (!responseBody) {
             throw new CustomError('Channel is not found by id!');
         }
 
         var name = responseBody.name;
         if (!name || typeof name !== 'string') {
-            debug('Unexpected response %j', response, e);
+            debug('Unexpected response %j', responseBody, e);
             throw new CustomError('Unexpected response');
         }
 
