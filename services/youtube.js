@@ -278,17 +278,16 @@ Youtube.prototype.getStreamList = function(_channelIdList) {
 
                 return response;
             }).catch(function (err) {
-                retryLimit--;
-                if (retryLimit > 0) {
-                    return new Promise(function (resolve) {
-                        setTimeout(resolve, 250);
-                    }).then(function () {
-                        // debug('Retry %s requestPage %s', retryLimit, channelId, err);
-                        return requestPage();
-                    });
+                if (retryLimit-- < 1) {
+                    throw err;
                 }
 
-                throw err;
+                return new Promise(function (resolve) {
+                    setTimeout(resolve, 250);
+                }).then(function () {
+                    // debug('Retry %s requestPage %s', retryLimit, channelId, err);
+                    return requestPage();
+                });
             });
         };
 
