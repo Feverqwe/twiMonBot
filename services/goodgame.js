@@ -26,7 +26,7 @@ GoodGame.prototype.init = function () {
             db.connection.query('\
             CREATE TABLE IF NOT EXISTS `ggChannels` ( \
                 `id` VARCHAR(255) NOT NULL, \
-                `title` TEXT NOT NULL, \
+                `title` TEXT NULL, \
             UNIQUE INDEX `id_UNIQUE` (`id` ASC)); \
         ', function (err) {
                 if (err) {
