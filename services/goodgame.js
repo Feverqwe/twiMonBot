@@ -191,17 +191,16 @@ GoodGame.prototype.getStreamList = function (channelList) {
 
                 return response;
             }).catch(function (err) {
-                retryLimit--;
-                if (retryLimit > 0) {
-                    return new Promise(function(resolve) {
-                        return setTimeout(resolve, 250);
-                    }).then(function() {
-                        // debug("Retry %s getList", retryLimit, err);
-                        return getList();
-                    });
+                if (retryLimit-- < 1) {
+                    throw err;
                 }
 
-                throw err;
+                return new Promise(function(resolve) {
+                    return setTimeout(resolve, 250);
+                }).then(function() {
+                    // debug("Retry %s getList", retryLimit, err);
+                    return getList();
+                });
             });
         };
 
