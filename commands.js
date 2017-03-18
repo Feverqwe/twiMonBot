@@ -246,13 +246,14 @@ var getWatchBtnList = function (chatItem, page) {
             }
 
             promise = promise.then(function () {
-                var title = base.getChannelTitle(_this.gOptions, service, channelId);
-                var text = title + ' (' + _this.gOptions.serviceToTitle[service] + ')';
+                return base.getChannelTitle(_this.gOptions, service, channelId).then(function (title) {
+                    var text = title + ' (' + _this.gOptions.serviceToTitle[service] + ')';
 
-                btnList.push([{
-                    text: text,
-                    callback_data: '/watch ' + channelId + ' ' + service
-                }]);
+                    btnList.push([{
+                        text: text,
+                        callback_data: '/watch ' + channelId + ' ' + service
+                    }]);
+                });
             });
         });
     });
