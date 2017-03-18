@@ -19,12 +19,20 @@ var GoodGame = function (options) {
     });
 };
 
+/**
+ * @return Promise
+ */
 GoodGame.prototype.saveChannelInfo = function () {
     return base.storage.set({
         ggChannelInfo: this.config.channelInfo
     });
 };
 
+/**
+ * @private
+ * @param channelId
+ * @return {Object}
+ */
 GoodGame.prototype.getChannelInfo = function (channelId) {
     var obj = this.config.channelInfo[channelId];
     if (!obj) {
@@ -33,11 +41,11 @@ GoodGame.prototype.getChannelInfo = function (channelId) {
     return obj;
 };
 
-GoodGame.prototype.removeChannelInfo = function (channelId) {
-    delete this.config.channelInfo[channelId];
-    return this.saveChannelInfo();
-};
-
+/**
+ * @param channelId
+ * @param title
+ * @return {Promise}
+ */
 GoodGame.prototype.setChannelTitle = function (channelId, title) {
     if (channelId === title) {
         return Promise.resolve();
@@ -47,15 +55,19 @@ GoodGame.prototype.setChannelTitle = function (channelId, title) {
         info.title = title;
         return this.saveChannelInfo();
     }
+
+    return Promise.resolve();
 };
 
 GoodGame.prototype.getChannelTitle = function (channelId) {
     var info = this.getChannelInfo(channelId);
-    return info.title || channelId;
+    return Promise.resolve(info.title || channelId);
 };
 
 GoodGame.prototype.clean = function(channelIdList) {
-    var _this = this;
+    // todo: fix me
+    return Promise.resolve();
+    /*var _this = this;
     var promiseList = [];
 
     var needSaveState = false;
@@ -72,7 +84,7 @@ GoodGame.prototype.clean = function(channelIdList) {
         promiseList.push(_this.saveChannelInfo());
     }
 
-    return Promise.all(promiseList);
+    return Promise.all(promiseList);*/
 };
 
 var noProtocolRe = /^\/\//;
@@ -142,6 +154,10 @@ GoodGame.prototype.apiNormalization = function (data) {
     return streamArray;
 };
 
+/**
+ * @param channelList
+ * @return {Promise}
+ */
 GoodGame.prototype.getStreamList = function (channelList) {
     var _this = this;
     var videoList = [];
@@ -211,6 +227,10 @@ GoodGame.prototype.getStreamList = function (channelList) {
     });
 };
 
+/**
+ * @param channelName
+ * @return {Promise}
+ */
 GoodGame.prototype.getChannelId = function (channelName) {
     var _this = this;
     return requestPromise({

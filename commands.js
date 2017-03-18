@@ -114,28 +114,35 @@ var optionsBtnList = function (chatItem) {
  * @param {Object} chatItem
  * @param {number} page
  * @param {Object|Array} mediumBtn
- * @returns {Array.<*>}
+ * @returns {Promise}
  */
 var getDeleteChannelList = function (chatItem, page, mediumBtn) {
     var _this = this;
     var btnList = [];
 
+    var promise = Promise.resolve();
     Object.keys(chatItem.serviceList).forEach(function (service) {
         var channelList = chatItem.serviceList[service];
         channelList.forEach(function(channelName) {
-            var btnItem = {};
+            promise = promise.then(function () {
+                return base.getChannelTitle(_this.gOptions, service, channelName).then(function (title) {
+                    var btnItem = {};
 
-            var title = base.getChannelTitle(_this.gOptions, service, channelName);
-            title += ' (' + _this.gOptions.serviceToTitle[service] + ')';
-            btnItem.text = title;
+                    title += ' (' + _this.gOptions.serviceToTitle[service] + ')';
 
-            btnItem.callback_data = '/d "' + channelName + '" "' + service + '"';
+                    btnItem.text = title;
 
-            btnList.push([btnItem]);
+                    btnItem.callback_data = '/d "' + channelName + '" "' + service + '"';
+
+                    btnList.push([btnItem]);
+                });
+            });
         });
     });
 
-    return base.pageBtnList(btnList, 'delete_upd', page, mediumBtn);
+    return promise.then(function () {
+        return base.pageBtnList(btnList, 'delete_upd', page, mediumBtn);
+    });
 };
 
 var setOption = function (chatItem, optionName, state) {
@@ -218,10 +225,16 @@ var getOnlineText = function (chatItem) {
     return onlineList.join('\n\n');
 };
 
+/**
+ * @param chatItem
+ * @param page
+ * @return {Promise}
+ */
 var getWatchBtnList = function (chatItem, page) {
     var _this = this;
     var btnList = [];
 
+    var promise = Promise.resolve();
     var serviceList = getOnlineChannelList.call(this, chatItem);
     Object.keys(serviceList).forEach(function (service) {
         var channelList = serviceList[service];
@@ -232,17 +245,21 @@ var getWatchBtnList = function (chatItem, page) {
                 return;
             }
 
-            var title = base.getChannelTitle(_this.gOptions, service, channelId);
-            var text = title + ' (' + _this.gOptions.serviceToTitle[service] + ')';
+            promise = promise.then(function () {
+                var title = base.getChannelTitle(_this.gOptions, service, channelId);
+                var text = title + ' (' + _this.gOptions.serviceToTitle[service] + ')';
 
-            btnList.push([{
-                text: text,
-                callback_data: '/watch ' + channelId + ' ' + service
-            }]);
+                btnList.push([{
+                    text: text,
+                    callback_data: '/watch ' + channelId + ' ' + service
+                }]);
+            });
         });
     });
 
-    return base.pageBtnList(btnList, 'online_upd', page);
+    return promise.then(function () {
+        return base.pageBtnList(btnList, 'online_upd', page);
+    });
 };
 
 var commands = {
@@ -319,31 +336,32 @@ var commands = {
 
             channelList.push(channelId);
 
-            var title = base.getChannelTitle(_this.gOptions, service, channelId);
-            var url = base.getChannelUrl(service, channelId);
+            return base.getChannelTitle(_this.gOptions, service, channelId).then(function (title) {
+                var url = base.getChannelUrl(service, channelId);
 
-            var displayName = base.htmlSanitize('a', title, url);
+                var displayName = base.htmlSanitize('a', title, url);
 
-            return base.storage.set({chatList: chatList}).then(function () {
-                return _this.gOptions.bot.editMessageText(
-                    chatId,
-                    _this.gOptions.language.channelAdded
-                        .replace('{channelName}', displayName)
-                        .replace('{serviceName}', _this.gOptions.serviceToTitle[service]),
-                    {
-                        message_id: msg.message_id,
-                        disable_web_page_preview: true,
-                        parse_mode: 'HTML'
-                    }
-                ).then(function () {
-                    var onlineServiceList = getOnlineChannelList.call(_this, chatItem);
-                    var channelList = onlineServiceList[service] || {};
-                    var streamList = channelList[channelId] || [];
-                    streamList.forEach(function (stream) {
-                        var text = base.getNowStreamPhotoText(_this.gOptions, stream);
-                        var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
-                        return _this.gOptions.msgSender.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
-                            debug('a commend, sendNotify error!', err);
+                return base.storage.set({chatList: chatList}).then(function () {
+                    return _this.gOptions.bot.editMessageText(
+                        chatId,
+                        _this.gOptions.language.channelAdded
+                            .replace('{channelName}', displayName)
+                            .replace('{serviceName}', _this.gOptions.serviceToTitle[service]),
+                        {
+                            message_id: msg.message_id,
+                            disable_web_page_preview: true,
+                            parse_mode: 'HTML'
+                        }
+                    ).then(function () {
+                        var onlineServiceList = getOnlineChannelList.call(_this, chatItem);
+                        var channelList = onlineServiceList[service] || {};
+                        var streamList = channelList[channelId] || [];
+                        streamList.forEach(function (stream) {
+                            var text = base.getNowStreamPhotoText(_this.gOptions, stream);
+                            var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
+                            return _this.gOptions.msgSender.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
+                                debug('a commend, sendNotify error!', err);
+                            });
                         });
                     });
                 });
@@ -381,30 +399,31 @@ var commands = {
 
             channelList.push(channelId);
 
-            var title = base.getChannelTitle(_this.gOptions, service, channelId);
-            var url = base.getChannelUrl(service, channelId);
+            return base.getChannelTitle(_this.gOptions, service, channelId).then(function (title) {
+                var url = base.getChannelUrl(service, channelId);
 
-            var displayName = base.htmlSanitize('a', title, url);
+                var displayName = base.htmlSanitize('a', title, url);
 
-            return base.storage.set({chatList: chatList}).then(function () {
-                return _this.gOptions.bot.sendMessage(
-                    chatId,
-                    _this.gOptions.language.channelAdded
-                        .replace('{channelName}', displayName)
-                        .replace('{serviceName}', _this.gOptions.serviceToTitle[service]),
-                    {
-                        disable_web_page_preview: true,
-                        parse_mode: 'HTML'
-                    }
-                ).then(function () {
-                    var onlineServiceList = getOnlineChannelList.call(_this, chatItem);
-                    var channelList = onlineServiceList[service] || {};
-                    var streamList = channelList[channelId] || [];
-                    streamList.forEach(function (stream) {
-                        var text = base.getNowStreamPhotoText(_this.gOptions, stream);
-                        var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
-                        return _this.gOptions.msgSender.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
-                            debug('a commend, sendNotify error!', err);
+                return base.storage.set({chatList: chatList}).then(function () {
+                    return _this.gOptions.bot.sendMessage(
+                        chatId,
+                        _this.gOptions.language.channelAdded
+                            .replace('{channelName}', displayName)
+                            .replace('{serviceName}', _this.gOptions.serviceToTitle[service]),
+                        {
+                            disable_web_page_preview: true,
+                            parse_mode: 'HTML'
+                        }
+                    ).then(function () {
+                        var onlineServiceList = getOnlineChannelList.call(_this, chatItem);
+                        var channelList = onlineServiceList[service] || {};
+                        var streamList = channelList[channelId] || [];
+                        streamList.forEach(function (stream) {
+                            var text = base.getNowStreamPhotoText(_this.gOptions, stream);
+                            var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
+                            return _this.gOptions.msgSender.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
+                                debug('a commend, sendNotify error!', err);
+                            });
                         });
                     });
                 });
@@ -599,13 +618,13 @@ var commands = {
             callback_data: '/c "delete"'
         };
 
-        var btnList = getDeleteChannelList.call(_this, chatItem, page, mediumBtn);
-
-        return _this.gOptions.bot.editMessageReplyMarkup(chatId, {
-            message_id: msg.message_id,
-            reply_markup: JSON.stringify({
-                inline_keyboard: btnList
-            })
+        return getDeleteChannelList.call(_this, chatItem, page, mediumBtn).then(function (btnList) {
+            return _this.gOptions.bot.editMessageReplyMarkup(chatId, {
+                message_id: msg.message_id,
+                reply_markup: JSON.stringify({
+                    inline_keyboard: btnList
+                })
+            });
         });
     },
     delete: function (msg) {
@@ -624,12 +643,13 @@ var commands = {
             callback_data: '/c "delete"'
         };
 
-        var btnList = getDeleteChannelList.call(_this, chatItem, 0, mediumBtn);
 
-        return _this.gOptions.bot.sendMessage(chatId, msgText, {
-            reply_markup: JSON.stringify({
-                inline_keyboard: btnList
-            })
+        return getDeleteChannelList.call(_this, chatItem, 0, mediumBtn).then(function (btnList) {
+            return _this.gOptions.bot.sendMessage(chatId, msgText, {
+                reply_markup: JSON.stringify({
+                    inline_keyboard: btnList
+                })
+            });
         });
     },
     option: function (msg, optionName, state) {
@@ -792,27 +812,33 @@ var commands = {
 
         var serviceList = [];
 
-        for (var service in chatItem.serviceList) {
-            var channelList = chatItem.serviceList[service].map(function(channelName) {
-                var url = base.getChannelUrl(service, channelName);
-                if (!url) {
-                    debug('URL is empty!');
-                    return base.htmlSanitize(channelName);
-                }
+        var promise = Promise.resolve();
+        Object.keys(chatItem.serviceList).forEach(function (service) {
+            promise = promise.then(function () {
+                return Promise.all(chatItem.serviceList[service].map(function (channelName) {
+                    return base.getChannelTitle(_this.gOptions, service, channelName).then(function (title) {
+                        var url = base.getChannelUrl(service, channelName);
+                        if (!url) {
+                            debug('URL is empty!');
+                            return base.htmlSanitize(channelName);
+                        }
 
-                var title = base.getChannelTitle(_this.gOptions, service, channelName);
-
-                return base.htmlSanitize('a', title, url);
+                        return base.htmlSanitize('a', title, url);
+                    });
+                })).then(function (channelList) {
+                    serviceList.push(base.htmlSanitize('b', _this.gOptions.serviceToTitle[service]) + ':\n' + channelList.join('\n'));
+                });
             });
-            serviceList.push(base.htmlSanitize('b', _this.gOptions.serviceToTitle[service]) + ':\n' + channelList.join('\n'));
-        }
+        });
 
-        return _this.gOptions.bot.sendMessage(
-            chatId, serviceList.join('\n\n'), {
-                disable_web_page_preview: true,
-                parse_mode: 'HTML'
-            }
-        );
+        return promise.then(function () {
+            return _this.gOptions.bot.sendMessage(
+                chatId, serviceList.join('\n\n'), {
+                    disable_web_page_preview: true,
+                    parse_mode: 'HTML'
+                }
+            );
+        });
     },
     watch: function (msg, channelId, service) {
         var _this = this;
@@ -865,25 +891,25 @@ var commands = {
 
         var text = getOnlineText.call(_this, chatItem);
 
-        var btnList = getWatchBtnList.call(_this, chatItem, page);
+        return getWatchBtnList.call(_this, chatItem, page).then(function (btnList) {
+            btnList.unshift([{
+                text: _this.gOptions.language.refresh,
+                callback_data: '/online_upd'
+            }]);
 
-        btnList.unshift([{
-            text: _this.gOptions.language.refresh,
-            callback_data: '/online_upd'
-        }]);
-
-        return _this.gOptions.bot.editMessageText(chatId, text, {
-            message_id: msg.message_id,
-            disable_web_page_preview: true,
-            parse_mode: 'HTML',
-            reply_markup: JSON.stringify({
-                inline_keyboard: btnList
-            })
-        }).catch(function (e) {
-            var errMsg = e.message;
-            if (!/message is not modified/.test(errMsg)) {
-                throw e;
-            }
+            return _this.gOptions.bot.editMessageText(chatId, text, {
+                message_id: msg.message_id,
+                disable_web_page_preview: true,
+                parse_mode: 'HTML',
+                reply_markup: JSON.stringify({
+                    inline_keyboard: btnList
+                })
+            }).catch(function (e) {
+                var errMsg = e.message;
+                if (!/message is not modified/.test(errMsg)) {
+                    throw e;
+                }
+            });
         });
     },
     online: function (msg) {
@@ -897,19 +923,19 @@ var commands = {
 
         var text = getOnlineText.call(_this, chatItem);
 
-        var btnList = getWatchBtnList.call(_this, chatItem, 0);
+        return getWatchBtnList.call(_this, chatItem, 0).then(function (btnList) {
+            btnList.unshift([{
+                text: _this.gOptions.language.refresh,
+                callback_data: '/online_upd'
+            }]);
 
-        btnList.unshift([{
-            text: _this.gOptions.language.refresh,
-            callback_data: '/online_upd'
-        }]);
-
-        return _this.gOptions.bot.sendMessage(chatId, text, {
-            disable_web_page_preview: true,
-            parse_mode: 'HTML',
-            reply_markup: JSON.stringify({
-                inline_keyboard: btnList
-            })
+            return _this.gOptions.bot.sendMessage(chatId, text, {
+                disable_web_page_preview: true,
+                parse_mode: 'HTML',
+                reply_markup: JSON.stringify({
+                    inline_keyboard: btnList
+                })
+            });
         });
     },
     setchannel: function (msg, channelName) {
@@ -1071,19 +1097,19 @@ var commands = {
             }
         }
 
-        var topArr = {};
+        var topObj = {};
         for (service in top) {
             channelList = top[service];
 
             channelCount += Object.keys(channelList).length;
 
-            if (!topArr[service]) {
-                topArr[service] = [];
+            if (!topObj[service]) {
+                topObj[service] = [];
             }
 
             for (channelName in channelList) {
                 var count = channelList[channelName];
-                topArr[service].push([channelName, count]);
+                topObj[service].push([channelName, count]);
             }
         }
 
@@ -1102,21 +1128,36 @@ var commands = {
         });
         textArr.push(_this.gOptions.language.online.replace('{count}', onlineCount));
 
-        for (service in topArr) {
-            textArr.push('');
-            textArr.push(_this.gOptions.serviceToTitle[service] + ':');
-            topArr[service].sort(function (a, b) {
+        var _topObj = {};
+        var promiseList = [];
+        Object.keys(topObj).forEach(function (service) {
+            _topObj[service] = [];
+            topObj[service].sort(function (a, b) {
                 return a[1] === b[1] ? 0 : a[1] > b[1] ? -1 : 1
             }).splice(10);
-            topArr[service].forEach(function (item, index) {
-                var title = base.getChannelTitle(_this.gOptions, service, item[0]);
-
-                textArr.push((index + 1) + '. ' + title);
+            topObj[service].forEach(function (item) {
+                promiseList.push(base.getChannelTitle(_this.gOptions, service, item[0]).then(function (title) {
+                    return {service: service, title: title};
+                }));
             });
-        }
+        });
 
-        return _this.gOptions.bot.sendMessage(chatId, textArr.join('\n'), {
-            disable_web_page_preview: true
+        return Promise.all(promiseList).then(function (result) {
+            result.forEach(function (item) {
+                _topObj[item.service].push(item.title);
+            });
+
+            Object.keys(_topObj).forEach(function (service) {
+                textArr.push('');
+                textArr.push(_this.gOptions.serviceToTitle[service] + ':');
+                _topObj[service].forEach(function (title, index) {
+                    textArr.push((index + 1) + '. ' + title);
+                });
+            });
+
+            return _this.gOptions.bot.sendMessage(chatId, textArr.join('\n'), {
+                disable_web_page_preview: true
+            });
         });
     },
     about: function (msg) {

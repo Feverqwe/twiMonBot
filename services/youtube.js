@@ -29,17 +29,17 @@ Youtube.prototype.saveChannelInfo = function () {
     });
 };
 
+/**
+ * @private
+ * @param channelId
+ * @return {*}
+ */
 Youtube.prototype.getChannelInfo = function (channelId) {
     var obj = this.config.channelInfo[channelId];
     if (!obj) {
         obj = this.config.channelInfo[channelId] = {};
     }
     return obj;
-};
-
-Youtube.prototype.removeChannelInfo = function (channelId) {
-    delete this.config.channelInfo[channelId];
-    return this.saveChannelInfo();
 };
 
 Youtube.prototype.setChannelTitle = function(channelId, title) {
@@ -54,7 +54,7 @@ Youtube.prototype.setChannelTitle = function(channelId, title) {
 
 Youtube.prototype.getChannelTitle = function (channelId) {
     var info = this.getChannelInfo(channelId);
-    return info.title || channelId;
+    return Promise.resolve(info.title || channelId);
 };
 
 Youtube.prototype.setChannelUsername = function(channelId, username) {

@@ -196,8 +196,6 @@ var Storage = function() {
         var promiseList = Object.keys(items).map(function (key) {
             if (items[key] !== undefined) {
                 return writeKey(key, items[key]);
-            } else {
-                return Promise.resolve();
             }
         });
 

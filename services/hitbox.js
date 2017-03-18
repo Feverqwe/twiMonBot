@@ -25,17 +25,17 @@ Hitbox.prototype.saveChannelInfo = function () {
     });
 };
 
+/**
+ * @private
+ * @param channelId
+ * @return {*}
+ */
 Hitbox.prototype.getChannelInfo = function (channelId) {
     var obj = this.config.channelInfo[channelId];
     if (!obj) {
         obj = this.config.channelInfo[channelId] = {};
     }
     return obj;
-};
-
-Hitbox.prototype.removeChannelInfo = function (channelId) {
-    delete this.config.channelInfo[channelId];
-    return this.saveChannelInfo();
 };
 
 Hitbox.prototype.setChannelTitle = function (channelId, title) {
@@ -47,15 +47,19 @@ Hitbox.prototype.setChannelTitle = function (channelId, title) {
         info.title = title;
         return this.saveChannelInfo();
     }
+
+    return Promise.resolve();
 };
 
 Hitbox.prototype.getChannelTitle = function (channelId) {
     var info = this.getChannelInfo(channelId);
-    return info.title || channelId;
+    return Promise.resolve(info.title || channelId);
 };
 
 Hitbox.prototype.clean = function(channelIdList) {
-    var _this = this;
+    // todo: fix me
+    return Promise.resolve();
+    /*var _this = this;
     var promiseList = [];
 
     var needSaveState = false;
@@ -72,7 +76,7 @@ Hitbox.prototype.clean = function(channelIdList) {
         promiseList.push(_this.saveChannelInfo());
     }
 
-    return Promise.all(promiseList);
+    return Promise.all(promiseList);*/
 };
 
 Hitbox.prototype.apiNormalization = function(data) {

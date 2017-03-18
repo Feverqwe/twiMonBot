@@ -249,15 +249,23 @@ utils.extend = function() {
     return obj;
 };
 
+/**
+ * @param gOptions
+ * @param service
+ * @param channelName
+ * @return {Promise}
+ */
 utils.getChannelTitle = function(gOptions, service, channelName) {
-    var title = channelName;
+    var result;
 
     var services = gOptions.services;
     if (services[service].getChannelTitle) {
-        title = services[service].getChannelTitle(channelName);
+        result = services[service].getChannelTitle(channelName);
+    } else {
+        result = Promise.resolve(channelName);
     }
 
-    return title;
+    return result;
 };
 
 utils.getChannelUrl = function(service, channelName) {

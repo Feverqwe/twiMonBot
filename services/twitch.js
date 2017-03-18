@@ -26,17 +26,17 @@ Twitch.prototype.saveChannelInfo = function () {
     });
 };
 
+/**
+ * @private
+ * @param channelId
+ * @return {*}
+ */
 Twitch.prototype.getChannelInfo = function (channelId) {
     var obj = this.config.channelInfo[channelId];
     if (!obj) {
         obj = this.config.channelInfo[channelId] = {};
     }
     return obj;
-};
-
-Twitch.prototype.removeChannelInfo = function (channelId) {
-    delete this.config.channelInfo[channelId];
-    return this.saveChannelInfo();
 };
 
 Twitch.prototype.setChannelTitle = function (channelId, title) {
@@ -48,14 +48,19 @@ Twitch.prototype.setChannelTitle = function (channelId, title) {
         info.title = title;
         return this.saveChannelInfo();
     }
+
+    return Promise.resolve();
 };
 
 Twitch.prototype.getChannelTitle = function (channelId) {
     var info = this.getChannelInfo(channelId);
-    return info.title || channelId;
+    return Promise.resolve(info.title || channelId);
 };
 
 Twitch.prototype.clean = function(channelIdList) {
+    // todo: fix me
+    return Promise.resolve();
+    /*
     var _this = this;
     var promiseList = [];
 
@@ -73,7 +78,7 @@ Twitch.prototype.clean = function(channelIdList) {
         promiseList.push(_this.saveChannelInfo());
     }
 
-    return Promise.all(promiseList);
+    return Promise.all(promiseList);*/
 };
 
 Twitch.prototype.apiNormalization = function(data) {
