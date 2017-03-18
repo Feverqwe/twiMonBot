@@ -25,8 +25,8 @@ Hitbox.prototype.init = function () {
         return new Promise(function (resolve, reject) {
             db.connection.query('\
             CREATE TABLE IF NOT EXISTS `hbChannels` ( \
-                `id` VARCHAR(255) NOT NULL, \
-                `title` TEXT NULL, \
+                `id` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
+                `title` TEXT CHARACTER SET utf8mb4 NULL, \
             UNIQUE INDEX `id_UNIQUE` (`id` ASC)); \
         ', function (err) {
                 if (err) {
