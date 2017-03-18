@@ -14,54 +14,143 @@ var GoodGame = function (options) {
     this.gOptions = options;
     this.config = {};
 
-    this.onReady = base.storage.get(['ggChannelInfo']).then(function(storage) {
-        _this.config.channelInfo = storage.ggChannelInfo || {};
+    this.onReady = _this.init();
+};
+
+GoodGame.prototype.init = function () {
+    var _this = this;
+    var db = this.gOptions.db;
+    var promise = Promise.resolve();
+    promise = promise.then(function () {
+        return new Promise(function (resolve, reject) {
+            db.connection.query('\
+            CREATE TABLE IF NOT EXISTS `ggChannels` ( \
+                `id` VARCHAR(255) NOT NULL, \
+                `title` TEXT NOT NULL, \
+            UNIQUE INDEX `id_UNIQUE` (`id` ASC)); \
+        ', function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    });
+    promise = promise.then(function () {
+        return _this.migrate();
+    });
+    return promise;
+};
+
+GoodGame.prototype.migrate = function () {
+    var _this = this;
+    var db = this.gOptions.db;
+
+    return base.storage.get(['ggChannelInfo']).then(function(storage) {
+        var channelInfo = storage.ggChannelInfo || {};
+
+        var channels = Object.keys(channelInfo);
+        var threadCount = 100;
+        var partSize = Math.ceil(channels.length / threadCount);
+
+        var migrateChannel = function (connection, channelId, data) {
+            var info = {
+                id: channelId,
+                title: data.title
+            };
+            return new Promise(function (resolve, reject) {
+                connection.query('\
+                    INSERT INTO ggChannels SET ? ON DUPLICATE KEY UPDATE id = id \
+                ', info, function (err, results) {
+                    if (err) {
+                        if (err.code === 'ER_DUP_ENTRY') {
+                            resolve();
+                        } else {
+                            reject(err);
+                        }
+                    } else {
+                        resolve();
+                    }
+                });
+            }).catch(function (err) {
+                debug('Migrate', err);
+            });
+        };
+
+        return Promise.all(base.arrToParts(channels, partSize).map(function (arr) {
+            return base.arrayToChainPromise(arr, function (channelId) {
+                return db.newConnection().then(function (connection) {
+                    return migrateChannel(connection, channelId, channelInfo[channelId]).then(function () {
+                        connection.end();
+                    });
+                });
+            });
+        }));
     });
 };
 
 /**
- * @return Promise
+ * @typedef {{}} ChannelInfo
+ * @property {String} id
+ * @property {String} title
  */
-GoodGame.prototype.saveChannelInfo = function () {
-    return base.storage.set({
-        ggChannelInfo: this.config.channelInfo
-    });
-};
 
 /**
  * @private
- * @param channelId
- * @return {Object}
+ * @param {String} channelId
+ * @return {Promise}
  */
 GoodGame.prototype.getChannelInfo = function (channelId) {
-    var obj = this.config.channelInfo[channelId];
-    if (!obj) {
-        obj = this.config.channelInfo[channelId] = {};
-    }
-    return obj;
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            SELECT * FROM ggChannels WHERE id = ? LIMIT 1 \
+        ', [channelId], function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(results[0] || {});
+            }
+        });
+    }).catch(function (err) {
+        debug('getChannelInfo', err);
+        return {};
+    });
 };
 
 /**
- * @param channelId
- * @param title
- * @return {Promise}
+ * @param {ChannelInfo} info
+ * @return {String}
  */
-GoodGame.prototype.setChannelTitle = function (channelId, title) {
-    if (channelId === title) {
-        return Promise.resolve();
-    }
-    var info = this.getChannelInfo(channelId);
-    if (info.title !== title) {
-        info.title = title;
-        return this.saveChannelInfo();
-    }
-
-    return Promise.resolve();
+var getChannelTitleFromInfo = function (info) {
+    return info.title || info.id;
 };
 
 GoodGame.prototype.getChannelTitle = function (channelId) {
-    var info = this.getChannelInfo(channelId);
-    return Promise.resolve(info.title || channelId);
+    return this.getChannelInfo(channelId).then(function (info) {
+        return getChannelTitleFromInfo(info) || channelId;
+    });
+};
+
+/**
+ * @param {Object} info
+ * @return {Promise}
+ */
+GoodGame.prototype.setChannelInfo = function(info) {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            INSERT INTO ggChannels SET ? ON DUPLICATE KEY UPDATE ? \
+        ', [info, info], function (err, results) {
+            if (err) {
+                debug('setChannelInfo', err);
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
 };
 
 GoodGame.prototype.clean = function(channelIdList) {
@@ -147,7 +236,7 @@ GoodGame.prototype.apiNormalization = function (data) {
             }
         };
 
-        _this.setChannelTitle(channelId, name);
+        // _this.setChannelTitle(channelId, name);
 
         streamArray.push(item);
     });
@@ -259,7 +348,10 @@ GoodGame.prototype.getChannelId = function (channelName) {
         }
 
         channelId = channelId.toLowerCase();
-        return _this.setChannelTitle(channelId, responseJson.key).then(function () {
+        return _this.setChannelInfo({
+            id: channelId,
+            title: responseJson.key
+        }).then(function () {
             return channelId;
         });
     });
