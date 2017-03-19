@@ -17,7 +17,7 @@ var Service = function () {
 /**
  * @private
  * @param {String[]} channelIds
- * @return {Promise}
+ * @return {Promise.<ChannelInfo[]>}
  */
 Service.prototype.getChannelsInfo = function (channelIds) {
     var _this = this;
@@ -52,7 +52,7 @@ Service.prototype.getChannelTitleFromInfo = function (info) {
 
 /**
  * @param {String} channelId
- * @return {Promise}
+ * @return {Promise.<String>}
  */
 Service.prototype.getChannelTitle = function (channelId) {
     var _this = this;
