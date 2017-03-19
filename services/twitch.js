@@ -255,7 +255,7 @@ Twitch.prototype.requestChannelByName = function (channelName) {
     });
 };
 
-GoodGame.prototype.getChannelIdByUrl = function (url) {
+Twitch.prototype.getChannelIdByUrl = function (url) {
     var channelId = '';
     [
         /twitch\.tv\/([^\/]+)/i
