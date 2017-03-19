@@ -79,51 +79,68 @@ Youtube.prototype.clean = function(channelIdList) {
     return Promise.all(promiseList);*/
 };
 
-Youtube.prototype.apiNormalization = function(channelId, data, viewers) {
-    var now = base.getNow();
-    var streams = [];
-    data.items.forEach(function(origItem) {
-        var snippet = origItem.snippet;
-
+Youtube.prototype.insertItem = function (channel, snippet, id, viewers) {
+    var _this = this;
+    return Promise.resolve().then(function () {
         if (snippet.liveBroadcastContent !== 'live') {
             return;
         }
 
-        var videoId = origItem.id && origItem.id.videoId;
-        if (!videoId) {
-            debug('VideoId is not exists! %j', origItem);
-            return;
-        }
+        var now = base.getNow();
 
         var previewList = ['maxresdefault_live', 'sddefault_live', 'hqdefault_live', 'mqdefault_live', 'default_live'].map(function(quality) {
-            return 'https://i.ytimg.com/vi/' + videoId + '/' + quality + '.jpg';
+            return 'https://i.ytimg.com/vi/' + id + '/' + quality + '.jpg';
         });
+
+        /*var previewList = Object.keys(snippet.thumbnails).map(function(quality) {
+            return snippet.thumbnails[quality];
+        }).sort(function(a, b) {
+            return a.width > b.width ? -1 : 1;
+        }).map(function(item) {
+            return item.url;
+        });*/
+
+        var viewers = parseInt(viewers) || 0;
+        var game = '';
+        var createdAt = snippet.publishedAt;
+        var channelTitle = snippet.channelTitle;
+        var channelName = snippet.channelId;
 
         var item = {
             _service: 'youtube',
             _checkTime: now,
             _insertTime: now,
-            _id: 'y' + videoId,
+            _id: 'y' + id,
             _isOffline: false,
             _isTimeout: false,
-            _channelId: channelId,
+            _channelId: channel.id,
 
-            viewers: viewers || 0,
-            game: '',
+            viewers: viewers,
+            game: game,
             preview: previewList,
-            created_at: snippet.snippet,
+            created_at: createdAt,
             channel: {
-                display_name: snippet.channelTitle,
-                name: snippet.channelId,
+                display_name: channelTitle,
+                name: channelName,
                 status: snippet.title,
-                url: 'https://gaming.youtube.com/watch?v=' + videoId
+                url: 'https://youtu.be/' + id
             }
         };
 
-        streams.push(item);
+        var promise = Promise.resolve();
+        if (channelTitle && channel.title !== channelTitle) {
+            promise = promise.then(function () {
+                return _this.setChannelTitle(channel.id, channelTitle);
+            });
+        }
+
+        return promise.then(function () {
+            return item;
+        });
     });
-    return streams;
 };
+
+var insertPool = new base.Pool(15);
 
 var intRe = /^\d+$/;
 
@@ -165,7 +182,7 @@ Youtube.prototype.getStreamList = function(_channelIdsList) {
                     part: 'snippet',
                     channelId: channelId,
                     eventType: 'live',
-                    maxResults: 1,
+                    maxResults: 5,
                     order: 'date',
                     safeSearch: 'none',
                     type: 'video',
@@ -190,17 +207,22 @@ Youtube.prototype.getStreamList = function(_channelIdsList) {
         };
 
         return requestPage().then(function (responseBody) {
-            var videoId = '';
-            responseBody.items.some(function (item) {
-                return videoId = item.id.videoId;
-            });
-            if (!videoId) {
-                return;
-            }
+            var items = responseBody.items;
+            return insertPool.do(function () {
+                var item = items.shift();
+                if (!item) return;
 
-            return _this.getViewers(videoId).then(function(viewers) {
-                var streams = _this.apiNormalization(channelId, responseBody, viewers);
-                streamList.push.apply(streamList, streams);
+                var snippet = item.snippet;
+                var videoId = item.id.videoId;
+
+                return _this.getViewers(videoId).then(function(viewers) {
+                    return _this.insertItem(channel, snippet, videoId, viewers).then(function (item) {
+                        item && streamList.push(item);
+                    }).catch(function (err) {
+                        streamList.push(base.getTimeoutStream('youtube', channel.id));
+                        debug("insertItem error!", err);
+                    });
+                });
             });
         }).catch(function(err) {
             streamList.push(base.getTimeoutStream('youtube', channelId));
