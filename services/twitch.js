@@ -99,24 +99,28 @@ Twitch.prototype.migrate = function () {
 
 /**
  * @private
- * @param {String} channelId
+ * @param {String[]} channelIds
  * @return {Promise}
  */
-Twitch.prototype.getChannelInfo = function (channelId) {
+Twitch.prototype.getChannelsInfo = function (channelIds) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
+        if (!channelIds.length) {
+            return resolve([]);
+        }
+
         db.connection.query('\
-            SELECT * FROM twChannels WHERE id = ? LIMIT 1 \
-        ', [channelId], function (err, results) {
+            SELECT * FROM twChannels WHERE id IN ?; \
+        ', [[channelIds]], function (err, results) {
             if (err) {
                 reject(err);
             } else {
-                resolve(results[0] || {});
+                resolve(results);
             }
         });
     }).catch(function (err) {
-        debug('getChannelInfo', err);
-        return {};
+        debug('getChannelsInfo', err);
+        return [];
     });
 };
 
@@ -129,7 +133,8 @@ var getChannelTitleFromInfo = function (info) {
 };
 
 Twitch.prototype.getChannelTitle = function (channelId) {
-    return this.getChannelInfo(channelId).then(function (info) {
+    return this.getChannelsInfo([channelId]).then(function (infoList) {
+        var info = infoList[0] || {};
         return getChannelTitleFromInfo(info) || channelId;
     });
 };
