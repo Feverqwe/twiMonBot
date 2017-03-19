@@ -22,6 +22,14 @@ var Twitch = function(options) {
 Twitch.prototype = Object.create(require('./service').prototype);
 Twitch.prototype.constructor = Twitch;
 
+Twitch.prototype.isServiceUrl = function (url) {
+    return [
+        /twitch\.tv\//i
+    ].some(function (re) {
+        return re.test(url);
+    });
+};
+
 Twitch.prototype.init = function () {
     var _this = this;
     var db = this.gOptions.db;

@@ -47,6 +47,15 @@ Youtube.prototype.init = function () {
     return promise;
 };
 
+Youtube.prototype.isServiceUrl = function (url) {
+    return [
+        /youtu\.be\//i,
+        /youtube\.com\//i
+    ].some(function (re) {
+        return re.test(url);
+    });
+};
+
 Youtube.prototype.clean = function(channelIdList) {
     // todo: fix me
     return Promise.resolve();

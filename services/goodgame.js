@@ -44,6 +44,14 @@ GoodGame.prototype.init = function () {
     return promise;
 };
 
+GoodGame.prototype.isServiceUrl = function (url) {
+    return [
+        /goodgame\.ru\//i
+    ].some(function (re) {
+        return re.test(url);
+    });
+};
+
 GoodGame.prototype.clean = function(channelIdList) {
     // todo: fix me
     return Promise.resolve();

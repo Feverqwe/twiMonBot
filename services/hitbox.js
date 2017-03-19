@@ -21,6 +21,14 @@ var Hitbox = function(options) {
 Hitbox.prototype = Object.create(require('./service').prototype);
 Hitbox.prototype.constructor = Hitbox;
 
+Hitbox.prototype.isServiceUrl = function (url) {
+    return [
+        /hitbox\.tv\//i
+    ].some(function (re) {
+        return re.test(url);
+    });
+};
+
 Hitbox.prototype.init = function () {
     var _this = this;
     var db = this.gOptions.db;
