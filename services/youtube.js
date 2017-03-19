@@ -150,10 +150,12 @@ Youtube.prototype.getViewers = function(id) {
 
 var requestPool = new base.Pool(10);
 
-Youtube.prototype.getStreamList = function(_channelIdList) {
+Youtube.prototype.getStreamList = function(_channelIdsList) {
     var _this = this;
 
-    var getPage = function (channelId) {
+    var getPage = function (channel) {
+        var channelId = channel.id;
+
         var retryLimit = 5;
         var requestPage = function () {
             return requestPromise({
@@ -207,12 +209,28 @@ Youtube.prototype.getStreamList = function(_channelIdList) {
     };
 
     var promise = Promise.resolve();
-    promise = promise.then(function () {
-        return requestPool.do(function () {
-            var channelId = _channelIdList.shift();
-            if (!channelId) return;
 
-            return getPage(channelId);
+    promise = promise.then(function () {
+        return _this.getChannelsInfo(_channelIdsList).then(function (channels) {
+            if (_channelIdsList.length !== channels.length) {
+                var foundIds = channels.map(function (channel) {
+                    return channel.id;
+                });
+                var notFoundIds = _channelIdsList.filter(function (id) {
+                    return foundIds.indexOf(id) === -1;
+                });
+                debug('Not found channels %j', notFoundIds);
+            }
+            return channels;
+        });
+    });
+
+    promise = promise.then(function (channels) {
+        return requestPool.do(function () {
+            var channel = channels.shift();
+            if (!channel) return;
+
+            return getPage(channel);
         });
     });
 

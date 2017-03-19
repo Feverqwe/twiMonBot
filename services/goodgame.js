@@ -143,62 +143,89 @@ GoodGame.prototype.apiNormalization = function (data) {
 };
 
 /**
- * @param channelList
+ * @param _channelIdsList
  * @return {Promise}
  */
-GoodGame.prototype.getStreamList = function (channelList) {
+GoodGame.prototype.getStreamList = function (_channelIdsList) {
     var _this = this;
     var videoList = [];
 
     var promise = Promise.resolve();
 
-    base.arrToParts(channelList, 25).forEach(function (channelIds) {
-        promise = promise.then(function () {
-            var retryLimit = 5;
-            var getList = function () {
-                return requestPromise({
-                    method: 'GET',
-                    url: 'https://api2.goodgame.ru/v2/streams',
-                    qs: {
-                        ids: channelIds.join(','),
-                        adult: true,
-                        hidden: true
-                    },
-                    headers: {
-                        'Accept': 'application/vnd.goodgame.v2+json'
-                    },
-                    json: true,
-                    gzip: true,
-                    forever: true
-                }).catch(function (err) {
-                    if (retryLimit-- < 1) {
-                        throw err;
-                    }
+    promise = promise.then(function () {
+        return _this.getChannelsInfo(_channelIdsList).then(function (channels) {
+            if (_channelIdsList.length !== channels.length) {
+                var foundIds = channels.map(function (channel) {
+                    return channel.id;
+                });
+                var notFoundIds = _channelIdsList.filter(function (id) {
+                    return foundIds.indexOf(id) === -1;
+                });
+                debug('Not found channels %j', notFoundIds);
+            }
+            return channels;
+        });
+    });
 
-                    return new Promise(function(resolve) {
-                        return setTimeout(resolve, 250);
-                    }).then(function() {
-                        // debug("Retry %s getList", retryLimit, err);
-                        return getList();
+    promise = promise.then(function (channels) {
+        if (!channels.length) return;
+
+        var queue = Promise.resolve();
+
+        base.arrToParts(channels, 25).forEach(function (channelsPart) {
+            var channelIds = channelsPart.map(function (channel) {
+                return channel.id;
+            });
+
+            queue = queue.then(function () {
+                var retryLimit = 5;
+                var getList = function () {
+                    return requestPromise({
+                        method: 'GET',
+                        url: 'https://api2.goodgame.ru/v2/streams',
+                        qs: {
+                            ids: channelIds.join(','),
+                            adult: true,
+                            hidden: true
+                        },
+                        headers: {
+                            'Accept': 'application/vnd.goodgame.v2+json'
+                        },
+                        json: true,
+                        gzip: true,
+                        forever: true
+                    }).catch(function (err) {
+                        if (retryLimit-- < 1) {
+                            throw err;
+                        }
+
+                        return new Promise(function(resolve) {
+                            return setTimeout(resolve, 250);
+                        }).then(function() {
+                            // debug("Retry %s getList", retryLimit, err);
+                            return getList();
+                        });
                     });
-                });
-            };
+                };
 
-            return getList().then(function (responseBody) {
-                try {
-                    var list = _this.apiNormalization(responseBody);
-                    videoList.push.apply(videoList, list);
-                } catch (e) {
-                    debug('Unexpected response %j', responseBody, e);
-                    throw new CustomError('Unexpected response');
-                }
-            }).catch(function (err) {
-                channelIds.forEach(function (channelId) {
-                    videoList.push(base.getTimeoutStream('goodgame', channelId));
+                return getList().then(function (responseBody) {
+                    try {
+                        var list = _this.apiNormalization(responseBody);
+                        videoList.push.apply(videoList, list);
+                    } catch (e) {
+                        debug('Unexpected response %j', responseBody, e);
+                        throw new CustomError('Unexpected response');
+                    }
+                }).catch(function (err) {
+                    channelIds.forEach(function (channelId) {
+                        videoList.push(base.getTimeoutStream('goodgame', channelId));
+                    });
+                    debug("Request stream list error!", err);
                 });
-                debug("Request stream list error!", err);
             });
         });
+
+        return queue;
     });
 
     return promise.then(function () {

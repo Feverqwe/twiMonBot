@@ -150,67 +150,94 @@ Twitch.prototype.apiNormalization = function(data) {
     };
 };
 
-Twitch.prototype.getStreamList = function(channelList) {
+Twitch.prototype.getStreamList = function(_channelIdsList) {
     var _this = this;
     var videoList = [];
 
     var promise = Promise.resolve();
 
-    base.arrToParts(channelList, 100).forEach(function (channelIds) {
-        promise = promise.then(function () {
-            var retryLimit = 5;
-            var getList = function () {
-                return requestPromise({
-                    method: 'GET',
-                    url: 'https://api.twitch.tv/kraken/streams',
-                    qs: {
-                        limit: 100,
-                        channel: channelIds.join(',')
-                    },
-                    headers: {
-                        'Accept': 'application/vnd.twitchtv.v3+json',
-                        'Client-ID': _this.config.token
-                    },
-                    json: true,
-                    gzip: true,
-                    forever: true
-                }).catch(function (err) {
-                    if (retryLimit-- < 1) {
-                        throw err;
+    promise = promise.then(function () {
+        return _this.getChannelsInfo(_channelIdsList).then(function (channels) {
+            if (_channelIdsList.length !== channels.length) {
+                var foundIds = channels.map(function (channel) {
+                    return channel.id;
+                });
+                var notFoundIds = _channelIdsList.filter(function (id) {
+                    return foundIds.indexOf(id) === -1;
+                });
+                debug('Not found channels %j', notFoundIds);
+            }
+            return channels;
+        });
+    });
+
+    promise = promise.then(function (channels) {
+        if (!channels.length) return;
+
+        var queue = Promise.resolve();
+
+        base.arrToParts(channels, 100).forEach(function (channelsPart) {
+            var channelIds = channelsPart.map(function (channel) {
+                return channel.id;
+            });
+
+            queue = queue.then(function () {
+                var retryLimit = 5;
+                var getList = function () {
+                    return requestPromise({
+                        method: 'GET',
+                        url: 'https://api.twitch.tv/kraken/streams',
+                        qs: {
+                            limit: 100,
+                            channel: channelIds.join(',')
+                        },
+                        headers: {
+                            'Accept': 'application/vnd.twitchtv.v3+json',
+                            'Client-ID': _this.config.token
+                        },
+                        json: true,
+                        gzip: true,
+                        forever: true
+                    }).catch(function (err) {
+                        if (retryLimit-- < 1) {
+                            throw err;
+                        }
+
+                        return new Promise(function(resolve) {
+                            return setTimeout(resolve, 250);
+                        }).then(function() {
+                            // debug("Retry %s getList", retryLimit, err);
+                            return getList();
+                        });
+                    });
+                };
+
+                return getList().then(function (responseBody) {
+                    var obj = null;
+                    try {
+                        obj = _this.apiNormalization(responseBody);
+                    } catch (e) {
+                        debug('Unexpected response %j', responseBody, e);
+                        throw new CustomError('Unexpected response');
                     }
 
-                    return new Promise(function(resolve) {
-                        return setTimeout(resolve, 250);
-                    }).then(function() {
-                        // debug("Retry %s getList", retryLimit, err);
-                        return getList();
+                    videoList.push.apply(videoList, obj.streamArray);
+
+                    if (obj.invalidArray.length) {
+                        debug('Invalid array %j', obj.invalidArray);
+                        channelIds = obj.invalidArray;
+                        throw new CustomError('Invalid array!');
+                    }
+                }).catch(function (err) {
+                    channelIds.forEach(function (channelId) {
+                        videoList.push(base.getTimeoutStream('twitch', channelId));
                     });
+                    debug("Request stream list error!", err);
                 });
-            };
-
-            return getList().then(function (responseBody) {
-                var obj = null;
-                try {
-                    obj = _this.apiNormalization(responseBody);
-                } catch (e) {
-                    debug('Unexpected response %j', responseBody, e);
-                    throw new CustomError('Unexpected response');
-                }
-
-                videoList.push.apply(videoList, obj.streamArray);
-
-                if (obj.invalidArray.length) {
-                    debug('Invalid array %j', obj.invalidArray);
-                    channelIds = obj.invalidArray;
-                    throw new CustomError('Invalid array!');
-                }
-            }).catch(function (err) {
-                channelIds.forEach(function (channelId) {
-                    videoList.push(base.getTimeoutStream('twitch', channelId));
-                });
-                debug("Request stream list error!", err);
             });
         });
+
+        return queue;
     });
 
     return promise.then(function () {
