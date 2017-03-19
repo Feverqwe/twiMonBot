@@ -1,6 +1,9 @@
 /**
  * Created by Anton on 19.03.2017.
  */
+"use strict";
+var debug = require('debug')('app:service');
+
 var Service = function () {
 
 };
