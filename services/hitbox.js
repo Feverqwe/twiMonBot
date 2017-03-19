@@ -75,29 +75,28 @@ Hitbox.prototype.clean = function(channelIdList) {
     return Promise.all(promiseList);*/
 };
 
-Hitbox.prototype.apiNormalization = function(data) {
+Hitbox.prototype.insertItem = function (channel, stream) {
     var _this = this;
-
-    var now = base.getNow();
-    var streamArray = [];
-    data.livestream.forEach(function(origItem) {
-        if (!origItem.channel || !origItem.channel.user_name || !origItem.media_id) {
-            debug('Item without name! %j', origItem);
+    return Promise.resolve().then(function () {
+        if (stream.media_is_live < 1) {
             return;
         }
 
-        if (origItem.media_is_live < 1) {
-            return;
-        }
+        var now = base.getNow();
 
-        var channelId = origItem.channel.user_name.toLowerCase();
+        var id = stream.media_id;
+        var viewers = parseInt(stream.media_views) || 0;
+        var game = stream.category_name;
+        var createdAt = stream.media_live_since;
+        var channelTitle = stream.media_display_name;
+        var channelName = stream.media_user_name;
 
         var previewList = [];
-        if (origItem.media_thumbnail_large) {
-            previewList.push(origItem.media_thumbnail_large);
+        if (stream.media_thumbnail_large) {
+            previewList.push(stream.media_thumbnail_large);
         } else
-        if (origItem.media_thumbnail) {
-            previewList.push(origItem.media_thumbnail);
+        if (stream.media_thumbnail) {
+            previewList.push(stream.media_thumbnail);
         }
         previewList = previewList.map(function(path) {
             var url = 'http://edge.sf.hitbox.tv' + path;
@@ -108,30 +107,37 @@ Hitbox.prototype.apiNormalization = function(data) {
             _service: 'hitbox',
             _checkTime: now,
             _insertTime: now,
-            _id: 'h' + origItem.media_id,
+            _id: 'h' + id,
             _isOffline: false,
             _isTimeout: false,
-            _channelId: channelId,
+            _channelId: channel.id,
 
-            viewers: parseInt(origItem.media_views) || 0,
-            game: origItem.category_name,
+            viewers: viewers,
+            game: game,
             preview: previewList,
-            created_at: origItem.media_live_since,
+            created_at: createdAt,
             channel: {
-                display_name: origItem.media_display_name,
-                name: origItem.media_user_name,
-                status: origItem.media_status,
-                url: origItem.channel.channel_link
+                display_name: channelTitle,
+                name: channelName,
+                status: stream.media_status,
+                url: stream.channel.channel_link
             }
         };
 
-        // _this.setChannelTitle(channelId, origItem.media_display_name);
+        var promise = Promise.resolve();
+        if (channelTitle && channel.title !== channelTitle) {
+            promise = promise.then(function () {
+                return _this.setChannelTitle(channel.id, channelTitle);
+            });
+        }
 
-        streamArray.push(item);
+        return promise.then(function () {
+            return item;
+        });
     });
-
-    return streamArray;
 };
+
+var insertPool = new base.Pool(15);
 
 Hitbox.prototype.getStreamList = function(_channelIdsList) {
     var _this = this;
@@ -195,13 +201,31 @@ Hitbox.prototype.getStreamList = function(_channelIdsList) {
                 };
 
                 return getList().then(function (responseBody) {
-                    try {
-                        var list = _this.apiNormalization(responseBody);
-                        videoList.push.apply(videoList, list);
-                    } catch (e) {
-                        debug('Unexpected response %j', responseBody, e);
-                        throw new CustomError('Unexpected response');
-                    }
+                    var items = responseBody.livestream;
+                    return insertPool.do(function () {
+                        var stream = items.shift();
+                        if (!stream) return;
+
+                        if (!stream.channel || !stream.channel.user_name) {
+                            debug('ChannelId is empty! %j', stream);
+                            return Promise.resolve();
+                        }
+
+                        var channelId = stream.channel.user_name.toLowerCase();
+                        var pos = channelIds.indexOf(channelId);
+                        if (pos === -1) {
+                            debug('Channel is not required! %s', channelId);
+                            return Promise.resolve();
+                        }
+                        var channel = channelsPart[pos];
+
+                        return _this.insertItem(channel, stream).then(function (item) {
+                            item && videoList.push(item);
+                        }).catch(function (err) {
+                            videoList.push(base.getTimeoutStream('hitbox', channel.id));
+                            debug("insertItem error!", err);
+                        });
+                    });
                 }).catch(function (err) {
                     channelIds.forEach(function (channelId) {
                         videoList.push(base.getTimeoutStream('hitbox', channelId));

@@ -217,7 +217,7 @@ GoodGame.prototype.getStreamList = function (_channelIdsList) {
                         if (!stream) return;
 
                         if (!stream.key) {
-                            debug('Stream key is empty! %j', stream);
+                            debug('ChannelId is empty! %j', stream);
                             return Promise.resolve();
                         }
 
