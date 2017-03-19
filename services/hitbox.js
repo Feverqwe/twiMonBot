@@ -6,56 +6,98 @@ var debug = require('debug')('app:hitbox');
 var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
-var requestPromise = Promise.promisify(request);
+var requestPromise = require('request-promise');
 var CustomError = require('../customError').CustomError;
 
 var Hitbox = function(options) {
     var _this = this;
     this.gOptions = options;
     this.config = {};
+    this.dbTable = 'hbChannels';
 
-    this.onReady = base.storage.get(['hitboxChannelInfo']).then(function(storage) {
-        _this.config.channelInfo = storage.hitboxChannelInfo || {};
+    this.onReady = _this.init();
+};
+
+Hitbox.prototype = Object.create(require('./service').prototype);
+Hitbox.prototype.constructor = Hitbox;
+
+Hitbox.prototype.init = function () {
+    var _this = this;
+    var db = this.gOptions.db;
+    var promise = Promise.resolve();
+    promise = promise.then(function () {
+        return new Promise(function (resolve, reject) {
+            db.connection.query('\
+            CREATE TABLE IF NOT EXISTS ' + _this.dbTable + ' ( \
+                `id` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
+                `title` TEXT CHARACTER SET utf8mb4 NULL, \
+            UNIQUE INDEX `id_UNIQUE` (`id` ASC)); \
+        ', function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
     });
-};
-
-Hitbox.prototype.saveChannelInfo = function () {
-    return base.storage.set({
-        hitboxChannelInfo: this.config.channelInfo
+    promise = promise.then(function () {
+        return _this.migrate();
     });
+    return promise;
 };
 
-Hitbox.prototype.getChannelInfo = function (channelId) {
-    var obj = this.config.channelInfo[channelId];
-    if (!obj) {
-        obj = this.config.channelInfo[channelId] = {};
-    }
-    return obj;
-};
+Hitbox.prototype.migrate = function () {
+    var _this = this;
+    var db = this.gOptions.db;
 
-Hitbox.prototype.removeChannelInfo = function (channelId) {
-    delete this.config.channelInfo[channelId];
-    return this.saveChannelInfo();
-};
+    return base.storage.get(['hitboxChannelInfo']).then(function(storage) {
+        var channelInfo = storage.hitboxChannelInfo || {};
 
-Hitbox.prototype.setChannelTitle = function (channelId, title) {
-    if (channelId === title) {
-        return Promise.resolve();
-    }
-    var info = this.getChannelInfo(channelId);
-    if (info.title !== title) {
-        info.title = title;
-        return this.saveChannelInfo();
-    }
-};
+        var channels = Object.keys(channelInfo);
+        var threadCount = 100;
+        var partSize = Math.ceil(channels.length / threadCount);
 
-Hitbox.prototype.getChannelTitle = function (channelId) {
-    var info = this.getChannelInfo(channelId);
-    return info.title || channelId;
+        var migrateChannel = function (connection, channelId, data) {
+            var info = {
+                id: channelId,
+                title: data.title
+            };
+            return new Promise(function (resolve, reject) {
+                connection.query('\
+                    INSERT INTO ' + _this.dbTable + ' SET ? ON DUPLICATE KEY UPDATE id = id \
+                ', info, function (err, results) {
+                    if (err) {
+                        if (err.code === 'ER_DUP_ENTRY') {
+                            resolve();
+                        } else {
+                            reject(err);
+                        }
+                    } else {
+                        resolve();
+                    }
+                });
+            }).catch(function (err) {
+                debug('Migrate', err);
+            });
+        };
+
+        return Promise.all(base.arrToParts(channels, partSize).map(function (arr) {
+            return base.arrayToChainPromise(arr, function (channelId) {
+                return db.newConnection().then(function (connection) {
+                    return migrateChannel(connection, channelId, channelInfo[channelId]).then(function () {
+                        connection.end();
+                    });
+                });
+            });
+        }));
+    });
 };
 
 Hitbox.prototype.clean = function(channelIdList) {
-    var _this = this;
+    // todo: fix me
+    return Promise.resolve();
+    /*var _this = this;
     var promiseList = [];
 
     var needSaveState = false;
@@ -72,7 +114,7 @@ Hitbox.prototype.clean = function(channelIdList) {
         promiseList.push(_this.saveChannelInfo());
     }
 
-    return Promise.all(promiseList);
+    return Promise.all(promiseList);*/
 };
 
 Hitbox.prototype.apiNormalization = function(data) {
@@ -125,7 +167,7 @@ Hitbox.prototype.apiNormalization = function(data) {
             }
         };
 
-        _this.setChannelTitle(channelId, origItem.media_display_name);
+        // _this.setChannelTitle(channelId, origItem.media_display_name);
 
         streamArray.push(item);
     });
@@ -137,62 +179,57 @@ Hitbox.prototype.getStreamList = function(channelList) {
     var _this = this;
     var videoList = [];
 
-    var promiseList = base.arrToParts(channelList, 100).map(function (arr) {
-        var channels = arr.map(function(item) {
-            return encodeURIComponent(item);
-        }).join(',');
+    var promise = Promise.resolve();
 
-        var retryLimit = 5;
-        var getList = function () {
-            return requestPromise({
-                method: 'GET',
-                url: 'https://api.hitbox.tv/media/live/' + channels,
-                qs: {
-                    showHidden: 'true'
-                },
-                json: true,
-                gzip: true,
-                forever: true
-            }).then(function (response) {
-                if (response.statusCode !== 200) {
-                    debug('Unexpected response %j', response, e);
-                    throw new CustomError('Unexpected response');
-                }
+    base.arrToParts(channelList, 100).forEach(function (channelIds) {
+        promise = promise.then(function () {
+            var query = channelIds.map(function (item) {
+                return encodeURIComponent(item);
+            }).join(',');
 
-                return response;
-            }).catch(function (err) {
-                retryLimit--;
-                if (retryLimit > 0) {
+            var retryLimit = 5;
+            var getList = function () {
+                return requestPromise({
+                    method: 'GET',
+                    url: 'https://api.hitbox.tv/media/live/' + query,
+                    qs: {
+                        showHidden: 'true'
+                    },
+                    json: true,
+                    gzip: true,
+                    forever: true
+                }).catch(function (err) {
+                    if (retryLimit-- < 1) {
+                        throw err;
+                    }
+
                     return new Promise(function (resolve) {
                         return setTimeout(resolve, 250);
                     }).then(function () {
                         // debug("Retry %s getList", retryLimit, err);
                         return getList();
                     });
+                });
+            };
+
+            return getList().then(function (responseBody) {
+                try {
+                    var list = _this.apiNormalization(responseBody);
+                    videoList.push.apply(videoList, list);
+                } catch (e) {
+                    debug('Unexpected response %j', responseBody, e);
+                    throw new CustomError('Unexpected response');
                 }
-
-                throw err;
+            }).catch(function (err) {
+                channelIds.forEach(function (channelId) {
+                    videoList.push(base.getTimeoutStream('hitbox', channelId));
+                });
+                debug("Request stream list error!", err);
             });
-        };
-
-        return getList().then(function (response) {
-            var responseBody = response.body;
-            try {
-                var list = _this.apiNormalization(responseBody);
-                videoList.push.apply(videoList, list);
-            } catch (e) {
-                debug('Unexpected response %j', response, e);
-                throw new CustomError('Unexpected response');
-            }
-        }).catch(function (err) {
-            arr.forEach(function (channelId) {
-                videoList.push(base.getTimeoutStream('hitbox', channelId));
-            });
-            debug("Request stream list error!", err);
         });
     });
 
-    return Promise.all(promiseList).then(function () {
+    return promise.then(function () {
         return videoList;
     });
 };
@@ -208,37 +245,26 @@ Hitbox.prototype.getChannelId = function(channelName) {
         json: true,
         gzip: true,
         forever: true
-    }).then(function(response) {
-        if (response.statusCode === 404) {
-            throw new CustomError('Channel is not found!');
-        }
-
-        var responseBody = response.body;
-
-        var channelId = '';
-        try {
-            var stream = null;
-            responseBody.livestream.some(function(item) {
-                if (item.channel && item.channel.user_name) {
-                    stream = item;
-                    return true;
-                }
-            });
-            if (stream) {
-                channelId = stream.channel.user_name.toLowerCase();
+    }).then(function(responseBody) {
+        var stream = null;
+        responseBody.livestream.some(function(item) {
+            if (item.channel && item.channel.user_name) {
+                return stream = item;
             }
-        } catch (e) {
-            debug('Unexpected response %j', response, e);
-            throw new CustomError('Unexpected response');
-        }
-
-        if (!channelId) {
+        });
+        if (!stream) {
             throw new CustomError('Channel is not found!');
         }
 
-        _this.setChannelTitle(channelId, stream.media_display_name);
+        var username = stream.channel.user_name.toLowerCase();
+        var title = stream.media_display_name;
 
-        return channelId;
+        return _this.setChannelInfo({
+            id: username,
+            title: title
+        }).then(function () {
+            return username;
+        });
     });
 };
 

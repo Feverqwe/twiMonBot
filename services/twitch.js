@@ -6,7 +6,7 @@ var debug = require('debug')('app:twitch');
 var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
-var requestPromise = Promise.promisify(request);
+var requestPromise = require('request-promise');
 var CustomError = require('../customError').CustomError;
 
 var Twitch = function(options) {
@@ -14,48 +14,91 @@ var Twitch = function(options) {
     this.gOptions = options;
     this.config = {};
     this.config.token = options.config.twitchToken;
+    this.dbTable = 'twChannels';
 
-    this.onReady = base.storage.get(['twitchChannelInfo']).then(function(storage) {
-        _this.config.channelInfo = storage.twitchChannelInfo || {};
+    this.onReady = _this.init();
+};
+
+Twitch.prototype = Object.create(require('./service').prototype);
+Twitch.prototype.constructor = Twitch;
+
+Twitch.prototype.init = function () {
+    var _this = this;
+    var db = this.gOptions.db;
+    var promise = Promise.resolve();
+    promise = promise.then(function () {
+        return new Promise(function (resolve, reject) {
+            db.connection.query('\
+            CREATE TABLE IF NOT EXISTS ' + _this.dbTable + ' ( \
+                `id` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
+                `title` TEXT CHARACTER SET utf8mb4 NULL, \
+            UNIQUE INDEX `id_UNIQUE` (`id` ASC)); \
+        ', function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
     });
-};
-
-Twitch.prototype.saveChannelInfo = function () {
-    return base.storage.set({
-        twitchChannelInfo: this.config.channelInfo
+    promise = promise.then(function () {
+        return _this.migrate();
     });
+    return promise;
 };
 
-Twitch.prototype.getChannelInfo = function (channelId) {
-    var obj = this.config.channelInfo[channelId];
-    if (!obj) {
-        obj = this.config.channelInfo[channelId] = {};
-    }
-    return obj;
-};
+Twitch.prototype.migrate = function () {
+    var _this = this;
+    var db = this.gOptions.db;
 
-Twitch.prototype.removeChannelInfo = function (channelId) {
-    delete this.config.channelInfo[channelId];
-    return this.saveChannelInfo();
-};
+    return base.storage.get(['twitchChannelInfo']).then(function(storage) {
+        var channelInfo = storage.twitchChannelInfo || {};
 
-Twitch.prototype.setChannelTitle = function (channelId, title) {
-    if (channelId === title) {
-        return Promise.resolve();
-    }
-    var info = this.getChannelInfo(channelId);
-    if (info.title !== title) {
-        info.title = title;
-        return this.saveChannelInfo();
-    }
-};
+        var channels = Object.keys(channelInfo);
+        var threadCount = 100;
+        var partSize = Math.ceil(channels.length / threadCount);
 
-Twitch.prototype.getChannelTitle = function (channelId) {
-    var info = this.getChannelInfo(channelId);
-    return info.title || channelId;
+        var migrateChannel = function (connection, channelId, data) {
+            var info = {
+                id: channelId,
+                title: data.title
+            };
+            return new Promise(function (resolve, reject) {
+                connection.query('\
+                    INSERT INTO ' + _this.dbTable + ' SET ? ON DUPLICATE KEY UPDATE id = id \
+                ', info, function (err, results) {
+                    if (err) {
+                        if (err.code === 'ER_DUP_ENTRY') {
+                            resolve();
+                        } else {
+                            reject(err);
+                        }
+                    } else {
+                        resolve();
+                    }
+                });
+            }).catch(function (err) {
+                debug('Migrate', err);
+            });
+        };
+
+        return Promise.all(base.arrToParts(channels, partSize).map(function (arr) {
+            return base.arrayToChainPromise(arr, function (channelId) {
+                return db.newConnection().then(function (connection) {
+                    return migrateChannel(connection, channelId, channelInfo[channelId]).then(function () {
+                        connection.end();
+                    });
+                });
+            });
+        }));
+    });
 };
 
 Twitch.prototype.clean = function(channelIdList) {
+    // todo: fix me
+    return Promise.resolve();
+    /*
     var _this = this;
     var promiseList = [];
 
@@ -73,7 +116,7 @@ Twitch.prototype.clean = function(channelIdList) {
         promiseList.push(_this.saveChannelInfo());
     }
 
-    return Promise.all(promiseList);
+    return Promise.all(promiseList);*/
 };
 
 Twitch.prototype.apiNormalization = function(data) {
@@ -138,7 +181,7 @@ Twitch.prototype.apiNormalization = function(data) {
             }
         };
 
-        _this.setChannelTitle(channelId, apiItem.channel.display_name);
+        // _this.setChannelTitle(channelId, apiItem.channel.display_name);
 
         streamArray.push(item);
     });
@@ -153,77 +196,84 @@ Twitch.prototype.getStreamList = function(channelList) {
     var _this = this;
     var videoList = [];
 
-    var promiseList = base.arrToParts(channelList, 100).map(function (arr) {
-        var retryLimit = 5;
-        var getList = function () {
-            return requestPromise({
-                method: 'GET',
-                url: 'https://api.twitch.tv/kraken/streams',
-                qs: {
-                    limit: 100,
-                    channel: arr.join(',')
-                },
-                headers: {
-                    'Accept': 'application/vnd.twitchtv.v3+json',
-                    'Client-ID': _this.config.token
-                },
-                json: true,
-                gzip: true,
-                forever: true
-            }).then(function(response) {
-                if (response.statusCode === 500) {
-                    throw new CustomError(response.statusCode);
-                }
+    var promise = Promise.resolve();
 
-                if (response.statusCode !== 200) {
-                    debug('Unexpected response %j', response);
-                    throw new CustomError('Unexpected response');
-                }
+    base.arrToParts(channelList, 100).forEach(function (channelIds) {
+        promise = promise.then(function () {
+            var retryLimit = 5;
+            var getList = function () {
+                return requestPromise({
+                    method: 'GET',
+                    url: 'https://api.twitch.tv/kraken/streams',
+                    qs: {
+                        limit: 100,
+                        channel: channelIds.join(',')
+                    },
+                    headers: {
+                        'Accept': 'application/vnd.twitchtv.v3+json',
+                        'Client-ID': _this.config.token
+                    },
+                    json: true,
+                    gzip: true,
+                    forever: true
+                }).catch(function (err) {
+                    if (retryLimit-- < 1) {
+                        throw err;
+                    }
 
-                return response;
-            }).catch(function (err) {
-                retryLimit--;
-                if (retryLimit > 0) {
                     return new Promise(function(resolve) {
                         return setTimeout(resolve, 250);
                     }).then(function() {
                         // debug("Retry %s getList", retryLimit, err);
                         return getList();
                     });
+                });
+            };
+
+            return getList().then(function (responseBody) {
+                var obj = null;
+                try {
+                    obj = _this.apiNormalization(responseBody);
+                } catch (e) {
+                    debug('Unexpected response %j', responseBody, e);
+                    throw new CustomError('Unexpected response');
                 }
 
-                throw err;
+                videoList.push.apply(videoList, obj.streamArray);
+
+                if (obj.invalidArray.length) {
+                    debug('Invalid array %j', obj.invalidArray);
+                    channelIds = obj.invalidArray;
+                    throw new CustomError('Invalid array!');
+                }
+            }).catch(function (err) {
+                channelIds.forEach(function (channelId) {
+                    videoList.push(base.getTimeoutStream('twitch', channelId));
+                });
+                debug("Request stream list error!", err);
             });
-        };
-
-        return getList().then(function (response) {
-            var responseBody = response.body;
-
-            var obj = null;
-            try {
-                obj = _this.apiNormalization(responseBody);
-            } catch (e) {
-                debug('Unexpected response %j', response, e);
-                throw new CustomError('Unexpected response');
-            }
-
-            videoList.push.apply(videoList, obj.streamArray);
-
-            if (obj.invalidArray.length) {
-                debug('Invalid array %j', obj.invalidArray);
-                arr = obj.invalidArray;
-                throw new CustomError('Invalid array!');
-            }
-        }).catch(function (err) {
-            arr.forEach(function (channelId) {
-                videoList.push(base.getTimeoutStream('twitch', channelId));
-            });
-            debug("Request stream list error!", err);
         });
     });
 
-    return Promise.all(promiseList).then(function () {
+    return promise.then(function () {
         return videoList;
+    });
+};
+
+Twitch.prototype.requestChannelInfo = function (channelId) {
+    var _this = this;
+    return requestPromise({
+        method: 'GET',
+        url: 'https://api.twitch.tv/kraken/channels/' + encodeURIComponent(channelId),
+        headers: {
+            'Accept': 'application/vnd.twitchtv.v3+json',
+            'Client-ID': _this.config.token
+        },
+        json: true,
+        gzip: true,
+        forever: true
+    }).then(function(responseBody) {
+        return responseBody;
     });
 };
 
@@ -243,72 +293,32 @@ Twitch.prototype.requestChannelByName = function (channelName) {
         json: true,
         gzip: true,
         forever: true
-    }).then(function(response) {
-        var responseBody = response.body;
-
-        var firstChannel = null;
-        try {
-            if (responseBody.channels.length > 0) {
-                firstChannel = responseBody.channels[0];
-            }
-        } catch (e) {
-            debug('Unexpected response %j', response, e);
-            throw new CustomError('Unexpected response');
-        }
-
-        if (!firstChannel) {
+    }).then(function(responseBody) {
+        var channel = null;
+        responseBody.channels.some(function (item) {
+            return channel = item;
+        });
+        if (!channel) {
             throw new CustomError('Channel is not found by name!');
         }
-
-        var name = firstChannel.name;
-        if (!name || typeof name !== 'string') {
-            debug('Unexpected response %j', response, e);
-            throw new CustomError('Unexpected response');
-        }
-
-        return firstChannel;
-    });
-};
-
-Twitch.prototype.requestChannelInfo = function (channelId) {
-    var _this = this;
-    return requestPromise({
-        method: 'GET',
-        url: 'https://api.twitch.tv/kraken/channels/' + encodeURIComponent(channelId),
-        headers: {
-            'Accept': 'application/vnd.twitchtv.v3+json',
-            'Client-ID': _this.config.token
-        },
-        json: true,
-        gzip: true,
-        forever: true
-    }).then(function(response) {
-        var responseBody = response.body;
-
-        if (!responseBody) {
-            throw new CustomError('Channel is not found by id!');
-        }
-
-        var name = responseBody.name;
-        if (!name || typeof name !== 'string') {
-            debug('Unexpected response %j', response, e);
-            throw new CustomError('Unexpected response');
-        }
-
-        return responseBody;
+        return channel;
     });
 };
 
 Twitch.prototype.getChannelId = function(channelId) {
     var _this = this;
-    return this.requestChannelInfo(channelId).catch(function () {
+    return this.requestChannelInfo(channelId).catch(function (err) {
         return _this.requestChannelByName(channelId);
     }).then(function (channelInfo) {
-        var channelId = channelInfo.name.toLowerCase();
+        var id = channelInfo.name.toLowerCase();
+        var title = channelInfo.display_name;
 
-        _this.setChannelTitle(channelId, channelInfo.display_name);
-
-        return channelId;
+        return _this.setChannelInfo({
+            id: id,
+            title: title
+        }).then(function () {
+            return id;
+        });
     });
 };
 

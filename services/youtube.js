@@ -6,69 +6,101 @@ var debug = require('debug')('app:youtube');
 var base = require('../base');
 var Promise = require('bluebird');
 var request = require('request');
-var requestPromise = Promise.promisify(request);
 var CustomError = require('../customError').CustomError;
 
 var apiQuote = new base.Quote(1000);
-requestPromise = apiQuote.wrapper(requestPromise.bind(requestPromise));
+const requestPromise = apiQuote.wrapper(require('request-promise'));
 
 var Youtube = function(options) {
     var _this = this;
     this.gOptions = options;
     this.config = {};
     this.config.token = options.config.ytToken;
+    this.dbTable = 'ytChannels';
 
-    this.onReady = base.storage.get(['ytChannelInfo']).then(function(storage) {
-        _this.config.channelInfo = storage.ytChannelInfo || {};
+    this.onReady = _this.init();
+};
+
+Youtube.prototype = Object.create(require('./service').prototype);
+Youtube.prototype.constructor = Youtube;
+
+Youtube.prototype.init = function () {
+    var _this = this;
+    var db = this.gOptions.db;
+    var promise = Promise.resolve();
+    promise = promise.then(function () {
+        return new Promise(function (resolve, reject) {
+            db.connection.query('\
+            CREATE TABLE IF NOT EXISTS ' + _this.dbTable + ' ( \
+                `id` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
+                `title` TEXT CHARACTER SET utf8mb4 NULL, \
+            UNIQUE INDEX `id_UNIQUE` (`id` ASC)); \
+        ', function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
     });
-};
-
-Youtube.prototype.saveChannelInfo = function () {
-    return base.storage.set({
-        ytChannelInfo: this.config.channelInfo
+    promise = promise.then(function () {
+        return _this.migrate();
     });
+    return promise;
 };
 
-Youtube.prototype.getChannelInfo = function (channelId) {
-    var obj = this.config.channelInfo[channelId];
-    if (!obj) {
-        obj = this.config.channelInfo[channelId] = {};
-    }
-    return obj;
-};
+Youtube.prototype.migrate = function () {
+    var _this = this;
+    var db = this.gOptions.db;
 
-Youtube.prototype.removeChannelInfo = function (channelId) {
-    delete this.config.channelInfo[channelId];
-    return this.saveChannelInfo();
-};
+    return base.storage.get(['ytChannelInfo']).then(function(storage) {
+        var channelInfo = storage.ytChannelInfo || {};
 
-Youtube.prototype.setChannelTitle = function(channelId, title) {
-    var info = this.getChannelInfo(channelId);
-    if (info.title !== title) {
-        info.title = title;
-        return this.saveChannelInfo();
-    }
+        var channels = Object.keys(channelInfo);
+        var threadCount = 100;
+        var partSize = Math.ceil(channels.length / threadCount);
 
-    return Promise.resolve();
-};
+        var migrateChannel = function (connection, channelId, data) {
+            var info = {
+                id: channelId,
+                title: data.title
+            };
+            return new Promise(function (resolve, reject) {
+                connection.query('\
+                    INSERT INTO ' + _this.dbTable + ' SET ? ON DUPLICATE KEY UPDATE id = id \
+                ', info, function (err, results) {
+                    if (err) {
+                        if (err.code === 'ER_DUP_ENTRY') {
+                            resolve();
+                        } else {
+                            reject(err);
+                        }
+                    } else {
+                        resolve();
+                    }
+                });
+            }).catch(function (err) {
+                debug('Migrate', err);
+            });
+        };
 
-Youtube.prototype.getChannelTitle = function (channelId) {
-    var info = this.getChannelInfo(channelId);
-    return info.title || channelId;
-};
-
-Youtube.prototype.setChannelUsername = function(channelId, username) {
-    var info = this.getChannelInfo(channelId);
-    if (info.username !== username) {
-        info.username = username;
-        return this.saveChannelInfo();
-    }
-
-    return Promise.resolve();
+        return Promise.all(base.arrToParts(channels, partSize).map(function (arr) {
+            return base.arrayToChainPromise(arr, function (channelId) {
+                return db.newConnection().then(function (connection) {
+                    return migrateChannel(connection, channelId, channelInfo[channelId]).then(function () {
+                        connection.end();
+                    });
+                });
+            });
+        }));
+    });
 };
 
 Youtube.prototype.clean = function(channelIdList) {
-    var _this = this;
+    // todo: fix me
+    return Promise.resolve();
+    /*var _this = this;
     var promiseList = [];
 
     var needSaveState = false;
@@ -85,7 +117,7 @@ Youtube.prototype.clean = function(channelIdList) {
         promiseList.push(_this.saveChannelInfo());
     }
 
-    return Promise.all(promiseList);
+    return Promise.all(promiseList);*/
 };
 
 Youtube.prototype.apiNormalization = function(channelId, data, viewers) {
@@ -145,106 +177,22 @@ Youtube.prototype.getViewers = function(id) {
         },
         gzip: true,
         forever: true
-    }).then(function(response) {
-        var responseBody = response.body;
-        if (intRe.test(responseBody)) {
-            return parseInt(responseBody);
-        } else {
-            debug('Unexpected response %j', response, e);
-            throw new CustomError('Unexpected response');
+    }).then(function(responseBody) {
+        if (!intRe.test(responseBody)) {
+            throw new Error('NOT INT ' + JSON.stringify(responseBody));
         }
+
+        return parseInt(responseBody);
     }).catch(function (err) {
-        if (!err instanceof CustomError) {
-            debug('getViewers %s error', id, err);
-        }
+        debug('getViewers %s error', id, err);
         return -1;
     });
 };
 
-Youtube.prototype.requestChannelIdByQuery = function(query) {
-    var _this = this;
-    return requestPromise({
-        method: 'GET',
-        url: 'https://www.googleapis.com/youtube/v3/search',
-        qs: {
-            part: 'snippet',
-            q: '"' + query + '"',
-            type: 'channel',
-            maxResults: 1,
-            fields: 'items(id)',
-            key: _this.config.token
-        },
-        json: true,
-        gzip: true,
-        forever: true
-    }).then(function(response) {
-        var responseBody = response.body;
-
-        var channelId = '';
-        try {
-            if (responseBody.items.length > 0) {
-                channelId = responseBody.items[0].id.channelId;
-            }
-        } catch(e) {
-            debug('Unexpected response %j', response, e);
-            throw new CustomError('Unexpected response');
-        }
-
-        if (!channelId) {
-            throw new CustomError('Channel ID is not found by query!');
-        }
-
-        return channelId;
-    });
-};
-
-var channelRe = /^UC/;
-
-Youtube.prototype.requestChannelIdByUsername = function(userId) {
-    var _this = this;
-    if (channelRe.test(userId)) {
-        return Promise.resolve(userId);
-    }
-
-    return requestPromise({
-        method: 'GET',
-        url: 'https://www.googleapis.com/youtube/v3/channels',
-        qs: {
-            part: 'snippet',
-            forUsername: userId,
-            maxResults: 1,
-            fields: 'items/id',
-            key: _this.config.token
-        },
-        json: true,
-        gzip: true,
-        forever: true
-    }).then(function(response) {
-        var responseBody = response.body;
-
-        var id = '';
-        try {
-            if (responseBody.items.length > 0) {
-                id = responseBody.items[0].id;
-            }
-        } catch(e) {
-            debug('Unexpected response %j', response, e);
-            throw new CustomError('Unexpected response');
-        }
-
-        if (!id) {
-            throw new CustomError('Channel ID is not found by userId!');
-        }
-
-        return _this.setChannelUsername(id, userId).then(function() {
-            return id;
-        });
-    });
-};
+var requestPool = new base.Pool(10);
 
 Youtube.prototype.getStreamList = function(_channelIdList) {
     var _this = this;
-    var streamList = [];
 
     var getPage = function (channelId) {
         var retryLimit = 5;
@@ -260,73 +208,38 @@ Youtube.prototype.getStreamList = function(_channelIdList) {
                     order: 'date',
                     safeSearch: 'none',
                     type: 'video',
-                    fields: 'items(id,snippet)',
+                    fields: 'items(id/videoId,snippet)',
                     key: _this.config.token
                 },
                 json: true,
                 gzip: true,
                 forever: true
-            }).then(function(response) {
-                if (response.statusCode === 503) {
-                    throw new CustomError(response.statusCode);
-                }
-
-                if (response.statusCode !== 200) {
-                    debug('Unexpected response %j', response);
-                    throw new CustomError('Unexpected response');
-                }
-
-                return response;
             }).catch(function (err) {
-                retryLimit--;
-                if (retryLimit > 0) {
-                    return new Promise(function (resolve) {
-                        setTimeout(resolve, 250);
-                    }).then(function () {
-                        // debug('Retry %s requestPage %s', retryLimit, channelId, err);
-                        return requestPage();
-                    });
+                if (retryLimit-- < 1) {
+                    throw err;
                 }
 
-                throw err;
+                return new Promise(function (resolve) {
+                    setTimeout(resolve, 250);
+                }).then(function () {
+                    // debug('Retry %s requestPage %s', retryLimit, channelId, err);
+                    return requestPage();
+                });
             });
         };
 
-        return requestPage().then(function (response) {
-            var responseBody = response.body;
-
-            var len = 0;
-            try {
-                len = responseBody.items.length;
-            } catch (e) {
-                debug('Unexpected response %j', response, e);
-                throw new CustomError('Unexpected response');
-            }
-            if (len === 0) {
+        return requestPage().then(function (responseBody) {
+            var videoId = '';
+            responseBody.items.some(function (item) {
+                return videoId = item.id.videoId;
+            });
+            if (!videoId) {
                 return;
             }
 
-            var videoId = '';
-            responseBody.items.some(function (item) {
-                if (item.id) {
-                    videoId = item.id.videoId;
-                    return true;
-                }
-            });
-
-            if (!videoId) {
-                debug('VideoId is not found! %j', response);
-                throw new CustomError('VideoId is not found');
-            }
-
             return _this.getViewers(videoId).then(function(viewers) {
-                try {
-                    var streams = _this.apiNormalization(channelId, responseBody, viewers);
-                    streamList.push.apply(streamList, streams);
-                } catch (e) {
-                    debug('Unexpected response %j', response, e);
-                    throw new CustomError('Unexpected response');
-                }
+                var streams = _this.apiNormalization(channelId, responseBody, viewers);
+                streamList.push.apply(streamList, streams);
             });
         }).catch(function(err) {
             streamList.push(base.getTimeoutStream('youtube', channelId));
@@ -334,28 +247,147 @@ Youtube.prototype.getStreamList = function(_channelIdList) {
         });
     };
 
-    var threadCount = 50;
-    var partSize = Math.ceil(_channelIdList.length / threadCount);
+    var promise = Promise.resolve();
+    promise = promise.then(function () {
+        return requestPool.do(function () {
+            var channelId = _channelIdList.shift();
+            if (!channelId) return;
 
-    var requestList = base.arrToParts(_channelIdList, partSize).map(function (arr) {
-        return base.arrayToChainPromise(arr, function (channelId) {
             return getPage(channelId);
         });
     });
 
-    return Promise.all(requestList).then(function() {
+    var streamList = [];
+    return promise.then(function() {
         return streamList;
     });
 };
 
+/**
+ * @param {String} query
+ * @return {Promise.<string>}
+ */
+Youtube.prototype.requestChannelIdByQuery = function(query) {
+    var _this = this;
+    return requestPromise({
+        method: 'GET',
+        url: 'https://www.googleapis.com/youtube/v3/search',
+        qs: {
+            part: 'snippet',
+            q: query,
+            type: 'channel',
+            maxResults: 1,
+            fields: 'items(id)',
+            key: _this.config.token
+        },
+        json: true,
+        gzip: true,
+        forever: true
+    }).then(function(responseBody) {
+        var channelId = '';
+        responseBody.items.some(function (item) {
+            return channelId = item.id.channelId;
+        });
+        if (!channelId) {
+            throw new CustomError('Channel ID is not found by query!');
+        }
+
+        return channelId;
+    });
+};
+
+/**
+ * @param {String} url
+ * @return {Promise.<String>}
+ */
+Youtube.prototype.requestChannelIdByUsername = function(url) {
+    var _this = this;
+
+    var username = '';
+    [
+        /youtube\.com\/(?:#\/)?user\/([0-9A-Za-z_-]+)/i,
+        /youtube\.com\/([0-9A-Za-z_-]+)$/i
+    ].some(function (re) {
+        var m = re.exec(url);
+        if (m) {
+            username = m[1];
+            return true;
+        }
+    });
+
+    if (!username) {
+        username = url;
+    }
+
+    if (!/^[0-9A-Za-z_-]+$/.test(username)) {
+        return Promise.reject(new CustomError('It is not username!'));
+    }
+
+    return requestPromise({
+        method: 'GET',
+        url: 'https://www.googleapis.com/youtube/v3/channels',
+        qs: {
+            part: 'snippet',
+            forUsername: username,
+            maxResults: 1,
+            fields: 'items/id',
+            key: _this.config.token
+        },
+        json: true,
+        gzip: true,
+        forever: true
+    }).then(function(responseBody) {
+        var id = '';
+        responseBody.items.some(function (item) {
+            return id = item.id;
+        });
+        if (!id) {
+            throw new CustomError('Channel ID is not found by username!');
+        }
+
+        return id;
+    });
+};
+
+/**
+ * @param {String} url
+ * @returns {Promise.<String>}
+ */
+Youtube.prototype.getChannelIdByUrl = function (url) {
+    if (/^UC/.test(url)) {
+        return Promise.resolve(url);
+    }
+
+    var channelId = '';
+    [
+        /youtube\.com\/(?:#\/)?channel\/([0-9A-Za-z_-]+)/i
+    ].some(function (re) {
+        var m = re.exec(url);
+        if (m) {
+            channelId = m[1];
+            return true;
+        }
+    });
+
+    if (!channelId) {
+        return Promise.reject(new CustomError('It is not channel url!'));
+    } else {
+        return Promise.resolve(channelId);
+    }
+};
+
+/**
+ * @param {String} url
+ * @return {Promise.<string>}
+ */
 Youtube.prototype.requestChannelIdByVideoUrl = function (url) {
     var _this = this;
 
     var videoId = '';
     [
-        /\/\/(?:[^\/]+\.)?youtu\.be\/([\w\-]+)/,
-        /\/\/(?:[^\/]+\.)?youtube\.com\/.+[?&]v=([\w\-]+)/,
-        /\/\/(?:[^\/]+\.)?youtube\.com\/(?:.+\/)?(?:v|embed)\/([\w\-]+)/
+        /youtu\.be\/([\w\-]+)/,
+        /youtube\.com\/.+[?&]v=([\w\-]+)/,
+        /youtube\.com\/(?:.+\/)?(?:v|embed)\/([\w\-]+)/
     ].some(function (re) {
         var m = re.exec(url);
         if (m) {
@@ -365,7 +397,7 @@ Youtube.prototype.requestChannelIdByVideoUrl = function (url) {
     });
 
     if (!videoId) {
-        return Promise.reject(new CustomError('It not video url!'));
+        return Promise.reject(new CustomError('It is not video url!'));
     }
 
     return requestPromise({
@@ -381,43 +413,43 @@ Youtube.prototype.requestChannelIdByVideoUrl = function (url) {
         json: true,
         gzip: true,
         forever: true
-    }).then(function(response) {
-        var responseBody = response.body;
-
-        var id = '';
-        try {
-            if (responseBody.items.length > 0) {
-                id = responseBody.items[0].snippet.channelId;
-            }
-        } catch (e) {
-            debug('Unexpected response %j', response, e);
-            throw new CustomError('Unexpected response');
+    }).then(function(responseBody) {
+        var channelId = '';
+        responseBody.items.some(function (item) {
+            return channelId = item.snippet.channelId;
+        });
+        if (!channelId) {
+            throw new CustomError('Channel ID is empty');
         }
 
-        if (!id) {
-            throw new CustomError('Channel ID is not found by videoId!');
-        }
-
-        return id;
+        return channelId;
     });
 };
 
 Youtube.prototype.getChannelId = function(channelName) {
     var _this = this;
 
-    return _this.requestChannelIdByVideoUrl(channelName).catch(function (err) {
+    var channel = {
+        id: null,
+        title: null
+    };
+
+    return _this.getChannelIdByUrl(channelName).catch(function (err) {
         if (!err instanceof CustomError) {
             throw err;
         }
 
-        return _this.requestChannelIdByUsername(channelName).catch(function(err) {
+        return _this.requestChannelIdByVideoUrl(channelName).catch(function (err) {
             if (!err instanceof CustomError) {
                 throw err;
             }
 
-            return _this.requestChannelIdByQuery(channelName).then(function(channelId) {
-                channelName = channelId;
-                return _this.requestChannelIdByUsername(channelId);
+            return _this.requestChannelIdByUsername(channelName).catch(function (err) {
+                if (!err instanceof CustomError) {
+                    throw err;
+                }
+
+                return _this.requestChannelIdByQuery(channelName);
             });
         });
     }).then(function(channelId) {
@@ -434,27 +466,20 @@ Youtube.prototype.getChannelId = function(channelName) {
             json: true,
             gzip: true,
             forever: true
-        }).then(function(response) {
-            var responseBody = response.body;
-
+        }).then(function(responseBody) {
             var snippet = null;
-            try {
-                if (responseBody.items.length > 0) {
-                    snippet = responseBody.items[0].snippet;
-                }
-            } catch (e) {
-                debug('Unexpected response %j', response, e);
-                throw new CustomError('Unexpected response');
-            }
-
+            responseBody.items.some(function (item) {
+                return snippet = item.snippet;
+            });
             if (!snippet) {
-                throw new CustomError('Channel is not found!');
+                throw new CustomError('Channel is not found');
             }
 
-            var channelTitle = snippet.channelTitle;
+            channel.id = channelId;
+            channel.title = snippet.channelTitle;
 
-            return _this.setChannelTitle(channelId, channelTitle).then(function () {
-                return channelId;
+            return _this.setChannelInfo(channel).then(function () {
+                return channel.id;
             });
         });
     });

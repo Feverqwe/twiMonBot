@@ -13,6 +13,7 @@ var Tracker = require('./tracker');
 var LiveController = require('./liveController');
 var MsgStack = require('./msgStack');
 var MsgSender = require('./msgSender');
+const Db = require('./db');
 
 var options = {
     config: {},
@@ -39,22 +40,24 @@ var options = {
     },
     services: {},
     events: null,
-    tracker: null
+    tracker: null,
+    db: null
 };
 
 (function() {
-    return Promise.resolve().then(function() {
-        options.events = new EventEmitter();
-    }).then(function() {
-        return base.loadConfig().then(function(config) {
+    options.events = new EventEmitter();
+    return Promise.all([
+        base.loadConfig().then(function(config) {
             options.config = config;
 
             config.botName && (config.botName = config.botName.toLowerCase());
-        });
-    }).then(function() {
-        return base.loadLanguage().then(function(language) {
+        }),
+        base.loadLanguage().then(function(language) {
             options.language = language;
-        });
+        })
+    ]).then(function() {
+        options.db = new Db(options);
+        return options.db.onReady;
     }).then(function() {
         return base.storage.get(Object.keys(options.storage)).then(function(storage) {
             for (var key in storage) {
