@@ -58,7 +58,7 @@ Youtube.prototype.migrate = function () {
         var channelInfo = storage.ytChannelInfo || {};
 
         var channels = Object.keys(channelInfo);
-        var threadCount = 100;
+        var threadCount = 10;
         var partSize = Math.ceil(channels.length / threadCount);
 
         var migrateChannel = function (connection, channelId, data) {
