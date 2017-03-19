@@ -198,33 +198,60 @@ GoodGame.prototype.getStreamList = function (channelList) {
     });
 };
 
+GoodGame.prototype.getChannelIdByUrl = function (url) {
+    var channelId = '';
+    [
+        /goodgame\.ru\/channel\/([^\/]+)/i
+    ].some(function (re) {
+        var m = re.exec(url);
+        if (m) {
+            channelId = m[1];
+            return true;
+        }
+    });
+    if (!channelId) {
+        return Promise.reject(new CustomError("Is not channel url!"));
+    } else {
+        return Promise.resolve(channelId);
+    }
+};
+
 /**
  * @param channelName
  * @return {Promise}
  */
 GoodGame.prototype.getChannelId = function (channelName) {
     var _this = this;
-    return requestPromise({
-        method: 'GET',
-        url: 'https://api2.goodgame.ru/v2/streams/' + encodeURIComponent(channelName),
-        headers: {
-            'Accept': 'application/vnd.goodgame.v2+json'
-        },
-        json: true,
-        gzip: true,
-        forever: true
-    }).then(function (responseBody) {
-        var title = responseBody.key;
-        if (!title) {
-            throw new CustomError('Channel is not found!');
+
+    return _this.getChannelIdByUrl(channelName).catch(function (err) {
+        if (!err instanceof CustomError) {
+            throw err;
         }
 
-        var id = title.toLowerCase();
-        return _this.setChannelInfo({
-            id: id,
-            title: title
-        }).then(function () {
-            return id;
+        return channelName;
+    }).then(function (channelId) {
+        return requestPromise({
+            method: 'GET',
+            url: 'https://api2.goodgame.ru/v2/streams/' + encodeURIComponent(channelId),
+            headers: {
+                'Accept': 'application/vnd.goodgame.v2+json'
+            },
+            json: true,
+            gzip: true,
+            forever: true
+        }).then(function (responseBody) {
+            var title = responseBody.key;
+            if (!title) {
+                throw new CustomError('Channel is not found!');
+            }
+
+            var id = title.toLowerCase();
+            return _this.setChannelInfo({
+                id: id,
+                title: title
+            }).then(function () {
+                return id;
+            });
         });
     });
 };

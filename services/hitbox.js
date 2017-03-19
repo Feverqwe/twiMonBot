@@ -184,36 +184,63 @@ Hitbox.prototype.getStreamList = function(channelList) {
     });
 };
 
+Hitbox.prototype.getChannelIdByUrl = function (url) {
+    var channelId = '';
+    [
+        /hitbox\.tv\/([^\/]+)/i
+    ].some(function (re) {
+        var m = re.exec(url);
+        if (m) {
+            channelId = m[1];
+            return true;
+        }
+    });
+    if (!channelId) {
+        return Promise.reject(new CustomError("Is not channel url!"));
+    } else {
+        return Promise.resolve(channelId);
+    }
+};
+
 Hitbox.prototype.getChannelId = function(channelName) {
     var _this = this;
-    return requestPromise({
-        method: 'GET',
-        url: 'https://api.hitbox.tv/media/live/' + encodeURIComponent(channelName),
-        qs: {
-            showHidden: 'true'
-        },
-        json: true,
-        gzip: true,
-        forever: true
-    }).then(function(responseBody) {
-        var stream = null;
-        responseBody.livestream.some(function(item) {
-            if (item.channel && item.channel.user_name) {
-                return stream = item;
-            }
-        });
-        if (!stream) {
-            throw new CustomError('Channel is not found!');
+
+    return _this.getChannelIdByUrl(channelName).catch(function (err) {
+        if (!err instanceof CustomError) {
+            throw err;
         }
 
-        var username = stream.channel.user_name.toLowerCase();
-        var title = stream.media_display_name;
+        return channelName;
+    }).then(function (channelId) {
+        return requestPromise({
+            method: 'GET',
+            url: 'https://api.hitbox.tv/media/live/' + encodeURIComponent(channelId),
+            qs: {
+                showHidden: 'true'
+            },
+            json: true,
+            gzip: true,
+            forever: true
+        }).then(function(responseBody) {
+            var stream = null;
+            responseBody.livestream.some(function(item) {
+                if (item.channel && item.channel.user_name) {
+                    return stream = item;
+                }
+            });
+            if (!stream) {
+                throw new CustomError('Channel is not found!');
+            }
 
-        return _this.setChannelInfo({
-            id: username,
-            title: title
-        }).then(function () {
-            return username;
+            var username = stream.channel.user_name.toLowerCase();
+            var title = stream.media_display_name;
+
+            return _this.setChannelInfo({
+                id: username,
+                title: title
+            }).then(function () {
+                return username;
+            });
         });
     });
 };

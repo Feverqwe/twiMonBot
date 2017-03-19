@@ -335,9 +335,9 @@ Youtube.prototype.requestChannelIdByVideoUrl = function (url) {
 
     var videoId = '';
     [
-        /youtu\.be\/([\w\-]+)/,
-        /youtube\.com\/.+[?&]v=([\w\-]+)/,
-        /youtube\.com\/(?:.+\/)?(?:v|embed)\/([\w\-]+)/
+        /youtu\.be\/([\w\-]+)/i,
+        /youtube\.com\/.+[?&]v=([\w\-]+)/i,
+        /youtube\.com\/(?:.+\/)?(?:v|embed)\/([\w\-]+)/i
     ].some(function (re) {
         var m = re.exec(url);
         if (m) {

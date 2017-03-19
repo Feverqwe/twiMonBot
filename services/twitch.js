@@ -255,19 +255,46 @@ Twitch.prototype.requestChannelByName = function (channelName) {
     });
 };
 
-Twitch.prototype.getChannelId = function(channelId) {
-    var _this = this;
-    return this.requestChannelInfo(channelId).catch(function (err) {
-        return _this.requestChannelByName(channelId);
-    }).then(function (channelInfo) {
-        var id = channelInfo.name.toLowerCase();
-        var title = channelInfo.display_name;
+GoodGame.prototype.getChannelIdByUrl = function (url) {
+    var channelId = '';
+    [
+        /twitch\.tv\/([^\/]+)/i
+    ].some(function (re) {
+        var m = re.exec(url);
+        if (m) {
+            channelId = m[1];
+            return true;
+        }
+    });
+    if (!channelId) {
+        return Promise.reject(new CustomError("Is not channel url!"));
+    } else {
+        return Promise.resolve(channelId);
+    }
+};
 
-        return _this.setChannelInfo({
-            id: id,
-            title: title
-        }).then(function () {
-            return id;
+Twitch.prototype.getChannelId = function(channelName) {
+    var _this = this;
+
+    return _this.getChannelIdByUrl(channelName).catch(function (err) {
+        if (!err instanceof CustomError) {
+            throw err;
+        }
+
+        return channelName;
+    }).then(function (channelId) {
+        return this.requestChannelInfo(channelId).catch(function (err) {
+            return _this.requestChannelByName(channelId);
+        }).then(function (channelInfo) {
+            var id = channelInfo.name.toLowerCase();
+            var title = channelInfo.display_name;
+
+            return _this.setChannelInfo({
+                id: id,
+                title: title
+            }).then(function () {
+                return id;
+            });
         });
     });
 };
