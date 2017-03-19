@@ -251,9 +251,10 @@ Youtube.prototype.getViewers = function(id) {
     });
 };
 
+var requestPool = new base.Pool(10);
+
 Youtube.prototype.getStreamList = function(_channelIdList) {
     var _this = this;
-    var streamList = [];
 
     var getPage = function (channelId) {
         var retryLimit = 5;
@@ -269,7 +270,7 @@ Youtube.prototype.getStreamList = function(_channelIdList) {
                     order: 'date',
                     safeSearch: 'none',
                     type: 'video',
-                    fields: 'items(id,snippet)',
+                    fields: 'items(id/videoId,snippet)',
                     key: _this.config.token
                 },
                 json: true,
@@ -290,38 +291,18 @@ Youtube.prototype.getStreamList = function(_channelIdList) {
         };
 
         return requestPage().then(function (responseBody) {
-            var len = 0;
-            try {
-                len = responseBody.items.length;
-            } catch (e) {
-                debug('Unexpected response %j', responseBody, e);
-                throw new CustomError('Unexpected response');
-            }
-            if (len === 0) {
-                return;
-            }
-
             var videoId = '';
             responseBody.items.some(function (item) {
-                if (item.id) {
-                    videoId = item.id.videoId;
-                    return true;
-                }
+                return videoId = item.id.videoId;
             });
 
             if (!videoId) {
-                debug('VideoId is not found! %j', responseBody);
-                throw new CustomError('VideoId is not found');
+                return;
             }
 
             return _this.getViewers(videoId).then(function(viewers) {
-                try {
-                    var streams = _this.apiNormalization(channelId, responseBody, viewers);
-                    streamList.push.apply(streamList, streams);
-                } catch (e) {
-                    debug('Unexpected response %j', responseBody, e);
-                    throw new CustomError('Unexpected response');
-                }
+                var streams = _this.apiNormalization(channelId, responseBody, viewers);
+                streamList.push.apply(streamList, streams);
             });
         }).catch(function(err) {
             streamList.push(base.getTimeoutStream('youtube', channelId));
@@ -329,16 +310,18 @@ Youtube.prototype.getStreamList = function(_channelIdList) {
         });
     };
 
-    var threadCount = 50;
-    var partSize = Math.ceil(_channelIdList.length / threadCount);
+    var promise = Promise.resolve();
+    promise = promise.then(function () {
+        return requestPool.do(function () {
+            var channelId = _channelIdList.shift();
+            if (!channelId) return;
 
-    var requestList = base.arrToParts(_channelIdList, partSize).map(function (arr) {
-        return base.arrayToChainPromise(arr, function (channelId) {
             return getPage(channelId);
         });
     });
 
-    return Promise.all(requestList).then(function() {
+    var streamList = [];
+    return promise.then(function() {
         return streamList;
     });
 };
