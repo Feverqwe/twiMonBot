@@ -178,16 +178,13 @@ Youtube.prototype.getViewers = function(id) {
         gzip: true,
         forever: true
     }).then(function(responseBody) {
-        if (intRe.test(responseBody)) {
-            return parseInt(responseBody);
-        } else {
-            debug('Unexpected response %j', responseBody, e);
-            throw new CustomError('Unexpected response');
+        if (!intRe.test(responseBody)) {
+            throw new Error('NOT INT ' + JSON.stringify(responseBody));
         }
+
+        return parseInt(responseBody);
     }).catch(function (err) {
-        if (!err instanceof CustomError) {
-            debug('getViewers %s error', id, err);
-        }
+        debug('getViewers %s error', id, err);
         return -1;
     });
 };
@@ -236,7 +233,6 @@ Youtube.prototype.getStreamList = function(_channelIdList) {
             responseBody.items.some(function (item) {
                 return videoId = item.id.videoId;
             });
-
             if (!videoId) {
                 return;
             }
