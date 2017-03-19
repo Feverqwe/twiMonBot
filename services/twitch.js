@@ -77,77 +77,63 @@ Twitch.prototype.clean = function(channelIdList) {
     return Promise.all(promiseList);*/
 };
 
-Twitch.prototype.apiNormalization = function(data) {
+Twitch.prototype.insertItem = function (channel, stream) {
     var _this = this;
-    var now = base.getNow();
+    return Promise.resolve().then(function () {
+        var now = base.getNow();
 
-    var invalidArray = [];
-    var streamArray = [];
-    data.streams.forEach(function (apiItem) {
-        if (!apiItem.channel || typeof apiItem.channel.name !== 'string') {
-            debug('Item without name! %j', apiItem);
-            return;
-        }
-
-        var channelId = apiItem.channel.name.toLowerCase();
-
-        if (
-            !apiItem._id ||
-            typeof apiItem.viewers !== 'number' ||
-            typeof apiItem.channel.url !== 'string' ||
-            typeof apiItem.created_at !== 'string' ||
-            typeof apiItem.channel.status === 'undefined'
-        ) {
-            return invalidArray.push(channelId);
-        }
+        var id = stream._id;
+        var viewers = parseInt(stream.viewers) || 0;
+        var game = stream.game;
+        var createdAt = stream.created_at;
+        var channelTitle = stream.channel.display_name;
+        var channelName = stream.channel.name;
 
         var previewList = [];
+        stream.preview && ['template', 'large', 'medium'].forEach(function(quality) {
+            var url = stream.preview[quality];
+            if (url) {
+                if (quality === 'template') {
+                    url = url.replace('{width}', '1280').replace('{height}', '720');
+                }
 
-        apiItem.preview && ['template', 'large', 'medium'].forEach(function(quality) {
-            var url = apiItem.preview[quality];
-            if (!url) {
-                return;
+                previewList.push(url);
             }
-
-            if (quality === 'template') {
-                url = url.replace('{width}', '1280').replace('{height}', '720');
-            }
-
-            previewList.push(url);
         });
-
         previewList = previewList.map(base.noCacheUrl);
 
         var item = {
             _service: 'twitch',
             _checkTime: now,
             _insertTime: now,
-            _id: 't' + apiItem._id,
+            _id: 't' + id,
             _isOffline: false,
             _isTimeout: false,
-            _channelId: channelId,
+            _channelId: channel.id,
 
-            viewers: apiItem.viewers,
-            game: apiItem.game,
+            viewers: viewers,
+            game: game,
             preview: previewList,
-            created_at: apiItem.created_at,
+            created_at: createdAt,
             channel: {
-                display_name: apiItem.channel.display_name,
-                name: apiItem.channel.name,
-                status: apiItem.channel.status,
-                url: apiItem.channel.url
+                display_name: channelTitle,
+                name: channelName,
+                status: stream.channel.status,
+                url: stream.channel.url
             }
         };
 
-        // _this.setChannelTitle(channelId, apiItem.channel.display_name);
+        var promise = Promise.resolve();
+        if (channelTitle && channel.title !== channelTitle) {
+            promise = promise.then(function () {
+                return _this.setChannelTitle(channel.id, channelTitle);
+            });
+        }
 
-        streamArray.push(item);
+        return promise.then(function () {
+            return item;
+        });
     });
-
-    return {
-        invalidArray: invalidArray,
-        streamArray: streamArray
-    };
 };
 
 Twitch.prototype.getStreamList = function(_channelIdsList) {
@@ -213,21 +199,31 @@ Twitch.prototype.getStreamList = function(_channelIdsList) {
                 };
 
                 return getList().then(function (responseBody) {
-                    var obj = null;
-                    try {
-                        obj = _this.apiNormalization(responseBody);
-                    } catch (e) {
-                        debug('Unexpected response %j', responseBody, e);
-                        throw new CustomError('Unexpected response');
-                    }
+                    var items = responseBody.streams;
+                    return insertPool.do(function () {
+                        var stream = items.shift();
+                        if (!stream) return;
 
-                    videoList.push.apply(videoList, obj.streamArray);
+                        if (!stream.channel || !stream.channel.name) {
+                            debug('ChannelId is empty! %j', stream);
+                            return Promise.resolve();
+                        }
 
-                    if (obj.invalidArray.length) {
-                        debug('Invalid array %j', obj.invalidArray);
-                        channelIds = obj.invalidArray;
-                        throw new CustomError('Invalid array!');
-                    }
+                        var channelId = stream.channel.name.toLowerCase();
+                        var pos = channelIds.indexOf(channelId);
+                        if (pos === -1) {
+                            debug('Channel is not required! %s', channelId);
+                            return Promise.resolve();
+                        }
+                        var channel = channelsPart[pos];
+
+                        return _this.insertItem(channel, stream).then(function (item) {
+                            item && videoList.push(item);
+                        }).catch(function (err) {
+                            videoList.push(base.getTimeoutStream('twitch', channel.id));
+                            debug("insertItem error!", err);
+                        });
+                    });
                 }).catch(function (err) {
                     channelIds.forEach(function (channelId) {
                         videoList.push(base.getTimeoutStream('twitch', channelId));
@@ -244,6 +240,8 @@ Twitch.prototype.getStreamList = function(_channelIdsList) {
         return videoList;
     });
 };
+
+var insertPool = new base.Pool(15);
 
 Twitch.prototype.requestChannelInfo = function (channelId) {
     var _this = this;
