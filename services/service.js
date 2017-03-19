@@ -83,4 +83,26 @@ Service.prototype.setChannelInfo = function(info) {
     });
 };
 
+/**
+ * @param {String} channelId
+ * @param {String} channelTitle
+ * @return {Promise}
+ */
+Service.prototype.setChannelTitle = function (channelId, channelTitle) {
+    var _this = this;
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            UPDATE ' + _this.dbTable + ' SET title = ? WHERE id = ? \
+        ', [channelTitle, channelId], function (err, results) {
+            if (err) {
+                debug('setChannelTitle', err);
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+};
+
 module.exports = Service;

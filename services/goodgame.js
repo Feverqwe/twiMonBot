@@ -77,31 +77,24 @@ GoodGame.prototype.clean = function(channelIdList) {
 
 var noProtocolRe = /^\/\//;
 
-GoodGame.prototype.apiNormalization = function (data) {
+GoodGame.prototype.insertItem = function (channel, stream) {
     var _this = this;
-
-    var now = base.getNow();
-    var streamArray = [];
-    data._embedded.streams.forEach(function (origItem) {
-        if (origItem.status !== 'Live') {
+    return Promise.resolve().then(function () {
+        if (stream.status !== 'Live') {
             return;
         }
 
-        if (!origItem.key || !origItem.id || !origItem.channel) {
-            debug('Skip item! %j', origItem);
-            return;
-        }
+        var now = base.getNow();
 
-        var id = origItem.id;
-        var viewers = parseInt(origItem.viewers) || 0;
-        var name = origItem.key;
-        var channelId = name.toLowerCase();
-        var channel = origItem.channel;
+        var id = stream.id;
+        var viewers = parseInt(stream.viewers) || 0;
+        var channelTitle = stream.key;
 
+        var thumb = stream.channel.thumb;
         var previewList = [];
-        if (channel.thumb) {
-            previewList.push(channel.thumb.replace(/_240(\.jpg)$/, '$1'));
-            previewList.push(channel.thumb);
+        if (thumb) {
+            previewList.push(thumb.replace(/_240(\.jpg)$/, '$1'));
+            previewList.push(thumb);
         }
         previewList = previewList.map(function(url) {
             if (noProtocolRe.test(url)) {
@@ -110,10 +103,11 @@ GoodGame.prototype.apiNormalization = function (data) {
             return base.noCacheUrl(url);
         });
 
-        var game = channel.games && channel.games[0];
-        if (game) {
-            game = game.title;
-        }
+        var games = stream.channel.games;
+        var game = '';
+        games && games.some(function (item) {
+            return game = item.title;
+        });
 
         var item = {
             _service: 'goodgame',
@@ -122,25 +116,33 @@ GoodGame.prototype.apiNormalization = function (data) {
             _id: 'g' + id,
             _isOffline: false,
             _isTimeout: false,
-            _channelId: channelId,
+            _channelId: channel.id,
 
             viewers: viewers,
             game: game,
             preview: previewList,
             created_at: undefined,
             channel: {
-                name: name,
-                status: channel.title,
-                url: channel.url
+                name: channelTitle,
+                status: stream.channel.title,
+                url: stream.channel.url
             }
         };
 
-        // _this.setChannelTitle(channelId, name);
+        var promise = Promise.resolve();
+        if (channelTitle && channel.title !== channelTitle) {
+            promise = promise.then(function () {
+                return _this.setChannelTitle(channel.id, channelTitle);
+            });
+        }
 
-        streamArray.push(item);
+        return promise.then(function () {
+            return item;
+        });
     });
-    return streamArray;
 };
+
+var insertPool = new base.Pool(15);
 
 /**
  * @param _channelIdsList
@@ -209,13 +211,31 @@ GoodGame.prototype.getStreamList = function (_channelIdsList) {
                 };
 
                 return getList().then(function (responseBody) {
-                    try {
-                        var list = _this.apiNormalization(responseBody);
-                        videoList.push.apply(videoList, list);
-                    } catch (e) {
-                        debug('Unexpected response %j', responseBody, e);
-                        throw new CustomError('Unexpected response');
-                    }
+                    var items = responseBody._embedded.streams;
+                    return insertPool.do(function () {
+                        var stream = items.shift();
+                        if (!stream) return;
+
+                        if (!stream.key) {
+                            debug('Stream key is empty! %j', stream);
+                            return Promise.resolve();
+                        }
+
+                        var channelId = stream.key.toLowerCase();
+                        var pos = channelIds.indexOf(channelId);
+                        if (pos === -1) {
+                            debug('Channel is not required! %s', channelId);
+                            return Promise.resolve();
+                        }
+                        var channel = channelsPart[pos];
+
+                        return _this.insertItem(channel, stream).then(function (item) {
+                            item && videoList.push(item);
+                        }).catch(function (err) {
+                            videoList.push(base.getTimeoutStream('goodgame', channel.id));
+                            debug("insertItem error!", err);
+                        });
+                    });
                 }).catch(function (err) {
                     channelIds.forEach(function (channelId) {
                         videoList.push(base.getTimeoutStream('goodgame', channelId));
