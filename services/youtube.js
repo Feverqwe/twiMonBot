@@ -22,6 +22,7 @@ var Youtube = function(options) {
 };
 
 Youtube.prototype = Object.create(require('./service').prototype);
+Youtube.prototype.constructor = Youtube;
 
 Youtube.prototype.init = function () {
     var _this = this;

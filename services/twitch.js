@@ -20,6 +20,7 @@ var Twitch = function(options) {
 };
 
 Twitch.prototype = Object.create(require('./service').prototype);
+Twitch.prototype.constructor = Twitch;
 
 Twitch.prototype.init = function () {
     var _this = this;

@@ -19,6 +19,7 @@ var GoodGame = function (options) {
 };
 
 GoodGame.prototype = Object.create(require('./service').prototype);
+GoodGame.prototype.constructor = GoodGame;
 
 GoodGame.prototype.init = function () {
     var _this = this;

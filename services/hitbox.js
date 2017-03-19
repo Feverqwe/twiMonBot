@@ -19,6 +19,7 @@ var Hitbox = function(options) {
 };
 
 Hitbox.prototype = Object.create(require('./service').prototype);
+Hitbox.prototype.constructor = Hitbox;
 
 Hitbox.prototype.init = function () {
     var _this = this;
