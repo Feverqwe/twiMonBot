@@ -447,24 +447,18 @@ var commands = {
 
         var readUrl = function(url) {
             var channelName = null;
-            for (var service in _this.gOptions.serviceMatchRe) {
-                var reList = _this.gOptions.serviceMatchRe[service];
-                if (!Array.isArray(reList)) {
-                    reList = [reList];
+            var services = _this.gOptions.services;
+            var serviceName = '';
+            Object.keys(services).some(function (_serviceName) {
+                var service = services[_serviceName];
+                if (service.isServiceUrl(url)) {
+                    serviceName = _serviceName;
+                    return true;
                 }
-                reList.some(function(re) {
-                    if (re.test(url)) {
-                        channelName = url.match(re)[1];
-                        return true;
-                    }
-                });
-                if (channelName) {
-                    break;
-                }
-            }
-            return channelName && {
+            });
+            return channelName && serviceName && {
                 channel: channelName,
-                service: service
+                service: serviceName
             };
         };
 

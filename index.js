@@ -29,15 +29,6 @@ var options = {
         youtube: 'Youtube',
         hitbox: 'Hitbox'
     },
-    serviceMatchRe: {
-        goodgame: /goodgame\.ru\/channel\/([^\/]+)/i,
-        twitch: /twitch\.tv\/([^\/]+)/i,
-        youtube: [
-            /youtube\.com\/(?:#\/)?(?:user|channel)\/([0-9A-Za-z_-]+)/i,
-            /youtube\.com\/([0-9A-Za-z_-]+)$/i
-        ],
-        hitbox: /hitbox\.tv\/([^\/]+)/i
-    },
     services: {},
     events: null,
     tracker: null,
