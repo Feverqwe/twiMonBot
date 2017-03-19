@@ -318,7 +318,7 @@ Twitch.prototype.getChannelId = function(channelName) {
 
         return channelName;
     }).then(function (channelId) {
-        return this.requestChannelInfo(channelId).catch(function (err) {
+        return _this.requestChannelInfo(channelId).catch(function (err) {
             return _this.requestChannelByName(channelId);
         }).then(function (channelInfo) {
             var id = channelInfo.name.toLowerCase();
