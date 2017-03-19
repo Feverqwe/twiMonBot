@@ -123,7 +123,7 @@ Youtube.prototype.insertItem = function (channel, snippet, id, viewers) {
                 display_name: channelTitle,
                 name: channelName,
                 status: snippet.title,
-                url: 'https://youtu.be/' + id
+                url: 'https://gaming.youtube.com/watch?v=' + id
             }
         };
 
