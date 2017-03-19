@@ -16,9 +16,12 @@ var Youtube = function(options) {
     this.gOptions = options;
     this.config = {};
     this.config.token = options.config.ytToken;
+    this.dbTable = 'ytChannels';
 
     this.onReady = _this.init();
 };
+
+Youtube.prototype = Object.create(require('./service').prototype);
 
 Youtube.prototype.init = function () {
     var _this = this;
@@ -27,7 +30,7 @@ Youtube.prototype.init = function () {
     promise = promise.then(function () {
         return new Promise(function (resolve, reject) {
             db.connection.query('\
-            CREATE TABLE IF NOT EXISTS `ytChannels` ( \
+            CREATE TABLE IF NOT EXISTS ' + _this.dbTable + ' ( \
                 `id` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
                 `title` TEXT CHARACTER SET utf8mb4 NULL, \
             UNIQUE INDEX `id_UNIQUE` (`id` ASC)); \
@@ -64,7 +67,7 @@ Youtube.prototype.migrate = function () {
             };
             return new Promise(function (resolve, reject) {
                 connection.query('\
-                    INSERT INTO ytChannels SET ? ON DUPLICATE KEY UPDATE id = id \
+                    INSERT INTO ' + _this.dbTable + ' SET ? ON DUPLICATE KEY UPDATE id = id \
                 ', info, function (err, results) {
                     if (err) {
                         if (err.code === 'ER_DUP_ENTRY') {
@@ -90,74 +93,6 @@ Youtube.prototype.migrate = function () {
                 });
             });
         }));
-    });
-};
-
-/**
- * @typedef {{}} ChannelInfo
- * @property {String} id
- * @property {String} title
- */
-
-/**
- * @private
- * @param {String[]} channelIds
- * @return {Promise}
- */
-Youtube.prototype.getChannelsInfo = function (channelIds) {
-    var db = this.gOptions.db;
-    return new Promise(function (resolve, reject) {
-        if (!channelIds.length) {
-            return resolve([]);
-        }
-
-        db.connection.query('\
-            SELECT * FROM ytChannels WHERE id IN ?; \
-        ', [[channelIds]], function (err, results) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(results);
-            }
-        });
-    }).catch(function (err) {
-        debug('getChannelsInfo', err);
-        return [];
-    });
-};
-
-/**
- * @param {ChannelInfo} info
- * @return {String}
- */
-var getChannelTitleFromInfo = function (info) {
-    return info.title || info.id;
-};
-
-Youtube.prototype.getChannelTitle = function (channelId) {
-    return this.getChannelsInfo([channelId]).then(function (infoList) {
-        var info = infoList[0] || {};
-        return getChannelTitleFromInfo(info) || channelId;
-    });
-};
-
-/**
- * @param {Object} info
- * @return {Promise}
- */
-Youtube.prototype.setChannelInfo = function(info) {
-    var db = this.gOptions.db;
-    return new Promise(function (resolve, reject) {
-        db.connection.query('\
-            INSERT INTO ytChannels SET ? ON DUPLICATE KEY UPDATE ? \
-        ', [info, info], function (err, results) {
-            if (err) {
-                debug('setChannelInfo', err);
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
     });
 };
 
