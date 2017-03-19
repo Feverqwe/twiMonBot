@@ -41,57 +41,7 @@ GoodGame.prototype.init = function () {
             });
         });
     });
-    promise = promise.then(function () {
-        return _this.migrate();
-    });
     return promise;
-};
-
-GoodGame.prototype.migrate = function () {
-    var _this = this;
-    var db = this.gOptions.db;
-
-    return base.storage.get(['ggChannelInfo']).then(function(storage) {
-        var channelInfo = storage.ggChannelInfo || {};
-
-        var channels = Object.keys(channelInfo);
-        var threadCount = 10;
-        var partSize = Math.ceil(channels.length / threadCount);
-
-        var migrateChannel = function (connection, channelId, data) {
-            var info = {
-                id: channelId,
-                title: data.title
-            };
-            return new Promise(function (resolve, reject) {
-                connection.query('\
-                    INSERT INTO ' + _this.dbTable + ' SET ? ON DUPLICATE KEY UPDATE id = id \
-                ', info, function (err, results) {
-                    if (err) {
-                        if (err.code === 'ER_DUP_ENTRY') {
-                            resolve();
-                        } else {
-                            reject(err);
-                        }
-                    } else {
-                        resolve();
-                    }
-                });
-            }).catch(function (err) {
-                debug('Migrate', err);
-            });
-        };
-
-        return Promise.all(base.arrToParts(channels, partSize).map(function (arr) {
-            return base.arrayToChainPromise(arr, function (channelId) {
-                return db.newConnection().then(function (connection) {
-                    return migrateChannel(connection, channelId, channelInfo[channelId]).then(function () {
-                        connection.end();
-                    });
-                });
-            });
-        }));
-    });
 };
 
 GoodGame.prototype.clean = function(channelIdList) {
