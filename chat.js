@@ -338,12 +338,14 @@ var Chat = function(options) {
         var chatId = req.getChatId();
         var channel = '';
         var serviceName = '';
-        var query = req.getQuery();
-        var messageId = req.getMessageId();
+        var query = {};
+        var messageId = null;
         if (req.message) {
             channel = req.params[0] || '';
         } else
         if (req.callback_query) {
+            query = req.getQuery();
+            messageId = req.getMessageId();
             channel = query.channel || '';
             serviceName = query.service || '';
         }
