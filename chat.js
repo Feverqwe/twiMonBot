@@ -431,9 +431,11 @@ var Chat = function(options) {
             var msgText = language.enterChannelName;
             if (chatId < 0) {
                 msgText += language.groupNote;
-                options.reply_markup = JSON.stringify({
-                    force_reply: true
-                });
+                if (!req.callback_query) {
+                    options.reply_markup = JSON.stringify({
+                        force_reply: true
+                    });
+                }
             }
 
             editOrSendNewMessage(chatId, messageId, msgText, options).then(function (msg) {
