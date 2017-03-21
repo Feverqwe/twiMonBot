@@ -938,7 +938,7 @@ var Chat = function(options) {
                 chatId: chat.id
             };
         }
-        
+
         if (!chatItem.serviceList) {
             chatItem.serviceList = {};
         }

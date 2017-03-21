@@ -123,11 +123,6 @@ MsgSender.prototype.getPicId = function(chatId, text, stream) {
 
         return _this.getValidPhotoUrl(stream).then(function (photoUrl) {
             return sendPhotoUrl(photoUrl).catch(function (err) {
-                var isKicked = _this.onSendMsgError(err, chatId);
-                if (isKicked) {
-                    throw new Error('Send photo file error! Bot was kicked!');
-                }
-
                 var errList = [
                     /failed to get HTTP URL content/,
                     /wrong type of the web page content/,
@@ -145,6 +140,13 @@ MsgSender.prototype.getPicId = function(chatId, text, stream) {
                 }
 
                 return uploadPhoto(photoUrl);
+            }).catch(function (err) {
+                var isKicked = _this.onSendMsgError(err, chatId);
+                if (isKicked) {
+                    throw new Error('Send photo file error! Bot was kicked!');
+                } else {
+                    throw err;
+                }
             });
         });
     };
