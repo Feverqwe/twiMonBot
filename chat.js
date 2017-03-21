@@ -935,9 +935,12 @@ var Chat = function(options) {
         var chatItem = chatList[chat.id];
         if (!chatItem) {
             chatItem = chatList[chat.id] = {
-                chatId: chat.id,
-                serviceList: {}
+                chatId: chat.id
             };
+        }
+        
+        if (!chatItem.serviceList) {
+            chatItem.serviceList = {};
         }
 
         var options = chatItem.options;
