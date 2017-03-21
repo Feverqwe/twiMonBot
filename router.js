@@ -326,7 +326,7 @@ Router.prototype.custom = function (methods) {
 };
 
 /**
- * @param {RegExp} re
+ * @param {RegExp} [re]
  * @param {{}} details
  * @param {String} details.event
  * @param {String} details.type
@@ -339,6 +339,7 @@ Router.prototype.waitResponse = function (re, details, timeoutSec) {
     if (!re instanceof RegExp) {
         timeoutSec = arguments[1];
         details = arguments[0];
+        re = null;
     }
     var _this = this;
     return new Promise(function (resolve, reject) {
