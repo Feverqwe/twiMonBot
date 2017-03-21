@@ -368,7 +368,7 @@ var commands = {
                 });
             });
         }).catch(function(err) {
-            if (!err instanceof CustomError) {
+            if (!(err instanceof CustomError)) {
                 debug('Channel %s (%s) is not found!', channelName, service, err);
             }
             return _this.gOptions.bot.editMessageText(

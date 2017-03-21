@@ -336,7 +336,7 @@ Router.prototype.custom = function (methods) {
  * @return {Promise.<Req>}
  */
 Router.prototype.waitResponse = function (re, details, timeoutSec) {
-    if (!re instanceof RegExp) {
+    if (!(re instanceof RegExp)) {
         timeoutSec = arguments[1];
         details = arguments[0];
         re = null;

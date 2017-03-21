@@ -286,7 +286,12 @@ var Chat = function(options) {
             if (req.callback_query && !query.rel) {
                 options.chat_id = chatId;
                 options.message_id = messageId;
-                return bot.editMessageText(text, options);
+                return bot.editMessageText(text, options).catch(function (err) {
+                    if (/message is not modified/.test(err.message)) {
+                        return;
+                    }
+                    throw err;
+                });
             } else {
                 return bot.sendMessage(chatId, text, options);
             }
@@ -297,7 +302,7 @@ var Chat = function(options) {
 
     router.callback_query(/\/watch/, function (req) {
         var chatId = req.getChatId();
-        var query = req.query;
+        var query = req.getQuery();
 
         var lastStreamList = _this.gOptions.storage.lastStreamList;
         var streamList = [];
@@ -415,7 +420,7 @@ var Chat = function(options) {
                 }, 3 * 60).then(function (req) {
                     _this.track(req.message, '/add');
                     return onResponseChannel(req.message.text, serviceName, msg.message_id);
-                }, function () {
+                }, function (err) {
                     var cancelText = language.commandCanceled.replace('{command}', 'add');
                     return editOrSendNewMessage(chatId, msg.message_id, cancelText);
                 });
@@ -437,7 +442,6 @@ var Chat = function(options) {
                     chatId: chatId,
                     fromId: req.getFromId()
                 }, 3 * 60).then(function (req) {
-                    _this.track(req.message, '/add');
                     var query = req.getQuery();
                     if (query.cancel === 'true' || !query.service) {
                         return editOrSendNewMessage(chatId, msg.message_id, language.commandCanceled.replace('{command}', 'add'));
@@ -907,7 +911,9 @@ var Chat = function(options) {
                 }
             });
         }).then(function () {
-            return language.channelDeleted.replace('{channelName}', channelId);
+            return language.channelDeleted
+                .replace('{channelName}', channelId)
+                .replace('{serviceName}', serviceToTitle[serviceName]);
         });
     };
 
@@ -1134,7 +1140,7 @@ var Chat = function(options) {
                 [
                     {
                         text: 'Online',
-                        callback_data: '/online'
+                        callback_data: '/online?rel=menu'
                     },
                     {
                         text: 'Show the channel list',
@@ -1246,7 +1252,6 @@ var Chat = function(options) {
     };
 
     var getWatchBtnList = function (channels, page) {
-        var _this = this;
         var btnList = [];
 
         var promise = Promise.resolve();
@@ -1266,7 +1271,10 @@ var Chat = function(options) {
 
                         btnList.push([{
                             text: text,
-                            callback_data: '/watch ' + channelId + ' ' + service
+                            callback_data: '/watch?' + querystring.stringify({
+                                channelId: channelId,
+                                service: service
+                            })
                         }]);
                     });
                 });
@@ -1295,16 +1303,20 @@ var Chat = function(options) {
                 var streamList = serviceChannels[stream._channelId];
                 if (!streamList) {
                     streamList = serviceChannels[stream._channelId] = [];
-                    serviceChannels.push(streamList);
                 }
                 streamList.push(stream);
             }
         });
-        return serviceList;
+        var orderedServiceList = {};
+        Object.keys(services).forEach(function (serviceName) {
+            if (serviceList[serviceName]) {
+                orderedServiceList[serviceName] = serviceList[serviceName];
+            }
+        });
+        return orderedServiceList;
     };
 
     var getOnlineText = function (channels) {
-        var _this = this;
         var onlineList = [];
 
         var serviceList = getOnlineChannelList(channels);
