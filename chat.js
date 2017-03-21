@@ -819,11 +819,10 @@ var Chat = function(options) {
             _details.message_id = messageId;
             if (_details.reply_markup) {
                 var reply_markup = JSON.parse(_details.reply_markup);
-                if (reply_markup.force_reply) {
-                    delete reply_markup.force_reply;
-                }
-                if (Object.keys(reply_markup)) {
-                    _details.reply_markup = JSON.stringify(reply_markup);
+                if (reply_markup.inline_keyboard) {
+                    _details.reply_markup = JSON.stringify({
+                        inline_keyboard: reply_markup.inline_keyboard
+                    });
                 } else {
                     delete _details.reply_markup;
                 }
