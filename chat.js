@@ -953,8 +953,10 @@ var Chat = function(options) {
         }
 
         options.channel = chat.channelId;
-        options.hidePreview = chat.options.hidePreview;
-        options.mute = chat.options.mute;
+        if (chat.options) {
+            options.hidePreview = chat.options.hidePreview;
+            options.mute = chat.options.mute;
+        }
 
         return base.storage.set({chatList: _this.gOptions.storage.chatList});
     };
