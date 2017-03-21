@@ -385,7 +385,10 @@ var Chat = function(options) {
                         var channelList = onlineServiceList[serviceName] || {};
                         var streamList = channelList[channel.id] || [];
                         streamList.forEach(function (stream) {
-                            var text = base.getNowStreamPhotoText(_this.gOptions, stream);
+                            var text = null;
+                            if (!req.chat || !req.chat.options.hidePreview) {
+                                text = base.getNowStreamPhotoText(_this.gOptions, stream);
+                            }
                             var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
                             return _this.gOptions.msgSender.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
                                 debug('a commend, sendNotify error!', err);
