@@ -365,7 +365,7 @@ var Chat = function(options) {
             });
         }
 
-        var onResponseChannel = function (channelName, serviceName, messageId) {
+        var onResponseChannel = function (channelName, serviceName) {
             return addChannel(req, serviceName, channelName).then(function (/*ChannelInfo*/channel) {
                 var url = base.getChannelUrl(serviceName, channel.id);
                 var displayName = base.htmlSanitize('a', channel.title, url);
@@ -394,7 +394,9 @@ var Chat = function(options) {
                 if (err.message === 'CHANNEL_EXISTS') {
                     result = language.channelExists;
                 } else {
-                    result = language.channelIsNotFound.replace('{channelName}', channelName);
+                    result = language.channelIsNotFound
+                        .replace('{channelName}', channelName)
+                        .replace('{serviceName}', base.htmlSanitize(serviceToTitle[serviceName]));
                 }
 
                 return editOrSendNewMessage(chatId, messageId, result, {
