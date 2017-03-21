@@ -298,7 +298,10 @@ Hitbox.prototype.getChannelId = function(channelName) {
                 id: username,
                 title: title
             }).then(function () {
-                return username;
+                return {
+                    id: username,
+                    title: title
+                };
             });
         });
     });

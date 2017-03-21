@@ -326,7 +326,10 @@ Twitch.prototype.getChannelId = function(channelName) {
                 id: id,
                 title: title
             }).then(function () {
-                return id;
+                return {
+                    id: id,
+                    title: title
+                };
             });
         });
     });

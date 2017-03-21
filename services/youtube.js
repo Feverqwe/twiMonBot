@@ -478,7 +478,7 @@ Youtube.prototype.getChannelId = function(channelName) {
             channel.title = snippet.channelTitle;
 
             return _this.setChannelInfo(channel).then(function () {
-                return channel.id;
+                return channel;
             });
         });
     });

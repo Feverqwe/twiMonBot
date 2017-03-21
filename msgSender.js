@@ -6,7 +6,7 @@ var base = require('./base');
 var debug = require('debug')('app:msgSender');
 var Promise = require('bluebird');
 var request = require('request');
-var requestPromise = Promise.promisify(request);
+var requestPromise = require('request-promise');
 
 var MsgSender = function (options) {
     var _this = this;
@@ -62,116 +62,90 @@ MsgSender.prototype.onSendMsgError = function(err, chatId) {
     return needKick;
 };
 
-MsgSender.prototype.downloadImg = function (stream) {
+MsgSender.prototype.getValidPhotoUrl = function (stream) {
     var _this = this;
 
-    var requestLimit = 4;
-    var _requestLimit = _this.gOptions.config.sendPhotoRequestLimit;
-    if (_requestLimit) {
-        requestLimit = _requestLimit;
-    }
+    var requestLimit = _this.gOptions.config.sendPhotoRequestLimit || 4;
 
-    var requestTimeoutSec = 0.25;
-    var _requestTimeoutSec = _this.gOptions.config.sendPhotoRequestTimeoutSec;
-    if (_requestTimeoutSec) {
-        requestTimeoutSec = _requestTimeoutSec;
-    }
+    var requestTimeoutSec = _this.gOptions.config.sendPhotoRequestTimeoutSec || 30;
     requestTimeoutSec *= 1000;
 
     var previewList = stream.preview;
 
-    var requestPic = function (index) {
+    var getHead = function (index) {
         var previewUrl = previewList[index];
         return requestPromise({
             method: 'HEAD',
             url: previewUrl,
             gzip: true,
-            forever: true
+            forever: true,
+            resolveWithFullResponse: true
         }).then(function (response) {
-            if (response.statusCode !== 200) {
-                throw new Error(response.statusCode);
-            }
-
             return response.request.href;
         }).catch(function(err) {
-            // debug('Request photo error! %s %s %s', index, stream._channelId, previewUrl, err);
-
-            index++;
-            if (index < previewList.length) {
-                return requestPic(index);
+            if (++index < previewList.length) {
+                return getHead(index);
             }
 
-            requestLimit--;
-            if (requestLimit > 0) {
-                return new Promise(function(resolve) {
-                    setTimeout(resolve, requestTimeoutSec);
-                }).then(function() {
-                    // debug("Retry %s request photo %s %s!", requestLimit, chatId, stream._channelId, err);
-                    return requestPic(0);
-                });
+            if (requestLimit-- < 1) {
+                throw err;
             }
 
-            throw err;
+            return new Promise(function(resolve) {
+                setTimeout(resolve, requestTimeoutSec);
+            }).then(function() {
+                return getHead(0);
+            });
         });
     };
 
-    return requestPic(0).catch(function (err) {
-        debug('requestPic error %s', stream._channelId, err);
-
-        throw err;
-    });
+    return getHead(0);
 };
 
 MsgSender.prototype.getPicId = function(chatId, text, stream) {
     var _this = this;
 
-    var sendPicLimit = 0;
-    var _retryLimit = _this.gOptions.config.sendPhotoMaxRetry;
-    if (_retryLimit) {
-        sendPicLimit = _retryLimit;
-    }
-
-    var sendPicTimeoutSec = 5;
-    var _retryTimeoutSec = _this.gOptions.config.sendPhotoRetryTimeoutSec;
-    if (_retryTimeoutSec) {
-        sendPicTimeoutSec = _retryTimeoutSec;
-    }
-    sendPicTimeoutSec *= 1000;
-
     var sendingPic = function() {
-        var sendPic = function(photoUrl) {
-            return _this.gOptions.bot.sendPhotoUrl(chatId, photoUrl, {
+        var uploadPhoto = function (photoUrl) {
+            return _this.gOptions.bot.sendPhoto(chatId, request({
+                url: photoUrl,
+                forever: true
+            }), {
                 caption: text
-            }).catch(function(err) {
+            });
+        };
+
+        var sendPhotoUrl = function (photoUrl) {
+            return _this.gOptions.bot.sendPhoto(chatId, photoUrl, {
+                caption: text
+            });
+        };
+
+        return _this.getValidPhotoUrl(stream).then(function (photoUrl) {
+            return sendPhotoUrl(photoUrl).catch(function (err) {
                 var isKicked = _this.onSendMsgError(err, chatId);
                 if (isKicked) {
                     throw new Error('Send photo file error! Bot was kicked!');
                 }
 
-                var imgProcessError = [
-                    /Failed to get HTTP URL content/
-                ].some(function(re) {
-                    return re.test(err);
+                var errList = [
+                    /failed to get HTTP URL content/,
+                    /wrong type of the web page content/,
+                    /wrong file identifier\/HTTP URL specified/
+                ];
+                var isLoadUrlError = errList.some(function (re) {
+                    return re.test(err.message);
                 });
-
-                sendPicLimit--;
-                if (imgProcessError && sendPicLimit > 0) {
-                    return new Promise(function(resolve) {
-                        setTimeout(resolve, sendPicTimeoutSec);
-                    }).then(function() {
-                        debug("Retry %s send photo file %s %s!", sendPicLimit, chatId, stream._channelId, err);
-                        return sendingPic();
-                    });
+                if (!isLoadUrlError) {
+                    isLoadUrlError = err.response && err.response.statusCode === 504;
                 }
 
-                debug('sendPic error %s %s %s', chatId, stream._channelId, photoUrl, err);
+                if (!isLoadUrlError) {
+                    throw err;
+                }
 
-                throw err;
+                return uploadPhoto(photoUrl);
             });
-        };
-
-        return _this.downloadImg(stream).then(function (photoUrl) {
-            return sendPic(photoUrl);
         });
     };
 
