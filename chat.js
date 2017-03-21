@@ -817,13 +817,16 @@ var Chat = function(options) {
             }
             _details.chat_id = chatId;
             _details.message_id = messageId;
-            if (options.reply_markup) {
-                var reply_markup = JSON.parse(options.reply_markup);
+            if (_details.reply_markup) {
+                var reply_markup = JSON.parse(_details.reply_markup);
                 if (reply_markup.force_reply) {
                     delete reply_markup.force_reply;
                 }
-                options.reply_markup = JSON.stringify(reply_markup);
-
+                if (Object.keys(reply_markup)) {
+                    _details.reply_markup = JSON.stringify(reply_markup);
+                } else {
+                    delete _details.reply_markup;
+                }
             }
             return bot.editMessageText(text, _details).catch(function (err) {
                 if (/message can't be edited/.test(err.message) ||
