@@ -359,6 +359,17 @@ var Chat = function(options) {
                 return editOrSendNewMessage(chatId, messageId, result, {
                     disable_web_page_preview: true,
                     parse_mode: 'HTML'
+                }).then(function () {
+                    var onlineServiceList = getOnlineChannelList(req.channels);
+                    var channelList = onlineServiceList[serviceName] || {};
+                    var streamList = channelList[channel.id] || [];
+                    streamList.forEach(function (stream) {
+                        var text = base.getNowStreamPhotoText(_this.gOptions, stream);
+                        var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
+                        return _this.gOptions.msgSender.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
+                            debug('a commend, sendNotify error!', err);
+                        });
+                    });
                 });
             }, function (err) {
                 var result;
@@ -428,7 +439,7 @@ var Chat = function(options) {
                 }, 3 * 60).then(function (req) {
                     _this.track(req.message, '/add');
                     var query = req.getQuery();
-                    if (query.cancel === 'true') {
+                    if (query.cancel === 'true' || !query.service) {
                         return editOrSendNewMessage(chatId, msg.message_id, language.commandCanceled.replace('{command}', 'add'));
                     }
 
@@ -1275,9 +1286,15 @@ var Chat = function(options) {
 
                 var serviceChannels = serviceList[item.service];
                 if (!serviceChannels) {
-                    serviceChannels = serviceList[item.service] = [];
+                    serviceChannels = serviceList[item.service] = {};
                 }
-                serviceChannels.push(stream);
+
+                var streamList = serviceChannels[stream._channelId];
+                if (!streamList) {
+                    streamList = serviceChannels[stream._channelId] = [];
+                    serviceChannels.push(streamList);
+                }
+                streamList.push(stream);
             }
         });
         return serviceList;
