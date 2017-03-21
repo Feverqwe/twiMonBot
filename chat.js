@@ -431,11 +431,9 @@ var Chat = function(options) {
             var msgText = language.enterChannelName;
             if (chatId < 0) {
                 msgText += language.groupNote;
-                if (!req.callback_query) {
-                    options.reply_markup = JSON.stringify({
-                        force_reply: true
-                    });
-                }
+                options.reply_markup = JSON.stringify({
+                    force_reply: true
+                });
             }
 
             editOrSendNewMessage(chatId, messageId, msgText, options).then(function (msg) {
@@ -819,6 +817,14 @@ var Chat = function(options) {
             }
             _details.chat_id = chatId;
             _details.message_id = messageId;
+            if (options.reply_markup) {
+                var reply_markup = JSON.parse(options.reply_markup);
+                if (reply_markup.force_reply) {
+                    delete reply_markup.force_reply;
+                }
+                options.reply_markup = JSON.stringify(reply_markup);
+
+            }
             return bot.editMessageText(text, _details).catch(function (err) {
                 if (/message can't be edited/.test(err.message) ||
                     /message to edit not found/.test(err.message)
