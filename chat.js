@@ -338,8 +338,21 @@ var Chat = function(options) {
         var chatId = req.getChatId();
         var channel = '';
         var serviceName = '';
+        var query = req.getQuery();
+        var messageId = req.getMessageId();
         if (req.message) {
             channel = req.params[0] || '';
+        } else
+        if (req.callback_query) {
+            channel = query.channel || '';
+            serviceName = query.service || '';
+        }
+
+        if (query.cancel === 'true') {
+            editOrSendNewMessage(chatId, messageId, language.commandCanceled.replace('{command}', 'add')).catch(function (err) {
+                debug('Command add error!', err);
+            });
+            return;
         }
 
         if (!serviceName && channel) {
@@ -397,11 +410,8 @@ var Chat = function(options) {
             return;
         }
 
-        var requestChannel = function (msg) {
-            var options = {
-                chat_id: chatId,
-                message_id: msg.message_id
-            };
+        var requestChannel = function () {
+            var options = {};
             var msgText = language.enterChannelName;
             if (chatId < 0) {
                 msgText += language.groupNote;
@@ -410,7 +420,7 @@ var Chat = function(options) {
                 });
             }
 
-            return bot.editMessageText(msgText, options).then(function (msg) {
+            editOrSendNewMessage(chatId, messageId, msgText, options).then(function (msg) {
                 return router.waitResponse({
                     event: 'message',
                     type: 'text',
@@ -420,7 +430,7 @@ var Chat = function(options) {
                 }, 3 * 60).then(function (req) {
                     _this.track(req.message, '/add');
                     return onResponseChannel(req.message.text, serviceName, msg.message_id);
-                }, function (err) {
+                }, function () {
                     var cancelText = language.commandCanceled.replace('{command}', 'add');
                     return editOrSendNewMessage(chatId, msg.message_id, cancelText);
                 });
@@ -429,35 +439,19 @@ var Chat = function(options) {
             });
         };
 
+        if (serviceName && !channel) {
+            requestChannel();
+            return;
+        }
+
         var requestService = function () {
             var msgText = language.enterService;
             var options = {};
             options.reply_markup = JSON.stringify({
-                inline_keyboard: getServiceListKeyboard()
+                inline_keyboard: getServiceListKeyboard(channel)
             });
 
-            bot.sendMessage(chatId, msgText, options).then(function (msg) {
-                return router.waitResponse(/\/add/, {
-                    event: 'callback_query',
-                    chatId: chatId,
-                    fromId: req.getFromId()
-                }, 3 * 60).then(function (req) {
-                    var query = req.getQuery();
-                    if (query.cancel === 'true' || !query.service) {
-                        return editOrSendNewMessage(chatId, msg.message_id, language.commandCanceled.replace('{command}', 'add'));
-                    }
-
-                    serviceName = query.service;
-                    if (channel) {
-                        return onResponseChannel(channel, serviceName, msg.message_id);
-                    } else {
-                        return requestChannel(msg);
-                    }
-                }, function () {
-                    var cancelText = language.commandCanceled.replace('{command}', 'add');
-                    return editOrSendNewMessage(chatId, msg.message_id, cancelText);
-                });
-            }).catch(function (err) {
+            bot.sendMessage(chatId, msgText, options).catch(function (err) {
                 debug('Command add error!', err);
             });
         };
@@ -1227,7 +1221,7 @@ var Chat = function(options) {
         return btnList;
     };
 
-    var getServiceListKeyboard = function() {
+    var getServiceListKeyboard = function(channel) {
         var last = [];
         var btnList = [last];
         for (var service in services) {
@@ -1238,7 +1232,8 @@ var Chat = function(options) {
             last.push({
                 text: serviceToTitle[service],
                 callback_data: '/add?' + querystring.stringify({
-                    service: service
+                    service: service,
+                    channel: channel
                 })
             });
         }
