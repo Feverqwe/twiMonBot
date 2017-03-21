@@ -374,7 +374,7 @@ var Chat = function(options) {
             });
         }
 
-        var onResponseChannel = function (channelName, serviceName) {
+        var onResponseChannel = function (channelName, serviceName, messageId) {
             return addChannel(req, serviceName, channelName).then(function (/*ChannelInfo*/channel) {
                 var url = base.getChannelUrl(serviceName, channel.id);
                 var displayName = base.htmlSanitize('a', channel.title, url);
@@ -420,7 +420,7 @@ var Chat = function(options) {
         };
 
         if (channel && serviceName) {
-            onResponseChannel(channel, serviceName).catch(function (err) {
+            onResponseChannel(channel, serviceName, messageId).catch(function (err) {
                 debug('Command add error!', err);
             });
             return;
