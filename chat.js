@@ -426,6 +426,22 @@ var Chat = function(options) {
             return;
         }
 
+        var requestService = function (channel, messageId) {
+            var msgText = language.enterService;
+            var options = {};
+            options.reply_markup = JSON.stringify({
+                inline_keyboard: getServiceListKeyboard(channel)
+            });
+
+            editOrSendNewMessage(chatId, messageId, msgText, options).catch(function (err) {
+                debug('Command add error!', err);
+            });
+        };
+
+        if (channel && !serviceName) {
+            return requestService(channel, messageId);
+        }
+
         var requestChannel = function () {
             var options = {};
             var msgText = language.enterChannelName;
@@ -436,7 +452,7 @@ var Chat = function(options) {
                 });
             }
 
-            editOrSendNewMessage(chatId, messageId, msgText, options).then(function (msg) {
+            bot.sendMessage(chatId, msgText, options).then(function (msg) {
                 return router.waitResponse({
                     event: 'message',
                     type: 'text',
@@ -445,7 +461,11 @@ var Chat = function(options) {
                     throwOnCommand: true
                 }, 3 * 60).then(function (req) {
                     _this.track(req.message, '/add');
-                    return onResponseChannel(req.message.text, serviceName, msg.message_id);
+                    if (serviceName) {
+                        return onResponseChannel(req.message.text, serviceName, msg.message_id);
+                    } else {
+                        return requestService(req.message.text, msg.message_id);
+                    }
                 }, function () {
                     var cancelText = language.commandCanceled.replace('{command}', 'add');
                     return editOrSendNewMessage(chatId, msg.message_id, cancelText);
@@ -455,24 +475,7 @@ var Chat = function(options) {
             });
         };
 
-        if (serviceName && !channel) {
-            requestChannel();
-            return;
-        }
-
-        var requestService = function () {
-            var msgText = language.enterService;
-            var options = {};
-            options.reply_markup = JSON.stringify({
-                inline_keyboard: getServiceListKeyboard(channel)
-            });
-
-            bot.sendMessage(chatId, msgText, options).catch(function (err) {
-                debug('Command add error!', err);
-            });
-        };
-
-        return requestService();
+        return requestChannel();
     });
 
     textOrCb(/\/.+/, function (req, next) {
@@ -817,16 +820,6 @@ var Chat = function(options) {
             }
             _details.chat_id = chatId;
             _details.message_id = messageId;
-            if (_details.reply_markup) {
-                var reply_markup = JSON.parse(_details.reply_markup);
-                if (reply_markup.inline_keyboard) {
-                    _details.reply_markup = JSON.stringify({
-                        inline_keyboard: reply_markup.inline_keyboard
-                    });
-                } else {
-                    delete _details.reply_markup;
-                }
-            }
             return bot.editMessageText(text, _details).catch(function (err) {
                 if (/message can't be edited/.test(err.message) ||
                     /message to edit not found/.test(err.message)
