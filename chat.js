@@ -290,7 +290,7 @@ var Chat = function(options) {
         var chatId = req.getChatId();
         var query = req.query;
 
-        var lastStreamList = this.gOptions.storage.lastStreamList;
+        var lastStreamList = _this.gOptions.storage.lastStreamList;
         var streamList = [];
         lastStreamList.some(function (stream) {
             if (stream._channelId === query.channelId && stream._service === query.service) {
