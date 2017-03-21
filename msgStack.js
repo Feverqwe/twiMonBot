@@ -17,10 +17,64 @@ var MsgStack = function (options) {
         return _this.notify(stream);
     });
 
-    this.onReady = base.storage.get(['chatMsgStack']).then(function(storage) {
-        _this.config.chatMsgStack = storage.chatMsgStack || {};
-        _this.stack = _this.initStack();
+    this.onReady = _this.init();
+};
+
+var STATE_ONLINE = 1;
+var STATE_OFFLINE = 2;
+var STATE_TIMEOUT = 4;
+
+MsgStack.prototype.init = function () {
+    var db = this.gOptions.db;
+    var promise = Promise.resolve();
+    promise = promise.then(function () {
+        return new Promise(function (resolve, reject) {
+            db.connection.query('\
+            CREATE TABLE IF NOT EXISTS `streams` ( \
+                `id` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
+                `channelId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
+                `service` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
+                `data` LONGTEXT CHARACTER SET utf8mb4 NOT NULL, \
+                `imageFileId` TEXT CHARACTER SET utf8mb4 NULL, \
+                `insertTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
+                `checkTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
+                `state` INT NOT NULL DEFAULT 1, \
+            UNIQUE INDEX `videoIdChannelIdService_UNIQUE` (`id` ASC, `channelId` ASC, `service` ASC), \
+            INDEX `channelId_idx` (`channelId` ASC), \
+            INDEX `service_idx` (`service` ASC),  \
+            UNIQUE INDEX `id_UNIQUE` (`id` ASC)); \
+        ', function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
     });
+    promise = promise.then(function () {
+        return new Promise(function (resolve, reject) {
+            db.connection.query('\
+                CREATE TABLE IF NOT EXISTS `chatIdStreamId` ( \
+                    `chatId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
+                    `streamId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
+                    `messageId` VARCHAR(191) CHARACTER SET utf8mb4 NULL, \
+                    `messageType` VARCHAR(191) CHARACTER SET utf8mb4 NULL, \
+                UNIQUE INDEX `chatIdStreamId_UNIQUE` (`chatId` ASC, `streamId` ASC), \
+                FOREIGN KEY (`streamId`) \
+                    REFERENCES `streams` (`id`) \
+                    ON DELETE CASCADE \
+                    ON UPDATE CASCADE); \
+            ', function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    });
+    return promise;
 };
 
 MsgStack.prototype.initStack = function () {
