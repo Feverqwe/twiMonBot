@@ -21,45 +21,38 @@ var MsgSender = function (options) {
 
 MsgSender.prototype.onSendMsgError = function(err, chatId) {
     var _this = this;
-    var errMsg = err.message;
-    var needKick = /^403\s+/.test(errMsg);
+    var isBlocked = false;
 
-    if (!needKick) {
-        needKick = [
-            /group chat is deactivated/,
-            /chat not found"/,
-            /channel not found"/,
-            /USER_DEACTIVATED/
-        ].some(function (re) {
-            return re.test(errMsg);
-        });
-    }
+    if (err.code === 'ETELEGRAM') {
+        var body = err.response.body;
 
-    var errorJson = /^\d+\s+(\{.+})$/.exec(errMsg);
-    errorJson = errorJson && errorJson[1];
-    if (errorJson) {
-        var msg = null;
-        try {
-            msg = JSON.parse(errorJson);
-        } catch (e) {}
+        isBlocked = body.error_code === 403;
+        if (!isBlocked) {
+            isBlocked = [
+                /group chat is deactivated/,
+                /chat not found/,
+                /channel not found/,
+                /USER_DEACTIVATED/
+            ].some(function (re) {
+                return re.test(body.description);
+            });
+        }
 
-        if (msg && msg.parameters) {
-            var parameters = msg.parameters;
-            if (parameters.migrate_to_chat_id) {
-                _this.gOptions.chat.chatMigrate(chatId, parameters.migrate_to_chat_id);
+
+        var isChannel = /^@\w+$/.test(chatId);
+        if (isBlocked) {
+            if (isChannel) {
+                _this.gOptions.chat.removeChannel(chatId);
+            } else {
+                _this.gOptions.chat.removeChat(chatId);
             }
+        } else
+        if (!isChannel && body.parameters && body.parameters.migrate_to_chat_id) {
+            _this.gOptions.chat.chatMigrate(chatId, body.parameters.migrate_to_chat_id);
         }
     }
 
-    if (needKick) {
-        if (/^@\w+$/.test(chatId)) {
-            _this.gOptions.chat.removeChannel(chatId);
-        } else {
-            _this.gOptions.chat.removeChat(chatId);
-        }
-    }
-
-    return needKick;
+    return isBlocked;
 };
 
 MsgSender.prototype.getValidPhotoUrl = function (stream) {

@@ -1366,6 +1366,46 @@ var Chat = function(options) {
     };
 };
 
+Chat.prototype.removeChannel = function(channelName) {
+    var chatList = this.gOptions.storage.chatList;
+
+    var needSave = false;
+
+    Object.keys(chatList).forEach(function (chatId) {
+        var item = chatList[chatId];
+        var options = item.options;
+
+        if (options && options.channel === channelName) {
+            delete options.channel;
+            delete options.mute;
+            if (!Object.keys(options).length) {
+                delete item.options;
+            }
+            needSave = true;
+        }
+    });
+
+    if (!needSave) {
+        return Promise.resolve();
+    } else {
+        return base.storage.set({chatList: chatList});
+    }
+};
+
+Chat.prototype.removeChat = function(chatId) {
+    var chatList = this.gOptions.storage.chatList;
+    var chatItem = chatList[chatId];
+
+    if (!chatItem) {
+        return Promise.resolve();
+    }
+
+    delete chatList[chatId];
+    debug('Chat %s removed! %j', chatId, chatItem);
+
+    return base.storage.set({chatList: chatList});
+};
+
 Chat.prototype.chatMigrate = function(oldChatId, newChatId) {
     var chatList = this.gOptions.storage.chatList;
     var chatItem = chatList[oldChatId];
