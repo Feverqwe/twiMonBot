@@ -266,7 +266,13 @@ var Chat = function(options) {
     textOrCb(/\/online/, function (req) {
         var chatId = req.getChatId();
         var messageId = req.getMessageId();
+
         var text = getOnlineText(req.channels);
+
+        if (!req.channels.length) {
+            text = language.emptyServiceList;
+        }
+
         var query = req.getQuery();
         var page = query.page || 0;
         return getWatchBtnList(req.channels, page).then(function (btnList) {
