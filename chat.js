@@ -267,6 +267,7 @@ var Chat = function(options) {
         var chatId = req.getChatId();
         var messageId = req.getMessageId();
         var text = getOnlineText(req.channels);
+        var query = req.getQuery();
         var page = query.page || 0;
         return getWatchBtnList(req.channels, page).then(function (btnList) {
             btnList.unshift([{
@@ -274,13 +275,21 @@ var Chat = function(options) {
                 callback_data: '/online'
             }]);
 
-            return editOrSendNewMessage(chatId, messageId, text, {
+            var options = {
                 disable_web_page_preview: true,
                 parse_mode: 'HTML',
                 reply_markup: JSON.stringify({
                     inline_keyboard: btnList
                 })
-            });
+            };
+
+            if (req.callback_query && !query.rel) {
+                options.chat_id = chatId;
+                options.message_id = messageId;
+                return bot.editMessageText(text, options);
+            } else {
+                return bot.sendMessage(chatId, text, options);
+            }
         }).catch(function (err) {
             debug('Command online error!', err);
         });
@@ -373,7 +382,10 @@ var Chat = function(options) {
         }
 
         var requestChannel = function (msg) {
-            var options = {};
+            var options = {
+                chat_id: chatId,
+                message_id: msg.message_id
+            };
             var msgText = language.enterChannelName;
             if (chatId < 0) {
                 msgText += language.groupNote;
@@ -382,7 +394,7 @@ var Chat = function(options) {
                 });
             }
 
-            return editOrSendNewMessage(chatId, msg.message_id, msgText, options).then(function (msg) {
+            return bot.editMessageText(msgText, options).then(function (msg) {
                 return router.waitResponse({
                     event: 'message',
                     type: 'text',
@@ -414,15 +426,13 @@ var Chat = function(options) {
                     chatId: chatId,
                     fromId: req.getFromId()
                 }, 3 * 60).then(function (req) {
+                    _this.track(req.message, '/add');
                     var query = req.getQuery();
                     if (query.cancel === 'true') {
                         return editOrSendNewMessage(chatId, msg.message_id, language.commandCanceled.replace('{command}', 'add'));
                     }
 
-                    _this.track(req.message, '/add');
-
                     serviceName = query.service;
-
                     if (channel) {
                         return onResponseChannel(channel, serviceName, msg.message_id);
                     } else {
