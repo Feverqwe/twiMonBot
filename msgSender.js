@@ -221,25 +221,19 @@ MsgSender.prototype.updateMsg = function (msg, text, noPhotoText) {
     var sendPromise = Promise.resolve();
     if (msg.type === 'streamPhoto') {
         sendPromise = sendPromise.then(function () {
-            return _this.gOptions.bot.editMessageCaption(
-                msg.chatId,
-                text,
-                {
-                    message_id: msg.id
-                }
-            );
+            return _this.gOptions.bot.editMessageCaption(text, {
+                chat_id: msg.chatId,
+                message_id: msg.id
+            });
         });
     } else
     if (msg.type === 'streamText') {
         sendPromise = sendPromise.then(function () {
-            return _this.gOptions.bot.editMessageText(
-                msg.chatId,
-                noPhotoText,
-                {
-                    message_id: msg.id,
-                    parse_mode: 'HTML'
-                }
-            );
+            return _this.gOptions.bot.editMessageText(noPhotoText, {
+                chat_id: msg.chatId,
+                message_id: msg.id,
+                parse_mode: 'HTML'
+            });
         });
     }
     return sendPromise;
