@@ -339,7 +339,7 @@ var Chat = function(options) {
         var channel = '';
         var serviceName = '';
         var query = {};
-        var messageId = null;
+        var messageId = '';
         if (req.message) {
             channel = req.params[0] || '';
         } else
