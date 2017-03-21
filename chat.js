@@ -439,7 +439,8 @@ var Chat = function(options) {
         };
 
         if (channel && !serviceName) {
-            return requestService(channel, messageId);
+            requestService(channel, messageId);
+            return;
         }
 
         var requestChannel = function () {
