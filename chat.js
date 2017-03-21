@@ -267,9 +267,10 @@ var Chat = function(options) {
         var chatId = req.getChatId();
         var messageId = req.getMessageId();
 
-        var text = getOnlineText(req.channels);
-
-        if (!req.channels.length) {
+        var text;
+        if (req.channels.length) {
+            text = getOnlineText(req.channels);
+        } else {
             text = language.emptyServiceList;
         }
 
