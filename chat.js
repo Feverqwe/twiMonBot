@@ -438,12 +438,14 @@ var Chat = function(options) {
                     chatId: chatId,
                     fromId: req.getFromId()
                 }, 3 * 60).then(function (req) {
-                    var query = req.getQuery();
-                    if (query.cancel === 'true' || !query.service) {
-                        return editOrSendNewMessage(chatId, msg.message_id, language.commandCanceled.replace('{command}', 'add'));
-                    }
+                    return bot.answerCallbackQuery(req.callback_query.id).then(function () {
+                        var query = req.getQuery();
+                        if (query.cancel === 'true' || !query.service) {
+                            return editOrSendNewMessage(chatId, msg.message_id, language.commandCanceled.replace('{command}', 'add'));
+                        }
 
-                    return onResponseChannel(channel, query.service, msg.message_id);
+                        return onResponseChannel(channel, query.service, msg.message_id);
+                    });
                 }, function () {
                     var cancelText = language.commandCanceled.replace('{command}', 'add');
                     return editOrSendNewMessage(chatId, msg.message_id, cancelText);
