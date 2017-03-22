@@ -1034,7 +1034,7 @@ var Chat = function(options) {
                 }
             };
         }).catch(function (err) {
-            debug('getChannels', err);
+            debug('getChat', err);
         });
     };
 
@@ -1146,7 +1146,7 @@ var Chat = function(options) {
                 return base.storage.set({chatList: chatList});
             }
         }).catch(function (err) {
-            debug('getChannels', err);
+            debug('usersAddChannel', err);
         });
     };
 
