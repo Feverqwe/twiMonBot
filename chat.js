@@ -326,7 +326,7 @@ var Chat = function(options) {
 
         var promiseList = streamList.map(function (stream) {
             var text = '';
-            if (!req.chat.options.hidePreview) {
+            if (!req.chat || !req.chat.options.hidePreview) {
                 text = base.getNowStreamPhotoText(_this.gOptions, stream);
             }
             var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
@@ -391,7 +391,7 @@ var Chat = function(options) {
                         var channelList = onlineServiceList[serviceName] || {};
                         var streamList = channelList[channel.id] || [];
                         streamList.forEach(function (stream) {
-                            var text = null;
+                            var text = '';
                             if (!req.chat || !req.chat.options.hidePreview) {
                                 text = base.getNowStreamPhotoText(_this.gOptions, stream);
                             }
