@@ -364,7 +364,8 @@ var Chat = function(options) {
             return;
         }
 
-        if (!serviceName && channel) {
+        var getServiceName = function (channel) {
+            var serviceName = '';
             Object.keys(services).some(function (_serviceName) {
                 var service = services[_serviceName];
                 if (service.isServiceUrl(channel)) {
@@ -372,6 +373,11 @@ var Chat = function(options) {
                     return true;
                 }
             });
+            return serviceName;
+        };
+
+        if (!serviceName && channel) {
+            serviceName = getServiceName(channel);
         }
 
         var onResponseChannel = function (channelName, serviceName, messageId) {
@@ -462,10 +468,17 @@ var Chat = function(options) {
                     throwOnCommand: true
                 }, 3 * 60).then(function (req) {
                     _this.track(req.message, '/add');
+
+                    var channel = req.message.text;
+
+                    if (!serviceName) {
+                        serviceName = getServiceName(channel);
+                    }
+
                     if (serviceName) {
-                        return onResponseChannel(req.message.text, serviceName, msg.message_id);
+                        return onResponseChannel(channel, serviceName, msg.message_id);
                     } else {
-                        return requestService(req.message.text, msg.message_id);
+                        return requestService(channel, msg.message_id);
                     }
                 }, function () {
                     var cancelText = language.commandCanceled.replace('{command}', 'add');
