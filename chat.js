@@ -118,7 +118,7 @@ var Chat = function(options) {
     textOrCb(/\/top/, function (req) {
         var chatId = req.getChatId();
 
-        return getAllChatChannels().then(function (items) {
+        return usersGetAllChatChannels().then(function (items) {
             var users = [];
             var channels = [];
             var services = [];
@@ -252,10 +252,10 @@ var Chat = function(options) {
     textOrCb(/\/.+/, function (req, next) {
         var chatId = req.getChatId();
         Promise.all([
-            getChat(chatId).then(function (chat) {
+            usersGetChat(chatId).then(function (chat) {
                 req.chat = chat;
             }),
-            getChannels(chatId).then(function (channels) {
+            usersGetChannels(chatId).then(function (channels) {
                 req.channels = channels;
             })
         ]).then(next).catch(function (err) {
@@ -386,7 +386,7 @@ var Chat = function(options) {
                     disable_web_page_preview: true,
                     parse_mode: 'HTML'
                 }).then(function () {
-                    return getChannels(chatId).then(function (channels) {
+                    return usersGetChannels(chatId).then(function (channels) {
                         var onlineServiceList = getOnlineChannelList(channels);
                         var channelList = onlineServiceList[serviceName] || {};
                         var streamList = channelList[channel.id] || [];
@@ -520,7 +520,7 @@ var Chat = function(options) {
         var query = req.getQuery();
 
         if (query.clear === 'true') {
-            removeChat(chatId).then(function () {
+            usersRemoveChat(chatId).then(function () {
                 return bot.editMessageText(language.cleared, {
                     chat_id: chatId,
                     message_id: messageId
@@ -708,7 +708,7 @@ var Chat = function(options) {
 
         if (query.remove) {
             delete req.chat.channelId;
-            setChat(req.chat).then(function () {
+            usersSetChat(req.chat).then(function () {
                 return updateOptionsMessage();
             }).catch(function (err) {
                 debug('Command setChannel error!', err);
@@ -871,7 +871,7 @@ var Chat = function(options) {
                 throw new Error('BAD_FORMAT');
             }
 
-            return getChatByChannelId(channelId).then(function (channelChat) {
+            return usersGetChatByChannelId(channelId).then(function (channelChat) {
                 if (channelChat) {
                     throw new Error('CHANNEL_EXISTS');
                 }
@@ -881,7 +881,7 @@ var Chat = function(options) {
                     chat.channelId = channelId;
                 });
             }).then(function () {
-                return setChat(chat);
+                return usersSetChat(chat);
             }).then(function () {
                 return language.telegramChannelSet.replace('{channelName}', channelId);
             });
@@ -905,14 +905,14 @@ var Chat = function(options) {
         });
     };
 
-    var getChatByChannelId = function (channelId) {
+    var usersGetChatByChannelId = function (channelId) {
         return Promise.resolve().then(function () {
             var chatList = _this.gOptions.storage.chatList;
             for (var chatId in chatList) {
                 var chatItem = chatList[chatId];
                 var options = chatItem.options || {};
                 if (options.channel === channelId) {
-                    return getChat(chatId);
+                    return usersGetChat(chatId);
                 }
             }
         }).catch(function (err) {
@@ -930,7 +930,7 @@ var Chat = function(options) {
             }
         });
 
-        return setChat(chat);
+        return usersSetChat(chat);
     };
 
     var deleteChannel = function (req, channelId, serviceName) {
@@ -942,10 +942,10 @@ var Chat = function(options) {
             return language.channelDontExist;
         }
 
-        return removeChannel(req.chat.id, serviceName, channelId).then(function () {
-            return getChannels(req.chat.id).then(function (channels) {
+        return usersRemoveChannel(req.chat.id, serviceName, channelId).then(function () {
+            return usersGetChannels(req.chat.id).then(function (channels) {
                 if (channels.length === 0) {
-                    return removeChat(req.chat.id);
+                    return usersRemoveChat(req.chat.id);
                 }
             });
         }).then(function () {
@@ -961,7 +961,7 @@ var Chat = function(options) {
      * @param {String} channelId
      * @return {Promise}
      */
-    var removeChannel = function (chatId, serviceName, channelId) {
+    var usersRemoveChannel = function (chatId, serviceName, channelId) {
         return Promise.resolve().then(function () {
             var chatList = _this.gOptions.storage.chatList;
             var chatItem = chatList[chatId];
@@ -974,7 +974,7 @@ var Chat = function(options) {
         });
     };
 
-    var setChat = function (chat) {
+    var usersSetChat = function (chat) {
         var chatList = _this.gOptions.storage.chatList;
         var chatItem = chatList[chat.id];
         if (!chatItem) {
@@ -1005,7 +1005,7 @@ var Chat = function(options) {
      * @param {String} chatId
      * @return {Promise}
      */
-    var removeChat = function (chatId) {
+    var usersRemoveChat = function (chatId) {
         return Promise.resolve().then(function () {
             delete _this.gOptions.storage.chatList[chatId];
             return base.storage.set({chatList: _this.gOptions.storage.chatList});
@@ -1016,7 +1016,7 @@ var Chat = function(options) {
      * @param {String} chatId
      * @return {Promise.<{id: String, channelId: String, options: Object}>}
      */
-    var getChat = function (chatId) {
+    var usersGetChat = function (chatId) {
         return Promise.resolve().then(function () {
             var chatList = _this.gOptions.storage.chatList;
             var chatItem = chatList[chatId];
@@ -1042,7 +1042,7 @@ var Chat = function(options) {
      * @param {String} chatId
      * @return {Promise.<{service: String, channelId: String}[]>}
      */
-    var getChannels = function (chatId) {
+    var usersGetChannels = function (chatId) {
         var result = [];
         return Promise.resolve().then(function () {
             var chatList = _this.gOptions.storage.chatList;
@@ -1067,7 +1067,7 @@ var Chat = function(options) {
     /**
      * @return {Promise.<{chatId: String, service: String, channelId: String}[]>}
      */
-    var getAllChatChannels = function () {
+    var usersGetAllChatChannels = function () {
         var result = [];
         return Promise.resolve().then(function () {
             var chatList = _this.gOptions.storage.chatList;
@@ -1108,7 +1108,7 @@ var Chat = function(options) {
             var promise = Promise.resolve();
             if (!req.chat) {
                 promise = promise.then(function () {
-                    return setChat({id: chatId});
+                    return usersSetChat({id: chatId});
                 });
             }
             return promise.then(function () {
