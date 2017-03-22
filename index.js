@@ -14,6 +14,7 @@ var LiveController = require('./liveController');
 var MsgStack = require('./msgStack');
 var MsgSender = require('./msgSender');
 const Db = require('./db');
+const Locale = require('./locale');
 
 var options = {
     config: {},
@@ -42,11 +43,13 @@ var options = {
             options.config = config;
 
             config.botName && (config.botName = config.botName.toLowerCase());
-        }),
-        base.loadLanguage().then(function(language) {
-            options.language = language;
         })
     ]).then(function() {
+        options.locale = new Locale(options);
+        return options.locale.onReady.then(function () {
+            options.language = options.locale.language;
+        });
+    }).then(function() {
         options.db = new Db(options);
         return options.db.onReady;
     }).then(function() {
