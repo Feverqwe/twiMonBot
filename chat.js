@@ -357,13 +357,6 @@ var Chat = function(options) {
             serviceName = query.service || '';
         }
 
-        if (query.cancel === 'true') {
-            editOrSendNewMessage(chatId, messageId, language.commandCanceled.replace('{command}', 'add')).catch(function (err) {
-                debug('Command add error!', err);
-            });
-            return;
-        }
-
         var getServiceName = function (channel) {
             var serviceName = '';
             Object.keys(services).some(function (_serviceName) {
@@ -439,7 +432,23 @@ var Chat = function(options) {
                 inline_keyboard: getServiceListKeyboard(channel)
             });
 
-            editOrSendNewMessage(chatId, messageId, msgText, options).catch(function (err) {
+            editOrSendNewMessage(chatId, messageId, msgText, options).then(function (msg) {
+                return router.waitResponse(/\/add/, {
+                    event: 'callback_query',
+                    chatId: chatId,
+                    fromId: req.getFromId()
+                }, 3 * 60).then(function (req) {
+                    var query = req.getQuery();
+                    if (query.cancel === 'true' || !query.service) {
+                        return editOrSendNewMessage(chatId, msg.message_id, language.commandCanceled.replace('{command}', 'add'));
+                    }
+
+                    return onResponseChannel(channel, query.service, msg.message_id);
+                }, function () {
+                    var cancelText = language.commandCanceled.replace('{command}', 'add');
+                    return editOrSendNewMessage(chatId, msg.message_id, cancelText);
+                });
+            }).catch(function (err) {
                 debug('Command add error!', err);
             });
         };
