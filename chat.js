@@ -429,7 +429,7 @@ var Chat = function(options) {
             var msgText = language.enterService;
             var options = {};
             options.reply_markup = JSON.stringify({
-                inline_keyboard: getServiceListKeyboard(channel)
+                inline_keyboard: getServiceListKeyboard()
             });
 
             editOrSendNewMessage(chatId, messageId, msgText, options).then(function (msg) {
@@ -1265,7 +1265,7 @@ var Chat = function(options) {
         return btnList;
     };
 
-    var getServiceListKeyboard = function(channel) {
+    var getServiceListKeyboard = function() {
         var last = [];
         var btnList = [last];
         for (var service in services) {
@@ -1276,8 +1276,7 @@ var Chat = function(options) {
             last.push({
                 text: serviceToTitle[service],
                 callback_data: '/add?' + querystring.stringify({
-                    service: service,
-                    channel: channel
+                    service: service
                 })
             });
         }
