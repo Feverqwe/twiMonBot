@@ -143,6 +143,8 @@ MsgSender.prototype.updateNotify = function (stream) {
 
         var promiseArr = msgArray.map(function (msg) {
             return _this.updateMsg(msg, caption, text).then(function () {
+                debugLog('[update] %s %s', msg.chatId, stream._id);
+
                 if (msg.type === 'streamPhoto') {
                     _this.track(msg.chatId, stream, 'updatePhoto');
                 } else
@@ -366,12 +368,6 @@ MsgSender.prototype.sendMessage = function (chatId, messageId, message, data, us
     });
 };
 
-MsgSender.prototype.sendLog = function (chatId, data) {
-    var debugItem = JSON.parse(JSON.stringify(data));
-    delete debugItem.preview;
-    debugLog('[send] %s %j', chatId, debugItem);
-};
-
 MsgSender.prototype.sendNotify = function(chatIdList, caption, text, stream, useCache) {
     var _this = this;
     var promise = Promise.resolve();
@@ -382,7 +378,7 @@ MsgSender.prototype.sendNotify = function(chatIdList, caption, text, stream, use
                 caption: caption,
                 text: text
             }, stream, useCache).then(function () {
-                _this.sendLog(chatId, stream);
+                debugLog('[send] %s %s', chatId, stream._id);
             }).catch(function (err) {
                 err.chatId = chatId;
                 throw err;
