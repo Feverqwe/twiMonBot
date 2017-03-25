@@ -18,14 +18,20 @@ var MsgSender = function (options) {
     });
 };
 
-MsgSender.prototype.onSendMsgError = function(err, chatId) {
-    var _this = this;
-    var isBlocked = false;
 
+MsgStack.prototype.onSendMessageError = function (err, chatId) {
+    var _this = this;
+    /**
+     * @type {Object}
+     * @property {string} type
+     * @property {string} id
+     * @property {string} chatId
+     */
+    var result = null;
     if (err.code === 'ETELEGRAM') {
         var body = err.response.body;
 
-        isBlocked = body.error_code === 403;
+        var isBlocked = body.error_code === 403;
         if (!isBlocked) {
             isBlocked = [
                 /group chat is deactivated/,
@@ -37,24 +43,24 @@ MsgSender.prototype.onSendMsgError = function(err, chatId) {
             });
         }
 
-
         var isChannel = /^@\w+$/.test(chatId);
         if (isBlocked) {
-            if (isChannel) {
-                // todo: fix me
-                _this.gOptions.users.removeChannel(chatId);
+            if (!isChannel) {
+                result = _this.gOptions.users.removeChat(chatId);
             } else {
-                // todo: fix me
-                _this.gOptions.users.removeChat(chatId);
+                result = _this.gOptions.users.removeChatChannelById(chatId);
             }
         } else
         if (!isChannel && body.parameters && body.parameters.migrate_to_chat_id) {
-            // todo: fix me
-            _this.gOptions.users.changeChatId(chatId, body.parameters.migrate_to_chat_id);
+            result = _this.gOptions.users.changeChatId(chatId, body.parameters.migrate_to_chat_id);
         }
     }
 
-    return isBlocked;
+    if (!result) {
+        throw err;
+    }
+
+    return result;
 };
 
 /**
@@ -374,10 +380,7 @@ MsgSender.prototype.sendNotify = function(chatIdList, caption, text, stream, use
         });
     });
     return promise.catch(function (err) {
-        var isKicked = _this.onSendMsgError(err, err.chatId);
-        if (!isKicked) {
-            throw err;
-        }
+        return _this.onSendMessageError(err);
     });
 };
 
