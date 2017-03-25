@@ -377,7 +377,7 @@ MsgSender.prototype.sendNotify = function(chatIdList, caption, text, stream, use
     var promise = Promise.resolve();
     chatIdList.forEach(function (chatId) {
         promise = promise.then(function () {
-            return _this.sendMessage(chatId, null, {
+            return _this.sendMessage(chatId, stream._id, {
                 imageFileId: stream._photoId,
                 caption: caption,
                 text: text
