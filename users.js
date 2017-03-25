@@ -59,43 +59,7 @@ Users.prototype.init = function () {
             });
         });
     });
-    promise = promise.then(function () {
-        return _this.migrate();
-    });
     return promise;
-};
-
-Users.prototype.migrate = function () {
-    var _this = this;
-    var fs = require('fs');
-    var path = require('path');
-    var chatList = JSON.parse(fs.readFileSync(path.join(__dirname, 'storage', 'chatList')));
-
-    var queue = Promise.resolve();
-    Object.keys(chatList).forEach(function (key) {
-        var chatItem = chatList[key];
-        var serviceList = chatItem.serviceList;
-        var options = chatItem.options || {};
-        var chat = {
-            id: chatItem.chatId,
-            channelId: options.channel || null,
-            options: {
-                mute: options.mute,
-                hidePreview: options.hidePreview
-            }
-        };
-        queue = queue.then(function () {
-            return _this.setChat(chat).then(function () {
-                return Promise.all(Object.keys(serviceList).map(function (service) {
-                    var channelList = serviceList[service];
-                    return Promise.all(channelList.map(function (channelId) {
-                        return _this.addChannel(chat.id, service, channelId);
-                    }));
-                }));
-            });
-        });
-    });
-    return queue;
 };
 
 /**
