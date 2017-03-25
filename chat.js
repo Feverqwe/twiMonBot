@@ -956,13 +956,11 @@ var Chat = function(options) {
                 throw new CustomError('CHANNEL_EXISTS');
             }
 
-            var promise = Promise.resolve();
-            if (!req.chat) {
-                promise = promise.then(function () {
+            return users.getChat(chatId).then(function (chat) {
+                if (!chat) {
                     return users.setChat({id: chatId});
-                });
-            }
-            return promise.then(function () {
+                }
+            }).then(function () {
                 return users.addChannel(chatId, serviceName, channelId);
             }).then(function () {
                 return channel;
