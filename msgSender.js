@@ -21,7 +21,7 @@ var MsgSender = function (options) {
 };
 
 
-MsgStack.prototype.onSendMessageError = function (err, chatId) {
+MsgSender.prototype.onSendMessageError = function (err, chatId) {
     var _this = this;
     /**
      * @type {Object}
