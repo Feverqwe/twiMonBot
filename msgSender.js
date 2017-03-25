@@ -4,6 +4,8 @@
 "use strict";
 var base = require('./base');
 var debug = require('debug')('app:msgSender');
+var debugLog = require('debug')('app:msgSender:log');
+debugLog.log = console.log.bind(console);
 var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = require('request-promise');
@@ -364,6 +366,12 @@ MsgSender.prototype.sendMessage = function (chatId, messageId, message, data, us
     });
 };
 
+MsgSender.prototype.sendLog = function (chatId, data) {
+    var debugItem = JSON.parse(JSON.stringify(data));
+    delete debugItem.preview;
+    debugLog('[send] %s %j', chatId, debugItem);
+};
+
 MsgSender.prototype.sendNotify = function(chatIdList, caption, text, stream, useCache) {
     var _this = this;
     var promise = Promise.resolve();
@@ -373,7 +381,9 @@ MsgSender.prototype.sendNotify = function(chatIdList, caption, text, stream, use
                 imageFileId: null,
                 caption: caption,
                 text: text
-            }, stream, useCache).catch(function (err) {
+            }, stream, useCache).then(function () {
+                _this.sendLog(chatId, stream);
+            }).catch(function (err) {
                 err.chatId = chatId;
                 throw err;
             });
