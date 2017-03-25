@@ -42,13 +42,16 @@ MsgSender.prototype.onSendMsgError = function(err, chatId) {
         var isChannel = /^@\w+$/.test(chatId);
         if (isBlocked) {
             if (isChannel) {
-                _this.gOptions.chat.removeChannel(chatId);
+                // todo: fix me
+                _this.gOptions.users.removeChannel(chatId);
             } else {
-                _this.gOptions.chat.removeChat(chatId);
+                // todo: fix me
+                _this.gOptions.users.removeChat(chatId);
             }
         } else
         if (!isChannel && body.parameters && body.parameters.migrate_to_chat_id) {
-            _this.gOptions.chat.chatMigrate(chatId, body.parameters.migrate_to_chat_id);
+            // todo: fix me
+            _this.gOptions.users.changeChatId(chatId, body.parameters.migrate_to_chat_id);
         }
     }
 
@@ -188,29 +191,6 @@ MsgSender.prototype.removeMsgFromStream = function (stream, msg) {
     this.gOptions.events.emit('saveStreamList');
 };
 
-MsgSender.prototype.getStreamChatIdList = function (stream) {
-    var chatList = this.gOptions.storage.chatList;
-
-    var chatIdList = [];
-
-    Object.keys(chatList).forEach(function (chatId) {
-        var chatItem = chatList[chatId];
-
-        var userChannelList = chatItem.serviceList && chatItem.serviceList[stream._service];
-        if (!userChannelList) {
-            return;
-        }
-
-        if (userChannelList.indexOf(stream._channelId) === -1) {
-            return;
-        }
-
-        chatIdList.push(chatItem.chatId);
-    });
-
-    return chatIdList;
-};
-
 MsgSender.prototype.updateMsg = function (msg, text, noPhotoText) {
     var _this = this;
     var sendPromise = Promise.resolve();
@@ -239,34 +219,34 @@ MsgSender.prototype.updateNotify = function (stream) {
     var text = base.getNowStreamPhotoText(this.gOptions, stream);
     var noPhotoText = base.getNowStreamText(this.gOptions, stream);
 
-    var chatIdList = this.getStreamChatIdList(stream);
+    return _this.gOptions.users.getChatIdsByChannel(stream._service, stream._channelId).then(function (chatIdList) {
+        if (!chatIdList.length) {
+            return;
+        }
 
-    if (!chatIdList.length) {
-        return Promise.resolve();
-    }
+        var msgArray = this.getMsgFromStream(stream).slice(0);
 
-    var msgArray = this.getMsgFromStream(stream).slice(0);
-
-    var promiseArr = msgArray.map(function (msg) {
-        return _this.updateMsg(msg, text, noPhotoText).then(function () {
-            if (msg.type === 'streamPhoto') {
-                _this.track(msg.chatId, stream, 'updatePhoto');
-            } else
-            if (msg.type === 'streamText') {
-                _this.track(msg.chatId, stream, 'updateText');
-            }
-        }).catch(function (e) {
-            var errMsg = e.message;
-            if (/message not found/.test(errMsg)) {
-                _this.removeMsgFromStream(stream, msg);
-            } else
-            if (!/message is not modified/.test(errMsg)) {
-                debug('Edit msg error', e);
-            }
+        var promiseArr = msgArray.map(function (msg) {
+            return _this.updateMsg(msg, text, noPhotoText).then(function () {
+                if (msg.type === 'streamPhoto') {
+                    _this.track(msg.chatId, stream, 'updatePhoto');
+                } else
+                if (msg.type === 'streamText') {
+                    _this.track(msg.chatId, stream, 'updateText');
+                }
+            }).catch(function (e) {
+                var errMsg = e.message;
+                if (/message not found/.test(errMsg)) {
+                    _this.removeMsgFromStream(stream, msg);
+                } else
+                if (!/message is not modified/.test(errMsg)) {
+                    debug('Edit msg error', e);
+                }
+            });
         });
-    });
 
-    return Promise.all(promiseArr);
+        return Promise.all(promiseArr);
+    });
 };
 
 MsgSender.prototype.sendMsg = function(chatId, noPhotoText, stream) {

@@ -15,12 +15,12 @@ var MsgStack = require('./msgStack');
 var MsgSender = require('./msgSender');
 const Db = require('./db');
 const Locale = require('./locale');
+const Users = require('./users');
 
 var options = {
     config: {},
     language: {},
     storage: {
-        chatList: {},
         lastStreamList: []
     },
     serviceList: ['twitch', 'goodgame', 'youtube', 'hitbox'],
@@ -33,7 +33,8 @@ var options = {
     services: {},
     events: null,
     tracker: null,
-    db: null
+    db: null,
+    users: null
 };
 
 (function() {
@@ -53,6 +54,9 @@ var options = {
         options.db = new Db(options);
         return options.db.onReady;
     }).then(function() {
+        options.users = new Users(options);
+        return options.users.onReady;
+    }).then(function() {
         return base.storage.get(Object.keys(options.storage)).then(function(storage) {
             for (var key in storage) {
                 options.storage[key] = storage[key];
@@ -67,6 +71,7 @@ var options = {
             });
         }));
     }).then(function() {
+        throw new Error('migrating...');
         options.daemon = new Daemon(options);
 
         (typeof gc === 'function') && options.events.on('tickTack', function() {

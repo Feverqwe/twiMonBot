@@ -21,29 +21,25 @@ var Checker = function(options) {
 };
 
 Checker.prototype.getChannelList = function() {
-    var serviceList = {};
-    var chatList = this.gOptions.storage.chatList;
-
-    for (var chatId in chatList) {
-        var chatItem = chatList[chatId];
-        for (var service in chatItem.serviceList) {
-            var channelList = serviceList[service] = serviceList[service] || [];
-
-            var userChannelList = chatItem.serviceList[service];
-            for (var i = 0, channelName; channelName = userChannelList[i]; i++) {
-                if (channelList.indexOf(channelName) !== -1) {
-                    continue;
-                }
-                channelList.push(channelName);
+    var _this = this;
+    return _this.gOptions.users.getAllChannels().then(function (channels) {
+        var serviceList = {};
+        channels.forEach(function (item) {
+            var channelList = serviceList[item.service];
+            if (!channelList) {
+                channelList = serviceList[item.service] = [];
             }
-        }
-    }
-
-    return serviceList;
+            channelList.push(item.channelId);
+        });
+        return serviceList;
+    });
 };
 
 Checker.prototype.cleanServices = function() {
-    var _this = this;
+    // todo: fix me
+    return Promise.resolve();
+
+    /*var _this = this;
     var serviceChannelList = _this.getChannelList();
     var services = _this.gOptions.services;
 
@@ -63,35 +59,28 @@ Checker.prototype.cleanServices = function() {
         }
     });
 
-    return Promise.all(promiseList);
+    return Promise.all(promiseList);*/
 };
 
 Checker.prototype.updateList = function() {
     var _this = this;
-    var serviceChannelList = _this.getChannelList();
     var services = _this.gOptions.services;
+    return _this.getChannelList().then(function (serviceChannelList) {
+        var promiseList = Object.keys(serviceChannelList).map(function (service) {
+            var currentService = services[service];
+            if (!currentService) {
+                debug('Service %s is not found!', service);
+                return;
+            }
 
-    var queue = Promise.resolve();
+            var channelList = serviceChannelList[service];
 
-    Object.keys(serviceChannelList).forEach(function (service) {
-        var currentService = services[service];
-        if (!currentService) {
-            debug('Service %s is not found!', service);
-            return;
-        }
-
-        var channelList = serviceChannelList[service];
-
-        queue = queue.then(function() {
             return currentService.getStreamList(channelList).then(function(videoList) {
                 _this.gOptions.events.emit('updateLiveList', service, videoList, channelList);
             });
         });
-
-        return queue;
+        return Promise.all(promiseList);
     });
-
-    return queue;
 };
 
 module.exports = Checker;

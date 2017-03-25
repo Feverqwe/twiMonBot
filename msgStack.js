@@ -39,51 +39,31 @@ MsgStack.prototype.initStack = function () {
     }
 };
 
-MsgStack.prototype.getChatIdList = function (videoItem) {
-    var chatList = this.gOptions.storage.chatList;
-
-    var chatIdList = [];
-
-    Object.keys(chatList).forEach(function (chatId) {
-        var chatItem = chatList[chatId];
-
-        var userChannelList = chatItem.serviceList && chatItem.serviceList[videoItem._service];
-        if (!userChannelList) {
-            return;
-        }
-
-        if (userChannelList.indexOf(videoItem._channelId) === -1) {
-            return;
-        }
-
-        chatIdList.push(chatItem.chatId);
-    });
-
-    return chatIdList;
-};
-
 MsgStack.prototype.addInStack = function (videoItem) {
     var chatMsgStack = this.config.chatMsgStack;
 
     var msgId = videoItem._id;
 
-    this.getChatIdList(videoItem).forEach(function (chatId) {
-        var msgStack = base.getObjectItem(chatMsgStack, chatId, {});
-        var msgList = base.getObjectItem(msgStack, 'stack', []);
-        base.removeItemFromArray(msgList, msgId);
-        msgList.push(msgId);
+    this.gOptions.users.getChatIdsByChannel(videoItem._service, videoItem._channelId).then(function (chatIds) {
+        chatIds.forEach(function (chatId) {
+            var msgStack = base.getObjectItem(chatMsgStack, chatId, {});
+            var msgList = base.getObjectItem(msgStack, 'stack', []);
+            base.removeItemFromArray(msgList, msgId);
+            msgList.push(msgId);
+        });
     });
 };
 
 MsgStack.prototype.clear = function () {
     var _this = this;
     var chatMsgStack = this.config.chatMsgStack;
-    var chatList = this.gOptions.storage.chatList;
 
-    Object.keys(chatMsgStack).forEach(function (chatId) {
-        if (!chatList[chatId]) {
-            delete chatMsgStack[chatId];
-        }
+    this.gOptions.users.getAllChatIds().then(function (chatIds) {
+        Object.keys(chatMsgStack).forEach(function (chatId) {
+            if (chatIds.indexOf('' + chatId) === -1) {
+                delete chatMsgStack[chatId];
+            }
+        });
     });
 };
 
@@ -109,7 +89,6 @@ MsgStack.prototype.callMsgList = function (chatId) {
 
         return Promise.try(function () {
             var msgId = msgList[0];
-            var chatList = [];
             var videoItem = _this.stack.getItem(msgId);
             if (!videoItem) {
                 debug('VideoItem is not found! %s %s', msgId, chatId);
@@ -117,31 +96,33 @@ MsgStack.prototype.callMsgList = function (chatId) {
                 return;
             }
 
-            var chatItem = _this.gOptions.storage.chatList[chatId];
-            if (!chatItem) {
-                debug('chatItem is not found! %s %s', chatId, msgId);
-                throw new Error('chatItem is not found!');
-            }
+            return _this.gOptions.users.getChat(chatId).then(function (chatItem) {
+                if (!chatItem) {
+                    debug('chatItem is not found! %s %s', chatId, msgId);
+                    throw new Error('chatItem is not found!');
+                }
 
-            var options = chatItem.options || {};
+                var options = chatItem.options;
 
-            var text = null;
-            if (!options.hidePreview) {
-                text = base.getNowStreamPhotoText(_this.gOptions, videoItem);
-            }
-            var noPhotoText = base.getNowStreamText(_this.gOptions, videoItem);
+                var text = null;
+                if (!options.hidePreview) {
+                    text = base.getNowStreamPhotoText(_this.gOptions, videoItem);
+                }
+                var noPhotoText = base.getNowStreamText(_this.gOptions, videoItem);
 
-            if (options.channel) {
-                !options.mute && chatList.push(chatItem.chatId);
-                chatList.push(options.channel);
-            } else {
-                chatList.push(chatItem.chatId);
-            }
+                var chatList = [chatItem.id];
+                if (chatItem.channelId) {
+                    chatList.push(chatItem.channelId);
+                    if (options.mute) {
+                        chatList.shift();
+                    }
+                }
 
-            return _this.gOptions.msgSender.sendNotify(chatList, text, noPhotoText, videoItem, true).then(function () {
-                base.removeItemFromArray(msgList, msgId);
-                delete msgStack.timeout;
-                return _this.saveChatMsgStack();
+                return _this.gOptions.msgSender.sendNotify(chatList, text, noPhotoText, videoItem, true).then(function () {
+                    base.removeItemFromArray(msgList, msgId);
+                    delete msgStack.timeout;
+                    return _this.saveChatMsgStack();
+                });
             });
         }).then(function () {
             return sendNextMsg();
