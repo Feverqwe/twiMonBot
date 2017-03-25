@@ -224,7 +224,7 @@ MsgSender.prototype.updateNotify = function (stream) {
             return;
         }
 
-        var msgArray = this.getMsgFromStream(stream).slice(0);
+        var msgArray = _this.getMsgFromStream(stream).slice(0);
 
         var promiseArr = msgArray.map(function (msg) {
             return _this.updateMsg(msg, text, noPhotoText).then(function () {
