@@ -191,12 +191,12 @@ MsgSender.prototype.removeMsgFromStream = function (stream, msg) {
     this.gOptions.events.emit('saveStreamList');
 };
 
-MsgSender.prototype.updateMsg = function (msg, text, noPhotoText) {
+MsgSender.prototype.updateMsg = function (msg, caption, text) {
     var _this = this;
     var sendPromise = Promise.resolve();
     if (msg.type === 'streamPhoto') {
         sendPromise = sendPromise.then(function () {
-            return _this.gOptions.bot.editMessageCaption(text, {
+            return _this.gOptions.bot.editMessageCaption(caption, {
                 chat_id: msg.chatId,
                 message_id: msg.id
             });
@@ -204,7 +204,7 @@ MsgSender.prototype.updateMsg = function (msg, text, noPhotoText) {
     } else
     if (msg.type === 'streamText') {
         sendPromise = sendPromise.then(function () {
-            return _this.gOptions.bot.editMessageText(noPhotoText, {
+            return _this.gOptions.bot.editMessageText(text, {
                 chat_id: msg.chatId,
                 message_id: msg.id,
                 parse_mode: 'HTML'
@@ -216,8 +216,8 @@ MsgSender.prototype.updateMsg = function (msg, text, noPhotoText) {
 
 MsgSender.prototype.updateNotify = function (stream) {
     var _this = this;
-    var text = base.getNowStreamPhotoText(this.gOptions, stream);
-    var noPhotoText = base.getNowStreamText(this.gOptions, stream);
+    var caption = base.getNowStreamPhotoText(this.gOptions, stream);
+    var text = base.getNowStreamText(this.gOptions, stream);
 
     return _this.gOptions.users.getChatIdsByChannel(stream._service, stream._channelId).then(function (chatIdList) {
         if (!chatIdList.length) {
@@ -227,7 +227,7 @@ MsgSender.prototype.updateNotify = function (stream) {
         var msgArray = _this.getMsgFromStream(stream).slice(0);
 
         var promiseArr = msgArray.map(function (msg) {
-            return _this.updateMsg(msg, text, noPhotoText).then(function () {
+            return _this.updateMsg(msg, caption, text).then(function () {
                 if (msg.type === 'streamPhoto') {
                     _this.track(msg.chatId, stream, 'updatePhoto');
                 } else
@@ -249,11 +249,11 @@ MsgSender.prototype.updateNotify = function (stream) {
     });
 };
 
-MsgSender.prototype.sendMsg = function(chatId, noPhotoText, stream) {
+MsgSender.prototype.sendMsg = function(chatId, text, stream) {
     var _this = this;
     var bot = _this.gOptions.bot;
 
-    return bot.sendMessage(chatId, noPhotoText, {
+    return bot.sendMessage(chatId, text, {
         parse_mode: 'HTML'
     }).then(function(msg) {
         _this.addMsgInStream(stream, {
@@ -273,12 +273,12 @@ MsgSender.prototype.sendMsg = function(chatId, noPhotoText, stream) {
     });
 };
 
-MsgSender.prototype.sendPhoto = function(chatId, fileId, text, stream) {
+MsgSender.prototype.sendPhoto = function(chatId, fileId, caption, stream) {
     var _this = this;
     var bot = _this.gOptions.bot;
 
     return bot.sendPhotoQuote(chatId, fileId, {
-        caption: text
+        caption: caption
     }).then(function(msg) {
         _this.addMsgInStream(stream, {
             type: 'streamPhoto',
@@ -297,24 +297,24 @@ MsgSender.prototype.sendPhoto = function(chatId, fileId, text, stream) {
     });
 };
 
-MsgSender.prototype.send = function(chatIdList, text, noPhotoText, stream) {
+MsgSender.prototype.send = function(chatIdList, caption, text, stream) {
     var _this = this;
     var photoId = stream._photoId;
     var promiseList = [];
 
     var chatId = null;
     while (chatId = chatIdList.shift()) {
-        if (!photoId || !text) {
-            promiseList.push(_this.sendMsg(chatId, noPhotoText, stream));
+        if (!photoId || !caption) {
+            promiseList.push(_this.sendMsg(chatId, text, stream));
         } else {
-            promiseList.push(_this.sendPhoto(chatId, photoId, text, stream));
+            promiseList.push(_this.sendPhoto(chatId, photoId, caption, stream));
         }
     }
 
     return Promise.all(promiseList);
 };
 
-MsgSender.prototype.requestPicId = function(chatIdList, text, stream) {
+MsgSender.prototype.requestPicId = function(chatIdList, caption, stream) {
     var _this = this;
     var requestPromiseMap = _this.requestPromiseMap;
     var requestId = stream._id;
@@ -330,13 +330,13 @@ MsgSender.prototype.requestPicId = function(chatIdList, text, stream) {
             stream._photoId = msg.photo[0].file_id;
         }).catch(function(err) {
             if (err.message === 'Send photo file error! Bot was kicked!') {
-                return _this.requestPicId(chatIdList, text, stream);
+                return _this.requestPicId(chatIdList, caption, stream);
             }
         });
     } else {
         var chatId = chatIdList.shift();
 
-        var requestPromise = requestPromiseMap[requestId] = _this.getPicId(chatId, text, stream).finally(function () {
+        var requestPromise = requestPromiseMap[requestId] = _this.getPicId(chatId, caption, stream).finally(function () {
             if (requestPromiseMap[requestId] === requestPromise) {
                 delete requestPromiseMap[requestId];
             }
@@ -354,7 +354,7 @@ MsgSender.prototype.requestPicId = function(chatIdList, text, stream) {
             _this.track(chatId, stream, 'sendPhoto');
         }).catch(function (err) {
             if (err.message === 'Send photo file error! Bot was kicked!') {
-                return _this.requestPicId(chatIdList, text, stream);
+                return _this.requestPicId(chatIdList, caption, stream);
             }
 
             chatIdList.unshift(chatId);
@@ -365,23 +365,23 @@ MsgSender.prototype.requestPicId = function(chatIdList, text, stream) {
     return promise;
 };
 
-MsgSender.prototype.sendNotify = function(chatIdList, text, noPhotoText, stream, useCache) {
+MsgSender.prototype.sendNotify = function(chatIdList, caption, text, stream, useCache) {
     var _this = this;
 
     if (!stream.preview.length) {
-        return _this.send(chatIdList, text, noPhotoText, stream);
+        return _this.send(chatIdList, caption, text, stream);
     }
 
-    if (!text) {
-        return _this.send(chatIdList, text, noPhotoText, stream);
+    if (!caption) {
+        return _this.send(chatIdList, caption, text, stream);
     }
 
     if (useCache && stream._photoId) {
-        return _this.send(chatIdList, text, noPhotoText, stream);
+        return _this.send(chatIdList, caption, text, stream);
     }
 
-    return _this.requestPicId(chatIdList, text, stream).then(function() {
-        return _this.send(chatIdList, text, noPhotoText, stream);
+    return _this.requestPicId(chatIdList, caption, stream).then(function() {
+        return _this.send(chatIdList, caption, text, stream);
     });
 };
 
