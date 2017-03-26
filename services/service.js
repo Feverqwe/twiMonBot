@@ -105,4 +105,8 @@ Service.prototype.setChannelTitle = function (channelId, channelTitle) {
     });
 };
 
+Service.prototype.insertTimeoutItems = function (serviceName, channelIds) {
+
+};
+
 module.exports = Service;

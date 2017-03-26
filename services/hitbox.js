@@ -134,6 +134,12 @@ Hitbox.prototype.insertItem = function (channel, stream) {
         return promise.then(function () {
             return item;
         });
+    }).catch(function (err) {
+        return _this.insertTimeoutItems('hitbox', [channel.id]).then(function () {
+            throw err;
+        });
+    }).catch(function (err) {
+        debug('insertItem', err);
     });
 };
 
@@ -141,8 +147,6 @@ var insertPool = new base.Pool(15);
 
 Hitbox.prototype.getStreamList = function(_channelIdsList) {
     var _this = this;
-    var videoList = [];
-
     var promise = Promise.resolve();
 
     promise = promise.then(function () {
@@ -219,18 +223,14 @@ Hitbox.prototype.getStreamList = function(_channelIdsList) {
                         }
                         var channel = channelsPart[pos];
 
-                        return _this.insertItem(channel, stream).then(function (item) {
-                            item && videoList.push(item);
-                        }).catch(function (err) {
-                            videoList.push(base.getTimeoutStream('hitbox', channel.id));
-                            debug("insertItem error!", err);
-                        });
+                        return _this.insertItem(channel, stream);
                     });
                 }).catch(function (err) {
-                    channelIds.forEach(function (channelId) {
-                        videoList.push(base.getTimeoutStream('hitbox', channelId));
+                    return _this.insertTimeoutItems('hitbox', channelIds).then(function () {
+                        throw err;
                     });
-                    debug("Request stream list error!", err);
+                }).catch(function (err) {
+                    debug("getList error!", err);
                 });
             });
         });
@@ -238,9 +238,7 @@ Hitbox.prototype.getStreamList = function(_channelIdsList) {
         return queue;
     });
 
-    return promise.then(function () {
-        return videoList;
-    });
+    return promise;
 };
 
 Hitbox.prototype.getChannelIdByUrl = function (url) {

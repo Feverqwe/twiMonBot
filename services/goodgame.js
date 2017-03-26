@@ -139,6 +139,12 @@ GoodGame.prototype.insertItem = function (channel, stream) {
         return promise.then(function () {
             return item;
         });
+    }).catch(function (err) {
+        return _this.insertTimeoutItems('goodgame', [channel.id]).then(function () {
+            throw err;
+        });
+    }).catch(function (err) {
+        debug('insertItem', err);
     });
 };
 
@@ -229,18 +235,14 @@ GoodGame.prototype.getStreamList = function (_channelIdsList) {
                         }
                         var channel = channelsPart[pos];
 
-                        return _this.insertItem(channel, stream).then(function (item) {
-                            item && videoList.push(item);
-                        }).catch(function (err) {
-                            videoList.push(base.getTimeoutStream('goodgame', channel.id));
-                            debug("insertItem error!", err);
-                        });
+                        return _this.insertItem(channel, stream);
                     });
                 }).catch(function (err) {
-                    channelIds.forEach(function (channelId) {
-                        videoList.push(base.getTimeoutStream('goodgame', channelId));
+                    return _this.insertTimeoutItems('goodgame', channelIds).then(function () {
+                        throw err;
                     });
-                    debug("Request stream list error!", err);
+                }).catch(function (err) {
+                    debug("getList error!", err);
                 });
             });
         });
@@ -248,9 +250,7 @@ GoodGame.prototype.getStreamList = function (_channelIdsList) {
         return queue;
     });
 
-    return promise.then(function () {
-        return videoList;
-    });
+    return promise;
 };
 
 GoodGame.prototype.getChannelIdByUrl = function (url) {

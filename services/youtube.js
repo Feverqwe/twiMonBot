@@ -137,6 +137,12 @@ Youtube.prototype.insertItem = function (channel, snippet, id, viewers) {
         return promise.then(function () {
             return item;
         });
+    }).catch(function (err) {
+        return _this.insertTimeoutItems('youtube', [channel.id]).then(function () {
+            throw err;
+        });
+    }).catch(function (err) {
+        debug('insertItem', err);
     });
 };
 
@@ -216,17 +222,15 @@ Youtube.prototype.getStreamList = function(_channelIdsList) {
                 var videoId = item.id.videoId;
 
                 return _this.getViewers(videoId).then(function(viewers) {
-                    return _this.insertItem(channel, snippet, videoId, viewers).then(function (item) {
-                        item && streamList.push(item);
-                    }).catch(function (err) {
-                        streamList.push(base.getTimeoutStream('youtube', channel.id));
-                        debug("insertItem error!", err);
-                    });
+                    return _this.insertItem(channel, snippet, videoId, viewers);
                 });
             });
-        }).catch(function(err) {
-            streamList.push(base.getTimeoutStream('youtube', channelId));
-            debug('Stream list item %s response error!', channelId, err);
+        }).catch(function (err) {
+            return _this.insertTimeoutItems('youtube', [channel.id]).then(function () {
+                throw err;
+            });
+        }).catch(function (err) {
+            debug('requestPage error!', channel.id, err);
         });
     };
 
@@ -256,10 +260,7 @@ Youtube.prototype.getStreamList = function(_channelIdsList) {
         });
     });
 
-    var streamList = [];
-    return promise.then(function() {
-        return streamList;
-    });
+    return promise;
 };
 
 /**

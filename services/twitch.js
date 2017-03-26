@@ -133,13 +133,17 @@ Twitch.prototype.insertItem = function (channel, stream) {
         return promise.then(function () {
             return item;
         });
+    }).catch(function (err) {
+        return _this.insertTimeoutItems('twitch', [channel.id]).then(function () {
+            throw err;
+        });
+    }).catch(function (err) {
+        debug('insertItem', err);
     });
 };
 
 Twitch.prototype.getStreamList = function(_channelIdsList) {
     var _this = this;
-    var videoList = [];
-
     var promise = Promise.resolve();
 
     promise = promise.then(function () {
@@ -217,18 +221,14 @@ Twitch.prototype.getStreamList = function(_channelIdsList) {
                         }
                         var channel = channelsPart[pos];
 
-                        return _this.insertItem(channel, stream).then(function (item) {
-                            item && videoList.push(item);
-                        }).catch(function (err) {
-                            videoList.push(base.getTimeoutStream('twitch', channel.id));
-                            debug("insertItem error!", err);
-                        });
+                        return _this.insertItem(channel, stream);
                     });
                 }).catch(function (err) {
-                    channelIds.forEach(function (channelId) {
-                        videoList.push(base.getTimeoutStream('twitch', channelId));
+                    return _this.insertTimeoutItems('twitch', channelIds).then(function () {
+                        throw err;
                     });
-                    debug("Request stream list error!", err);
+                }).catch(function (err) {
+                    debug("getList error!", err);
                 });
             });
         });
@@ -236,9 +236,7 @@ Twitch.prototype.getStreamList = function(_channelIdsList) {
         return queue;
     });
 
-    return promise.then(function () {
-        return videoList;
-    });
+    return promise;
 };
 
 var insertPool = new base.Pool(15);
