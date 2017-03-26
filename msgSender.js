@@ -151,14 +151,18 @@ MsgSender.prototype.updateNotify = function (stream) {
                 if (msg.type === 'streamText') {
                     _this.track(msg.chatId, stream, 'updateText');
                 }
-            }).catch(function (e) {
-                var errMsg = e.message;
-                if (/message not found/.test(errMsg)) {
-                    _this.removeMsgFromStream(stream, msg);
-                } else
-                if (!/message is not modified/.test(errMsg)) {
-                    debug('Edit msg error', e);
+            }).catch(function (err) {
+                if (err.code === 'ETELEGRAM') {
+                    var body = err.response.body;
+                    if (/message to edit not found/.test(body)) {
+                        _this.removeMsgFromStream(stream, msg);
+                        return;
+                    } else
+                    if (/message is not modified/.test(body)) {
+                        return;
+                    }
                 }
+                debug('Edit msg error', err);
             });
         });
 
