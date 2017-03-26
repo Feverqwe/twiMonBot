@@ -77,6 +77,10 @@ Twitch.prototype.clean = function(channelIdList) {
     return Promise.all(promiseList);*/
 };
 
+var videoIdToId = function (videoId) {
+    return 't' + videoId;
+};
+
 Twitch.prototype.insertItem = function (channel, stream) {
     var _this = this;
     return Promise.resolve().then(function () {
@@ -102,11 +106,11 @@ Twitch.prototype.insertItem = function (channel, stream) {
         });
         previewList = previewList.map(base.noCacheUrl);
 
-        var item = {
+        var data = {
             _service: 'twitch',
             _checkTime: now,
             _insertTime: now,
-            _id: 't' + id,
+            _id: videoIdToId(id),
             _isOffline: false,
             _isTimeout: false,
             _channelId: channel.id,
@@ -123,6 +127,16 @@ Twitch.prototype.insertItem = function (channel, stream) {
             }
         };
 
+        var item = {
+            id: videoIdToId(id),
+            channelId: channel.id,
+            service: 'twitch',
+            data: JSON.stringify(data),
+            checkTime: (new Date()).toISOString(),
+            isOffline: 0,
+            isTimeout: 0
+        };
+
         var promise = Promise.resolve();
         if (channelTitle && channel.title !== channelTitle) {
             promise = promise.then(function () {
@@ -131,7 +145,9 @@ Twitch.prototype.insertItem = function (channel, stream) {
         }
 
         return promise.then(function () {
-            return item;
+            return _this.gOptions.users.getChatIdsByChannel('twitch', channel.id);
+        }).then(function (chatIds) {
+            return _this._insert(item, chatIds)
         });
     }).catch(function (err) {
         return _this.insertTimeoutItems([channel.id], 'twitch').then(function () {
@@ -204,7 +220,7 @@ Twitch.prototype.getStreamList = function(_channelIdsList) {
 
                 return getList().then(function (responseBody) {
                     var items = responseBody.streams;
-                    return insertPool.do(function () {
+                    return _this.getInsertPool().do(function () {
                         var stream = items.shift();
                         if (!stream) return;
 
@@ -238,8 +254,6 @@ Twitch.prototype.getStreamList = function(_channelIdsList) {
 
     return promise;
 };
-
-var insertPool = new base.Pool(15);
 
 Twitch.prototype.requestChannelInfo = function (channelId) {
     var _this = this;

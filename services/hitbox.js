@@ -75,6 +75,10 @@ Hitbox.prototype.clean = function(channelIdList) {
     return Promise.all(promiseList);*/
 };
 
+var videoIdToId = function (videoId) {
+    return 'h' + videoId;
+};
+
 Hitbox.prototype.insertItem = function (channel, stream) {
     var _this = this;
     return Promise.resolve().then(function () {
@@ -103,11 +107,11 @@ Hitbox.prototype.insertItem = function (channel, stream) {
             return base.noCacheUrl(url);
         });
 
-        var item = {
+        var data = {
             _service: 'hitbox',
             _checkTime: now,
             _insertTime: now,
-            _id: 'h' + id,
+            _id: videoIdToId(id),
             _isOffline: false,
             _isTimeout: false,
             _channelId: channel.id,
@@ -124,6 +128,16 @@ Hitbox.prototype.insertItem = function (channel, stream) {
             }
         };
 
+        var item = {
+            id: videoIdToId(id),
+            channelId: channel.id,
+            service: 'hitbox',
+            data: JSON.stringify(data),
+            checkTime: (new Date()).toISOString(),
+            isOffline: 0,
+            isTimeout: 0
+        };
+
         var promise = Promise.resolve();
         if (channelTitle && channel.title !== channelTitle) {
             promise = promise.then(function () {
@@ -132,7 +146,9 @@ Hitbox.prototype.insertItem = function (channel, stream) {
         }
 
         return promise.then(function () {
-            return item;
+            return _this.gOptions.users.getChatIdsByChannel('goodgame', channel.id);
+        }).then(function (chatIds) {
+            return _this._insert(item, chatIds)
         });
     }).catch(function (err) {
         return _this.insertTimeoutItems([channel.id], 'hitbox').then(function () {
@@ -142,8 +158,6 @@ Hitbox.prototype.insertItem = function (channel, stream) {
         debug('insertItem', err);
     });
 };
-
-var insertPool = new base.Pool(15);
 
 Hitbox.prototype.getStreamList = function(_channelIdsList) {
     var _this = this;
@@ -206,7 +220,7 @@ Hitbox.prototype.getStreamList = function(_channelIdsList) {
 
                 return getList().then(function (responseBody) {
                     var items = responseBody.livestream;
-                    return insertPool.do(function () {
+                    return _this.getInsertPool().do(function () {
                         var stream = items.shift();
                         if (!stream) return;
 

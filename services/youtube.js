@@ -79,6 +79,10 @@ Youtube.prototype.clean = function(channelIdList) {
     return Promise.all(promiseList);*/
 };
 
+var videoIdToId = function (videoId) {
+    return 'y' + videoId;
+};
+
 Youtube.prototype.insertItem = function (channel, snippet, id, viewers) {
     var _this = this;
     return Promise.resolve().then(function () {
@@ -106,11 +110,11 @@ Youtube.prototype.insertItem = function (channel, snippet, id, viewers) {
         var channelTitle = snippet.channelTitle;
         var channelName = snippet.channelId;
 
-        var item = {
+        var data = {
             _service: 'youtube',
             _checkTime: now,
             _insertTime: now,
-            _id: 'y' + id,
+            _id: videoIdToId(id),
             _isOffline: false,
             _isTimeout: false,
             _channelId: channel.id,
@@ -127,6 +131,16 @@ Youtube.prototype.insertItem = function (channel, snippet, id, viewers) {
             }
         };
 
+        var item = {
+            id: videoIdToId(id),
+            channelId: channel.id,
+            service: 'twitch',
+            data: JSON.stringify(data),
+            checkTime: (new Date()).toISOString(),
+            isOffline: 0,
+            isTimeout: 0
+        };
+
         var promise = Promise.resolve();
         if (channelTitle && channel.title !== channelTitle) {
             promise = promise.then(function () {
@@ -135,7 +149,9 @@ Youtube.prototype.insertItem = function (channel, snippet, id, viewers) {
         }
 
         return promise.then(function () {
-            return item;
+            return _this.gOptions.users.getChatIdsByChannel('youtube', channel.id);
+        }).then(function (chatIds) {
+            return _this._insert(item, chatIds)
         });
     }).catch(function (err) {
         return _this.insertTimeoutItems([channel.id], 'youtube').then(function () {
@@ -212,18 +228,17 @@ Youtube.prototype.getStreamList = function(_channelIdsList) {
 
         return requestPage().then(function (responseBody) {
             var items = responseBody.items;
-            var quote = Promise.resolve();
-            items.forEach(function (item) {
-                quote = quote.then(function () {
-                    var snippet = item.snippet;
-                    var videoId = item.id.videoId;
+            return _this.getInsertPool().do(function () {
+                var item = items.shift();
+                if (!item) return;
 
-                    return _this.getViewers(videoId).then(function(viewers) {
-                        return _this.insertItem(channel, snippet, videoId, viewers);
-                    });
+                var snippet = item.snippet;
+                var videoId = item.id.videoId;
+
+                return _this.getViewers(videoId).then(function(viewers) {
+                    return _this.insertItem(channel, snippet, videoId, viewers);
                 });
             });
-            return quote;
         }).catch(function (err) {
             return _this.insertTimeoutItems([channel.id], 'youtube').then(function () {
                 throw err;

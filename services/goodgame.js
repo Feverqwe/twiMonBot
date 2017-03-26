@@ -75,6 +75,10 @@ GoodGame.prototype.clean = function(channelIdList) {
     return Promise.all(promiseList);*/
 };
 
+var videoIdToId = function (videoId) {
+    return 'g' + videoId;
+};
+
 var noProtocolRe = /^\/\//;
 
 GoodGame.prototype.insertItem = function (channel, stream) {
@@ -109,11 +113,11 @@ GoodGame.prototype.insertItem = function (channel, stream) {
             return game = item.title;
         });
 
-        var item = {
+        var data = {
             _service: 'goodgame',
             _checkTime: now,
             _insertTime: now,
-            _id: 'g' + id,
+            _id: videoIdToId(id),
             _isOffline: false,
             _isTimeout: false,
             _channelId: channel.id,
@@ -129,6 +133,16 @@ GoodGame.prototype.insertItem = function (channel, stream) {
             }
         };
 
+        var item = {
+            id: videoIdToId(id),
+            channelId: channel.id,
+            service: 'goodgame',
+            data: JSON.stringify(data),
+            checkTime: (new Date()).toISOString(),
+            isOffline: 0,
+            isTimeout: 0
+        };
+
         var promise = Promise.resolve();
         if (channelTitle && channel.title !== channelTitle) {
             promise = promise.then(function () {
@@ -137,7 +151,9 @@ GoodGame.prototype.insertItem = function (channel, stream) {
         }
 
         return promise.then(function () {
-            return item;
+            return _this.gOptions.users.getChatIdsByChannel('goodgame', channel.id);
+        }).then(function (chatIds) {
+            return _this._insert(item, chatIds)
         });
     }).catch(function (err) {
         return _this.insertTimeoutItems([channel.id], 'goodgame').then(function () {
@@ -147,8 +163,6 @@ GoodGame.prototype.insertItem = function (channel, stream) {
         debug('insertItem', err);
     });
 };
-
-var insertPool = new base.Pool(15);
 
 /**
  * @param _channelIdsList
@@ -218,7 +232,7 @@ GoodGame.prototype.getStreamList = function (_channelIdsList) {
 
                 return getList().then(function (responseBody) {
                     var items = responseBody._embedded.streams;
-                    return insertPool.do(function () {
+                    return _this.getInsertPool().do(function () {
                         var stream = items.shift();
                         if (!stream) return;
 
