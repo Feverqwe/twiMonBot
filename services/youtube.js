@@ -13,6 +13,7 @@ const requestPromise = apiQuote.wrapper(require('request-promise'));
 
 var Youtube = function(options) {
     var _this = this;
+    this.name = 'youtube';
     this.gOptions = options;
     this.config = {};
     this.config.token = options.config.ytToken;

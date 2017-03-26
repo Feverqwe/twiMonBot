@@ -11,6 +11,7 @@ var CustomError = require('../customError').CustomError;
 
 var GoodGame = function (options) {
     var _this = this;
+    this.name = 'goodgame';
     this.gOptions = options;
     this.config = {};
     this.dbTable = 'ggChannels';

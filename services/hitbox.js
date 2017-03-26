@@ -11,6 +11,7 @@ var CustomError = require('../customError').CustomError;
 
 var Hitbox = function(options) {
     var _this = this;
+    this.name = 'hitbox';
     this.gOptions = options;
     this.config = {};
     this.dbTable = 'hbChannels';

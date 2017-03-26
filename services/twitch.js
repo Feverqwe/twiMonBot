@@ -11,6 +11,7 @@ var CustomError = require('../customError').CustomError;
 
 var Twitch = function(options) {
     var _this = this;
+    this.name = 'twitch';
     this.gOptions = options;
     this.config = {};
     this.config.token = options.config.twitchToken;
