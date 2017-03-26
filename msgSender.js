@@ -20,51 +20,6 @@ var MsgSender = function (options) {
     });
 };
 
-
-MsgSender.prototype.onSendMessageError = function (err, chatId) {
-    var _this = this;
-    /**
-     * @type {Object}
-     * @property {string} type
-     * @property {string} id
-     * @property {string} chatId
-     */
-    var result = null;
-    if (err.code === 'ETELEGRAM') {
-        var body = err.response.body;
-
-        var isBlocked = body.error_code === 403;
-        if (!isBlocked) {
-            isBlocked = [
-                /group chat is deactivated/,
-                /chat not found/,
-                /channel not found/,
-                /USER_DEACTIVATED/
-            ].some(function (re) {
-                return re.test(body.description);
-            });
-        }
-
-        var isChannel = /^@\w+$/.test(chatId);
-        if (isBlocked) {
-            if (!isChannel) {
-                result = _this.gOptions.users.removeChat(chatId);
-            } else {
-                result = _this.gOptions.users.removeChatChannelById(chatId);
-            }
-        } else
-        if (!isChannel && body.parameters && body.parameters.migrate_to_chat_id) {
-            result = _this.gOptions.users.changeChatId(chatId, body.parameters.migrate_to_chat_id);
-        }
-    }
-
-    if (!result) {
-        throw err;
-    }
-
-    return result;
-};
-
 /**
  * @param {Object} stream
  * @param {Object} msg
@@ -368,28 +323,6 @@ MsgSender.prototype.sendMessage = function (chatId, messageId, message, data, us
             data._photoId = imageFileId;
             // return _this.gOptions.msgStack.setImageFileId(messageId, imageFileId);
         }
-    });
-};
-
-MsgSender.prototype.sendNotify = function(chatIdList, caption, text, stream, useCache) {
-    var _this = this;
-    var promise = Promise.resolve();
-    chatIdList.forEach(function (chatId) {
-        promise = promise.then(function () {
-            return _this.sendMessage(chatId, stream._id, {
-                imageFileId: stream._photoId,
-                caption: caption,
-                text: text
-            }, stream, useCache).then(function () {
-                debugLog('[send] %s %s', chatId, stream._id);
-            }).catch(function (err) {
-                err.chatId = chatId;
-                throw err;
-            });
-        });
-    });
-    return promise.catch(function (err) {
-        return _this.onSendMessageError(err);
     });
 };
 

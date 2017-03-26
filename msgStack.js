@@ -4,6 +4,8 @@
 "use strict";
 var base = require('./base');
 var debug = require('debug')('app:msgStack');
+var debugLog = require('debug')('app:msgSender:log');
+debugLog.log = console.log.bind(console);
 var Promise = require('bluebird');
 
 var MsgStack = function (options) {
@@ -67,6 +69,50 @@ MsgStack.prototype.clear = function () {
     });
 };
 
+MsgStack.prototype.onSendMessageError = function (err) {
+    var _this = this;
+    /**
+     * @type {Object}
+     * @property {string} type
+     * @property {string} id
+     * @property {string} chatId
+     */
+    var itemObj = err.itemObj;
+    var result = null;
+    if (err.code === 'ETELEGRAM') {
+        var body = err.response.body;
+
+        var isBlocked = body.error_code === 403;
+        if (!isBlocked) {
+            isBlocked = [
+                /group chat is deactivated/,
+                /chat not found/,
+                /channel not found/,
+                /USER_DEACTIVATED/
+            ].some(function (re) {
+                return re.test(body.description);
+            });
+        }
+
+        if (isBlocked) {
+            if (itemObj.type === 'chat') {
+                result = _this.gOptions.users.removeChat(itemObj.chatId);
+            } else {
+                result = _this.gOptions.users.removeChatChannel(itemObj.chatId, itemObj.id);
+            }
+        } else
+        if (itemObj.type === 'chat' && body.parameters && body.parameters.migrate_to_chat_id) {
+            result = _this.gOptions.users.changeChatId(itemObj.chatId, body.parameters.migrate_to_chat_id);
+        }
+    }
+
+    if (!result) {
+        throw err;
+    }
+
+    return result;
+};
+
 MsgStack.prototype.callMsgList = function (chatId) {
     var _this = this;
     var chatMsgStack = this.config.chatMsgStack;
@@ -89,36 +135,67 @@ MsgStack.prototype.callMsgList = function (chatId) {
 
         return Promise.try(function () {
             var msgId = msgList[0];
-            var videoItem = _this.stack.getItem(msgId);
-            if (!videoItem) {
+            var data = _this.stack.getItem(msgId);
+            if (!data) {
                 debug('VideoItem is not found! %s %s', msgId, chatId);
                 base.removeItemFromArray(msgList, msgId);
                 return;
             }
 
-            return _this.gOptions.users.getChat(chatId).then(function (chatItem) {
-                if (!chatItem) {
+            var imageFileId = data._photoId;
+            var messageId = data._id;
+
+            return _this.gOptions.users.getChat(chatId).then(function (chat) {
+                if (!chat) {
                     debug('chatItem is not found! %s %s', chatId, msgId);
                     throw new Error('chatItem is not found!');
                 }
 
-                var options = chatItem.options;
+                var options = chat.options;
 
-                var text = null;
+                var text = base.getNowStreamText(_this.gOptions, data);
+                var caption = '';
                 if (!options.hidePreview) {
-                    text = base.getNowStreamPhotoText(_this.gOptions, videoItem);
+                    caption = base.getNowStreamPhotoText(_this.gOptions, data);
                 }
-                var noPhotoText = base.getNowStreamText(_this.gOptions, videoItem);
 
-                var chatList = [chatItem.id];
-                if (chatItem.channelId) {
-                    chatList.push(chatItem.channelId);
+                var chatList = [{
+                    type: 'chat',
+                    id: chat.id,
+                    chatId: chat.id
+                }];
+                if (chat.channelId) {
+                    chatList.push({
+                        type: 'channel',
+                        id: chat.channelId,
+                        chatId: chat.id
+                    });
                     if (options.mute) {
                         chatList.shift();
                     }
                 }
 
-                return _this.gOptions.msgSender.sendNotify(chatList, text, noPhotoText, videoItem, true).then(function () {
+                var message = {
+                    imageFileId: imageFileId,
+                    caption: caption,
+                    text: text
+                };
+
+                var promise = Promise.resolve();
+                chatList.forEach(function (itemObj) {
+                    var id = itemObj.id;
+                    promise = promise.then(function () {
+                        return _this.gOptions.msgSender.sendMessage(id, messageId, message, data, true).then(function () {
+                            debugLog('[send] %s %s', chatId, data._id);
+                        });
+                    }).catch(function (err) {
+                        err.itemObj = itemObj;
+                        throw err;
+                    });
+                });
+                return promise.catch(function (err) {
+                    return _this.onSendMessageError(err);
+                }).then(function () {
                     base.removeItemFromArray(msgList, msgId);
                     delete msgStack.timeout;
                     return _this.saveChatMsgStack();

@@ -326,13 +326,16 @@ var Chat = function(options) {
         }
 
         var promiseList = streamList.map(function (stream) {
-            var text = '';
+            var text = base.getNowStreamText(_this.gOptions, stream);
+            var caption = '';
             if (!req.chat || !req.chat.options.hidePreview) {
-                text = base.getNowStreamPhotoText(_this.gOptions, stream);
+                caption = base.getNowStreamPhotoText(_this.gOptions, stream);
             }
-            var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
-
-            return _this.gOptions.msgSender.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
+            return _this.gOptions.msgSender.sendMessage(chatId, stream._id, {
+                imageFileId: stream._photoId,
+                caption: caption,
+                text: text
+            }, stream, true).catch(function (err) {
                 debug('Command watch error!', err);
             });
         });
@@ -392,13 +395,17 @@ var Chat = function(options) {
                         var channelList = onlineServiceList[serviceName] || {};
                         var streamList = channelList[channel.id] || [];
                         streamList.forEach(function (stream) {
-                            var text = '';
+                            var text = base.getNowStreamText(_this.gOptions, stream);
+                            var caption = '';
                             if (!req.chat || !req.chat.options.hidePreview) {
-                                text = base.getNowStreamPhotoText(_this.gOptions, stream);
+                                caption = base.getNowStreamPhotoText(_this.gOptions, stream);
                             }
-                            var noPhotoText = base.getNowStreamText(_this.gOptions, stream);
-                            return _this.gOptions.msgSender.sendNotify([chatId], text, noPhotoText, stream, true).catch(function (err) {
-                                debug('a commend, sendNotify error!', err);
+                            return _this.gOptions.msgSender.sendMessage(chatId, stream._id, {
+                                imageFileId: stream._photoId,
+                                caption: caption,
+                                text: text
+                            }, stream, true).catch(function (err) {
+                                debug('Command add error!', err);
                             });
                         });
                     });
