@@ -22,6 +22,7 @@ var Checker = function(options) {
 
 Checker.prototype.getChannelList = function() {
     var _this = this;
+    var serviceNames = Object.keys(this.gOptions.services);
     return _this.gOptions.users.getAllChannels().then(function (channels) {
         var serviceList = {};
         channels.forEach(function (item) {
@@ -31,6 +32,14 @@ Checker.prototype.getChannelList = function() {
             }
             channelList.push(item.channelId);
         });
+
+        Object.keys(serviceList).forEach(function (serviceName) {
+            if (serviceNames.indexOf(serviceName) === -1) {
+                debug('Service %s is not found! %j', serviceName, serviceList[serviceName]);
+                delete serviceList[serviceName];
+            }
+        });
+
         return serviceList;
     });
 };
@@ -65,19 +74,9 @@ Checker.prototype.cleanServices = function() {
 Checker.prototype.updateList = function() {
     var _this = this;
     var services = _this.gOptions.services;
-    return _this.getChannelList().then(function (serviceChannelList) {
-        var promiseList = Object.keys(serviceChannelList).map(function (service) {
-            var currentService = services[service];
-            if (!currentService) {
-                debug('Service %s is not found!', service);
-                return;
-            }
-
-            var channelList = serviceChannelList[service];
-
-            return currentService.getStreamList(channelList).then(function(videoList) {
-                _this.gOptions.events.emit('updateLiveList', service, videoList, channelList);
-            });
+    return _this.getChannelList().then(function (serviceChannelIds) {
+        var promiseList = Object.keys(serviceChannelIds).map(function (serviceName) {
+            return services[serviceName].getStreamList(serviceChannelIds[serviceName]);
         });
         return Promise.all(promiseList);
     });
