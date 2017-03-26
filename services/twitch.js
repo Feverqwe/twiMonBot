@@ -134,7 +134,7 @@ Twitch.prototype.insertItem = function (channel, stream) {
             return item;
         });
     }).catch(function (err) {
-        return _this.insertTimeoutItems('twitch', [channel.id]).then(function () {
+        return _this.insertTimeoutItems([channel.id], 'twitch').then(function () {
             throw err;
         });
     }).catch(function (err) {
@@ -224,7 +224,7 @@ Twitch.prototype.getStreamList = function(_channelIdsList) {
                         return _this.insertItem(channel, stream);
                     });
                 }).catch(function (err) {
-                    return _this.insertTimeoutItems('twitch', channelIds).then(function () {
+                    return _this.insertTimeoutItems(channelIds, 'twitch').then(function () {
                         throw err;
                     });
                 }).catch(function (err) {

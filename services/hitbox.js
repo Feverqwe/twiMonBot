@@ -135,7 +135,7 @@ Hitbox.prototype.insertItem = function (channel, stream) {
             return item;
         });
     }).catch(function (err) {
-        return _this.insertTimeoutItems('hitbox', [channel.id]).then(function () {
+        return _this.insertTimeoutItems([channel.id], 'hitbox').then(function () {
             throw err;
         });
     }).catch(function (err) {
@@ -226,7 +226,7 @@ Hitbox.prototype.getStreamList = function(_channelIdsList) {
                         return _this.insertItem(channel, stream);
                     });
                 }).catch(function (err) {
-                    return _this.insertTimeoutItems('hitbox', channelIds).then(function () {
+                    return _this.insertTimeoutItems(channelIds, 'hitbox').then(function () {
                         throw err;
                     });
                 }).catch(function (err) {

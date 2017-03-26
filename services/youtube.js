@@ -138,15 +138,13 @@ Youtube.prototype.insertItem = function (channel, snippet, id, viewers) {
             return item;
         });
     }).catch(function (err) {
-        return _this.insertTimeoutItems('youtube', [channel.id]).then(function () {
+        return _this.insertTimeoutItems([channel.id], 'youtube').then(function () {
             throw err;
         });
     }).catch(function (err) {
         debug('insertItem', err);
     });
 };
-
-var insertPool = new base.Pool(15);
 
 var intRe = /^\d+$/;
 
@@ -214,19 +212,20 @@ Youtube.prototype.getStreamList = function(_channelIdsList) {
 
         return requestPage().then(function (responseBody) {
             var items = responseBody.items;
-            return insertPool.do(function () {
-                var item = items.shift();
-                if (!item) return;
+            var quote = Promise.resolve();
+            items.forEach(function (item) {
+                quote = quote.then(function () {
+                    var snippet = item.snippet;
+                    var videoId = item.id.videoId;
 
-                var snippet = item.snippet;
-                var videoId = item.id.videoId;
-
-                return _this.getViewers(videoId).then(function(viewers) {
-                    return _this.insertItem(channel, snippet, videoId, viewers);
+                    return _this.getViewers(videoId).then(function(viewers) {
+                        return _this.insertItem(channel, snippet, videoId, viewers);
+                    });
                 });
             });
+            return quote;
         }).catch(function (err) {
-            return _this.insertTimeoutItems('youtube', [channel.id]).then(function () {
+            return _this.insertTimeoutItems([channel.id], 'youtube').then(function () {
                 throw err;
             });
         }).catch(function (err) {

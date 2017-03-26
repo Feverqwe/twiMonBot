@@ -140,7 +140,7 @@ GoodGame.prototype.insertItem = function (channel, stream) {
             return item;
         });
     }).catch(function (err) {
-        return _this.insertTimeoutItems('goodgame', [channel.id]).then(function () {
+        return _this.insertTimeoutItems([channel.id], 'goodgame').then(function () {
             throw err;
         });
     }).catch(function (err) {
@@ -238,7 +238,7 @@ GoodGame.prototype.getStreamList = function (_channelIdsList) {
                         return _this.insertItem(channel, stream);
                     });
                 }).catch(function (err) {
-                    return _this.insertTimeoutItems('goodgame', channelIds).then(function () {
+                    return _this.insertTimeoutItems(channelIds, 'goodgame').then(function () {
                         throw err;
                     });
                 }).catch(function (err) {

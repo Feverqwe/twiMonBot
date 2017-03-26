@@ -3,9 +3,16 @@
  */
 "use strict";
 var debug = require('debug')('app:service');
+var base = require('../base');
+
+var insertPool = new base.Pool(15);
 
 var Service = function () {
 
+};
+
+Service.prototype.getInsertPool = function () {
+    return insertPool;
 };
 
 /**
@@ -105,7 +112,7 @@ Service.prototype.setChannelTitle = function (channelId, channelTitle) {
     });
 };
 
-Service.prototype._insertItem = function (stream, messages) {
+Service.prototype._insert = function (stream, messages) {
     var _this = this;
     var db = _this.gOptions.db;
     return db.newConnection().then(function (connection) {
@@ -145,11 +152,11 @@ Service.prototype._insertItem = function (stream, messages) {
             throw err;
         });
     }).catch(function (err) {
-        debug('_insertItem', err);
+        debug('_insert', err);
     });
 };
 
-Service.prototype.insertTimeoutItems = function (serviceName, channelIds) {
+Service.prototype.insertTimeoutItems = function (channelIds, serviceName) {
     var _this = this;
 
     var insertTimeoutItem = function (stream) {
@@ -157,7 +164,7 @@ Service.prototype.insertTimeoutItems = function (serviceName, channelIds) {
         if (!stream.isOffline) {
             stream.isOffline = 1;
             return _this.gOptions.msgStack.getLiveMessages(stream.id, stream.service).then(function (messages) {
-                return _this._insertItem(stream, messages);
+                return _this._insert(stream, messages);
             }).catch(function (err) {
                 debug('insertTimeoutItem', err);
             });
@@ -165,9 +172,12 @@ Service.prototype.insertTimeoutItems = function (serviceName, channelIds) {
     };
 
     return _this.gOptions.msgStack.getStreamsByChannelIds(channelIds, serviceName).then(function (streams) {
-        return Promise.all(streams.map(function (stream) {
+        return insertPool.do(function () {
+            var stream = streams.shift();
+            if (!stream) return;
+
             return insertTimeoutItem(stream);
-        }));
+        });
     });
 };
 
