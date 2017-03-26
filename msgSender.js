@@ -155,8 +155,7 @@ MsgSender.prototype.updateNotify = function (stream) {
                 if (err.code === 'ETELEGRAM') {
                     var body = err.response.body;
                     if (/message to edit not found/.test(body)) {
-                        _this.removeMsgFromStream(stream, msg);
-                        return;
+                        return _this.removeMsgFromStream(stream, msg);
                     } else
                     if (/message is not modified/.test(body)) {
                         return;
