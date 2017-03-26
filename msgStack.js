@@ -22,10 +22,6 @@ var MsgStack = function (options) {
     this.onReady = _this.init();
 };
 
-var STATE_ONLINE = 1;
-var STATE_OFFLINE = 2;
-var STATE_TIMEOUT = 4;
-
 MsgStack.prototype.init = function () {
     var db = this.gOptions.db;
     var promise = Promise.resolve();
@@ -40,7 +36,8 @@ MsgStack.prototype.init = function () {
                 `imageFileId` TEXT CHARACTER SET utf8mb4 NULL, \
                 `insertTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
                 `checkTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
-                `state` INT NOT NULL DEFAULT 1, \
+                `isOffline` INT NOT NULL DEFAULT 0, \
+                `isTimeout` INT NOT NULL DEFAULT 0, \
             UNIQUE INDEX `videoIdChannelIdService_UNIQUE` (`id` ASC, `channelId` ASC, `service` ASC), \
             INDEX `channelId_idx` (`channelId` ASC), \
             INDEX `service_idx` (`service` ASC),  \
@@ -90,6 +87,7 @@ MsgStack.prototype.init = function () {
                     `chatId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
                     `streamId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
                     `messageId` VARCHAR(191) CHARACTER SET utf8mb4 NULL, \
+                    `messageType` VARCHAR(191) CHARACTER SET utf8mb4 NULL, \
                     `timeout` INT NULL DEFAULT 0, \
                 UNIQUE INDEX `chatIdStreamId_UNIQUE` (`chatId` ASC, `streamId` ASC), \
                 FOREIGN KEY (`streamId`) \
@@ -114,6 +112,77 @@ MsgStack.prototype.init = function () {
         });
     });
     return promise;
+};
+
+MsgStack.prototype.getStreamsByChannelIds = function (channelIds, service) {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        if (!channelIds.length) {
+            return resolve([]);
+        }
+        db.connection.query('\
+            SELECT * FROM streams WHERE service = ? AND channelId IN ?; \
+        ', [service, [channelIds]], function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(results);
+            }
+        });
+    });
+};
+
+MsgStack.prototype.getLiveMessages = function (streamId, service) {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            SELECT * FROM liveMessages WHERE service = ? AND streamId = ?; \
+        ', [service, streamId], function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(results);
+            }
+        });
+    });
+};
+
+MsgStack.prototype.addChatIdStreamId = function (connection, messages, streamId) {
+    return new Promise(function (resolve, reject) {
+        if (!messages.length) {
+            return resolve();
+        }
+        var values = messages.map(function (message) {
+            if (typeof message === 'object') {
+                return [message.chatId, message.id, message.type, streamId];
+            } else {
+                return [message, null, null, streamId];
+            }
+        });
+        connection.query('\
+            INSERT INTO chatIdMessageId (chatId, messageId, messageType, streamId) VALUES ? ON DUPLICATE KEY UPDATE chatId = chatId; \
+        ', [values], function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+};
+
+MsgStack.prototype.insertStream = function (connection, stream) {
+    return new Promise(function (resolve, reject) {
+        connection.query('\
+            INSERT INTO streams SET ? ON DUPLICATE KEY UPDATE ?; \
+        ', [stream, stream], function (err, result) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(result);
+            }
+        });
+    });
 };
 
 MsgStack.prototype.addInStack = function (videoItem) {

@@ -105,8 +105,70 @@ Service.prototype.setChannelTitle = function (channelId, channelTitle) {
     });
 };
 
-Service.prototype.insertTimeoutItems = function (serviceName, channelIds) {
+Service.prototype._insertItem = function (stream, messages) {
+    var _this = this;
+    var db = _this.gOptions.db;
+    return db.newConnection().then(function (connection) {
+        return new Promise(function (resolve, reject) {
+            connection.beginTransaction(function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        }).then(function () {
+            return _this.gOptions.msgStack.insertStream(connection, stream);
+        }).then(function () {
+            return _this.gOptions.msgStack.addChatIdStreamId(connection, messages, stream.id);
+        }).then(function () {
+            return new Promise(function (resolve, reject) {
+                connection.commit(function (err) {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+        }).catch(function (err) {
+            return new Promise(function (resolve) {
+                connection.rollback(resolve);
+            }).then(function () {
+                throw err;
+            });
+        }).then(function (result) {
+            connection.end();
+            return result;
+        }, function (err) {
+            connection.end();
+            throw err;
+        });
+    }).catch(function (err) {
+        debug('_insertItem', err);
+    });
+};
 
+Service.prototype.insertTimeoutItems = function (serviceName, channelIds) {
+    var _this = this;
+
+    var insertTimeoutItem = function (stream) {
+        var _this = this;
+        if (!stream.isOffline) {
+            stream.isOffline = 1;
+            return _this.gOptions.msgStack.getLiveMessages(stream.id, stream.service).then(function (messages) {
+                return _this._insertItem(stream, messages);
+            }).catch(function (err) {
+                debug('insertTimeoutItem', err);
+            });
+        }
+    };
+
+    return _this.gOptions.msgStack.getStreamsByChannelIds(channelIds, serviceName).then(function (streams) {
+        return Promise.all(streams.map(function (stream) {
+            return insertTimeoutItem(stream);
+        }));
+    });
 };
 
 module.exports = Service;
