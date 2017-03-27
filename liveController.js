@@ -44,19 +44,29 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
         var updateStreams = [];
         var offlineStreams = [];
         var timeoutStreams = [];
+        var syncStreams = [];
         streams.forEach(function (stream) {
             if (stream.isTimeout) {
                 var streams = channelIdStreams[stream.channelId] || [];
                 streams.forEach(function (stream) {
-                    timeoutStreams.push({
-                        id: stream.id,
-                        isTimeout: 1
-                    });
+                    var pos = currentStreamIds.indexOf(stream.id);
+                    if (pos !== -1) {
+                        currentStreamIds.splice(pos, 1);
+                    }
+
+                    if (!stream.isTimeout) {
+                        stream.isTimeout = 1;
+                        stream.checkTime = base.getNow();
+                        timeoutStreams.push(stream);
+                    } else {
+                        syncStreams.push(stream);
+                    }
                 });
             } else {
                 var pos = currentStreamIds.indexOf(stream.id);
                 if (pos !== -1) {
                     currentStreamIds.splice(pos, 1);
+
                     updateStreams.push(stream);
                 } else {
                     newStreams.push(stream);
@@ -66,16 +76,83 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
         currentStreamIds.forEach(function (id) {
             var stream = idStreamMap[id];
             if (!stream.isOffline) {
-                offlineStreams.push({
-                    id: stream.id,
-                    isTimeout: 0,
-                    isOffline: 1,
-                    offlineTime: base.getNow()
-                });
+                stream.isOffline = 1;
+                stream.checkTime = base.getNow();
+                offlineStreams.push(stream);
+            } else {
+                stream.checkTime = base.getNow();
+                syncStreams.push(stream);
             }
         });
 
+        var queue = Promise.resolve();
+        queue = queue.then(function () {
+            return insertPool.do(function () {
+                var stream = newStreams.shift();
+                if (!stream) return;
 
+                return _this.gOptions.users.getChatIdsByChannel(stream.service, stream.channelId).then(function (chatIds) {
+                    return _this.gOptions.msgStack.setStream(stream).then(function () {
+                        return _this.gOptions.msgStack.addChatIdsStreamId(chatIds, stream.id);
+                    });
+                }).catch(function (err) {
+                    debug('newStreams', err);
+                });
+            });
+        });
+        queue = queue.then(function () {
+            return insertPool.do(function () {
+                var stream = updateStreams.shift();
+                if (!stream) return;
+
+                return _this.gOptions.msgStack.getStreamLiveMessages(stream.id).then(function (message) {
+                    return _this.gOptions.msgStack.setStream(stream).then(function () {
+                        return _this.gOptions.msgStack.updateChatIdsStreamId(message, stream.id);
+                    });
+                }).catch(function (err) {
+                    debug('updateStreams', err);
+                });
+            });
+        });
+        queue = queue.then(function () {
+            return insertPool.do(function () {
+                var stream = offlineStreams.shift();
+                if (!stream) return;
+
+                return _this.gOptions.msgStack.getStreamLiveMessages(stream.id).then(function (message) {
+                    return _this.gOptions.msgStack.setStream(stream).then(function () {
+                        return _this.gOptions.msgStack.updateChatIdsStreamId(message, stream.id);
+                    });
+                }).catch(function (err) {
+                    debug('offlineStreams', err);
+                });
+            });
+        });
+        queue = queue.then(function () {
+            return insertPool.do(function () {
+                var stream = timeoutStreams.shift();
+                if (!stream) return;
+
+                return _this.gOptions.msgStack.getStreamLiveMessages(stream.id).then(function (message) {
+                    return _this.gOptions.msgStack.setStream(stream).then(function () {
+                        return _this.gOptions.msgStack.updateChatIdsStreamId(message, stream.id);
+                    });
+                }).catch(function (err) {
+                    debug('timeoutStreams', err);
+                });
+            });
+        });
+        queue = queue.then(function () {
+            return insertPool.do(function () {
+                var stream = syncStreams.shift();
+                if (!stream) return;
+
+                return _this.gOptions.msgStack.setStream(stream).catch(function (err) {
+                    debug('syncStreams', err);
+                });
+            });
+        });
+        return queue;
     });
 };
 
