@@ -39,6 +39,7 @@ MsgStack.prototype.init = function () {
                 `offlineTime` TIMESTAMP NULL, \
                 `isOffline` INT NOT NULL DEFAULT 0, \
                 `isTimeout` INT NOT NULL DEFAULT 0, \
+            UNIQUE INDEX `videoIdChannelIdService_UNIQUE` (`id` ASC, `channelId` ASC, `service` ASC), \
             INDEX `channelId_idx` (`channelId` ASC), \
             INDEX `service_idx` (`service` ASC),  \
             UNIQUE INDEX `id_UNIQUE` (`id` ASC)); \
@@ -127,6 +128,59 @@ MsgStack.prototype.getStreamsByChannelIds = function (channelIds, service) {
                 reject(err);
             } else {
                 resolve(results);
+            }
+        });
+    });
+};
+
+MsgStack.prototype.getLiveMessages = function (streamId, service) {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            SELECT * FROM liveMessages WHERE service = ? AND streamId = ?; \
+        ', [service, streamId], function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(results);
+            }
+        });
+    });
+};
+
+MsgStack.prototype.addChatIdStreamId = function (connection, messages, streamId) {
+    return new Promise(function (resolve, reject) {
+        if (!messages.length) {
+            return resolve();
+        }
+        var values = messages.map(function (message) {
+            if (typeof message === 'object') {
+                return [message.chatId, message.id, message.type, streamId];
+            } else {
+                return [message, null, null, streamId];
+            }
+        });
+        connection.query('\
+            INSERT INTO chatIdMessageId (chatId, messageId, messageType, streamId) VALUES ? ON DUPLICATE KEY UPDATE chatId = chatId; \
+        ', [values], function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+};
+
+MsgStack.prototype.insertStream = function (connection, stream) {
+    return new Promise(function (resolve, reject) {
+        connection.query('\
+            INSERT INTO streams SET ? ON DUPLICATE KEY UPDATE ?; \
+        ', [stream, stream], function (err, result) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(result);
             }
         });
     });
