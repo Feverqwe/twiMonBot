@@ -152,18 +152,12 @@ GoodGame.prototype.insertItem = function (channel, stream) {
         }
 
         return promise.then(function () {
-            return _this.gOptions.users.getChatIdsByChannel('goodgame', channel.id);
-        }).then(function (chatIds) {
-            return _this._insert(item, chatIds)
+            return item;
         });
-    }).catch(function (err) {
-        return _this.insertTimeoutItems([channel.id], 'goodgame').then(function () {
-            throw err;
-        });
-    }).catch(function (err) {
-        debug('insertItem', err);
     });
 };
+
+var insertPool = new base.Pool(15);
 
 /**
  * @param _channelIdsList
@@ -233,7 +227,7 @@ GoodGame.prototype.getStreamList = function (_channelIdsList) {
 
                 return getList().then(function (responseBody) {
                     var items = responseBody._embedded.streams;
-                    return _this.getInsertPool().do(function () {
+                    return insertPool.do(function () {
                         var stream = items.shift();
                         if (!stream) return;
 
@@ -250,14 +244,18 @@ GoodGame.prototype.getStreamList = function (_channelIdsList) {
                         }
                         var channel = channelsPart[pos];
 
-                        return _this.insertItem(channel, stream);
+                        return _this.insertItem(channel, stream).then(function (item) {
+                            item && videoList.push(item);
+                        }).catch(function (err) {
+                            videoList.push(base.getTimeoutStream('goodgame', channel.id));
+                            debug("insertItem error!", err);
+                        });
                     });
                 }).catch(function (err) {
-                    return _this.insertTimeoutItems(channelIds, 'goodgame').then(function () {
-                        throw err;
+                    channelIds.forEach(function (channelId) {
+                        videoList.push(base.getTimeoutStream('goodgame', channelId));
                     });
-                }).catch(function (err) {
-                    debug("getList error!", err);
+                    debug("Request stream list error!", err);
                 });
             });
         });
@@ -265,7 +263,9 @@ GoodGame.prototype.getStreamList = function (_channelIdsList) {
         return queue;
     });
 
-    return promise;
+    return promise.then(function () {
+        return videoList;
+    });
 };
 
 GoodGame.prototype.getChannelIdByUrl = function (url) {

@@ -3,16 +3,9 @@
  */
 "use strict";
 var debug = require('debug')('app:service');
-var base = require('../base');
-
-var insertPool = new base.Pool(15);
 
 var Service = function () {
 
-};
-
-Service.prototype.getInsertPool = function () {
-    return insertPool;
 };
 
 /**
@@ -108,75 +101,6 @@ Service.prototype.setChannelTitle = function (channelId, channelTitle) {
             } else {
                 resolve();
             }
-        });
-    });
-};
-
-Service.prototype._insert = function (stream, messages) {
-    var _this = this;
-    var db = _this.gOptions.db;
-    return db.newConnection().then(function (connection) {
-        return new Promise(function (resolve, reject) {
-            connection.beginTransaction(function (err) {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve();
-                }
-            });
-        }).then(function () {
-            return _this.gOptions.msgStack.insertStream(connection, stream);
-        }).then(function () {
-            return _this.gOptions.msgStack.addChatIdStreamId(connection, messages, stream.id);
-        }).then(function () {
-            return new Promise(function (resolve, reject) {
-                connection.commit(function (err) {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
-                });
-            });
-        }).catch(function (err) {
-            return new Promise(function (resolve) {
-                connection.rollback(resolve);
-            }).then(function () {
-                throw err;
-            });
-        }).then(function (result) {
-            connection.end();
-            return result;
-        }, function (err) {
-            connection.end();
-            throw err;
-        });
-    }).catch(function (err) {
-        debug('_insert', err);
-    });
-};
-
-Service.prototype.insertTimeoutItems = function (channelIds, serviceName) {
-    var _this = this;
-
-    var insertTimeoutItem = function (stream) {
-        var _this = this;
-        if (!stream.isOffline) {
-            stream.isOffline = 1;
-            return _this.gOptions.msgStack.getLiveMessages(stream.id, stream.service).then(function (messages) {
-                return _this._insert(stream, messages);
-            }).catch(function (err) {
-                debug('insertTimeoutItem', err);
-            });
-        }
-    };
-
-    return _this.gOptions.msgStack.getStreamsByChannelIds(channelIds, serviceName).then(function (streams) {
-        return insertPool.do(function () {
-            var stream = streams.shift();
-            if (!stream) return;
-
-            return insertTimeoutItem(stream);
         });
     });
 };

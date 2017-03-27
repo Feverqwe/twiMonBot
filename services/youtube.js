@@ -150,18 +150,12 @@ Youtube.prototype.insertItem = function (channel, snippet, id, viewers) {
         }
 
         return promise.then(function () {
-            return _this.gOptions.users.getChatIdsByChannel('youtube', channel.id);
-        }).then(function (chatIds) {
-            return _this._insert(item, chatIds)
+            return item;
         });
-    }).catch(function (err) {
-        return _this.insertTimeoutItems([channel.id], 'youtube').then(function () {
-            throw err;
-        });
-    }).catch(function (err) {
-        debug('insertItem', err);
     });
 };
+
+var insertPool = new base.Pool(15);
 
 var intRe = /^\d+$/;
 
@@ -229,7 +223,7 @@ Youtube.prototype.getStreamList = function(_channelIdsList) {
 
         return requestPage().then(function (responseBody) {
             var items = responseBody.items;
-            return _this.getInsertPool().do(function () {
+            return insertPool.do(function () {
                 var item = items.shift();
                 if (!item) return;
 
@@ -237,15 +231,17 @@ Youtube.prototype.getStreamList = function(_channelIdsList) {
                 var videoId = item.id.videoId;
 
                 return _this.getViewers(videoId).then(function(viewers) {
-                    return _this.insertItem(channel, snippet, videoId, viewers);
+                    return _this.insertItem(channel, snippet, videoId, viewers).then(function (item) {
+                        item && streamList.push(item);
+        }).catch(function (err) {
+                        streamList.push(base.getTimeoutStream('youtube', channel.id));
+                        debug("insertItem error!", err);
+                    });
                 });
             });
-        }).catch(function (err) {
-            return _this.insertTimeoutItems([channel.id], 'youtube').then(function () {
-                throw err;
-            });
-        }).catch(function (err) {
-            debug('requestPage error!', channel.id, err);
+        }).catch(function(err) {
+            streamList.push(base.getTimeoutStream('youtube', channelId));
+            debug('Stream list item %s response error!', channelId, err);
         });
     };
 
@@ -275,7 +271,10 @@ Youtube.prototype.getStreamList = function(_channelIdsList) {
         });
     });
 
-    return promise;
+    var streamList = [];
+    return promise.then(function() {
+        return streamList;
+    });
 };
 
 /**
