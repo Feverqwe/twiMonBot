@@ -82,11 +82,12 @@ var videoIdToId = function (videoId) {
     return 't' + videoId;
 };
 
-Twitch.prototype.insertItem = function (channel, streamId, stream) {
+Twitch.prototype.insertItem = function (channel, stream) {
     var _this = this;
     return Promise.resolve().then(function () {
         var now = base.getNow();
 
+        var id = stream._id;
         var viewers = parseInt(stream.viewers) || 0;
         var game = stream.game;
         var createdAt = stream.created_at;
@@ -110,7 +111,7 @@ Twitch.prototype.insertItem = function (channel, streamId, stream) {
             _service: 'twitch',
             _checkTime: now,
             _insertTime: now,
-            _id: streamId,
+            _id: videoIdToId(id),
             _isOffline: false,
             _isTimeout: false,
             _channelId: channel.id,
@@ -128,7 +129,7 @@ Twitch.prototype.insertItem = function (channel, streamId, stream) {
         };
 
         var item = {
-            id: streamId,
+            id: videoIdToId(id),
             channelId: channel.id,
             service: 'twitch',
             data: JSON.stringify(data),
@@ -188,15 +189,6 @@ Twitch.prototype.getStreamList = function(_channelIdsList) {
             });
 
             queue = queue.then(function () {
-                return _this.gOptions.msgStack.getStreamsByChannelIds(channelIds, _this.name);
-            });
-
-            queue = queue.then(function (streams) {
-                var streamIdStreamMap = {};
-                streams.forEach(function (stream) {
-                    streamIdStreamMap[stream.id] = stream;
-                });
-
                 var retryLimit = 5;
                 var getList = function () {
                     return requestPromise({
@@ -245,18 +237,8 @@ Twitch.prototype.getStreamList = function(_channelIdsList) {
                             return Promise.resolve();
                         }
                         var channel = channelsPart[pos];
-                        var streamId = videoIdToId(stream._id);
 
-                        var oldStream = streamIdStreamMap[streamId];
-                        pos = streams.indexOf(oldStream);
-                        if (pos !== -1) {
-                            streams.splice(pos, 1);
-                            delete streamIdStreamMap[streamId];
-                        }
-
-                        return _this.insertItem(channel, streamId, stream);
-                    }).then(function () {
-                        return _this.insertOfflineItems(streams);
+                        return _this.insertItem(channel, stream);
                     });
                 }).catch(function (err) {
                     return _this.insertTimeoutItems(channelIds, 'twitch').then(function () {

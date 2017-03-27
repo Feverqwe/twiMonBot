@@ -36,7 +36,6 @@ MsgStack.prototype.init = function () {
                 `imageFileId` TEXT CHARACTER SET utf8mb4 NULL, \
                 `insertTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
                 `checkTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
-                `offlineTime` TIMESTAMP NULL, \
                 `isOffline` INT NOT NULL DEFAULT 0, \
                 `isTimeout` INT NOT NULL DEFAULT 0, \
             UNIQUE INDEX `videoIdChannelIdService_UNIQUE` (`id` ASC, `channelId` ASC, `service` ASC), \
