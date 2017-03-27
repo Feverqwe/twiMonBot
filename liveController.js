@@ -22,6 +22,63 @@ var LiveController = function (options) {
     });
 };
 
+var insertPool = new base.Pool(15);
+
+LiveController.prototype.insertStreams = function (streams, channelList, serviceName) {
+    var _this = this;
+    return _this.gOptions.msgStack.getStreams(channelList, serviceName).then(function (currentStreams) {
+        var idStreamMap = {};
+        var channelIdStreams = {};
+        var currentStreamIds = [];
+        currentStreams.forEach(function (stream) {
+            currentStreamIds.push(stream.id);
+            idStreamMap[stream.id] = stream;
+            var channelStreams = channelIdStreams[stream.channelId];
+            if (!channelStreams) {
+                channelStreams = channelIdStreams[stream.channelId] = [];
+            }
+            channelStreams.push(stream);
+        });
+
+        var newStreams = [];
+        var updateStreams = [];
+        var offlineStreams = [];
+        var timeoutStreams = [];
+        streams.forEach(function (stream) {
+            if (stream.isTimeout) {
+                var streams = channelIdStreams[stream.channelId] || [];
+                streams.forEach(function (stream) {
+                    timeoutStreams.push({
+                        id: stream.id,
+                        isTimeout: 1
+                    });
+                });
+            } else {
+                var pos = currentStreamIds.indexOf(stream.id);
+                if (pos !== -1) {
+                    currentStreamIds.splice(pos, 1);
+                    updateStreams.push(stream);
+                } else {
+                    newStreams.push(stream);
+                }
+            }
+        });
+        currentStreamIds.forEach(function (id) {
+            var stream = idStreamMap[id];
+            if (!stream.isOffline) {
+                offlineStreams.push({
+                    id: stream.id,
+                    isTimeout: 0,
+                    isOffline: 1,
+                    offlineTime: base.getNow()
+                });
+            }
+        });
+
+
+    });
+};
+
 LiveController.prototype.saveStreamList = function () {
     return base.storage.set({
         lastStreamList: this.config.liveList

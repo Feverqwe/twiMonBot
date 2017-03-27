@@ -102,6 +102,8 @@ Service.prototype.setChannelTitle = function (channelId, channelTitle) {
                 resolve();
             }
         });
+    }).catch(function (err) {
+        debug('setChannelTitle', err);
     });
 };
 

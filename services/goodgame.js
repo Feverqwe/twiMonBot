@@ -139,7 +139,7 @@ GoodGame.prototype.insertItem = function (channel, stream) {
             channelId: channel.id,
             service: 'goodgame',
             data: JSON.stringify(data),
-            checkTime: (new Date()).toISOString(),
+            checkTime: base.getNow(),
             isOffline: 0,
             isTimeout: 0
         };

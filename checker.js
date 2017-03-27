@@ -78,7 +78,7 @@ Checker.prototype.updateList = function() {
         var promiseList = Object.keys(serviceChannelIds).map(function (serviceName) {
             var channelList = serviceChannelIds[serviceName];
             return services[serviceName].getStreamList(channelList).then(function(videoList) {
-                _this.gOptions.events.emit('updateLiveList', serviceName, videoList, channelList);
+                return _this.gOptions.liveController.insertStreams(videoList, channelList, serviceName);
             });
         });
         return Promise.all(promiseList);

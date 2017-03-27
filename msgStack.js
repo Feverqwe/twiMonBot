@@ -35,10 +35,10 @@ MsgStack.prototype.init = function () {
                 `data` LONGTEXT CHARACTER SET utf8mb4 NOT NULL, \
                 `imageFileId` TEXT CHARACTER SET utf8mb4 NULL, \
                 `insertTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
-                `checkTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
+                `checkTime` INT NOT NULL, \
+                `offlineTime` INT NULL DEFAULT 0, \
                 `isOffline` INT NOT NULL DEFAULT 0, \
                 `isTimeout` INT NOT NULL DEFAULT 0, \
-            UNIQUE INDEX `videoIdChannelIdService_UNIQUE` (`id` ASC, `channelId` ASC, `service` ASC), \
             INDEX `channelId_idx` (`channelId` ASC), \
             INDEX `service_idx` (`service` ASC),  \
             UNIQUE INDEX `id_UNIQUE` (`id` ASC)); \
@@ -112,6 +112,24 @@ MsgStack.prototype.init = function () {
         });
     });
     return promise;
+};
+
+MsgStack.prototype.getStreams = function (channelIds, service) {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        if (!channelIds.length) {
+            return resolve([]);
+        }
+        db.connection.query('\
+            SELECT * FROM streams WHERE service = ? AND channelId IN ?; \
+        ', [service, [channelIds]], function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(results);
+            }
+        });
+    });
 };
 
 MsgStack.prototype.addInStack = function (videoItem) {

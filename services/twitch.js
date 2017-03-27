@@ -133,7 +133,7 @@ Twitch.prototype.insertItem = function (channel, stream) {
             channelId: channel.id,
             service: 'twitch',
             data: JSON.stringify(data),
-            checkTime: (new Date()).toISOString(),
+            checkTime: base.getNow(),
             isOffline: 0,
             isTimeout: 0
         };

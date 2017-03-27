@@ -375,9 +375,9 @@ utils.arrToParts = function (arr, quote) {
 
 utils.getTimeoutStream = function (service, channelId) {
     var item = {
-        _service: service,
-        _channelId: channelId,
-        _isTimeout: true
+        channelId: channelId,
+        service: service,
+        isTimeout: 1
     };
     return item;
 };
