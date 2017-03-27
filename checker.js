@@ -79,8 +79,6 @@ Checker.prototype.updateList = function() {
             return services[serviceName].getStreamList(serviceChannelIds[serviceName]);
         });
         return Promise.all(promiseList);
-    }).then(function () {
-        _this.gOptions.events.emit('checkStack');
     });
 };
 

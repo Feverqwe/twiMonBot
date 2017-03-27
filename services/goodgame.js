@@ -171,6 +171,7 @@ GoodGame.prototype.insertItem = function (channel, stream) {
  */
 GoodGame.prototype.getStreamList = function (_channelIdsList) {
     var _this = this;
+    var videoList = [];
 
     var promise = Promise.resolve();
 
