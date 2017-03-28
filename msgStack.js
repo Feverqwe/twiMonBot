@@ -299,6 +299,21 @@ MsgStack.prototype.migrateStream = function (connection, prevStreamId, streamId)
     });
 };
 
+MsgStack.prototype.setImageFileId = function (streamId, imageFileId) {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            UPDATE streams SET imageFileId = ? WHERE id = ?; \
+        ', [imageFileId, streamId], function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+};
+
 MsgStack.prototype.removeItem = function (chatId, streamId, messageId) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {

@@ -250,8 +250,7 @@ MsgSender.prototype.sendMessage = function (chatId, messageId, message, data, us
         if (imageFileId) {
             message.imageFileId = imageFileId;
 
-            data._photoId = imageFileId;
-            // return _this.gOptions.msgStack.setImageFileId(messageId, imageFileId);
+            return _this.gOptions.msgStack.setImageFileId(messageId, imageFileId);
         }
     });
 };
