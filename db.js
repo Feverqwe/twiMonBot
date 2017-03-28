@@ -62,4 +62,41 @@ Db.prototype.newConnection = function () {
     });
 };
 
+Db.prototype.transaction = function (promise) {
+    var _this = this;
+    return _this.newConnection().then(function (connection) {
+        return new Promise(function (resolve, reject) {
+            connection.beginTransaction(function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(connection);
+                }
+            });
+        }).then(promise).then(function () {
+            return new Promise(function (resolve, reject) {
+                connection.commit(function(err) {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+        }).catch(function (err) {
+            return new Promise(function (resolve) {
+                connection.rollback(resolve);
+            }).then(function () {
+                throw err;
+            });
+        }).then(function (result) {
+            connection.end();
+            return result;
+        }, function (err) {
+            connection.end();
+            throw err;
+        });
+    });
+};
+
 module.exports = Db;

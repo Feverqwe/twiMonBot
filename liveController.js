@@ -24,63 +24,148 @@ var LiveController = function (options) {
 
 var insertPool = new base.Pool(15);
 
+LiveController.prototype.findPrevStreamId = function (prevStreams, stream) {
+    var prevStreamId = null;
+    var data = JSON.parse(stream.data);
+    prevStreams.some(function (prevStream) {
+        var prevData = JSON.parse(prevStream.data);
+        if (prevData.channel.status === data.channel.status &&
+            prevData.channel.game === data.channel.game
+        ) {
+            prevStreamId = prevStream.id;
+            return true;
+        }
+    });
+    return prevStreamId;
+};
+
 LiveController.prototype.insertStreams = function (streams, channelList, serviceName) {
     var _this = this;
-    return _this.gOptions.msgStack.getStreams(channelList, serviceName).then(function (currentStreams) {
-        var idStreamMap = {};
-        var channelIdStreams = {};
-        var currentStreamIds = [];
-        currentStreams.forEach(function (stream) {
-            currentStreamIds.push(stream.id);
-            idStreamMap[stream.id] = stream;
-            var channelStreams = channelIdStreams[stream.channelId];
+    const TIMEOUT = this.gOptions.config.timeout;
+    return _this.gOptions.msgStack.getStreams(channelList, serviceName).then(function (prevStreams) {
+        var streamIdPrevStreamMap = {};
+        var channelIdPrevStreams = {};
+        var prevStreamIds = [];
+        prevStreams.forEach(function (prevStream) {
+            prevStreamIds.push(prevStream.id);
+            streamIdPrevStreamMap[prevStream.id] = prevStream;
+            var channelStreams = channelIdPrevStreams[prevStream.channelId];
             if (!channelStreams) {
-                channelStreams = channelIdStreams[stream.channelId] = [];
+                channelStreams = channelIdPrevStreams[prevStream.channelId] = [];
             }
-            channelStreams.push(stream);
+            channelStreams.push(prevStream);
         });
 
+        var rmStream = function (stream, channelStreams) {
+            delete streamIdPrevStreamMap[stream.id];
+
+            var pos = prevStreamIds.indexOf(stream.id);
+            if (pos !== -1) {
+                prevStreamIds.splice(pos, 1);
+            }
+
+            pos = channelStreams.indexOf(stream);
+            if (pos !== -1) {
+                channelStreams.splice(pos, 1);
+            }
+        };
+
+        var migrateStreamIds = [];
         var newStreams = [];
         var updateStreams = [];
         var offlineStreams = [];
         var timeoutStreams = [];
         var syncStreams = [];
+        var removeStreamIds = [];
         streams.forEach(function (stream) {
-            if (stream.isTimeout) {
-                var streams = channelIdStreams[stream.channelId] || [];
-                streams.forEach(function (stream) {
-                    var pos = currentStreamIds.indexOf(stream.id);
-                    if (pos !== -1) {
-                        currentStreamIds.splice(pos, 1);
-                    }
+            var prevChannelStreams = channelIdPrevStreams[stream.channelId] || [];
 
-                    if (!stream.isTimeout) {
-                        stream.isTimeout = 1;
-                        stream.checkTime = base.getNow();
-                        timeoutStreams.push(stream);
+            if (stream.isTimeout) {
+                prevChannelStreams.slice(0).forEach(function (prevStream) {
+                    rmStream(prevStream, prevChannelStreams);
+
+                    prevStream.checkTime = base.getNow();
+                    if (!prevStream.isTimeout) {
+                        prevStream.isTimeout = 1;
+                        debugLog('Timeout (U) %s', prevStream.id);
+                        timeoutStreams.push(prevStream);
                     } else {
-                        syncStreams.push(stream);
+                        syncStreams.push(prevStream);
                     }
                 });
-            } else {
-                var pos = currentStreamIds.indexOf(stream.id);
-                if (pos !== -1) {
-                    currentStreamIds.splice(pos, 1);
+                return;
+            }
 
+            var prevStream = streamIdPrevStreamMap[stream.id];
+            if (prevStream) {
+                rmStream(prevStream, prevChannelStreams);
+
+                stream.imageFileId = null;
+
+                var prevData = JSON.parse(prevStream.data);
+                var data = JSON.parse(stream.data);
+
+                if (prevStream.isOffline !== stream.isOffline ||
+                    prevStream.isTimeout !== stream.isTimeout
+                ) {
+                    debugLog('Online (U) %s', stream.id);
+                    updateStreams.push(stream);
+                } else
+                if (prevData.channel.game !== data.channel.game ||
+                    prevData.channel.status !== data.channel.status
+                ) {
+                    debugLog('Changes (U) %s', stream.id);
                     updateStreams.push(stream);
                 } else {
-                    newStreams.push(stream);
+                    syncStreams.push(stream);
                 }
+                return;
             }
+
+            if (!prevChannelStreams.length) {
+                debugLog('New (N) %s', stream.id);
+                newStreams.push(stream);
+                return;
+            }
+
+            var prevStreamId = _this.findPrevStreamId(prevChannelStreams, stream);
+            prevStream = streamIdPrevStreamMap[prevStreamId];
+            if (prevStream) {
+                rmStream(prevStream, prevChannelStreams);
+
+                migrateStreamIds.push([prevStream.id, stream.id]);
+
+                stream.imageFileId = null;
+
+                if (prevStream.isOffline !== stream.isOffline ||
+                    prevStream.isTimeout !== stream.isTimeout
+                ) {
+                    debugLog('Online dbl (U) %s', stream.id);
+                    updateStreams.push(stream);
+                } else {
+                    debugLog('Dbl %s', stream.id);
+                    syncStreams.push(stream);
+                }
+                return;
+            }
+
+            debugLog('Dbl (N) %s', stream.id);
+            newStreams.push(stream);
         });
-        currentStreamIds.forEach(function (id) {
-            var stream = idStreamMap[id];
+        prevStreamIds.forEach(function (id) {
+            var stream = streamIdPrevStreamMap[id];
+            stream.checkTime = base.getNow();
             if (!stream.isOffline) {
                 stream.isOffline = 1;
-                stream.checkTime = base.getNow();
+                stream.isTimeout = 0;
+                stream.offlineTime = base.getNow();
+                debugLog('Offline (U) %s', stream.id);
                 offlineStreams.push(stream);
+            } else
+            if (base.getNow() - stream.offlineTime > TIMEOUT) {
+                debugLog('Remove %s', stream.id);
+                removeStreamIds.push(stream.id);
             } else {
-                stream.checkTime = base.getNow();
                 syncStreams.push(stream);
             }
         });
@@ -88,12 +173,24 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
         var queue = Promise.resolve();
         queue = queue.then(function () {
             return insertPool.do(function () {
+                var item = migrateStreamIds.shift();
+                if (!item) return;
+
+                return _this.gOptions.msgStack.migrateStream(item[0], item[1]).catch(function (err) {
+                    debug('migrateStreams', err);
+                });
+            });
+        });
+        queue = queue.then(function () {
+            return insertPool.do(function () {
                 var stream = newStreams.shift();
                 if (!stream) return;
 
                 return _this.gOptions.users.getChatIdsByChannel(stream.service, stream.channelId).then(function (chatIds) {
-                    return _this.gOptions.msgStack.setStream(stream).then(function () {
-                        return _this.gOptions.msgStack.addChatIdsStreamId(chatIds, stream.id);
+                    return _this.gOptions.db.transaction(function (connection) {
+                        return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
+                            return _this.gOptions.msgStack.addChatIdsStreamId(connection, chatIds, stream.id);
+                        });
                     });
                 }).catch(function (err) {
                     debug('newStreams', err);
@@ -105,9 +202,11 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
                 var stream = updateStreams.shift();
                 if (!stream) return;
 
-                return _this.gOptions.msgStack.getStreamLiveMessages(stream.id).then(function (message) {
-                    return _this.gOptions.msgStack.setStream(stream).then(function () {
-                        return _this.gOptions.msgStack.updateChatIdsStreamId(message, stream.id);
+                return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (messages) {
+                    return _this.gOptions.db.transaction(function (connection) {
+                        return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
+                            return _this.gOptions.msgStack.updateChatIdsStreamId(connection, messages, stream.id);
+                        });
                     });
                 }).catch(function (err) {
                     debug('updateStreams', err);
@@ -119,9 +218,11 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
                 var stream = offlineStreams.shift();
                 if (!stream) return;
 
-                return _this.gOptions.msgStack.getStreamLiveMessages(stream.id).then(function (message) {
-                    return _this.gOptions.msgStack.setStream(stream).then(function () {
-                        return _this.gOptions.msgStack.updateChatIdsStreamId(message, stream.id);
+                return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (message) {
+                    return _this.gOptions.db.transaction(function (connection) {
+                        return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
+                            return _this.gOptions.msgStack.updateChatIdsStreamId(connection, message, stream.id);
+                        });
                     });
                 }).catch(function (err) {
                     debug('offlineStreams', err);
@@ -133,9 +234,11 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
                 var stream = timeoutStreams.shift();
                 if (!stream) return;
 
-                return _this.gOptions.msgStack.getStreamLiveMessages(stream.id).then(function (message) {
-                    return _this.gOptions.msgStack.setStream(stream).then(function () {
-                        return _this.gOptions.msgStack.updateChatIdsStreamId(message, stream.id);
+                return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (message) {
+                    return _this.gOptions.db.transaction(function (connection) {
+                        return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
+                            return _this.gOptions.msgStack.updateChatIdsStreamId(connection, message, stream.id);
+                        });
                     });
                 }).catch(function (err) {
                     debug('timeoutStreams', err);
@@ -151,6 +254,13 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
                     debug('syncStreams', err);
                 });
             });
+        });
+        queue = queue.then(function () {
+            if (removeStreamIds.length) {
+                return _this.gOptions.msgStack.removeStreamIds(removeStreamIds).catch(function (err) {
+                    debug('removeStreamIds', err);
+                });
+            }
         });
         return queue;
     });

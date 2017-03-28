@@ -132,6 +132,109 @@ MsgStack.prototype.getStreams = function (channelIds, service) {
     });
 };
 
+MsgStack.prototype.setStream = function (connection, stream) {
+    return new Promise(function (resolve, reject) {
+        connection.query('\
+            INSERT INTO streams SET ? ON DUPLICATE KEY UPDATE ?; \
+        ', [stream, stream], function (err, result) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(result);
+            }
+        });
+    });
+};
+
+MsgStack.prototype.removeStreamIds = function (streamIds) {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        if (!streamIds.length) {
+            return resolve();
+        }
+        db.connection.query('\
+            DELETE FROM streams WHERE id IN ?; \
+        ', [[streamIds]], function (err, result) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(result);
+            }
+        });
+    });
+};
+
+MsgStack.prototype.addChatIdsStreamId = function (connection, chatIds, streamId) {
+    return new Promise(function (resolve, reject) {
+        if (!chatIds.length) {
+            return resolve();
+        }
+        var values = chatIds.map(function (chatId) {
+            return [chatId, streamId];
+        });
+        connection.query('\
+            INSERT INTO chatIdMessageId (chatId, streamId) VALUES ? ON DUPLICATE KEY UPDATE chatId = chatId; \
+        ', [values], function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+};
+
+MsgStack.prototype.updateChatIdsStreamId = function (connection, messages, streamId) {
+    return new Promise(function (resolve, reject) {
+        if (!messages.length) {
+            return resolve();
+        }
+        var values = messages.map(function (message) {
+            return [message.chatId, message.id, message.type, streamId];
+        });
+        connection.query('\
+            INSERT INTO chatIdMessageId (chatId, messageId, messageType, streamId) VALUES ? ON DUPLICATE KEY UPDATE chatId = chatId; \
+        ', [values], function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+};
+
+MsgStack.prototype.getStreamMessages = function (streamId) {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            SELECT * FROM liveMessages WHERE streamId = ?; \
+        ', [streamId], function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(results);
+            }
+        });
+    });
+};
+
+MsgStack.prototype.migrateStream = function (prevStreamId, streamId) {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            UPDATE streams SET id = ? WHERE id = ?; \
+        ', [streamId, prevStreamId], function (err) {
+            if (err) {
+                reject(err);
+            } else {
+                debugLog('[migrate stream] %s > %s', prevStreamId, streamId);
+                resolve();
+            }
+        });
+    });
+};
+
 MsgStack.prototype.addInStack = function (videoItem) {
     var chatMsgStack = this.config.chatMsgStack;
 
