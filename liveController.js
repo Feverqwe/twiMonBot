@@ -260,10 +260,8 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
             });
         });
         queue = queue.then(function () {
-            return _this.gOptions.db.transaction(function (connection) {
-                return _this.gOptions.msgStack.removeStreamIds(connection, removeStreamIds).catch(function (err) {
-                    debug('removeStreamIds', err);
-                });
+            return _this.gOptions.msgStack.removeStreamIds(removeStreamIds).catch(function (err) {
+                debug('removeStreamIds', err);
             });
         });
         return queue;
