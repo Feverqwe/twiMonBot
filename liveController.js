@@ -159,99 +159,113 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
         });
 
         var queue = Promise.resolve();
-        queue = queue.then(function () {
-            return insertPool.do(function () {
-                var item = migrateStreamIds.shift();
-                if (!item) return;
+        if (migrateStreamIds.length) {
+            queue = queue.then(function () {
+                return insertPool.do(function () {
+                    var item = migrateStreamIds.shift();
+                    if (!item) return;
 
-                return _this.gOptions.db.transaction(function (connection) {
-                    return _this.gOptions.msgStack.migrateStream(connection, item[0], item[1]).catch(function (err) {
-                        debug('migrateStreams', err);
-                    });
-                });
-            });
-        });
-        queue = queue.then(function () {
-            return insertPool.do(function () {
-                var stream = newStreams.shift();
-                if (!stream) return;
-
-                return _this.gOptions.users.getChatIdsByChannel(stream.service, stream.channelId).then(function (chatIds) {
                     return _this.gOptions.db.transaction(function (connection) {
-                        return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
-                            return _this.gOptions.msgStack.addChatIdsStreamId(connection, chatIds, stream.id);
+                        return _this.gOptions.msgStack.migrateStream(connection, item[0], item[1]).catch(function (err) {
+                            debug('migrateStreams', err);
                         });
                     });
-                }).catch(function (err) {
-                    debug('newStreams', err);
                 });
             });
-        });
-        queue = queue.then(function () {
-            return insertPool.do(function () {
-                var stream = updateStreams.shift();
-                if (!stream) return;
+        }
+        if (newStreams.length) {
+            queue = queue.then(function () {
+                return insertPool.do(function () {
+                    var stream = newStreams.shift();
+                    if (!stream) return;
 
-                return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (messages) {
+                    return _this.gOptions.users.getChatIdsByChannel(stream.service, stream.channelId).then(function (chatIds) {
+                        return _this.gOptions.db.transaction(function (connection) {
+                            return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
+                                return _this.gOptions.msgStack.addChatIdsStreamId(connection, chatIds, stream.id);
+                            });
+                        });
+                    }).catch(function (err) {
+                        debug('newStreams', err);
+                    });
+                });
+            });
+        }
+        if (updateStreams.length) {
+            queue = queue.then(function () {
+                return insertPool.do(function () {
+                    var stream = updateStreams.shift();
+                    if (!stream) return;
+
+                    return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (messages) {
+                        return _this.gOptions.db.transaction(function (connection) {
+                            return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
+                                return _this.gOptions.msgStack.updateChatIdsStreamId(connection, messages, stream.id);
+                            });
+                        });
+                    }).catch(function (err) {
+                        debug('updateStreams', err);
+                    });
+                });
+            });
+        }
+        if (offlineStreams.length) {
+            queue = queue.then(function () {
+                return insertPool.do(function () {
+                    var stream = offlineStreams.shift();
+                    if (!stream) return;
+
+                    return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (message) {
+                        return _this.gOptions.db.transaction(function (connection) {
+                            return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
+                                return _this.gOptions.msgStack.updateChatIdsStreamId(connection, message, stream.id);
+                            });
+                        });
+                    }).catch(function (err) {
+                        debug('offlineStreams', err);
+                    });
+                });
+            });
+        }
+        if (timeoutStreams.length) {
+            queue = queue.then(function () {
+                return insertPool.do(function () {
+                    var stream = timeoutStreams.shift();
+                    if (!stream) return;
+
+                    return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (message) {
+                        return _this.gOptions.db.transaction(function (connection) {
+                            return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
+                                return _this.gOptions.msgStack.updateChatIdsStreamId(connection, message, stream.id);
+                            });
+                        });
+                    }).catch(function (err) {
+                        debug('timeoutStreams', err);
+                    });
+                });
+            });
+        }
+        if (syncStreams.length) {
+            queue = queue.then(function () {
+                return insertPool.do(function () {
+                    var stream = syncStreams.shift();
+                    if (!stream) return;
+
                     return _this.gOptions.db.transaction(function (connection) {
-                        return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
-                            return _this.gOptions.msgStack.updateChatIdsStreamId(connection, messages, stream.id);
+                        return _this.gOptions.msgStack.setStream(connection, stream).catch(function (err) {
+                            debug('syncStreams', err);
                         });
                     });
-                }).catch(function (err) {
-                    debug('updateStreams', err);
                 });
             });
-        });
-        queue = queue.then(function () {
-            return insertPool.do(function () {
-                var stream = offlineStreams.shift();
-                if (!stream) return;
-
-                return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (message) {
-                    return _this.gOptions.db.transaction(function (connection) {
-                        return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
-                            return _this.gOptions.msgStack.updateChatIdsStreamId(connection, message, stream.id);
-                        });
-                    });
-                }).catch(function (err) {
-                    debug('offlineStreams', err);
+        }
+        if (removeStreamIds.length) {
+            queue = queue.then(function () {
+                return _this.gOptions.msgStack.removeStreamIds(removeStreamIds).catch(function (err) {
+                    debug('removeStreamIds', err);
                 });
             });
-        });
-        queue = queue.then(function () {
-            return insertPool.do(function () {
-                var stream = timeoutStreams.shift();
-                if (!stream) return;
-
-                return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (message) {
-                    return _this.gOptions.db.transaction(function (connection) {
-                        return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
-                            return _this.gOptions.msgStack.updateChatIdsStreamId(connection, message, stream.id);
-                        });
-                    });
-                }).catch(function (err) {
-                    debug('timeoutStreams', err);
-                });
-            });
-        });
-        queue = queue.then(function () {
-            return insertPool.do(function () {
-                var stream = syncStreams.shift();
-                if (!stream) return;
-
-                return _this.gOptions.db.transaction(function (connection) {
-                    return _this.gOptions.msgStack.setStream(connection, stream).catch(function (err) {
-                        debug('syncStreams', err);
-                    });
-                });
-            });
-        });
-        queue = queue.then(function () {
-            return _this.gOptions.msgStack.removeStreamIds(removeStreamIds).catch(function (err) {
-                debug('removeStreamIds', err);
-            });
-        });
+        }
         return queue;
     }).then(function () {
         _this.gOptions.events.emit('checkStack');
