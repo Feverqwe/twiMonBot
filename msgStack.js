@@ -269,6 +269,21 @@ MsgStack.prototype.setStreamMessages = function (message) {
     });
 };
 
+MsgStack.prototype.removeStreamMessage = function (messageId) {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            DELETE FROM liveMessages WHERE id = ?; \
+        ', [messageId], function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+};
+
 MsgStack.prototype.migrateStream = function (connection, prevStreamId, streamId) {
     return new Promise(function (resolve, reject) {
         connection.query('\
@@ -430,7 +445,7 @@ MsgStack.prototype.updateItem = function (/*StackItem*/item) {
                 if (err.code === 'ETELEGRAM') {
                     var body = err.response.body;
                     if (/message to edit not found/.test(body.description)) {
-                        return;
+                        return _this.removeStreamMessage(messageId);
                     } else
                     if (/message is not modified/.test(body.description)) {
                         return;
