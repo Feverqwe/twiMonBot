@@ -437,7 +437,6 @@ MsgStack.prototype.updateItem = function (/*StackItem*/item) {
     return _this.setTimeout(chatId, streamId, messageId, base.getNow() + timeout).then(function () {
         var data = JSON.parse(item.data);
         data._id = item.id;
-        data._photoId = item.imageFileId;
         data._isOffline = !!item.isOffline;
         data._isTimeout = !!item.isTimeout;
 
@@ -489,7 +488,6 @@ MsgStack.prototype.sendItem = function (/*StackItem*/item) {
     return _this.setTimeout(chatId, streamId, messageId, base.getNow() + timeout).then(function () {
         var data = JSON.parse(item.data);
         data._id = item.id;
-        data._photoId = item.imageFileId;
         data._isOffline = !!item.isOffline;
         data._isTimeout = !!item.isTimeout;
 
