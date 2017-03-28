@@ -105,7 +105,6 @@ Youtube.prototype.insertItem = function (channel, snippet, id, viewers) {
             return item.url;
         });*/
 
-        var viewers = parseInt(viewers) || 0;
         var game = '';
         var createdAt = snippet.publishedAt;
         var channelTitle = snippet.channelTitle;
