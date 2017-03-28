@@ -13,10 +13,8 @@ var MsgStack = function (options) {
     this.gOptions = options;
     this.config = {};
 
-    this.promiseChatIdMap = {};
-
-    options.events.on('notify', function (stream) {
-        return _this.notify(stream);
+    options.events.on('checkStack', function () {
+        return _this.checkStack();
     });
 
     this.onReady = _this.init();
@@ -219,6 +217,21 @@ MsgStack.prototype.getStreamMessages = function (streamId) {
     });
 };
 
+MsgStack.prototype.setStreamMessages = function (message) {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            INSERT INTO liveMessages SET ? ON DUPLICATE KEY UPDATE ?; \
+        ', [message, message], function (err, result) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(result);
+            }
+        });
+    });
+};
+
 MsgStack.prototype.migrateStream = function (connection, prevStreamId, streamId) {
     return new Promise(function (resolve, reject) {
         connection.query('\
@@ -234,29 +247,57 @@ MsgStack.prototype.migrateStream = function (connection, prevStreamId, streamId)
     });
 };
 
-MsgStack.prototype.addInStack = function (videoItem) {
-    var chatMsgStack = this.config.chatMsgStack;
-
-    var msgId = videoItem._id;
-
-    this.gOptions.users.getChatIdsByChannel(videoItem._service, videoItem._channelId).then(function (chatIds) {
-        chatIds.forEach(function (chatId) {
-            var msgStack = base.getObjectItem(chatMsgStack, chatId, {});
-            var msgList = base.getObjectItem(msgStack, 'stack', []);
-            base.removeItemFromArray(msgList, msgId);
-            msgList.push(msgId);
+MsgStack.prototype.removeItem = function (chatId, streamId, messageId) {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            DELETE FROM chatIdStreamId WHERE chatId = ? AND streamId = ? AND messageId = ?; \
+        ', [chatId, streamId, messageId], function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
         });
     });
 };
 
-MsgStack.prototype.clear = function () {
-    var _this = this;
-    var chatMsgStack = this.config.chatMsgStack;
+MsgStack.prototype.sendLog = function (chatId, messageId, data) {
+    var debugItem = JSON.parse(JSON.stringify(data));
+    delete debugItem.preview;
+    delete debugItem._videoId;
+    delete debugItem._service;
+    debugLog('[send] %s %s %j', messageId, chatId, debugItem);
+};
 
-    this.gOptions.users.getAllChatIds().then(function (chatIds) {
-        Object.keys(chatMsgStack).forEach(function (chatId) {
-            if (chatIds.indexOf('' + chatId) === -1) {
-                delete chatMsgStack[chatId];
+MsgStack.prototype.setTimeout = function (chatId, streamId, messageId, timeout) {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            UPDATE chatIdMessageId SET timeout = ? WHERE chatId = ? AND streamId = ? AND messageId = ?; \
+        ', [timeout, chatId, streamId, messageId], function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+};
+
+MsgStack.prototype.getStackItems = function () {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            SELECT * FROM chatIdStreamId \
+            LEFT JOIN streams ON chatIdStreamId.streamId = streams.id \
+            WHERE chatIdMessageId.timeout < ? \
+            LIMIT 30; \
+        ', [base.getNow()], function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(results);
             }
         });
     });
@@ -306,153 +347,174 @@ MsgStack.prototype.onSendMessageError = function (err) {
     return result;
 };
 
-MsgStack.prototype.callMsgList = function (chatId) {
+MsgStack.prototype.updateItem = function (/*StackItem*/item) {
     var _this = this;
-    var chatMsgStack = this.config.chatMsgStack;
+    var chatId = item.chatId;
+    var streamId = item.streamId;
+    var messageId = item.messageId;
+    var messageType = item.messageType;
 
-    var msgStack = chatMsgStack[chatId];
-    if (!msgStack) {
-        return Promise.resolve();
-    }
+    var timeout = 5 * 60;
+    return _this.setTimeout(chatId, streamId, messageId, base.getNow() + timeout).then(function () {
+        var data = JSON.parse(item.data);
+        data._id = item.id;
+        data._isOffline = !!item.isOffline;
+        data._isTimeout = !!item.isTimeout;
 
-    if (msgStack.timeout > base.getNow()) {
-        return Promise.resolve();
-    }
-
-    var msgList = msgStack.stack || [];
-    var sendNextMsg = function () {
-        if (!msgList.length) {
-            delete chatMsgStack[chatId];
-            return Promise.resolve();
-        }
-
-        return Promise.try(function () {
-            var msgId = msgList[0];
-            var data = _this.stack.getItem(msgId);
-            if (!data) {
-                debug('VideoItem is not found! %s %s', msgId, chatId);
-                base.removeItemFromArray(msgList, msgId);
+        return _this.gOptions.users.getChat(chatId).then(function (chat) {
+            if (!chat) {
+                debug('Can\'t send message %s, user %s is not found!', streamId, chatId);
                 return;
             }
 
-            var imageFileId = data._photoId;
-            var messageId = data._id;
+            var text = base.getNowStreamText(_this.gOptions, data);
+            var caption = base.getNowStreamPhotoText(_this.gOptions, data);
 
-            return _this.gOptions.users.getChat(chatId).then(function (chat) {
-                if (!chat) {
-                    debug('chatItem is not found! %s %s', chatId, msgId);
-                    throw new Error('chatItem is not found!');
-                }
-
-                var options = chat.options;
-
-                var text = base.getNowStreamText(_this.gOptions, data);
-                var caption = '';
-                if (!options.hidePreview) {
-                    caption = base.getNowStreamPhotoText(_this.gOptions, data);
-                }
-
-                var chatList = [{
-                    type: 'chat',
-                    id: chat.id,
-                    chatId: chat.id
-                }];
-                if (chat.channelId) {
-                    chatList.push({
-                        type: 'channel',
-                        id: chat.channelId,
-                        chatId: chat.id
-                    });
-                    if (options.mute) {
-                        chatList.shift();
+            return _this.gOptions.msgSender.updateMsg({
+                id: messageId,
+                type: messageType,
+                chatId: chatId
+            }, caption, text).then(function () {
+                _this.sendLog(id, streamId, data);
+            }).catch(function (err) {
+                if (err.code === 'ETELEGRAM') {
+                    var body = err.response.body;
+                    if (/message to edit not found/.test(body.description)) {
+                        return;
+                    } else
+                    if (/message is not modified/.test(body.description)) {
+                        return;
                     }
                 }
+                throw err;
+            });
+        });
+    }).then(function () {
+        return _this.removeItem(chatId, streamId, messageId);
+    }).catch(function (err) {
+        debug('updateItem', chatId, streamId, err);
 
-                var message = {
-                    imageFileId: imageFileId,
-                    caption: caption,
-                    text: text
-                };
+        return _this.setTimeout(chatId, streamId, messageId, base.getNow() + timeout);
+    });
+};
 
-                var promise = Promise.resolve();
-                chatList.forEach(function (itemObj) {
-                    var id = itemObj.id;
-                    promise = promise.then(function () {
-                        return _this.gOptions.msgSender.sendMessage(id, messageId, message, data, true).then(function () {
-                            debugLog('[send] %s %s', chatId, data._id);
-                        });
-                    }).catch(function (err) {
-                        err.itemObj = itemObj;
-                        throw err;
-                    });
+MsgStack.prototype.sendItem = function (/*StackItem*/item) {
+    var _this = this;
+    var chatId = item.chatId;
+    var streamId = item.streamId;
+    var messageId = item.messageId;
+    var imageFileId = item.imageFileId;
+
+    var timeout = 5 * 60;
+    return _this.setTimeout(chatId, streamId, messageId, base.getNow() + timeout).then(function () {
+        var data = JSON.parse(item.data);
+        data._id = item.id;
+        data._isOffline = !!item.isOffline;
+        data._isTimeout = !!item.isTimeout;
+
+        return _this.gOptions.users.getChat(chatId).then(function (chat) {
+            if (!chat) {
+                debug('Can\'t send message %s, user %s is not found!', streamId, chatId);
+                return;
+            }
+
+            var options = chat.options;
+
+            var text = base.getNowStreamText(_this.gOptions, data);
+            var caption = '';
+
+            if (!options.hidePreview) {
+                caption = base.getNowStreamPhotoText(_this.gOptions, data);
+            }
+
+            var message = {
+                imageFileId: imageFileId,
+                caption: caption,
+                text: text
+            };
+
+            var chatList = [{
+                type: 'chat',
+                id: chat.id,
+                chatId: chat.id
+            }];
+            if (chat.channelId) {
+                chatList.push({
+                    type: 'channel',
+                    id: chat.channelId,
+                    chatId: chat.id
                 });
-                return promise.catch(function (err) {
-                    return _this.onSendMessageError(err);
-                }).then(function () {
-                    base.removeItemFromArray(msgList, msgId);
-                    delete msgStack.timeout;
-                    return _this.saveChatMsgStack();
+                if (options.mute) {
+                    chatList.shift();
+                }
+            }
+
+            var promise = Promise.resolve();
+            chatList.forEach(function (itemObj) {
+                var id = itemObj.id;
+                promise = promise.then(function () {
+                    return _this.gOptions.msgSender.sendMessage(id, streamId, message, data, true).then(function () {
+                        _this.sendLog(id, streamId, data);
+                    });
+                }).catch(function (err) {
+                    err.itemObj = itemObj;
+                    throw err;
                 });
             });
-        }).then(function () {
-            return sendNextMsg();
+            return promise.catch(function (err) {
+                return _this.onSendMessageError(err);
+            });
         });
-    };
+    }).then(function () {
+        return _this.removeItem(chatId, streamId, messageId);
+    }).catch(function (err) {
+        debug('sendItem', chatId, streamId, err);
 
-    return sendNextMsg().catch(function (e) {
-        var timeout = 5 * 60;
-        if (/PEER_ID_INVALID/.test(e)) {
+        if (/PEER_ID_INVALID/.test(err)) {
             timeout = 6 * 60 * 60;
         }
-        msgStack.timeout = base.getNow() + timeout;
-
-        debug('sendNextMsg error!', e);
+        return _this.setTimeout(chatId, streamId, messageId, base.getNow() + timeout);
     });
 };
 
-MsgStack.prototype.saveChatMsgStack = function () {
-    var chatMsgStack = this.config.chatMsgStack;
+var activeChatIds = [];
+var activePromises = [];
 
-    return base.storage.set({
-        chatMsgStack: chatMsgStack
-    });
-};
-
-MsgStack.prototype.save = function () {
+MsgStack.prototype.checkStack = function () {
     var _this = this;
-    return _this.saveChatMsgStack();
-};
+    var limit = 10;
+    if (activePromises.length >= limit) return;
 
-MsgStack.prototype.callStack = function () {
-    var _this = this;
-    var promiseChatIdMap = _this.promiseChatIdMap;
-    var promiseList = [];
-    var chatMsgStack = _this.config.chatMsgStack;
-    Object.keys(chatMsgStack).forEach(function (chatId) {
-        var promise = promiseChatIdMap[chatId] || Promise.resolve();
+    _this.getStackItems().then(function (/*[StackItem]*/items) {
+        items.some(function (item) {
+            var chatId = item.chatId;
 
-        promise = promiseChatIdMap[chatId] = promise.then(function () {
-            return _this.callMsgList(chatId);
-        }).finally(function () {
-            if (promiseChatIdMap[chatId] === promise) {
-                delete promiseChatIdMap[chatId];
+            if (activePromises.length >= limit) return true;
+            if (activeChatIds.indexOf(chatId) !== -1) return;
+
+            var promise = null;
+            if (item.messageId) {
+                promise = _this.updateItem(item);
+            } else {
+                promise = _this.sendItem(item);
             }
+            activeChatIds.push(chatId);
+            activePromises.push(promise);
+
+            var any = function () {
+                base.removeItemFromArray(activeChatIds, chatId);
+                base.removeItemFromArray(activePromises, promise);
+                _this.checkStack();
+            };
+
+            promise.then(function (result) {
+                any();
+                return result;
+            }, function (err) {
+                any();
+                throw err;
+            });
         });
-
-        promiseList.push(promise);
-    });
-    return Promise.all(promiseList);
-};
-
-MsgStack.prototype.notify = function (stream) {
-    var _this = this;
-    _this.addInStack(stream);
-
-    return _this.save().then(function () {
-        return _this.callStack();
-    }).then(function () {
-        _this.clear();
-        return _this.save();
     });
 };
 
