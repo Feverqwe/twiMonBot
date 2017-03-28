@@ -270,41 +270,43 @@ var Chat = function(options) {
         var chatId = req.getChatId();
         var messageId = req.getMessageId();
 
-        var text;
-        if (req.channels.length) {
-            text = getOnlineText(req.channels);
-        } else {
-            text = language.emptyServiceList;
-        }
-
-        var query = req.getQuery();
-        var page = query.page || 0;
-        return getWatchBtnList(req.channels, page).then(function (btnList) {
-            btnList.unshift([{
-                text: language.refresh,
-                callback_data: '/online'
-            }]);
-
-            var options = {
-                disable_web_page_preview: true,
-                parse_mode: 'HTML',
-                reply_markup: JSON.stringify({
-                    inline_keyboard: btnList
-                })
-            };
-
-            if (req.callback_query && !query.rel) {
-                options.chat_id = chatId;
-                options.message_id = messageId;
-                return bot.editMessageText(text, options).catch(function (err) {
-                    if (/message is not modified/.test(err.message)) {
-                        return;
-                    }
-                    throw err;
-                });
+        return _this.gOptions.msgStack.getLastStreamList().then(function (lastStreamList) {
+            var text;
+            if (req.channels.length) {
+                text = getOnlineText(req.channels, lastStreamList);
             } else {
-                return bot.sendMessage(chatId, text, options);
+                text = language.emptyServiceList;
             }
+
+            var query = req.getQuery();
+            var page = query.page || 0;
+            return getWatchBtnList(req.channels, page, lastStreamList).then(function (btnList) {
+                btnList.unshift([{
+                    text: language.refresh,
+                    callback_data: '/online'
+                }]);
+
+                var options = {
+                    disable_web_page_preview: true,
+                    parse_mode: 'HTML',
+                    reply_markup: JSON.stringify({
+                        inline_keyboard: btnList
+                    })
+                };
+
+                if (req.callback_query && !query.rel) {
+                    options.chat_id = chatId;
+                    options.message_id = messageId;
+                    return bot.editMessageText(text, options).catch(function (err) {
+                        if (/message is not modified/.test(err.message)) {
+                            return;
+                        }
+                        throw err;
+                    });
+                } else {
+                    return bot.sendMessage(chatId, text, options);
+                }
+            });
         }).catch(function (err) {
             debug('Command online error!', err);
         });
@@ -393,8 +395,13 @@ var Chat = function(options) {
                     disable_web_page_preview: true,
                     parse_mode: 'HTML'
                 }).then(function () {
-                    return users.getChannels(chatId).then(function (channels) {
-                        var onlineServiceList = getOnlineChannelList(channels);
+                    return Promise.all([
+                        users.getChannels(chatId),
+                        _this.gOptions.msgStack.getLastStreamList()
+                    ]).then(function (result) {
+                        var channels = result[0];
+                        var lastStreamList = result[1];
+                        var onlineServiceList = getOnlineChannelList(channels, lastStreamList);
                         var channelList = onlineServiceList[serviceName] || {};
                         var streamList = channelList[channel.id] || [];
                         streamList.forEach(function (stream) {
@@ -1127,11 +1134,11 @@ var Chat = function(options) {
         return btnList;
     };
 
-    var getWatchBtnList = function (channels, page) {
+    var getWatchBtnList = function (channels, page, lastStreamList) {
         var btnList = [];
 
         var promise = Promise.resolve();
-        var serviceList = getOnlineChannelList(channels);
+        var serviceList = getOnlineChannelList(channels, lastStreamList);
         Object.keys(serviceList).forEach(function (service) {
             var channelList = serviceList[service];
 
@@ -1162,8 +1169,7 @@ var Chat = function(options) {
         });
     };
 
-    var getOnlineChannelList = function (channels) {
-        var lastStreamList = _this.gOptions.storage.lastStreamList;
+    var getOnlineChannelList = function (channels, lastStreamList) {
         var serviceList = {};
         channels.forEach(function (item) {
             for (var i = 0, stream; stream = lastStreamList[i]; i++) {
@@ -1191,10 +1197,10 @@ var Chat = function(options) {
         return orderedServiceList;
     };
 
-    var getOnlineText = function (channels) {
+    var getOnlineText = function (channels, lastStreamList) {
         var onlineList = [];
 
-        var serviceList = getOnlineChannelList(channels);
+        var serviceList = getOnlineChannelList(channels, lastStreamList);
         Object.keys(serviceList).forEach(function (service) {
             var channelList = serviceList[service];
 
