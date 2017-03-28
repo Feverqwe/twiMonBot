@@ -223,11 +223,6 @@ utils.getStreamText = function(gOptions, stream) {
         line.push(stream.channel.url);
     }
 
-    var url = stream.preview[0];
-    if (url) {
-        line.push(this.htmlSanitize('a', gOptions.language.preview, url));
-    }
-
     if (line.length) {
         textArr.push(line.join(', '));
     }
