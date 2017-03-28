@@ -109,10 +109,10 @@ MsgSender.prototype.updateNotify = function (stream) {
             }).catch(function (err) {
                 if (err.code === 'ETELEGRAM') {
                     var body = err.response.body;
-                    if (/message to edit not found/.test(body)) {
+                    if (/message to edit not found/.test(body.description)) {
                         return _this.removeMsgFromStream(stream, msg);
                     } else
-                    if (/message is not modified/.test(body)) {
+                    if (/message is not modified/.test(body.description)) {
                         return;
                     }
                 }
