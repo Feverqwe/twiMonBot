@@ -274,7 +274,7 @@ MsgStack.prototype.setTimeout = function (chatId, streamId, messageId, timeout) 
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
         db.connection.query('\
-            UPDATE chatIdMessageId SET timeout = ? WHERE chatId = ? AND streamId = ? AND messageId = ?; \
+            UPDATE chatIdStreamId SET timeout = ? WHERE chatId = ? AND streamId = ? AND messageId = ?; \
         ', [timeout, chatId, streamId, messageId], function (err, results) {
             if (err) {
                 reject(err);
@@ -291,7 +291,7 @@ MsgStack.prototype.getStackItems = function () {
         db.connection.query('\
             SELECT * FROM chatIdStreamId \
             LEFT JOIN streams ON chatIdStreamId.streamId = streams.id \
-            WHERE chatIdMessageId.timeout < ? \
+            WHERE chatIdStreamId.timeout < ? \
             LIMIT 30; \
         ', [base.getNow()], function (err, results) {
             if (err) {
