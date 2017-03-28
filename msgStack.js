@@ -303,6 +303,14 @@ MsgStack.prototype.removeItem = function (chatId, streamId, messageId) {
     });
 };
 
+MsgStack.prototype.updateLog = function (chatId, messageId, data) {
+    var debugItem = JSON.parse(JSON.stringify(data));
+    delete debugItem.preview;
+    delete debugItem._videoId;
+    delete debugItem._service;
+    debugLog('[update] %s %s %j', messageId, chatId, debugItem);
+};
+
 MsgStack.prototype.sendLog = function (chatId, messageId, data) {
     var debugItem = JSON.parse(JSON.stringify(data));
     delete debugItem.preview;
@@ -399,6 +407,7 @@ MsgStack.prototype.updateItem = function (/*StackItem*/item) {
     return _this.setTimeout(chatId, streamId, messageId, base.getNow() + timeout).then(function () {
         var data = JSON.parse(item.data);
         data._id = item.id;
+        data._photoId = item.imageFileId;
         data._isOffline = !!item.isOffline;
         data._isTimeout = !!item.isTimeout;
 
@@ -416,7 +425,7 @@ MsgStack.prototype.updateItem = function (/*StackItem*/item) {
                 type: messageType,
                 chatId: chatId
             }, caption, text).then(function () {
-                _this.sendLog(chatId, streamId, data);
+                _this.updateLog(chatId, streamId, data);
             }).catch(function (err) {
                 if (err.code === 'ETELEGRAM') {
                     var body = err.response.body;
@@ -450,6 +459,7 @@ MsgStack.prototype.sendItem = function (/*StackItem*/item) {
     return _this.setTimeout(chatId, streamId, messageId, base.getNow() + timeout).then(function () {
         var data = JSON.parse(item.data);
         data._id = item.id;
+        data._photoId = item.imageFileId;
         data._isOffline = !!item.isOffline;
         data._isTimeout = !!item.isTimeout;
 
