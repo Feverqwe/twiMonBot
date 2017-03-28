@@ -89,7 +89,7 @@ MsgStack.prototype.init = function () {
                     `messageId` VARCHAR(191) CHARACTER SET utf8mb4 NULL, \
                     `messageType` VARCHAR(191) CHARACTER SET utf8mb4 NULL, \
                     `timeout` INT NULL DEFAULT 0, \
-                UNIQUE INDEX `chatIdStreamId_UNIQUE` (`chatId` ASC, `streamId` ASC), \
+                UNIQUE INDEX `chatIdStreamId_UNIQUE` (`chatId` ASC, `streamId` ASC, `messageId` ASC), \
                 FOREIGN KEY (`streamId`) \
                     REFERENCES `streams` (`id`) \
                     ON DELETE CASCADE \
@@ -173,7 +173,7 @@ MsgStack.prototype.addChatIdsStreamId = function (connection, chatIds, streamId)
             return [chatId, streamId];
         });
         connection.query('\
-            INSERT INTO chatIdMessageId (chatId, streamId) VALUES ? ON DUPLICATE KEY UPDATE chatId = chatId; \
+            INSERT INTO chatIdStreamId (chatId, streamId) VALUES ? ON DUPLICATE KEY UPDATE chatId = chatId; \
         ', [values], function (err, results) {
             if (err) {
                 reject(err);
@@ -193,7 +193,7 @@ MsgStack.prototype.updateChatIdsStreamId = function (connection, messages, strea
             return [message.chatId, message.id, message.type, streamId];
         });
         connection.query('\
-            INSERT INTO chatIdMessageId (chatId, messageId, messageType, streamId) VALUES ? ON DUPLICATE KEY UPDATE chatId = chatId; \
+            INSERT INTO chatIdStreamId (chatId, messageId, messageType, streamId) VALUES ? ON DUPLICATE KEY UPDATE chatId = chatId; \
         ', [values], function (err, results) {
             if (err) {
                 reject(err);

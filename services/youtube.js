@@ -135,7 +135,7 @@ Youtube.prototype.insertItem = function (channel, snippet, id, viewers) {
         var item = {
             id: videoIdToId(id),
             channelId: channel.id,
-            service: 'twitch',
+            service: 'youtube',
             data: JSON.stringify(data),
             checkTime: base.getNow(),
             isOffline: 0,

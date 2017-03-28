@@ -234,7 +234,7 @@ Twitch.prototype.getStreamList = function(_channelIdsList) {
 
                         return _this.insertItem(channel, stream).then(function (item) {
                             item && videoList.push(item);
-                }).catch(function (err) {
+                        }).catch(function (err) {
                             videoList.push(base.getTimeoutStream('twitch', channel.id));
                             debug("insertItem error!", err);
                         });
