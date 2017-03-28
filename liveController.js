@@ -8,7 +8,7 @@ var LiveController = function (options) {
     var _this = this;
     this.gOptions = options;
     this.config = {};
-
+/*
     this.config.liveList = this.gOptions.storage.lastStreamList;
 
     this.saveStreamListThrottle = base.throttle(this.saveStreamList, 250, this);
@@ -19,7 +19,7 @@ var LiveController = function (options) {
 
     options.events.on('saveStreamList', function () {
         _this.saveStreamListThrottle();
-    });
+    });*/
 };
 
 var insertPool = new base.Pool(15);
@@ -265,7 +265,7 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
         return queue;
     });
 };
-
+/*
 LiveController.prototype.saveStreamList = function () {
     return base.storage.set({
         lastStreamList: this.config.liveList
@@ -468,6 +468,6 @@ LiveController.prototype.update = function (service, newLiveList, channelList) {
     });
 
     return this.saveStreamList();
-};
+};*/
 
 module.exports = LiveController;
