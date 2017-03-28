@@ -28,7 +28,7 @@ var MsgSender = function (options) {
  */
 MsgSender.prototype.addMsgInStream = function (message) {
     var _this = this;
-    return _this.gOptions.msgStack.setStreamMessages(message);
+    return _this.gOptions.msgStack.addStreamMessage(message);
 };
 
 MsgSender.prototype.updateMsg = function (msg, caption, text) {

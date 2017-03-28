@@ -254,7 +254,7 @@ MsgStack.prototype.getStreamMessages = function (streamId) {
     });
 };
 
-MsgStack.prototype.setStreamMessages = function (message) {
+MsgStack.prototype.addStreamMessage = function (message) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
         db.connection.query('\
