@@ -20,9 +20,6 @@ const Users = require('./users');
 var options = {
     config: {},
     language: {},
-    storage: {
-        lastStreamList: []
-    },
     serviceList: ['twitch', 'goodgame', 'youtube', 'hitbox'],
     serviceToTitle: {
         goodgame: 'GoodGame',
@@ -57,12 +54,6 @@ var options = {
         options.users = new Users(options);
         return options.users.onReady;
     }).then(function() {
-        return base.storage.get(Object.keys(options.storage)).then(function(storage) {
-            for (var key in storage) {
-                options.storage[key] = storage[key];
-            }
-        });
-    }).then(function() {
         return Promise.all(options.serviceList.map(function(name) {
             return Promise.resolve().then(function() {
                 var service = require('./services/' + name);
@@ -72,10 +63,6 @@ var options = {
         }));
     }).then(function() {
         options.daemon = new Daemon(options);
-
-        (typeof gc === 'function') && options.events.on('tickTack', function() {
-            gc();
-        });
     }).then(function() {
         options.bot = new TelegramBot(options.config.token, {
             polling: true

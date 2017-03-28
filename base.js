@@ -5,7 +5,6 @@
 const fs = require('fs');
 const path = require('path');
 const debug = require('debug')('app:base');
-var Storage = require('./storage');
 
 var utils = {};
 
@@ -40,8 +39,6 @@ utils.loadLanguage = function() {
         return language;
     });
 };
-
-utils.storage = new Storage();
 
 /**
  * @param {string} type

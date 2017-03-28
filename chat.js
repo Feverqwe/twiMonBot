@@ -190,21 +190,23 @@ var Chat = function(options) {
             textArr.push(language.users.replace('{count}', info.users.length));
             textArr.push(language.channels.replace('{count}', info.channels.length));
 
-            var onlineCount = _this.gOptions.storage.lastStreamList.filter(function (item) {
-                return !item._isOffline;
-            }).length;
-            textArr.push(language.online.replace('{count}', onlineCount));
+            return _this.gOptions.msgStack.getAllStreams().then(function (streams) {
+                var onlineCount = streams.filter(function (item) {
+                    return !item.isOffline;
+                }).length;
+                textArr.push(language.online.replace('{count}', onlineCount));
 
-            info.services.forEach(function (service) {
-                textArr.push('');
-                textArr.push(serviceToTitle[service.name] + ':');
-                service.channels.forEach(function (channel, index) {
-                    textArr.push((index + 1) + '. ' + channel.title);
+                info.services.forEach(function (service) {
+                    textArr.push('');
+                    textArr.push(serviceToTitle[service.name] + ':');
+                    service.channels.forEach(function (channel, index) {
+                        textArr.push((index + 1) + '. ' + channel.title);
+                    });
                 });
-            });
 
-            return bot.sendMessage(chatId, textArr.join('\n'), {
-                disable_web_page_preview: true
+                return bot.sendMessage(chatId, textArr.join('\n'), {
+                    disable_web_page_preview: true
+                });
             });
         }).catch(function (err) {
             debug('Command top error!', err);
@@ -312,36 +314,37 @@ var Chat = function(options) {
         var chatId = req.getChatId();
         var query = req.getQuery();
 
-        var lastStreamList = _this.gOptions.storage.lastStreamList;
-        var streamList = [];
-        lastStreamList.some(function (stream) {
-            if (stream._channelId === query.channelId && stream._service === query.service) {
-                streamList.push(stream);
-                return true;
-            }
-        });
+        return _this.gOptions.msgStack.getLastStreamList().then(function (lastStreamList) {
+            var streamList = [];
+            lastStreamList.some(function (stream) {
+                if (stream._channelId === query.channelId && stream._service === query.service) {
+                    streamList.push(stream);
+                    return true;
+                }
+            });
 
-        if (!streamList.length) {
-            return bot.sendMessage(chatId, language.streamIsNotFound);
-        }
-
-        var promiseList = streamList.map(function (stream) {
-            var text = base.getNowStreamText(_this.gOptions, stream);
-            var caption = '';
-            if (!req.chat || !req.chat.options.hidePreview) {
-                caption = base.getNowStreamPhotoText(_this.gOptions, stream);
+            if (!streamList.length) {
+                return bot.sendMessage(chatId, language.streamIsNotFound);
             }
-            return _this.gOptions.msgSender.sendMessage(chatId, stream._id, {
-                imageFileId: stream._photoId,
-                caption: caption,
-                text: text
-            }, stream, true).catch(function (err) {
+
+            var promiseList = streamList.map(function (stream) {
+                var text = base.getNowStreamText(_this.gOptions, stream);
+                var caption = '';
+                if (!req.chat || !req.chat.options.hidePreview) {
+                    caption = base.getNowStreamPhotoText(_this.gOptions, stream);
+                }
+                return _this.gOptions.msgSender.sendMessage(chatId, stream._id, {
+                    imageFileId: stream._photoId,
+                    caption: caption,
+                    text: text
+                }, stream, true).catch(function (err) {
+                    debug('Command watch error!', err);
+                });
+            });
+
+            return Promise.all(promiseList).catch(function (err) {
                 debug('Command watch error!', err);
             });
-        });
-
-        return Promise.all(promiseList).catch(function (err) {
-            debug('Command watch error!', err);
         });
     });
 

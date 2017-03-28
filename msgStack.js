@@ -130,6 +130,43 @@ MsgStack.prototype.getStreams = function (channelIds, service) {
     });
 };
 
+MsgStack.prototype.getAllStreams = function () {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            SELECT * FROM streams; \
+        ', function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(results);
+            }
+        });
+    });
+};
+
+MsgStack.prototype.getLastStreamList = function () {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            SELECT * FROM streams; \
+        ', function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(results.map(function (item) {
+                    var data = JSON.parse(item.data);
+                    data._id = item.id;
+                    data._photoId = item.imageFileId;
+                    data._isOffline = !!item.isOffline;
+                    data._isTimeout = !!item.isTimeout;
+                    return data;
+                }));
+            }
+        });
+    });
+};
+
 MsgStack.prototype.setStream = function (connection, stream) {
     return new Promise(function (resolve, reject) {
         connection.query('\
@@ -250,9 +287,13 @@ MsgStack.prototype.migrateStream = function (connection, prevStreamId, streamId)
 MsgStack.prototype.removeItem = function (chatId, streamId, messageId) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
-        db.connection.query('\
-            DELETE FROM chatIdStreamId WHERE chatId = ? AND streamId = ? AND messageId = ?; \
-        ', [chatId, streamId, messageId], function (err, results) {
+        var query = '';
+        if (messageId) {
+            query = 'DELETE FROM chatIdStreamId WHERE chatId = ? AND streamId = ? AND messageId = ?;'
+        } else {
+            query = 'DELETE FROM chatIdStreamId WHERE chatId = ? AND streamId = ? AND messageId IS ?;'
+        }
+        db.connection.query(query, [chatId, streamId, messageId], function (err, results) {
             if (err) {
                 reject(err);
             } else {
@@ -375,7 +416,7 @@ MsgStack.prototype.updateItem = function (/*StackItem*/item) {
                 type: messageType,
                 chatId: chatId
             }, caption, text).then(function () {
-                _this.sendLog(id, streamId, data);
+                _this.sendLog(chatId, streamId, data);
             }).catch(function (err) {
                 if (err.code === 'ETELEGRAM') {
                     var body = err.response.body;
