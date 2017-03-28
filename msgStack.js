@@ -219,10 +219,9 @@ MsgStack.prototype.getStreamMessages = function (streamId) {
     });
 };
 
-MsgStack.prototype.migrateStream = function (prevStreamId, streamId) {
-    var db = this.gOptions.db;
+MsgStack.prototype.migrateStream = function (connection, prevStreamId, streamId) {
     return new Promise(function (resolve, reject) {
-        db.connection.query('\
+        connection.query('\
             UPDATE streams SET id = ? WHERE id = ?; \
         ', [streamId, prevStreamId], function (err) {
             if (err) {

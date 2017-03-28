@@ -176,8 +176,10 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
                 var item = migrateStreamIds.shift();
                 if (!item) return;
 
-                return _this.gOptions.msgStack.migrateStream(item[0], item[1]).catch(function (err) {
-                    debug('migrateStreams', err);
+                return _this.gOptions.db.transaction(function (connection) {
+                    return _this.gOptions.msgStack.migrateStream(connection, item[0], item[1]).catch(function (err) {
+                        debug('migrateStreams', err);
+                    });
                 });
             });
         });
@@ -250,14 +252,18 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
                 var stream = syncStreams.shift();
                 if (!stream) return;
 
-                return _this.gOptions.msgStack.setStream(stream).catch(function (err) {
-                    debug('syncStreams', err);
+                return _this.gOptions.db.transaction(function (connection) {
+                    return _this.gOptions.msgStack.setStream(connection, stream).catch(function (err) {
+                        debug('syncStreams', err);
+                    });
                 });
             });
         });
         queue = queue.then(function () {
-            return _this.gOptions.msgStack.removeStreamIds(removeStreamIds).catch(function (err) {
-                debug('removeStreamIds', err);
+            return _this.gOptions.db.transaction(function (connection) {
+                return _this.gOptions.msgStack.removeStreamIds(connection, removeStreamIds).catch(function (err) {
+                    debug('removeStreamIds', err);
+                });
             });
         });
         return queue;
