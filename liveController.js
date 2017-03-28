@@ -256,11 +256,9 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
             });
         });
         queue = queue.then(function () {
-            if (removeStreamIds.length) {
-                return _this.gOptions.msgStack.removeStreamIds(removeStreamIds).catch(function (err) {
-                    debug('removeStreamIds', err);
-                });
-            }
+            return _this.gOptions.msgStack.removeStreamIds(removeStreamIds).catch(function (err) {
+                debug('removeStreamIds', err);
+            });
         });
         return queue;
     });
