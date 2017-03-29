@@ -467,7 +467,9 @@ MsgStack.prototype.updateItem = function (/*StackItem*/item) {
             }).catch(function (err) {
                 if (err.code === 'ETELEGRAM') {
                     var body = err.response.body;
-                    if (/message to edit not found/.test(body.description)) {
+                    if (/message to edit not found/.test(body.description) ||
+                        /chat not found/.test(body.description)
+                    ) {
                         return _this.removeStreamMessage(messageId);
                     } else
                     if (/message is not modified/.test(body.description)) {
