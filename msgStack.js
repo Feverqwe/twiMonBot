@@ -442,7 +442,28 @@ MsgStack.prototype.setTimeout = function (chatId, streamId, messageId, timeout) 
         });
     });
 };
-
+/**
+ * @typedef {{}} StackItem
+ * @property {String} id
+ * @property {String} channelId
+ * @property {String} service
+ * @property {String} data
+ * @property {String} [imageFileId]
+ * @property {String} insertTime
+ * @property {Number} checkTime
+ * @property {Number} offlineTime
+ * @property {Number} isOffline
+ * @property {Number} isTimeout
+ * @property {String} chatId
+ * @property {String} streamId
+ * @property {String} messageId
+ * @property {String} messageType
+ * @property {String} messageChatId
+ * @property {Number} timeout
+ */
+/**
+ * @return {Promise.<StackItem[]>}
+ */
 MsgStack.prototype.getStackItems = function () {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
@@ -510,7 +531,7 @@ MsgStack.prototype.onSendMessageError = function (err) {
 };
 
 /**
- * @param {Object} item
+ * @param {StackItem} item
  * @return {Promise}
  */
 MsgStack.prototype.updateItem = function (item) {
@@ -574,7 +595,7 @@ MsgStack.prototype.updateItem = function (item) {
 };
 
 /**
- * @param {Object} item
+ * @param {StackItem} item
  * @return {Promise}
  */
 MsgStack.prototype.sendItem = function (item) {

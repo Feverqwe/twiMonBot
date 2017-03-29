@@ -15,8 +15,11 @@ var MsgSender = function (options) {
 
 /**
  * @param {Object} message
- * @param {number} message.chatId
- * @param {number} message.id
+ * @param {String} message.type
+ * @param {String} message.chat_id
+ * @param {String} message.streamId
+ * @param {String} message.chatId
+ * @param {String} message.id
  * @return {Promise}
  */
 MsgSender.prototype.addMsgInStream = function (message) {
@@ -311,7 +314,6 @@ MsgSender.prototype.sendMessage = function (chat_id, messageId, message, data, u
  * @param {String} chatId
  * @param {Object} stream
  * @param {String} title
- * @return {Promise}
  */
 MsgSender.prototype.track = function(chatId, stream, title) {
     return this.gOptions.tracker.track({
