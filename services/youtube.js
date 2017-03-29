@@ -316,8 +316,8 @@ Youtube.prototype.requestChannelIdByUsername = function(url) {
 
     var username = '';
     [
-        /youtube\.com\/(?:#\/)?user\/([0-9A-Za-z_-]+)/i,
-        /youtube\.com\/([0-9A-Za-z_-]+)$/i
+        /youtube\.com\/(?:#\/)?user\/([\w\-]+)/i,
+        /youtube\.com\/([\w\-]+)/i
     ].some(function (re) {
         var m = re.exec(url);
         if (m) {
@@ -330,7 +330,7 @@ Youtube.prototype.requestChannelIdByUsername = function(url) {
         username = url;
     }
 
-    if (!/^[0-9A-Za-z_-]+$/.test(username)) {
+    if (!/^[\w\-]+$/.test(username)) {
         return Promise.reject(new CustomError('It is not username!'));
     }
 
@@ -371,7 +371,7 @@ Youtube.prototype.getChannelIdByUrl = function (url) {
 
     var channelId = '';
     [
-        /youtube\.com\/(?:#\/)?channel\/([0-9A-Za-z_-]+)/i
+        /youtube\.com\/(?:#\/)?channel\/([\w\-]+)/i
     ].some(function (re) {
         var m = re.exec(url);
         if (m) {

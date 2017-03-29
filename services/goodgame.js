@@ -269,7 +269,7 @@ GoodGame.prototype.getStreamList = function (_channelIdsList) {
 GoodGame.prototype.getChannelIdByUrl = function (url) {
     var channelId = '';
     [
-        /goodgame\.ru\/channel\/([^\/?#]+)/i
+        /goodgame\.ru\/channel\/([\w\-]+)/i
     ].some(function (re) {
         var m = re.exec(url);
         if (m) {
