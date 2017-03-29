@@ -54,15 +54,20 @@ MsgStack.prototype.init = function () {
             db.connection.query('\
                 CREATE TABLE IF NOT EXISTS `liveMessages` ( \
                     `id` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
-                    `chatId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
+                    `chat_id` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
                     `streamId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
                     `type` VARCHAR(191) CHARACTER SET utf8mb4 NULL, \
+                    `chatId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
                 UNIQUE INDEX `chatIdStreamId_UNIQUE` (`id` ASC, `chatId` ASC), \
                 INDEX `id_idx` (`id` ASC),  \
                 INDEX `chatId_idx` (`chatId` ASC),  \
                 INDEX `streamId_idx` (`streamId` ASC),  \
                 FOREIGN KEY (`streamId`) \
                     REFERENCES `streams` (`id`) \
+                    ON DELETE CASCADE \
+                    ON UPDATE CASCADE,\
+                FOREIGN KEY (`chatId`) \
+                    REFERENCES `chats` (`id`) \
                     ON DELETE CASCADE \
                     ON UPDATE CASCADE); \
             ', function (err) {
@@ -82,6 +87,7 @@ MsgStack.prototype.init = function () {
                     `streamId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
                     `messageId` VARCHAR(191) CHARACTER SET utf8mb4 NULL, \
                     `messageType` VARCHAR(191) CHARACTER SET utf8mb4 NULL, \
+                    `messageChatId` VARCHAR(191) CHARACTER SET utf8mb4 NULL, \
                     `timeout` INT NULL DEFAULT 0, \
                 UNIQUE INDEX `chatIdStreamId_UNIQUE` (`chatId` ASC, `streamId` ASC, `messageId` ASC), \
                 FOREIGN KEY (`streamId`) \
@@ -221,10 +227,10 @@ MsgStack.prototype.updateChatIdsStreamId = function (connection, messages, strea
             return resolve();
         }
         var values = messages.map(function (message) {
-            return [message.chatId, message.id, message.type, streamId];
+            return [message.chatId, message.id, message.chat_id, message.type, streamId];
         });
         connection.query('\
-            INSERT INTO chatIdStreamId (chatId, messageId, messageType, streamId) VALUES ? ON DUPLICATE KEY UPDATE chatId = chatId; \
+            INSERT INTO chatIdStreamId (chatId, messageId, messageChatId, messageType, streamId) VALUES ? ON DUPLICATE KEY UPDATE chatId = chatId; \
         ', [values], function (err, results) {
             if (err) {
                 reject(err);
@@ -424,6 +430,7 @@ MsgStack.prototype.onSendMessageError = function (err) {
 
 MsgStack.prototype.updateItem = function (/*StackItem*/item) {
     var _this = this;
+    var chat_id = item.chat_id;
     var chatId = item.chatId;
     var streamId = item.streamId;
     var messageId = item.messageId;
@@ -436,11 +443,11 @@ MsgStack.prototype.updateItem = function (/*StackItem*/item) {
         data._isOffline = !!item.isOffline;
         data._isTimeout = !!item.isTimeout;
 
-        /*return _this.gOptions.users.getChat(chatId).then(function (chat) {
+        return _this.gOptions.users.getChat(chatId).then(function (chat) {
             if (!chat) {
-                debug('Can\'t send message %s, user %s is not found!', streamId, chatId);
+                debug('Can\'t send message %s, user %s is not found!', streamId, chatId, chat_id);
                 return;
-            }*/
+            }
 
             var text = base.getNowStreamText(_this.gOptions, data);
             var caption = base.getNowStreamPhotoText(_this.gOptions, data);
@@ -448,9 +455,9 @@ MsgStack.prototype.updateItem = function (/*StackItem*/item) {
             return _this.gOptions.msgSender.updateMsg({
                 id: messageId,
                 type: messageType,
-                chatId: chatId
+                chat_id: chat_id
             }, caption, text).then(function () {
-                _this.updateLog(chatId, streamId, data);
+                _this.updateLog(chat_id, streamId, data);
             }).catch(function (err) {
                 if (err.code === 'ETELEGRAM') {
                     var body = err.response.body;
@@ -463,11 +470,11 @@ MsgStack.prototype.updateItem = function (/*StackItem*/item) {
                 }
                 throw err;
             });
-        /*});*/
+        });
     }).then(function () {
         return _this.removeItem(chatId, streamId, messageId);
     }).catch(function (err) {
-        debug('updateItem', chatId, streamId, err);
+        debug('updateItem', chat_id, streamId, err);
 
         return _this.setTimeout(chatId, streamId, messageId, base.getNow() + timeout);
     });
@@ -528,7 +535,7 @@ MsgStack.prototype.sendItem = function (/*StackItem*/item) {
             chatList.forEach(function (itemObj) {
                 var id = itemObj.id;
                 promise = promise.then(function () {
-                    return _this.gOptions.msgSender.sendMessage(id, streamId, message, data, true).then(function () {
+                    return _this.gOptions.msgSender.sendMessage(id, streamId, message, data, true, chat.id).then(function () {
                         _this.sendLog(id, streamId, data);
                     });
                 }).catch(function (err) {
