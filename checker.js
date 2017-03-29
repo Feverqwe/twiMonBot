@@ -51,6 +51,8 @@ Checker.prototype.updateList = function() {
             });
         });
         return Promise.all(promiseList);
+    }).then(function () {
+        return _this.gOptions.liveController.clean();
     });
 };
 

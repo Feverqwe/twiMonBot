@@ -10,6 +10,29 @@ var LiveController = function (options) {
     this.config = {};
 };
 
+LiveController.prototype.clean = function () {
+    var _this = this;
+    return _this.gOptions.msgStack.getAllStreams().then(function (streams) {
+        return _this.gOptions.checker.getChannelList().then(function (serviceChannelIds) {
+            var streamIds = [];
+            streams.forEach(function (stream) {
+                var channels = serviceChannelIds[stream.service] || [];
+                if (channels.indexOf(stream.channelId) === -1) {
+                    streamIds.push(stream.id);
+                }
+            });
+            var result = null;
+            if (streamIds.length) {
+                debug('[clean] %j', streamIds);
+                result = _this.gOptions.msgStack.removeStreamIds(streamIds);
+            }
+            return result;
+        });
+    }).catch(function (err) {
+        debug('clean', err);
+    });
+};
+
 var insertPool = new base.Pool(15);
 
 LiveController.prototype.findPrevStreamId = function (prevStreams, stream) {
