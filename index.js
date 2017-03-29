@@ -62,7 +62,6 @@ var options = {
             return service.onReady;
         }));
     }).then(function() {
-        throw new Error('migrating...');
         options.daemon = new Daemon(options);
     }).then(function() {
         options.bot = new TelegramBot(options.config.token, {

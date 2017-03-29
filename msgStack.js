@@ -111,60 +111,7 @@ MsgStack.prototype.init = function () {
             });
         });
     });
-    promise = promise.then(function () {
-        return _this.migrateDb();
-    });
     return promise;
-};
-
-MsgStack.prototype.migrateDb = function (channelIds, service) {
-    var _this = this;
-    var insertPool = new base.Pool(15);
-    var db = this.gOptions.db;
-    return new Promise(function (resolve, reject) {
-        db.connection.query('\
-            SELECT * FROM liveMessagesOld; \
-        ', [service, [channelIds]], function (err, results) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(results);
-            }
-        });
-    }).then(function (messages) {
-        return insertPool.do(function () {
-            var message = messages.shift();
-            if (!message) return;
-
-            var id = message.id;
-            var chat_id = message.chatId;
-            var streamId = message.streamId;
-            var type = message.type;
-
-            var promise = Promise.resolve();
-            if (/^@/.test(chat_id)) {
-                promise = promise.then(function () {
-                    return _this.gOptions.users.getChatByChannelId(chat_id).then(function (chat) {
-                        return chat && chat.id;
-                    });
-                });
-            } else {
-                promise = promise.then(function () {
-                    return chat_id;
-                });
-            }
-
-            return promise.then(function (chatId) {
-                return chatId && _this.addStreamMessage({
-                    id: id,
-                    chat_id: chat_id,
-                    streamId: streamId,
-                    type: type,
-                    chatId: chatId
-                });
-            });
-        });
-    });
 };
 
 MsgStack.prototype.getStreams = function (channelIds, service) {
