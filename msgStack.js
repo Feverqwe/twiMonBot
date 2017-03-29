@@ -13,10 +13,10 @@ var MsgStack = function (options) {
     this.config = {};
 
     options.events.on('checkStack', function () {
-        return _this.checkStack();
+        _this.checkStack();
     });
 
-    this.onReady = _this.init();
+    this.onReady = this.init();
 };
 
 MsgStack.prototype.init = function () {
