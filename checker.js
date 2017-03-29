@@ -2,8 +2,8 @@
  * Created by Anton on 06.12.2015.
  */
 "use strict";
-var base = require('./base');
-var debug = require('debug')('app:checker');
+const base = require('./base');
+const debug = require('debug')('app:checker');
 
 var Checker = function(options) {
     var _this = this;

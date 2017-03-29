@@ -2,9 +2,9 @@
  * Created by Anton on 06.12.2015.
  */
 "use strict";
-var debug = require('debug')('app:youtube');
-var base = require('../base');
-var CustomError = require('../customError').CustomError;
+const debug = require('debug')('app:youtube');
+const base = require('../base');
+const CustomError = require('../customError').CustomError;
 
 var apiQuote = new base.Quote(1000);
 const requestPromise = apiQuote.wrapper(require('request-promise'));

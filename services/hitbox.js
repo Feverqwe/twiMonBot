@@ -2,10 +2,10 @@
  * Created by Anton on 06.12.2015.
  */
 "use strict";
-var debug = require('debug')('app:hitbox');
-var base = require('../base');
-var requestPromise = require('request-promise');
-var CustomError = require('../customError').CustomError;
+const debug = require('debug')('app:hitbox');
+const base = require('../base');
+const requestPromise = require('request-promise');
+const CustomError = require('../customError').CustomError;
 
 var Hitbox = function(options) {
     var _this = this;

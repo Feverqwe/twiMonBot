@@ -1,8 +1,8 @@
 "use strict";
-var debug = require('debug')('app:liveController');
-var debugLog = require('debug')('app:liveController:log');
+const debug = require('debug')('app:liveController');
+const debugLog = require('debug')('app:liveController:log');
 debugLog.log = console.log.bind(console);
-var base = require('./base');
+const base = require('./base');
 
 var LiveController = function (options) {
     var _this = this;

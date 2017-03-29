@@ -2,8 +2,8 @@
  * Created by Anton on 23.02.2017.
  */
 "use strict";
-var debug = require('debug')('app:users');
-var debugLog = require('debug')('app:users:log');
+const debug = require('debug')('app:users');
+const debugLog = require('debug')('app:users:log');
 debugLog.log = console.log.bind(console);
 
 var Users = function (options) {

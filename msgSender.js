@@ -2,10 +2,10 @@
  * Created by Anton on 02.10.2016.
  */
 "use strict";
-var base = require('./base');
-var debug = require('debug')('app:msgSender');
-var request = require('request');
-var requestPromise = require('request-promise');
+const base = require('./base');
+const debug = require('debug')('app:msgSender');
+const request = require('request');
+const requestPromise = require('request-promise');
 
 var MsgSender = function (options) {
     var _this = this;

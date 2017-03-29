@@ -2,9 +2,9 @@
  * Created by Anton on 21.05.2016.
  */
 "use strict";
-var base = require('./base');
-var debug = require('debug')('app:msgStack');
-var debugLog = require('debug')('app:msgStack:log');
+const base = require('./base');
+const debug = require('debug')('app:msgStack');
+const debugLog = require('debug')('app:msgStack:log');
 debugLog.log = console.log.bind(console);
 
 var MsgStack = function (options) {

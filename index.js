@@ -2,17 +2,17 @@
  * Created by Anton on 06.12.2015.
  */
 "use strict";
-var debug = require('debug')('app:index');
-var base = require('./base');
-var Checker = require('./checker');
-var Chat = require('./chat');
+const debug = require('debug')('app:index');
+const base = require('./base');
+const Checker = require('./checker');
+const Chat = require('./chat');
 const TelegramBot = require('node-telegram-bot-api');
-var EventEmitter = require('events').EventEmitter;
-var Daemon = require('./daemon');
-var Tracker = require('./tracker');
-var LiveController = require('./liveController');
-var MsgStack = require('./msgStack');
-var MsgSender = require('./msgSender');
+const EventEmitter = require('events').EventEmitter;
+const Daemon = require('./daemon');
+const Tracker = require('./tracker');
+const LiveController = require('./liveController');
+const MsgStack = require('./msgStack');
+const MsgSender = require('./msgSender');
 const Db = require('./db');
 const Locale = require('./locale');
 const Users = require('./users');

@@ -2,11 +2,11 @@
  * Created by Anton on 06.12.2015.
  */
 "use strict";
-var debug = require('debug')('app:chat');
-var base = require('./base');
-var Router = require('./router');
-var CustomError = require('./customError').CustomError;
-var querystring = require('querystring');
+const debug = require('debug')('app:chat');
+const base = require('./base');
+const Router = require('./router');
+const CustomError = require('./customError').CustomError;
+const querystring = require('querystring');
 
 var Chat = function(options) {
     var _this = this;

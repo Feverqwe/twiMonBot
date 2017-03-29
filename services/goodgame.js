@@ -2,10 +2,10 @@
  * Created by anton on 19.07.15.
  */
 "use strict";
-var debug = require('debug')('app:goodgame');
-var base = require('../base');
-var requestPromise = require('request-promise');
-var CustomError = require('../customError').CustomError;
+const debug = require('debug')('app:goodgame');
+const base = require('../base');
+const requestPromise = require('request-promise');
+const CustomError = require('../customError').CustomError;
 
 var GoodGame = function (options) {
     var _this = this;

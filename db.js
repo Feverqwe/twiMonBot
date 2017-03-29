@@ -2,8 +2,8 @@
  * Created by Anton on 19.02.2017.
  */
 "use strict";
-var debug = require('debug')('app:db');
-var mysql = require('mysql');
+const debug = require('debug')('app:db');
+const mysql = require('mysql');
 
 var Db = function (options) {
     this.config = options.config.db;
