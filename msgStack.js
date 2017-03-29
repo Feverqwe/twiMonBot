@@ -64,10 +64,6 @@ MsgStack.prototype.init = function () {
                 FOREIGN KEY (`streamId`) \
                     REFERENCES `streams` (`id`) \
                     ON DELETE CASCADE \
-                    ON UPDATE CASCADE,\
-                FOREIGN KEY (`chatId`) \
-                    REFERENCES `chats` (`id`) \
-                    ON DELETE CASCADE \
                     ON UPDATE CASCADE); \
             ', function (err) {
                 if (err) {
