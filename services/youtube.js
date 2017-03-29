@@ -4,8 +4,6 @@
 "use strict";
 var debug = require('debug')('app:youtube');
 var base = require('../base');
-var Promise = require('bluebird');
-var request = require('request');
 var CustomError = require('../customError').CustomError;
 
 var apiQuote = new base.Quote(1000);

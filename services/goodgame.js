@@ -4,8 +4,6 @@
 "use strict";
 var debug = require('debug')('app:goodgame');
 var base = require('../base');
-var Promise = require('bluebird');
-var request = require('request');
 var requestPromise = require('request-promise');
 var CustomError = require('../customError').CustomError;
 
