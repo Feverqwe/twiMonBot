@@ -14,9 +14,10 @@ var Chat = function(options) {
     this.gOptions = options;
 
     var language = options.language;
+    var events = options.events;
     var services = options.services;
-    var users = options.users;
     var serviceToTitle = options.serviceToTitle;
+    var users = options.users;
     var router = new Router(bot);
 
     var textOrCb = router.custom(['text', 'callback_query']);
@@ -973,6 +974,7 @@ var Chat = function(options) {
                 throw new CustomError('CHANNEL_EXISTS');
             }
 
+
             return users.getChat(chatId).then(function (chat) {
                 if (!chat) {
                     return users.setChat({id: chatId});
@@ -983,7 +985,7 @@ var Chat = function(options) {
                 return channel;
             });
         }).catch(function(err) {
-            if (!err instanceof CustomError) {
+            if (!(err instanceof CustomError)) {
                 debug('addChannel %s error!', channelName, err);
             } else
             if (err.message !== 'CHANNEL_EXISTS') {
