@@ -198,9 +198,6 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
                     if (!stream) return;
 
                     return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (messages) {
-                        messages = messages.filter(function (item) {
-                            return !/^@/.test(item.chatId);
-                        });
                         return _this.gOptions.db.transaction(function (connection) {
                             return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
                                 return _this.gOptions.msgStack.updateChatIdsStreamId(connection, messages, stream.id);
@@ -219,9 +216,6 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
                     if (!stream) return;
 
                     return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (messages) {
-                        messages = messages.filter(function (item) {
-                            return !/^@/.test(item.chatId);
-                        });
                         return _this.gOptions.db.transaction(function (connection) {
                             return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
                                 return _this.gOptions.msgStack.updateChatIdsStreamId(connection, messages, stream.id);
@@ -240,9 +234,6 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
                     if (!stream) return;
 
                     return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (messages) {
-                        messages = messages.filter(function (item) {
-                            return !/^@/.test(item.chatId);
-                        });
                         return _this.gOptions.db.transaction(function (connection) {
                             return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
                                 return _this.gOptions.msgStack.updateChatIdsStreamId(connection, messages, stream.id);
