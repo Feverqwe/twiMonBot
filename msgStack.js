@@ -336,19 +336,19 @@ MsgStack.prototype.removeItem = function (chatId, streamId, messageId) {
 };
 
 MsgStack.prototype.updateLog = function (chatId, messageId, data) {
-    var debugItem = JSON.parse(JSON.stringify(data));
+    /*var debugItem = JSON.parse(JSON.stringify(data));
     delete debugItem.preview;
     delete debugItem._videoId;
-    delete debugItem._service;
-    debugLog('[update] %s %s %j', messageId, chatId, debugItem);
+    delete debugItem._service;*/
+    debugLog('[update] %s %s', messageId, chatId);
 };
 
 MsgStack.prototype.sendLog = function (chatId, messageId, data) {
-    var debugItem = JSON.parse(JSON.stringify(data));
+    /*var debugItem = JSON.parse(JSON.stringify(data));
     delete debugItem.preview;
     delete debugItem._videoId;
-    delete debugItem._service;
-    debugLog('[send] %s %s %j', messageId, chatId, debugItem);
+    delete debugItem._service;*/
+    debugLog('[send] %s %s', messageId, chatId);
 };
 
 MsgStack.prototype.setTimeout = function (chatId, streamId, messageId, timeout) {
