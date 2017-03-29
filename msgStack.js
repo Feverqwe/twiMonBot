@@ -457,6 +457,12 @@ MsgStack.prototype.updateItem = function (/*StackItem*/item) {
                 type: messageType,
                 chat_id: chat_id
             }, caption, text).then(function () {
+                if (messageType === 'streamPhoto') {
+                    _this.gOptions.msgSender.track(chat_id, data, 'updatePhoto');
+                } else
+                if (messageType === 'streamText'){
+                    _this.gOptions.msgSender.track(chat_id, data, 'updateText');
+                }
                 _this.updateLog(chat_id, streamId, data);
             }).catch(function (err) {
                 if (err.code === 'ETELEGRAM') {
