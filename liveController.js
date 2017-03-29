@@ -23,7 +23,7 @@ LiveController.prototype.clean = function () {
             });
             var result = null;
             if (streamIds.length) {
-                debug('[clean] %j', streamIds);
+                debugLog('[clean] %j', streamIds);
                 result = _this.gOptions.msgStack.removeStreamIds(streamIds);
             }
             return result;
