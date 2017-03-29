@@ -436,11 +436,11 @@ MsgStack.prototype.updateItem = function (/*StackItem*/item) {
         data._isOffline = !!item.isOffline;
         data._isTimeout = !!item.isTimeout;
 
-        return _this.gOptions.users.getChat(chatId).then(function (chat) {
+        /*return _this.gOptions.users.getChat(chatId).then(function (chat) {
             if (!chat) {
                 debug('Can\'t send message %s, user %s is not found!', streamId, chatId);
                 return;
-            }
+            }*/
 
             var text = base.getNowStreamText(_this.gOptions, data);
             var caption = base.getNowStreamPhotoText(_this.gOptions, data);
@@ -463,7 +463,7 @@ MsgStack.prototype.updateItem = function (/*StackItem*/item) {
                 }
                 throw err;
             });
-        });
+        /*});*/
     }).then(function () {
         return _this.removeItem(chatId, streamId, messageId);
     }).catch(function (err) {
