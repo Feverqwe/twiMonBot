@@ -304,7 +304,7 @@ Twitch.prototype.requestChannelByName = function (channelName) {
 Twitch.prototype.getChannelIdByUrl = function (url) {
     var channelId = '';
     [
-        /twitch\.tv\/([^\/]+)/i
+        /twitch\.tv\/([^\/?#]+)/i
     ].some(function (re) {
         var m = re.exec(url);
         if (m) {

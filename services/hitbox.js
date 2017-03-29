@@ -259,7 +259,7 @@ Hitbox.prototype.getStreamList = function(_channelIdsList) {
 Hitbox.prototype.getChannelIdByUrl = function (url) {
     var channelId = '';
     [
-        /hitbox\.tv\/([^\/]+)/i
+        /hitbox\.tv\/([^\/?#]+)/i
     ].some(function (re) {
         var m = re.exec(url);
         if (m) {
