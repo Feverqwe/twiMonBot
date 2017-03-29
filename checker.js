@@ -14,10 +14,6 @@ var Checker = function(options) {
             debug('updateList error!', err);
         });
     });
-
-    options.events.on('clean', function() {
-        _this.cleanServices();
-    });
 };
 
 Checker.prototype.getChannelList = function() {
@@ -42,33 +38,6 @@ Checker.prototype.getChannelList = function() {
 
         return serviceList;
     });
-};
-
-Checker.prototype.cleanServices = function() {
-    // todo: fix me
-    return Promise.resolve();
-
-    /*var _this = this;
-    var serviceChannelList = _this.getChannelList();
-    var services = _this.gOptions.services;
-
-    var promiseList = [];
-
-    Object.keys(serviceChannelList).forEach(function (service) {
-        var currentService = services[service];
-        if (!currentService) {
-            debug('Service %s is not found!', service);
-            return;
-        }
-
-        var channelList = serviceChannelList[service];
-
-        if (currentService.clean) {
-            promiseList.push(currentService.clean(channelList));
-        }
-    });
-
-    return Promise.all(promiseList);*/
 };
 
 Checker.prototype.updateList = function() {
