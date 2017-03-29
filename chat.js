@@ -340,7 +340,7 @@ var Chat = function(options) {
                     imageFileId: stream._photoId,
                     caption: caption,
                     text: text
-                }, stream, true).catch(function (err) {
+                }, stream, true, chatId).catch(function (err) {
                     debug('Command watch error!', err);
                 });
             });
@@ -415,7 +415,7 @@ var Chat = function(options) {
                                 imageFileId: stream._photoId,
                                 caption: caption,
                                 text: text
-                            }, stream, true).catch(function (err) {
+                            }, stream, true, chatId).catch(function (err) {
                                 debug('Command add error!', err);
                             });
                         });
