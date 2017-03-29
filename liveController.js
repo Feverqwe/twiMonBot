@@ -75,7 +75,7 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
                     prevStream.checkTime = base.getNow();
                     if (!prevStream.isTimeout) {
                         prevStream.isTimeout = 1;
-                        debugLog('Timeout (U) %s', prevStream.id);
+                        debugLog('Timeout (U) %s %j', prevStream.id, prevStream);
                         timeoutStreams.push(prevStream);
                     } else {
                         syncStreams.push(prevStream);
@@ -96,13 +96,13 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
                 if (prevStream.isOffline !== stream.isOffline ||
                     prevStream.isTimeout !== stream.isTimeout
                 ) {
-                    debugLog('Online (U) %s', stream.id);
+                    debugLog('Online (U) %s %j', stream.id, stream);
                     updateStreams.push(stream);
                 } else
                 if (prevData.channel.game !== data.channel.game ||
                     prevData.channel.status !== data.channel.status
                 ) {
-                    debugLog('Changes (U) %s', stream.id);
+                    debugLog('Changes (U) %s %j', stream.id, stream);
                     updateStreams.push(stream);
                 } else {
                     syncStreams.push(stream);
@@ -111,7 +111,7 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
             }
 
             if (!prevChannelStreams.length) {
-                debugLog('New (N) %s', stream.id);
+                debugLog('New (N) %s %j', stream.id, stream);
                 newStreams.push(stream);
                 return;
             }
@@ -128,16 +128,16 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
                 if (prevStream.isOffline !== stream.isOffline ||
                     prevStream.isTimeout !== stream.isTimeout
                 ) {
-                    debugLog('Online dbl (U) %s', stream.id);
+                    debugLog('Online dbl (U) %s %j', stream.id, stream);
                     updateStreams.push(stream);
                 } else {
-                    debugLog('Dbl %s', stream.id);
+                    debugLog('Dbl %s %j', stream.id, stream);
                     syncStreams.push(stream);
                 }
                 return;
             }
 
-            debugLog('Dbl (N) %s', stream.id);
+            debugLog('Dbl (N) %s %j', stream.id, stream);
             newStreams.push(stream);
         });
         prevStreamIds.forEach(function (id) {
@@ -147,11 +147,11 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
                 stream.isOffline = 1;
                 stream.isTimeout = 0;
                 stream.offlineTime = base.getNow();
-                debugLog('Offline (U) %s', stream.id);
+                debugLog('Offline (U) %s %j', stream.id, stream);
                 offlineStreams.push(stream);
             } else
             if (base.getNow() - stream.offlineTime > TIMEOUT) {
-                debugLog('Remove %s', stream.id);
+                debugLog('Remove %s %j', stream.id, stream);
                 removeStreamIds.push(stream.id);
             } else {
                 syncStreams.push(stream);
