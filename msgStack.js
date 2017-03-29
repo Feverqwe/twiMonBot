@@ -411,9 +411,9 @@ MsgStack.prototype.onSendMessageError = function (err) {
 
         if (isBlocked) {
             if (itemObj.type === 'chat') {
-                result = _this.gOptions.users.removeChat(itemObj.chatId);
+                result = _this.gOptions.users.removeChat(itemObj.chatId, body.description);
             } else {
-                result = _this.gOptions.users.removeChatChannel(itemObj.chatId, itemObj.id);
+                result = _this.gOptions.users.removeChatChannel(itemObj.chatId, itemObj.id, body.description);
             }
         } else
         if (itemObj.type === 'chat' && body.parameters && body.parameters.migrate_to_chat_id) {

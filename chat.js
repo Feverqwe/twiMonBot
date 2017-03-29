@@ -539,7 +539,7 @@ var Chat = function(options) {
         var query = req.getQuery();
 
         if (query.clear === 'true') {
-            users.removeChat(chatId).then(function () {
+            users.removeChat(chatId, 'By user').then(function () {
                 return bot.editMessageText(language.cleared, {
                     chat_id: chatId,
                     message_id: messageId
@@ -949,7 +949,7 @@ var Chat = function(options) {
         return users.removeChannel(req.chat.id, serviceName, channelId).then(function () {
             return users.getChannels(req.chat.id).then(function (channels) {
                 if (channels.length === 0) {
-                    return users.removeChat(req.chat.id);
+                    return users.removeChat(req.chat.id, 'Empty channels');
                 }
             });
         }).then(function () {

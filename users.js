@@ -167,9 +167,10 @@ Users.prototype.changeChatId = function (id, newId) {
 
 /**
  * @param {string} id
+ * @param {string} reason
  * @return {Promise}
  */
-Users.prototype.removeChat = function (id) {
+Users.prototype.removeChat = function (id, reason) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
         db.connection.query('\
@@ -178,7 +179,7 @@ Users.prototype.removeChat = function (id) {
             if (err) {
                 reject(err);
             } else {
-                debugLog('[remove] %s', id);
+                debugLog('[remove] %s %j', id, reason);
                 resolve();
             }
         });
@@ -188,9 +189,10 @@ Users.prototype.removeChat = function (id) {
 /**
  * @param {string} chatId
  * @param {string} channelId
+ * @param {string} reason
  * @return {Promise}
  */
-Users.prototype.removeChatChannel = function (chatId, channelId) {
+Users.prototype.removeChatChannel = function (chatId, channelId, reason) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
         db.connection.query('\
@@ -199,7 +201,7 @@ Users.prototype.removeChatChannel = function (chatId, channelId) {
             if (err) {
                 reject(err);
             } else {
-                debugLog('[remove] %s %s', chatId, channelId);
+                debugLog('[remove] %s %s %j', chatId, channelId, reason);
                 resolve();
             }
         });
