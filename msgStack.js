@@ -430,10 +430,10 @@ MsgStack.prototype.onSendMessageError = function (err) {
 
 MsgStack.prototype.updateItem = function (/*StackItem*/item) {
     var _this = this;
-    var chat_id = item.chat_id;
     var chatId = item.chatId;
     var streamId = item.streamId;
     var messageId = item.messageId;
+    var chat_id = item.messageChatId;
     var messageType = item.messageType;
 
     var timeout = 5 * 60;
