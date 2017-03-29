@@ -4,9 +4,6 @@
 "use strict";
 var base = require('./base');
 var debug = require('debug')('app:msgSender');
-var debugLog = require('debug')('app:msgSender:log');
-debugLog.log = console.log.bind(console);
-var Promise = require('bluebird');
 var request = require('request');
 var requestPromise = require('request-promise');
 
@@ -14,10 +11,6 @@ var MsgSender = function (options) {
     var _this = this;
     _this.gOptions = options;
     _this.messageRequestPicturePromise = {};
-
-    options.events.on('updateNotify', function(streamItem) {
-        _this.updateNotify(streamItem);
-    });
 };
 
 /**
@@ -57,7 +50,7 @@ MsgSender.prototype.updateMsg = function (msg, caption, text) {
 MsgSender.prototype.getValidPhotoUrl = function (stream) {
     var _this = this;
 
-    var requestLimit = _this.gOptions.config.sendPhotoRequestLimit || 4;
+    var requestLimit = _this.gOptions.config.sendPhotoRequestLimit || 10;
 
     var requestTimeoutSec = _this.gOptions.config.sendPhotoRequestTimeoutSec || 30;
     requestTimeoutSec *= 1000;
@@ -249,7 +242,6 @@ MsgSender.prototype.sendMessage = function (chatId, messageId, message, data, us
     return _this.requestPicId(chatId, messageId, caption, text, data).then(function(imageFileId) {
         if (imageFileId) {
             message.imageFileId = imageFileId;
-
             return _this.gOptions.msgStack.setImageFileId(messageId, imageFileId);
         }
     });
@@ -267,5 +259,6 @@ MsgSender.prototype.track = function(chatId, stream, title) {
         date: base.getNow()
     }, title);
 };
+
 
 module.exports = MsgSender;
