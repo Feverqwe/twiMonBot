@@ -365,10 +365,6 @@ Youtube.prototype.requestChannelIdByUsername = function(url) {
  * @returns {Promise.<String>}
  */
 Youtube.prototype.getChannelIdByUrl = function (url) {
-    if (/^UC/.test(url)) {
-        return Promise.resolve(url);
-    }
-
     var channelId = '';
     [
         /youtube\.com\/(?:#\/)?channel\/([\w\-]+)/i
@@ -381,10 +377,14 @@ Youtube.prototype.getChannelIdByUrl = function (url) {
     });
 
     if (!channelId) {
-        return Promise.reject(new CustomError('It is not channel url!'));
-    } else {
-        return Promise.resolve(channelId);
+        channelId = url;
     }
+
+    if (!/^UC/.test(channelId)) {
+        return Promise.reject(new CustomError('It is not channel url!'));
+    }
+
+    return Promise.resolve(channelId);
 };
 
 /**
