@@ -24,6 +24,12 @@ MsgSender.prototype.addMsgInStream = function (message) {
     return _this.gOptions.msgStack.addStreamMessage(message);
 };
 
+/**
+ * @param {Object} msg
+ * @param {String} caption
+ * @param {String} text
+ * @return {Promise}
+ */
 MsgSender.prototype.updateMsg = function (msg, caption, text) {
     var _this = this;
     var sendPromise = Promise.resolve();
@@ -47,6 +53,9 @@ MsgSender.prototype.updateMsg = function (msg, caption, text) {
     return sendPromise;
 };
 
+/**
+ * @param {Object} stream
+ */
 MsgSender.prototype.getValidPhotoUrl = function (stream) {
     var _this = this;
 
@@ -87,6 +96,12 @@ MsgSender.prototype.getValidPhotoUrl = function (stream) {
     return getHead(0);
 };
 
+/**
+ * @param {String} chatId
+ * @param {String} text
+ * @param {Object} stream
+ * @return {Promise}
+ */
 MsgSender.prototype.getPicId = function(chatId, text, stream) {
     var _this = this;
 
@@ -132,6 +147,15 @@ MsgSender.prototype.getPicId = function(chatId, text, stream) {
     return sendingPic();
 };
 
+/**
+ * @param {String} chat_id
+ * @param {String} messageId
+ * @param {String} caption
+ * @param {String} text
+ * @param {Object} data
+ * @param {String} chatId
+ * @return {Promise}
+ */
 MsgSender.prototype.requestPicId = function(chat_id, messageId, caption, text, data, chatId) {
     var _this = this;
 
@@ -178,6 +202,13 @@ MsgSender.prototype.requestPicId = function(chat_id, messageId, caption, text, d
     return promise;
 };
 
+/**
+ * @param {String} chat_id
+ * @param {String} noPhotoText
+ * @param {Object} stream
+ * @param {String} chatId
+ * @return {Promise}
+ */
 MsgSender.prototype.sendMsg = function(chat_id, noPhotoText, stream, chatId) {
     var _this = this;
     return _this.gOptions.bot.sendMessage(chat_id, noPhotoText, {
@@ -194,6 +225,14 @@ MsgSender.prototype.sendMsg = function(chat_id, noPhotoText, stream, chatId) {
     });
 };
 
+/**
+ * @param {String} chat_id
+ * @param {String} fileId
+ * @param {String} text
+ * @param {Object} stream
+ * @param {String} chatId
+ * @return {Promise}
+ */
 MsgSender.prototype.sendPhoto = function(chat_id, fileId, text, stream, chatId) {
     var _this = this;
     return _this.gOptions.bot.sendPhotoQuote(chat_id, fileId, {
@@ -210,6 +249,15 @@ MsgSender.prototype.sendPhoto = function(chat_id, fileId, text, stream, chatId) 
     });
 };
 
+/**
+ * @param {String} chat_id
+ * @param {String|null} imageFileId
+ * @param {String} caption
+ * @param {String} text
+ * @param {Object} stream
+ * @param {String} chatId
+ * @return {Promise}
+ */
 MsgSender.prototype.send = function(chat_id, imageFileId, caption, text, stream, chatId) {
     var _this = this;
 
@@ -223,6 +271,15 @@ MsgSender.prototype.send = function(chat_id, imageFileId, caption, text, stream,
     return promise;
 };
 
+/**
+ * @param {String} chat_id
+ * @param {String} messageId
+ * @param {Object} message
+ * @param {Object} data
+ * @param {Boolean} useCache
+ * @param {String} chatId
+ * @return {Promise}
+ */
 MsgSender.prototype.sendMessage = function (chat_id, messageId, message, data, useCache, chatId) {
     var _this = this;
 
@@ -250,6 +307,12 @@ MsgSender.prototype.sendMessage = function (chat_id, messageId, message, data, u
     });
 };
 
+/**
+ * @param {String} chatId
+ * @param {Object} stream
+ * @param {String} title
+ * @return {Promise}
+ */
 MsgSender.prototype.track = function(chatId, stream, title) {
     return this.gOptions.tracker.track({
         text: stream._channelId,

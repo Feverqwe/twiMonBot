@@ -114,6 +114,11 @@ MsgStack.prototype.init = function () {
     return promise;
 };
 
+/**
+ * @param {String[]} channelIds
+ * @param {String} service
+ * @return {Promise.<Object[]>}
+ */
 MsgStack.prototype.getStreams = function (channelIds, service) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
@@ -132,6 +137,9 @@ MsgStack.prototype.getStreams = function (channelIds, service) {
     });
 };
 
+/**
+ * @return {Promise.<Object[]>}
+ */
 MsgStack.prototype.getAllStreams = function () {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
@@ -147,6 +155,9 @@ MsgStack.prototype.getAllStreams = function () {
     });
 };
 
+/**
+ * @return {Promise.<Object[]>}
+ */
 MsgStack.prototype.getLastStreamList = function () {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
@@ -169,6 +180,11 @@ MsgStack.prototype.getLastStreamList = function () {
     });
 };
 
+/**
+ * @param {Object} connection
+ * @param {Object} stream
+ * @return {Promise}
+ */
 MsgStack.prototype.setStream = function (connection, stream) {
     return new Promise(function (resolve, reject) {
         connection.query('\
@@ -183,6 +199,10 @@ MsgStack.prototype.setStream = function (connection, stream) {
     });
 };
 
+/**
+ * @param {String} streamIds
+ * @return {Promise}
+ */
 MsgStack.prototype.removeStreamIds = function (streamIds) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
@@ -201,6 +221,12 @@ MsgStack.prototype.removeStreamIds = function (streamIds) {
     });
 };
 
+/**
+ * @param {Object} connection
+ * @param {String[]} chatIds
+ * @param {String} streamId
+ * @return {Promise}
+ */
 MsgStack.prototype.addChatIdsStreamId = function (connection, chatIds, streamId) {
     return new Promise(function (resolve, reject) {
         if (!chatIds.length) {
@@ -221,6 +247,12 @@ MsgStack.prototype.addChatIdsStreamId = function (connection, chatIds, streamId)
     });
 };
 
+/**
+ * @param {Object} connection
+ * @param {Object[]} messages
+ * @param {String} streamId
+ * @return {Promise}
+ */
 MsgStack.prototype.updateChatIdsStreamId = function (connection, messages, streamId) {
     return new Promise(function (resolve, reject) {
         if (!messages.length) {
@@ -241,6 +273,10 @@ MsgStack.prototype.updateChatIdsStreamId = function (connection, messages, strea
     });
 };
 
+/**
+ * @param {String} streamId
+ * @return {Promise}
+ */
 MsgStack.prototype.getStreamMessages = function (streamId) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
@@ -256,6 +292,10 @@ MsgStack.prototype.getStreamMessages = function (streamId) {
     });
 };
 
+/**
+ * @param {Object} message
+ * @return {Promise}
+ */
 MsgStack.prototype.addStreamMessage = function (message) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
@@ -271,6 +311,10 @@ MsgStack.prototype.addStreamMessage = function (message) {
     });
 };
 
+/**
+ * @param {String} messageId
+ * @return {Promise}
+ */
 MsgStack.prototype.removeStreamMessage = function (messageId) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
@@ -286,6 +330,12 @@ MsgStack.prototype.removeStreamMessage = function (messageId) {
     });
 };
 
+/**
+ * @param {Object} connection
+ * @param {String} prevStreamId
+ * @param {String} streamId
+ * @return {Promise}
+ */
 MsgStack.prototype.migrateStream = function (connection, prevStreamId, streamId) {
     return new Promise(function (resolve, reject) {
         connection.query('\
@@ -301,6 +351,11 @@ MsgStack.prototype.migrateStream = function (connection, prevStreamId, streamId)
     });
 };
 
+/**
+ * @param {String} streamId
+ * @param {String} imageFileId
+ * @return {Promise}
+ */
 MsgStack.prototype.setImageFileId = function (streamId, imageFileId) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
@@ -316,6 +371,12 @@ MsgStack.prototype.setImageFileId = function (streamId, imageFileId) {
     });
 };
 
+/**
+ * @param {String} chatId
+ * @param {String} streamId
+ * @param {String} messageId
+ * @return {Promise}
+ */
 MsgStack.prototype.removeItem = function (chatId, streamId, messageId) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
@@ -335,6 +396,11 @@ MsgStack.prototype.removeItem = function (chatId, streamId, messageId) {
     });
 };
 
+/**
+ * @param {String} chatId
+ * @param {String} messageId
+ * @param {Object} data
+ */
 MsgStack.prototype.updateLog = function (chatId, messageId, data) {
     /*var debugItem = JSON.parse(JSON.stringify(data));
     delete debugItem.preview;
@@ -343,6 +409,11 @@ MsgStack.prototype.updateLog = function (chatId, messageId, data) {
     debugLog('[update] %s %s', messageId, chatId);
 };
 
+/**
+ * @param {String} chatId
+ * @param {String} messageId
+ * @param {Object} data
+ */
 MsgStack.prototype.sendLog = function (chatId, messageId, data) {
     /*var debugItem = JSON.parse(JSON.stringify(data));
     delete debugItem.preview;
@@ -351,6 +422,12 @@ MsgStack.prototype.sendLog = function (chatId, messageId, data) {
     debugLog('[send] %s %s', messageId, chatId);
 };
 
+/**
+ * @param {String} chatId
+ * @param {String} streamId
+ * @param {String} messageId
+ * @param {Number} timeout
+ */
 MsgStack.prototype.setTimeout = function (chatId, streamId, messageId, timeout) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
@@ -384,6 +461,10 @@ MsgStack.prototype.getStackItems = function () {
     });
 };
 
+/**
+ * @param {Error} err
+ * @return {Promise}
+ */
 MsgStack.prototype.onSendMessageError = function (err) {
     var _this = this;
     /**
@@ -428,7 +509,11 @@ MsgStack.prototype.onSendMessageError = function (err) {
     return result;
 };
 
-MsgStack.prototype.updateItem = function (/*StackItem*/item) {
+/**
+ * @param {Object} item
+ * @return {Promise}
+ */
+MsgStack.prototype.updateItem = function (item) {
     var _this = this;
     var chatId = item.chatId;
     var streamId = item.streamId;
@@ -488,7 +573,11 @@ MsgStack.prototype.updateItem = function (/*StackItem*/item) {
     });
 };
 
-MsgStack.prototype.sendItem = function (/*StackItem*/item) {
+/**
+ * @param {Object} item
+ * @return {Promise}
+ */
+MsgStack.prototype.sendItem = function (item) {
     var _this = this;
     var chatId = item.chatId;
     var streamId = item.streamId;

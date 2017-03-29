@@ -16,6 +16,9 @@ var Checker = function(options) {
     });
 };
 
+/**
+ * @return {Promise.<Object>}
+ */
 Checker.prototype.getChannelList = function() {
     var _this = this;
     var serviceNames = Object.keys(this.gOptions.services);
