@@ -140,7 +140,7 @@ MsgStack.prototype.migrate = function () {
             liveMessages.push({
                 id: _item.id,
                 chatId: _item.chatId,
-                streamId: item.id,
+                streamId: item._id,
                 type: _item.type
             });
         });
