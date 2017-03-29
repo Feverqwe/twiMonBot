@@ -7,19 +7,18 @@ const base = require('./base');
 const Checker = require('./checker');
 const Chat = require('./chat');
 const TelegramBot = require('node-telegram-bot-api');
-const EventEmitter = require('events').EventEmitter;
+const EventEmitter = require('events');
 const Daemon = require('./daemon');
 const Tracker = require('./tracker');
 const LiveController = require('./liveController');
 const MsgStack = require('./msgStack');
 const MsgSender = require('./msgSender');
+const Users = require('./users');
 const Db = require('./db');
 const Locale = require('./locale');
-const Users = require('./users');
 
 var options = {
     config: {},
-    language: {},
     serviceList: ['twitch', 'goodgame', 'youtube', 'hitbox'],
     serviceToTitle: {
         goodgame: 'GoodGame',
@@ -36,7 +35,7 @@ var options = {
 
 (function() {
     options.events = new EventEmitter();
-    return Promise.all([
+    Promise.all([
         base.loadConfig().then(function(config) {
             options.config = config;
 
@@ -54,12 +53,13 @@ var options = {
         options.users = new Users(options);
         return options.users.onReady;
     }).then(function() {
+        options.msgStack = new MsgStack(options);
+        return options.msgStack.onReady;
+    }).then(function() {
         return Promise.all(options.serviceList.map(function(name) {
-            return Promise.resolve().then(function() {
-                var service = require('./services/' + name);
-                service = options.services[name] = new service(options);
-                return service.onReady;
-            });
+            var service = require('./services/' + name);
+            service = options.services[name] = new service(options);
+            return service.onReady;
         }));
     }).then(function() {
         options.daemon = new Daemon(options);
@@ -76,10 +76,6 @@ var options = {
         options.bot.sendPhotoQuote = quote.wrapper(options.bot.sendPhoto, options.bot);
     }).then(function() {
         options.tracker = new Tracker(options);
-    }).then(function() {
-        options.msgStack = new MsgStack(options);
-
-        return options.msgStack.onReady;
     }).then(function() {
         options.msgSender = new MsgSender(options);
     }).then(function() {
