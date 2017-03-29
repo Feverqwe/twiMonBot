@@ -169,7 +169,7 @@ MsgSender.prototype.requestPicId = function(chatId, messageId, caption, text, da
         });
         promise = promise.catch(function (err) {
             return _this.send(chatId, null, caption, text, data).then(function () {
-                debug('getPicId error', err);
+                debug('getPicId error %o', err);
             });
         });
     } else {
