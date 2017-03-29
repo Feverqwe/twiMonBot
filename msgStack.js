@@ -166,8 +166,10 @@ MsgStack.prototype.migrate = function () {
             var message = liveMessages.shift();
             if (!message) return;
 
-            return _this.gOptions.msgStack.addStreamMessage(message).catch(function (err) {
-                debug('liveMessages', err);
+            return _this.gOptions.users.getChat(message.chatId).then(function (chat) {
+                return chat && _this.gOptions.msgStack.addStreamMessage(message).catch(function (err) {
+                    debug('liveMessages', err);
+                });
             });
         });
     });
