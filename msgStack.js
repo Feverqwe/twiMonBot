@@ -109,7 +109,69 @@ MsgStack.prototype.init = function () {
             });
         });
     });
+    promise = promise.then(function () {
+        return _this.migrate();
+    });
     return promise;
+};
+
+MsgStack.prototype.migrate = function () {
+    var _this = this;
+    var fs = require('fs');
+    var path = require('path');
+    var lastStreamList = JSON.parse(fs.readFileSync(path.join(__dirname, 'storage', 'lastStreamList')));
+
+    var streams = [];
+    var liveMessages = [];
+    lastStreamList.forEach(function (item) {
+        streams.push({
+            id: item._id,
+            channelId: item._channelId,
+            service: item._service,
+            data: JSON.stringify(item),
+            imageFileId: item._photoId,
+            checkTime: item._checkTime,
+            offlineTime: item._offlineStartTime || 0,
+            isOffline: item._isOffline ? 1 : 0,
+            isTimeout: item._isTimeout ? 1 : 0,
+        });
+        var msgArray = item.msgArray || [];
+        msgArray.forEach(function (_item) {
+            liveMessages.push({
+                id: _item.id,
+                chatId: _item.chatId,
+                streamId: item.id,
+                type: _item.type
+            });
+        });
+    });
+
+    var insertPool = new base.Pool(15);
+
+    var queue = Promise.resolve();
+    queue = queue.then(function () {
+        return insertPool.do(function () {
+            var stream = streams.shift();
+            if (!stream) return;
+
+            return _this.gOptions.db.transaction(function (connection) {
+                return _this.gOptions.msgStack.setStream(connection, stream);
+            }).catch(function (err) {
+                debug('streams', err);
+            });
+        });
+    });
+    queue = queue.then(function () {
+        return insertPool.do(function () {
+            var message = liveMessages.shift();
+            if (!message) return;
+
+            return _this.gOptions.msgStack.addStreamMessage(message).catch(function (err) {
+                debug('liveMessages', err);
+            });
+        });
+    });
+    return queue;
 };
 
 MsgStack.prototype.getStreams = function (channelIds, service) {
