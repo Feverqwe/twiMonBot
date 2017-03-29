@@ -2,8 +2,8 @@
  * Created by Anton on 19.02.2017.
  */
 "use strict";
-var debug = require('debug')('app:db');
-var mysql = require('mysql');
+const debug = require('debug')('app:db');
+const mysql = require('mysql');
 
 var Db = function (options) {
     this.config = options.config.db;
@@ -58,6 +58,43 @@ Db.prototype.newConnection = function () {
             } else {
                 resolve(connection);
             }
+        });
+    });
+};
+
+Db.prototype.transaction = function (promise) {
+    var _this = this;
+    return _this.newConnection().then(function (connection) {
+        return new Promise(function (resolve, reject) {
+            connection.beginTransaction(function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(connection);
+                }
+            });
+        }).then(promise).then(function () {
+            return new Promise(function (resolve, reject) {
+                connection.commit(function(err) {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+        }).catch(function (err) {
+            return new Promise(function (resolve) {
+                connection.rollback(resolve);
+            }).then(function () {
+                throw err;
+            });
+        }).then(function (result) {
+            connection.end();
+            return result;
+        }, function (err) {
+            connection.end();
+            throw err;
         });
     });
 };

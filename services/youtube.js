@@ -2,17 +2,16 @@
  * Created by Anton on 06.12.2015.
  */
 "use strict";
-var debug = require('debug')('app:youtube');
-var base = require('../base');
-var Promise = require('bluebird');
-var request = require('request');
-var CustomError = require('../customError').CustomError;
+const debug = require('debug')('app:youtube');
+const base = require('../base');
+const CustomError = require('../customError').CustomError;
 
 var apiQuote = new base.Quote(1000);
 const requestPromise = apiQuote.wrapper(require('request-promise'));
 
 var Youtube = function(options) {
     var _this = this;
+    this.name = 'youtube';
     this.gOptions = options;
     this.config = {};
     this.config.token = options.config.ytToken;
@@ -79,6 +78,10 @@ Youtube.prototype.clean = function(channelIdList) {
     return Promise.all(promiseList);*/
 };
 
+var videoIdToId = function (videoId) {
+    return 'y' + videoId;
+};
+
 Youtube.prototype.insertItem = function (channel, snippet, id, viewers) {
     var _this = this;
     return Promise.resolve().then(function () {
@@ -100,17 +103,16 @@ Youtube.prototype.insertItem = function (channel, snippet, id, viewers) {
             return item.url;
         });*/
 
-        var viewers = parseInt(viewers) || 0;
         var game = '';
         var createdAt = snippet.publishedAt;
         var channelTitle = snippet.channelTitle;
         var channelName = snippet.channelId;
 
-        var item = {
+        var data = {
             _service: 'youtube',
             _checkTime: now,
             _insertTime: now,
-            _id: 'y' + id,
+            _id: videoIdToId(id),
             _isOffline: false,
             _isTimeout: false,
             _channelId: channel.id,
@@ -125,6 +127,16 @@ Youtube.prototype.insertItem = function (channel, snippet, id, viewers) {
                 status: snippet.title,
                 url: 'https://gaming.youtube.com/watch?v=' + id
             }
+        };
+
+        var item = {
+            id: videoIdToId(id),
+            channelId: channel.id,
+            service: 'youtube',
+            data: JSON.stringify(data),
+            checkTime: base.getNow(),
+            isOffline: 0,
+            isTimeout: 0
         };
 
         var promise = Promise.resolve();
@@ -218,7 +230,7 @@ Youtube.prototype.getStreamList = function(_channelIdsList) {
                 return _this.getViewers(videoId).then(function(viewers) {
                     return _this.insertItem(channel, snippet, videoId, viewers).then(function (item) {
                         item && streamList.push(item);
-                    }).catch(function (err) {
+        }).catch(function (err) {
                         streamList.push(base.getTimeoutStream('youtube', channel.id));
                         debug("insertItem error!", err);
                     });

@@ -2,15 +2,14 @@
  * Created by Anton on 06.12.2015.
  */
 "use strict";
-var debug = require('debug')('app:twitch');
-var base = require('../base');
-var Promise = require('bluebird');
-var request = require('request');
-var requestPromise = require('request-promise');
-var CustomError = require('../customError').CustomError;
+const debug = require('debug')('app:twitch');
+const base = require('../base');
+const requestPromise = require('request-promise');
+const CustomError = require('../customError').CustomError;
 
 var Twitch = function(options) {
     var _this = this;
+    this.name = 'twitch';
     this.gOptions = options;
     this.config = {};
     this.config.token = options.config.twitchToken;
@@ -77,6 +76,10 @@ Twitch.prototype.clean = function(channelIdList) {
     return Promise.all(promiseList);*/
 };
 
+var videoIdToId = function (videoId) {
+    return 't' + videoId;
+};
+
 Twitch.prototype.insertItem = function (channel, stream) {
     var _this = this;
     return Promise.resolve().then(function () {
@@ -102,11 +105,11 @@ Twitch.prototype.insertItem = function (channel, stream) {
         });
         previewList = previewList.map(base.noCacheUrl);
 
-        var item = {
+        var data = {
             _service: 'twitch',
             _checkTime: now,
             _insertTime: now,
-            _id: 't' + id,
+            _id: videoIdToId(id),
             _isOffline: false,
             _isTimeout: false,
             _channelId: channel.id,
@@ -121,6 +124,16 @@ Twitch.prototype.insertItem = function (channel, stream) {
                 status: stream.channel.status,
                 url: stream.channel.url
             }
+        };
+
+        var item = {
+            id: videoIdToId(id),
+            channelId: channel.id,
+            service: 'twitch',
+            data: JSON.stringify(data),
+            checkTime: base.getNow(),
+            isOffline: 0,
+            isTimeout: 0
         };
 
         var promise = Promise.resolve();

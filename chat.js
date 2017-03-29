@@ -2,11 +2,11 @@
  * Created by Anton on 06.12.2015.
  */
 "use strict";
-var debug = require('debug')('app:chat');
-var base = require('./base');
-var Router = require('./router');
-var CustomError = require('./customError').CustomError;
-var querystring = require('querystring');
+const debug = require('debug')('app:chat');
+const base = require('./base');
+const Router = require('./router');
+const CustomError = require('./customError').CustomError;
+const querystring = require('querystring');
 
 var Chat = function(options) {
     var _this = this;
@@ -14,9 +14,10 @@ var Chat = function(options) {
     this.gOptions = options;
 
     var language = options.language;
+    var events = options.events;
     var services = options.services;
-    var users = options.users;
     var serviceToTitle = options.serviceToTitle;
+    var users = options.users;
     var router = new Router(bot);
 
     var textOrCb = router.custom(['text', 'callback_query']);
@@ -190,21 +191,23 @@ var Chat = function(options) {
             textArr.push(language.users.replace('{count}', info.users.length));
             textArr.push(language.channels.replace('{count}', info.channels.length));
 
-            var onlineCount = _this.gOptions.storage.lastStreamList.filter(function (item) {
-                return !item._isOffline;
-            }).length;
-            textArr.push(language.online.replace('{count}', onlineCount));
+            return _this.gOptions.msgStack.getAllStreams().then(function (streams) {
+                var onlineCount = streams.filter(function (item) {
+                    return !item.isOffline;
+                }).length;
+                textArr.push(language.online.replace('{count}', onlineCount));
 
-            info.services.forEach(function (service) {
-                textArr.push('');
-                textArr.push(serviceToTitle[service.name] + ':');
-                service.channels.forEach(function (channel, index) {
-                    textArr.push((index + 1) + '. ' + channel.title);
+                info.services.forEach(function (service) {
+                    textArr.push('');
+                    textArr.push(serviceToTitle[service.name] + ':');
+                    service.channels.forEach(function (channel, index) {
+                        textArr.push((index + 1) + '. ' + channel.title);
+                    });
                 });
-            });
 
-            return bot.sendMessage(chatId, textArr.join('\n'), {
-                disable_web_page_preview: true
+                return bot.sendMessage(chatId, textArr.join('\n'), {
+                    disable_web_page_preview: true
+                });
             });
         }).catch(function (err) {
             debug('Command top error!', err);
@@ -268,41 +271,43 @@ var Chat = function(options) {
         var chatId = req.getChatId();
         var messageId = req.getMessageId();
 
-        var text;
-        if (req.channels.length) {
-            text = getOnlineText(req.channels);
-        } else {
-            text = language.emptyServiceList;
-        }
-
-        var query = req.getQuery();
-        var page = query.page || 0;
-        return getWatchBtnList(req.channels, page).then(function (btnList) {
-            btnList.unshift([{
-                text: language.refresh,
-                callback_data: '/online'
-            }]);
-
-            var options = {
-                disable_web_page_preview: true,
-                parse_mode: 'HTML',
-                reply_markup: JSON.stringify({
-                    inline_keyboard: btnList
-                })
-            };
-
-            if (req.callback_query && !query.rel) {
-                options.chat_id = chatId;
-                options.message_id = messageId;
-                return bot.editMessageText(text, options).catch(function (err) {
-                    if (/message is not modified/.test(err.message)) {
-                        return;
-                    }
-                    throw err;
-                });
+        return _this.gOptions.msgStack.getLastStreamList().then(function (lastStreamList) {
+            var text;
+            if (req.channels.length) {
+                text = getOnlineText(req.channels, lastStreamList);
             } else {
-                return bot.sendMessage(chatId, text, options);
+                text = language.emptyServiceList;
             }
+
+            var query = req.getQuery();
+            var page = query.page || 0;
+            return getWatchBtnList(req.channels, page, lastStreamList).then(function (btnList) {
+                btnList.unshift([{
+                    text: language.refresh,
+                    callback_data: '/online'
+                }]);
+
+                var options = {
+                    disable_web_page_preview: true,
+                    parse_mode: 'HTML',
+                    reply_markup: JSON.stringify({
+                        inline_keyboard: btnList
+                    })
+                };
+
+                if (req.callback_query && !query.rel) {
+                    options.chat_id = chatId;
+                    options.message_id = messageId;
+                    return bot.editMessageText(text, options).catch(function (err) {
+                        if (/message is not modified/.test(err.message)) {
+                            return;
+                        }
+                        throw err;
+                    });
+                } else {
+                    return bot.sendMessage(chatId, text, options);
+                }
+            });
         }).catch(function (err) {
             debug('Command online error!', err);
         });
@@ -312,36 +317,37 @@ var Chat = function(options) {
         var chatId = req.getChatId();
         var query = req.getQuery();
 
-        var lastStreamList = _this.gOptions.storage.lastStreamList;
-        var streamList = [];
-        lastStreamList.some(function (stream) {
-            if (stream._channelId === query.channelId && stream._service === query.service) {
-                streamList.push(stream);
-                return true;
-            }
-        });
+        return _this.gOptions.msgStack.getLastStreamList().then(function (lastStreamList) {
+            var streamList = [];
+            lastStreamList.some(function (stream) {
+                if (stream._channelId === query.channelId && stream._service === query.service) {
+                    streamList.push(stream);
+                    return true;
+                }
+            });
 
-        if (!streamList.length) {
-            return bot.sendMessage(chatId, language.streamIsNotFound);
-        }
-
-        var promiseList = streamList.map(function (stream) {
-            var text = base.getNowStreamText(_this.gOptions, stream);
-            var caption = '';
-            if (!req.chat || !req.chat.options.hidePreview) {
-                caption = base.getNowStreamPhotoText(_this.gOptions, stream);
+            if (!streamList.length) {
+                return bot.sendMessage(chatId, language.streamIsNotFound);
             }
-            return _this.gOptions.msgSender.sendMessage(chatId, stream._id, {
-                imageFileId: stream._photoId,
-                caption: caption,
-                text: text
-            }, stream, true).catch(function (err) {
+
+            var promiseList = streamList.map(function (stream) {
+                var text = base.getNowStreamText(_this.gOptions, stream);
+                var caption = '';
+                if (!req.chat || !req.chat.options.hidePreview) {
+                    caption = base.getNowStreamPhotoText(_this.gOptions, stream);
+                }
+                return _this.gOptions.msgSender.sendMessage(chatId, stream._id, {
+                    imageFileId: stream._photoId,
+                    caption: caption,
+                    text: text
+                }, stream, true).catch(function (err) {
+                    debug('Command watch error!', err);
+                });
+            });
+
+            return Promise.all(promiseList).catch(function (err) {
                 debug('Command watch error!', err);
             });
-        });
-
-        return Promise.all(promiseList).catch(function (err) {
-            debug('Command watch error!', err);
         });
     });
 
@@ -390,8 +396,13 @@ var Chat = function(options) {
                     disable_web_page_preview: true,
                     parse_mode: 'HTML'
                 }).then(function () {
-                    return users.getChannels(chatId).then(function (channels) {
-                        var onlineServiceList = getOnlineChannelList(channels);
+                    return Promise.all([
+                        users.getChannels(chatId),
+                        _this.gOptions.msgStack.getLastStreamList()
+                    ]).then(function (result) {
+                        var channels = result[0];
+                        var lastStreamList = result[1];
+                        var onlineServiceList = getOnlineChannelList(channels, lastStreamList);
                         var channelList = onlineServiceList[serviceName] || {};
                         var streamList = channelList[channel.id] || [];
                         streamList.forEach(function (stream) {
@@ -963,6 +974,7 @@ var Chat = function(options) {
                 throw new CustomError('CHANNEL_EXISTS');
             }
 
+
             return users.getChat(chatId).then(function (chat) {
                 if (!chat) {
                     return users.setChat({id: chatId});
@@ -973,7 +985,7 @@ var Chat = function(options) {
                 return channel;
             });
         }).catch(function(err) {
-            if (!err instanceof CustomError) {
+            if (!(err instanceof CustomError)) {
                 debug('addChannel %s error!', channelName, err);
             } else
             if (err.message !== 'CHANNEL_EXISTS') {
@@ -1124,11 +1136,11 @@ var Chat = function(options) {
         return btnList;
     };
 
-    var getWatchBtnList = function (channels, page) {
+    var getWatchBtnList = function (channels, page, lastStreamList) {
         var btnList = [];
 
         var promise = Promise.resolve();
-        var serviceList = getOnlineChannelList(channels);
+        var serviceList = getOnlineChannelList(channels, lastStreamList);
         Object.keys(serviceList).forEach(function (service) {
             var channelList = serviceList[service];
 
@@ -1159,8 +1171,7 @@ var Chat = function(options) {
         });
     };
 
-    var getOnlineChannelList = function (channels) {
-        var lastStreamList = _this.gOptions.storage.lastStreamList;
+    var getOnlineChannelList = function (channels, lastStreamList) {
         var serviceList = {};
         channels.forEach(function (item) {
             for (var i = 0, stream; stream = lastStreamList[i]; i++) {
@@ -1188,10 +1199,10 @@ var Chat = function(options) {
         return orderedServiceList;
     };
 
-    var getOnlineText = function (channels) {
+    var getOnlineText = function (channels, lastStreamList) {
         var onlineList = [];
 
-        var serviceList = getOnlineChannelList(channels);
+        var serviceList = getOnlineChannelList(channels, lastStreamList);
         Object.keys(serviceList).forEach(function (service) {
             var channelList = serviceList[service];
 

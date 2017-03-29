@@ -5,10 +5,8 @@
 const fs = require('fs');
 const path = require('path');
 const debug = require('debug')('app:base');
-var Storage = require('./storage');
 
 var utils = {};
-
 /**
  *
  * @returns {Promise}
@@ -18,30 +16,6 @@ utils.loadConfig = function() {
         return JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json')));
     });
 };
-
-/**
- *
- * @returns {Promise}
- */
-utils.loadLanguage = function() {
-    return Promise.resolve().then(function() {
-        var fs = require('fs');
-
-        var language = JSON.parse(fs.readFileSync(path.join(__dirname, 'language.json')));
-
-        for (var key in language) {
-            var item = language[key];
-            if (Array.isArray(item)) {
-                item = item.join('\n');
-            }
-            language[key] = item;
-        }
-
-        return language;
-    });
-};
-
-utils.storage = new Storage();
 
 /**
  * @param {string} type
@@ -226,11 +200,6 @@ utils.getStreamText = function(gOptions, stream) {
         line.push(stream.channel.url);
     }
 
-    var url = stream.preview[0];
-    if (url) {
-        line.push(this.htmlSanitize('a', gOptions.language.preview, url));
-    }
-
     if (line.length) {
         textArr.push(line.join(', '));
     }
@@ -250,15 +219,15 @@ utils.extend = function() {
 };
 
 /**
- * @param gOptions
- * @param service
- * @param channelName
+ * @param {Object} gOptions
+ * @param {String} service
+ * @param {String} channelName
  * @return {Promise}
  */
 utils.getChannelTitle = function(gOptions, service, channelName) {
-    var result;
-
     var services = gOptions.services;
+
+    var result;
     if (services[service].getChannelTitle) {
         result = services[service].getChannelTitle(channelName);
     } else {
@@ -269,9 +238,9 @@ utils.getChannelTitle = function(gOptions, service, channelName) {
 };
 
 /**
- * @param {string} service
- * @param {string} channelName
- * @return {string}
+ * @param {String} service
+ * @param {String} channelName
+ * @return {String}
  */
 utils.getChannelUrl = function(service, channelName) {
     var url = '';
@@ -375,38 +344,15 @@ utils.arrToParts = function (arr, quote) {
 
 utils.getTimeoutStream = function (service, channelId) {
     var item = {
-        _service: service,
-        _channelId: channelId,
-        _isTimeout: true
+        channelId: channelId,
+        service: service,
+        isTimeout: 1
     };
     return item;
 };
 
 utils.getNow = function () {
     return parseInt(Date.now() / 1000);
-};
-
-utils.throttle = function(fn, threshhold, scope) {
-    threshhold = threshhold || 250;
-    var last;
-    var deferTimer;
-    return function () {
-        var context = scope || this;
-
-        var now = Date.now();
-        var args = arguments;
-        if (last && now < last + threshhold) {
-            // hold on to it
-            clearTimeout(deferTimer);
-            deferTimer = setTimeout(function () {
-                last = now;
-                fn.apply(context, args);
-            }, threshhold);
-        } else {
-            last = now;
-            fn.apply(context, args);
-        }
-    };
 };
 
 /**

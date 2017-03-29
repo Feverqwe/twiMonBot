@@ -2,63 +2,26 @@
  * Created by Anton on 02.10.2016.
  */
 "use strict";
-var base = require('./base');
-var debug = require('debug')('app:msgSender');
-var debugLog = require('debug')('app:msgSender:log');
-debugLog.log = console.log.bind(console);
-var Promise = require('bluebird');
-var request = require('request');
-var requestPromise = require('request-promise');
+const base = require('./base');
+const debug = require('debug')('app:msgSender');
+const request = require('request');
+const requestPromise = require('request-promise');
 
 var MsgSender = function (options) {
     var _this = this;
     _this.gOptions = options;
     _this.messageRequestPicturePromise = {};
-
-    options.events.on('updateNotify', function(streamItem) {
-        _this.updateNotify(streamItem);
-    });
 };
 
 /**
- * @param {Object} stream
- * @param {Object} msg
- * @param {number} msg.chatId
- * @param {number} msg.id
+ * @param {Object} message
+ * @param {number} message.chatId
+ * @param {number} message.id
+ * @return {Promise}
  */
-MsgSender.prototype.addMsgInStream = function (stream, msg) {
-    var msgArray = stream.msgArray;
-    if (!msgArray) {
-        msgArray = stream.msgArray = [];
-    }
-    msgArray.push(msg);
-
-    var chatMsgList = msgArray.filter(function (item) {
-        return item.chatId === msg.chatId;
-    }).reverse();
-
-    var limit = 20;
-    if (chatMsgList.length > limit) {
-        chatMsgList.slice(limit).forEach(function (item) {
-            base.removeItemFromArray(msgArray, item);
-        });
-    }
-
-    this.gOptions.events.emit('saveStreamList');
-};
-
-MsgSender.prototype.getMsgFromStream = function (stream) {
-    return stream.msgArray || [];
-};
-
-MsgSender.prototype.removeMsgFromStream = function (stream, msg) {
-    var msgArray = this.getMsgFromStream(stream);
-    var pos = msgArray.indexOf(msg);
-    if (pos !== -1) {
-        msgArray.splice(pos, 1);
-    }
-
-    this.gOptions.events.emit('saveStreamList');
+MsgSender.prototype.addMsgInStream = function (message) {
+    var _this = this;
+    return _this.gOptions.msgStack.addStreamMessage(message);
 };
 
 MsgSender.prototype.updateMsg = function (msg, caption, text) {
@@ -84,50 +47,10 @@ MsgSender.prototype.updateMsg = function (msg, caption, text) {
     return sendPromise;
 };
 
-MsgSender.prototype.updateNotify = function (stream) {
-    var _this = this;
-    var caption = base.getNowStreamPhotoText(this.gOptions, stream);
-    var text = base.getNowStreamText(this.gOptions, stream);
-
-    return _this.gOptions.users.getChatIdsByChannel(stream._service, stream._channelId).then(function (chatIdList) {
-        if (!chatIdList.length) {
-            return;
-        }
-
-        var msgArray = _this.getMsgFromStream(stream).slice(0);
-
-        var promiseArr = msgArray.map(function (msg) {
-            return _this.updateMsg(msg, caption, text).then(function () {
-                debugLog('[update] %s %s', msg.chatId, stream._id);
-
-                if (msg.type === 'streamPhoto') {
-                    _this.track(msg.chatId, stream, 'updatePhoto');
-                } else
-                if (msg.type === 'streamText') {
-                    _this.track(msg.chatId, stream, 'updateText');
-                }
-            }).catch(function (err) {
-                if (err.code === 'ETELEGRAM') {
-                    var body = err.response.body;
-                    if (/message to edit not found/.test(body.description)) {
-                        return _this.removeMsgFromStream(stream, msg);
-                    } else
-                    if (/message is not modified/.test(body.description)) {
-                        return;
-                    }
-                }
-                debug('Edit msg error', err);
-            });
-        });
-
-        return Promise.all(promiseArr);
-    });
-};
-
 MsgSender.prototype.getValidPhotoUrl = function (stream) {
     var _this = this;
 
-    var requestLimit = _this.gOptions.config.sendPhotoRequestLimit || 4;
+    var requestLimit = _this.gOptions.config.sendPhotoRequestLimit || 10;
 
     var requestTimeoutSec = _this.gOptions.config.sendPhotoRequestTimeoutSec || 30;
     requestTimeoutSec *= 1000;
@@ -220,26 +143,26 @@ MsgSender.prototype.requestPicId = function(chatId, messageId, caption, text, da
     if (!promise) {
         promise = _this.messageRequestPicturePromise[messageId] = _this.getPicId(chatId, caption, data).then(function (msg) {
             any();
-            _this.addMsgInStream(data, {
+            _this.track(chatId, data, 'sendPhoto');
+            return _this.addMsgInStream({
                 type: 'streamPhoto',
                 chatId: chatId,
-                id: msg.message_id
+                id: msg.message_id,
+                streamId: data._id
+            }).then(function () {
+                var imageFileId = null;
+                msg.photo.some(function (item) {
+                    return imageFileId = item.file_id;
+                });
+                return imageFileId;
             });
-
-            _this.track(chatId, data, 'sendPhoto');
-
-            var imageFileId = null;
-            msg.photo.some(function (item) {
-                return imageFileId = item.file_id;
-            });
-            return imageFileId;
         }, function (err) {
             any();
             throw err;
         });
         promise = promise.catch(function (err) {
             return _this.send(chatId, null, caption, text, data).then(function () {
-                debug('getPicId error', err);
+                debug('getPicId error %o', err);
             });
         });
     } else {
@@ -259,13 +182,13 @@ MsgSender.prototype.sendMsg = function(chatId, noPhotoText, stream) {
     return _this.gOptions.bot.sendMessage(chatId, noPhotoText, {
         parse_mode: 'HTML'
     }).then(function(msg) {
-        _this.addMsgInStream(stream, {
+        _this.track(chatId, stream, 'sendMsg');
+        return _this.addMsgInStream({
             type: 'streamText',
             chatId: chatId,
-            id: msg.message_id
+            id: msg.message_id,
+            streamId: stream._id
         });
-
-        _this.track(chatId, stream, 'sendMsg');
     });
 };
 
@@ -274,13 +197,13 @@ MsgSender.prototype.sendPhoto = function(chatId, fileId, text, stream) {
     return _this.gOptions.bot.sendPhotoQuote(chatId, fileId, {
         caption: text
     }).then(function(msg) {
-        _this.addMsgInStream(stream, {
+        _this.track(chatId, stream, 'sendPhoto');
+        return _this.addMsgInStream({
             type: 'streamPhoto',
             chatId: chatId,
-            id: msg.message_id
+            id: msg.message_id,
+            streamId: stream._id
         });
-
-        _this.track(chatId, stream, 'sendPhoto');
     });
 };
 
@@ -319,9 +242,7 @@ MsgSender.prototype.sendMessage = function (chatId, messageId, message, data, us
     return _this.requestPicId(chatId, messageId, caption, text, data).then(function(imageFileId) {
         if (imageFileId) {
             message.imageFileId = imageFileId;
-
-            data._photoId = imageFileId;
-            // return _this.gOptions.msgStack.setImageFileId(messageId, imageFileId);
+            return _this.gOptions.msgStack.setImageFileId(messageId, imageFileId);
         }
     });
 };
@@ -338,5 +259,6 @@ MsgSender.prototype.track = function(chatId, stream, title) {
         date: base.getNow()
     }, title);
 };
+
 
 module.exports = MsgSender;

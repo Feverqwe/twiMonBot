@@ -2,27 +2,23 @@
  * Created by Anton on 06.12.2015.
  */
 "use strict";
-var debug = require('debug')('app:index');
-var base = require('./base');
-var Checker = require('./checker');
-var Chat = require('./chat');
+const debug = require('debug')('app:index');
+const base = require('./base');
+const Checker = require('./checker');
+const Chat = require('./chat');
 const TelegramBot = require('node-telegram-bot-api');
-var EventEmitter = require('events').EventEmitter;
-var Daemon = require('./daemon');
-var Tracker = require('./tracker');
-var LiveController = require('./liveController');
-var MsgStack = require('./msgStack');
-var MsgSender = require('./msgSender');
+const EventEmitter = require('events');
+const Daemon = require('./daemon');
+const Tracker = require('./tracker');
+const LiveController = require('./liveController');
+const MsgStack = require('./msgStack');
+const MsgSender = require('./msgSender');
+const Users = require('./users');
 const Db = require('./db');
 const Locale = require('./locale');
-const Users = require('./users');
 
 var options = {
     config: {},
-    language: {},
-    storage: {
-        lastStreamList: []
-    },
     serviceList: ['twitch', 'goodgame', 'youtube', 'hitbox'],
     serviceToTitle: {
         goodgame: 'GoodGame',
@@ -39,7 +35,7 @@ var options = {
 
 (function() {
     options.events = new EventEmitter();
-    return Promise.all([
+    Promise.all([
         base.loadConfig().then(function(config) {
             options.config = config;
 
@@ -57,25 +53,17 @@ var options = {
         options.users = new Users(options);
         return options.users.onReady;
     }).then(function() {
-        return base.storage.get(Object.keys(options.storage)).then(function(storage) {
-            for (var key in storage) {
-                options.storage[key] = storage[key];
-            }
-        });
+        options.msgStack = new MsgStack(options);
+        return options.msgStack.onReady;
     }).then(function() {
         return Promise.all(options.serviceList.map(function(name) {
-            return Promise.resolve().then(function() {
-                var service = require('./services/' + name);
-                service = options.services[name] = new service(options);
-                return service.onReady;
-            });
+            var service = require('./services/' + name);
+            service = options.services[name] = new service(options);
+            return service.onReady;
         }));
     }).then(function() {
+        throw new Error('migrating...');
         options.daemon = new Daemon(options);
-
-        (typeof gc === 'function') && options.events.on('tickTack', function() {
-            gc();
-        });
     }).then(function() {
         options.bot = new TelegramBot(options.config.token, {
             polling: true
@@ -89,10 +77,6 @@ var options = {
         options.bot.sendPhotoQuote = quote.wrapper(options.bot.sendPhoto, options.bot);
     }).then(function() {
         options.tracker = new Tracker(options);
-    }).then(function() {
-        options.msgStack = new MsgStack(options);
-
-        return options.msgStack.onReady;
     }).then(function() {
         options.msgSender = new MsgSender(options);
     }).then(function() {

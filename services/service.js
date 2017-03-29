@@ -2,7 +2,7 @@
  * Created by Anton on 19.03.2017.
  */
 "use strict";
-var debug = require('debug')('app:service');
+const debug = require('debug')('app:service');
 
 var Service = function () {
 
@@ -102,6 +102,8 @@ Service.prototype.setChannelTitle = function (channelId, channelTitle) {
                 resolve();
             }
         });
+    }).catch(function (err) {
+        debug('setChannelTitle', err);
     });
 };
 

@@ -31,7 +31,6 @@ Locale.prototype.default = {
     "streamIsNotFound": "Oops! Stream is not found!",
     "users": "Users: {count}",
     "channels": "Channels: {count}",
-    "preview": "preview",
     "refresh": "Refresh",
     "online": "Online: {count}",
     "rateMe": [

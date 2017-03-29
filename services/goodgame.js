@@ -2,15 +2,14 @@
  * Created by anton on 19.07.15.
  */
 "use strict";
-var debug = require('debug')('app:goodgame');
-var base = require('../base');
-var Promise = require('bluebird');
-var request = require('request');
-var requestPromise = require('request-promise');
-var CustomError = require('../customError').CustomError;
+const debug = require('debug')('app:goodgame');
+const base = require('../base');
+const requestPromise = require('request-promise');
+const CustomError = require('../customError').CustomError;
 
 var GoodGame = function (options) {
     var _this = this;
+    this.name = 'goodgame';
     this.gOptions = options;
     this.config = {};
     this.dbTable = 'ggChannels';
@@ -75,6 +74,10 @@ GoodGame.prototype.clean = function(channelIdList) {
     return Promise.all(promiseList);*/
 };
 
+var videoIdToId = function (videoId) {
+    return 'g' + videoId;
+};
+
 var noProtocolRe = /^\/\//;
 
 GoodGame.prototype.insertItem = function (channel, stream) {
@@ -109,11 +112,11 @@ GoodGame.prototype.insertItem = function (channel, stream) {
             return game = item.title;
         });
 
-        var item = {
+        var data = {
             _service: 'goodgame',
             _checkTime: now,
             _insertTime: now,
-            _id: 'g' + id,
+            _id: videoIdToId(id),
             _isOffline: false,
             _isTimeout: false,
             _channelId: channel.id,
@@ -127,6 +130,16 @@ GoodGame.prototype.insertItem = function (channel, stream) {
                 status: stream.channel.title,
                 url: stream.channel.url
             }
+        };
+
+        var item = {
+            id: videoIdToId(id),
+            channelId: channel.id,
+            service: 'goodgame',
+            data: JSON.stringify(data),
+            checkTime: base.getNow(),
+            isOffline: 0,
+            isTimeout: 0
         };
 
         var promise = Promise.resolve();

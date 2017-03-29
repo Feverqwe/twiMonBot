@@ -2,15 +2,14 @@
  * Created by Anton on 06.12.2015.
  */
 "use strict";
-var debug = require('debug')('app:hitbox');
-var base = require('../base');
-var Promise = require('bluebird');
-var request = require('request');
-var requestPromise = require('request-promise');
-var CustomError = require('../customError').CustomError;
+const debug = require('debug')('app:hitbox');
+const base = require('../base');
+const requestPromise = require('request-promise');
+const CustomError = require('../customError').CustomError;
 
 var Hitbox = function(options) {
     var _this = this;
+    this.name = 'hitbox';
     this.gOptions = options;
     this.config = {};
     this.dbTable = 'hbChannels';
@@ -75,6 +74,10 @@ Hitbox.prototype.clean = function(channelIdList) {
     return Promise.all(promiseList);*/
 };
 
+var videoIdToId = function (videoId) {
+    return 'h' + videoId;
+};
+
 Hitbox.prototype.insertItem = function (channel, stream) {
     var _this = this;
     return Promise.resolve().then(function () {
@@ -103,11 +106,11 @@ Hitbox.prototype.insertItem = function (channel, stream) {
             return base.noCacheUrl(url);
         });
 
-        var item = {
+        var data = {
             _service: 'hitbox',
             _checkTime: now,
             _insertTime: now,
-            _id: 'h' + id,
+            _id: videoIdToId(id),
             _isOffline: false,
             _isTimeout: false,
             _channelId: channel.id,
@@ -122,6 +125,16 @@ Hitbox.prototype.insertItem = function (channel, stream) {
                 status: stream.media_status,
                 url: stream.channel.channel_link
             }
+        };
+
+        var item = {
+            id: videoIdToId(id),
+            channelId: channel.id,
+            service: 'hitbox',
+            data: JSON.stringify(data),
+            checkTime: base.getNow(),
+            isOffline: 0,
+            isTimeout: 0
         };
 
         var promise = Promise.resolve();
@@ -221,7 +234,7 @@ Hitbox.prototype.getStreamList = function(_channelIdsList) {
 
                         return _this.insertItem(channel, stream).then(function (item) {
                             item && videoList.push(item);
-                        }).catch(function (err) {
+                }).catch(function (err) {
                             videoList.push(base.getTimeoutStream('hitbox', channel.id));
                             debug("insertItem error!", err);
                         });
