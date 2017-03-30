@@ -382,9 +382,9 @@ MsgStack.prototype.removeItem = function (chatId, streamId, messageId) {
     return new Promise(function (resolve, reject) {
         var query = '';
         if (messageId) {
-            query = 'DELETE FROM chatIdStreamId WHERE chatId = ? AND streamId = ? AND messageId = ?;'
+            query = 'DELETE FROM chatIdStreamId WHERE chatId = ? AND streamId = ? AND messageId = ?;';
         } else {
-            query = 'DELETE FROM chatIdStreamId WHERE chatId = ? AND streamId = ? AND messageId IS ?;'
+            query = 'DELETE FROM chatIdStreamId WHERE chatId = ? AND streamId = ? AND messageId IS ?;';
         }
         db.connection.query(query, [chatId, streamId, messageId], function (err, results) {
             if (err) {
@@ -431,9 +431,13 @@ MsgStack.prototype.sendLog = function (chatId, messageId, data) {
 MsgStack.prototype.setTimeout = function (chatId, streamId, messageId, timeout) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
-        db.connection.query('\
-            UPDATE chatIdStreamId SET timeout = ? WHERE chatId = ? AND streamId = ? AND messageId = ?; \
-        ', [timeout, chatId, streamId, messageId], function (err, results) {
+        var query = '';
+        if (messageId) {
+            query = 'UPDATE chatIdStreamId SET timeout = ? WHERE chatId = ? AND streamId = ? AND messageId = ?;';
+        } else {
+            query = 'UPDATE chatIdStreamId SET timeout = ? WHERE chatId = ? AND streamId = ? AND messageId IS ?;';
+        }
+        db.connection.query(query, [timeout, chatId, streamId, messageId], function (err, results) {
             if (err) {
                 reject(err);
             } else {
@@ -442,6 +446,7 @@ MsgStack.prototype.setTimeout = function (chatId, streamId, messageId, timeout) 
         });
     });
 };
+
 /**
  * @typedef {{}} StackItem
  * @property {String} id
