@@ -12,7 +12,8 @@ const messageTypes = [
 
 var Router = function (options) {
     var bot = options.bot;
-    this.botNameRe = new RegExp('^' + (options.config.botName || '') + '$', 'i');
+    var botName = options.config.botName || '';
+    this.botNameRe = new RegExp(botName ? '^' + botName + '$' : '', 'i');
     this.stack = [];
     bot.on('message', this.handle.bind(this, 'message'));
     bot.on('callback_query', this.handle.bind(this, 'callback_query'));
