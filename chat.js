@@ -320,7 +320,7 @@ var Chat = function(options) {
         return _this.gOptions.msgStack.getLastStreamList().then(function (lastStreamList) {
             var streamList = [];
             lastStreamList.some(function (stream) {
-                if (stream._channelId === query.channelId && stream._service === query.service) {
+                if (stream._channelId === query.channelId && stream._service === query.service && !stream._isOffline) {
                     streamList.push(stream);
                     return true;
                 }
