@@ -18,7 +18,7 @@ var Chat = function(options) {
     var services = options.services;
     var serviceToTitle = options.serviceToTitle;
     var users = options.users;
-    var router = new Router(bot);
+    var router = new Router(options);
 
     var textOrCb = router.custom(['text', 'callback_query']);
 

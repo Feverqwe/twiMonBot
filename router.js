@@ -10,7 +10,9 @@ const messageTypes = [
     'new_chat_photo', 'delete_chat_photo', 'group_chat_created'
 ];
 
-var Router = function (bot) {
+var Router = function (options) {
+    var bot = options.bot;
+    this.botNameRe = new RegExp(options.config.botName || '', 'i');
     this.stack = [];
     bot.on('message', this.handle.bind(this, 'message'));
     bot.on('callback_query', this.handle.bind(this, 'callback_query'));
@@ -114,9 +116,10 @@ Router.prototype.getRequest = function (event, message) {
 /**
  * @param {String} event
  * @param {Object} message
+ * @param {RegExp} botNameRe
  * @return {String[]|null}
  */
-var getCommands = function (event, message) {
+var getCommands = function (event, message, botNameRe) {
     var commands = [];
     if (event === 'message' && message.text && message.entities) {
         var text = message.text;
@@ -124,17 +127,21 @@ var getCommands = function (event, message) {
         var end = text.length;
         entities.forEach(function (entity) {
             if (entity.type === 'bot_command') {
+                var botName = null;
                 var command = text.substr(entity.offset, entity.length);
-                var m = /([^@]+)/.exec(command);
+                var m = /([^@]+)(?:@(.+))?/.exec(command);
                 if (m) {
                     command = m[1];
+                    botName = m[2];
                 }
                 var start = entity.offset + entity.length;
                 var args = text.substr(start, end - start);
                 if (args) {
                     command += args;
                 }
-                commands.unshift(command);
+                if (!botName || botNameRe.test(m[2])) {
+                    commands.unshift(command);
+                }
                 end = entity.offset;
             }
         });
@@ -153,7 +160,7 @@ Router.prototype.handle = function (event, message) {
     var _this = this;
     var index = 0;
     var req = _this.getRequest(event, message);
-    var command = getCommands(event, message)[0];
+    var command = getCommands(event, message, _this.botNameRe)[0];
     var next = function () {
         var route = _this.stack[index++];
         if (!route) return;
