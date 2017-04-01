@@ -591,7 +591,7 @@ MsgStack.prototype.updateItem = function (item) {
                         });
                     }
 
-                    if (isBlocked) {
+                    if (!isBlocked) {
                         isBlocked = [
                             /message to edit not found/
                         ].some(function (re) {
