@@ -139,7 +139,7 @@ var getCommands = function (event, message, botNameRe) {
                 if (args) {
                     command += args;
                 }
-                if (!botName || botNameRe.test(m[2])) {
+                if (!botName || botNameRe.test(botName)) {
                     commands.unshift(command);
                 }
                 end = entity.offset;
