@@ -579,7 +579,7 @@ MsgStack.prototype.updateItem = function (item) {
                 if (err.code === 'ETELEGRAM') {
                     var body = err.response.body;
                     if (/message to edit not found/.test(body.description) ||
-                        /chat not found/.test(body.description)
+                        body.error_code === 403
                     ) {
                         return _this.removeStreamMessage(messageId);
                     } else
