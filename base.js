@@ -213,6 +213,8 @@ utils.getStreamText = function(gOptions, stream) {
     } else
     if (stream._isOffline) {
         symbol = getOfflineIcon();
+    } else {
+        symbol = getOnlineIcon();
     }
 
     var status = stream.channel.status || '';
@@ -228,15 +230,13 @@ utils.getStreamText = function(gOptions, stream) {
     if (name) {
         header.push(this.htmlSanitize('b', name));
     }
+    header.push(symbol);
     if (viewers > 0) {
-        header.push(getOnlineIcon(), viewers);
+        header.push(viewers);
     }
     var headerLine = header.join(' ');
 
     var title = [];
-    if (symbol) {
-        title.push(symbol);
-    }
     if (status) {
         title.push(this.htmlSanitize(status));
     }
