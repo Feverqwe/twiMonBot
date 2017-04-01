@@ -578,9 +578,21 @@ MsgStack.prototype.updateItem = function (item) {
             }).catch(function (err) {
                 if (err.code === 'ETELEGRAM') {
                     var body = err.response.body;
-                    if (/message to edit not found/.test(body.description) ||
-                        body.error_code === 403
-                    ) {
+
+                    var isBlocked = body.error_code === 403;
+                    if (!isBlocked) {
+                        isBlocked = [
+                            /group chat is deactivated/,
+                            /chat not found/,
+                            /channel not found/,
+                            /USER_DEACTIVATED/,
+                            /message to edit not found/
+                        ].some(function (re) {
+                            return re.test(body.description);
+                        });
+                    }
+
+                    if (isBlocked) {
                         return _this.removeStreamMessage(messageId);
                     } else
                     if (/message is not modified/.test(body.description)) {
