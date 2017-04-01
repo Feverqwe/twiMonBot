@@ -586,6 +586,13 @@ MsgStack.prototype.updateItem = function (item) {
                             /chat not found/,
                             /channel not found/,
                             /USER_DEACTIVATED/,
+                        ].some(function (re) {
+                            return re.test(body.description);
+                        });
+                    }
+
+                    if (isBlocked) {
+                        isBlocked = [
                             /message to edit not found/
                         ].some(function (re) {
                             return re.test(body.description);
