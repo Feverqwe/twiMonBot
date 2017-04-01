@@ -67,44 +67,57 @@ var getOfflineIcon = function () {
     return '🏁';
 };
 
+var getOnlineIcon = function () {
+    return '🎈';
+};
+
 utils.getNowStreamPhotoText = function(gOptions, stream) {
     var getText = function (stripLen) {
-        var textArr = [];
+        var lines = [];
 
-        var status = '';
-
-        var line = [];
+        var symbol = '';
         if (stream._isTimeout) {
-            line.push(getTimeoutIcon());
+            symbol = getTimeoutIcon();
         } else
         if (stream._isOffline) {
-            line.push(getOfflineIcon());
+            symbol = getOfflineIcon();
         }
 
-        var descPart = [];
-        if (stream.channel.status) {
-            descPart.push(status = stream.channel.status);
+        var status = stream.channel.status || '';
+        var game = stream.game || '';
+        if (status.indexOf(game) !== -1) {
+            game = '';
         }
-        if (stream.game && status.indexOf(stream.game) === -1) {
-            descPart.push(stream.game);
+        var url = stream.channel.url || '';
+
+        var title = [];
+        if (symbol) {
+            title.push(symbol);
         }
-        if (descPart.length) {
-            var desc = descPart.join(', ');
-            if (stripLen) {
-                desc = desc.substr(0, desc.length - stripLen - 3) + '...';
+        if (status) {
+            title.push(status);
+        }
+        if (game) {
+            if (status) {
+                title.push('—');
             }
-            line.push(desc);
+            title.push(game);
+        }
+        var statusLine = title.join(' ');
+
+        if (statusLine) {
+            if (stripLen) {
+                statusLine = statusLine.substr(0, statusLine.length - stripLen - 3) + '...';
+            }
+
+            lines.push(statusLine);
         }
 
-        if (line.length) {
-            textArr.push(line.join(', '));
+        if (url) {
+            lines.push(url);
         }
 
-        if (stream.channel.url) {
-            textArr.push(stream.channel.url);
-        }
-
-        return textArr.join('\n');
+        return lines.join('\n');
     };
 
     var text = getText();
@@ -116,40 +129,63 @@ utils.getNowStreamPhotoText = function(gOptions, stream) {
 };
 
 utils.getNowStreamText = function(gOptions, stream) {
-    var textArr = [];
+    var lines = [];
 
-    var status = '';
-
-    var line = [];
+    var symbol = '';
     if (stream._isTimeout) {
-        line.push(getTimeoutIcon());
+        symbol = getTimeoutIcon();
     } else
     if (stream._isOffline) {
-        line.push(getOfflineIcon());
+        symbol = getOfflineIcon();
     }
 
-    if (stream.channel.status) {
-        line.push(this.htmlSanitize(status = stream.channel.status));
+    var status = stream.channel.status || '';
+    var game = stream.game || '';
+    var name = stream.channel.display_name || stream.channel.name || '';
+    if (status.indexOf(game) !== -1) {
+        game = '';
     }
-    if (stream.game && status.indexOf(stream.game) === -1) {
-        line.push(this.htmlSanitize('i', stream.game));
+    var url = stream.channel.url || '';
+
+
+    var title = [];
+    if (symbol) {
+        title.push(symbol);
     }
-    if (line.length) {
-        textArr.push(line.join(', '));
+    if (status) {
+        title.push(this.htmlSanitize(status));
+    }
+    var statusLine = title.join(' ');
+
+
+    var description = [];
+    if (name) {
+        description.push(name);
+    }
+    if (game) {
+        if (name) {
+            description.push('—');
+        }
+        description.push(game);
+    }
+    var descLine = description.join(' ');
+
+
+    if (statusLine) {
+        lines.push(statusLine);
+    }
+    if (descLine) {
+        if (url) {
+            lines.push(this.htmlSanitize('a', descLine, url));
+        } else {
+            lines.push(this.htmlSanitize(descLine));
+        }
+    } else
+    if (url) {
+        lines.push(url);
     }
 
-    line = [];
-    if (stream.channel.url) {
-        var channelName = this.htmlSanitize('b', stream.channel.display_name || stream.channel.name);
-        line.push(channelName);
-        line.push(stream.channel.url);
-    }
-
-    if (line.length) {
-        textArr.push(line.join(', '));
-    }
-
-    return textArr.join('\n');
+    return lines.join('\n');
 };
 
 /**
@@ -169,42 +205,60 @@ utils.getNowStreamText = function(gOptions, stream) {
  * @returns {string}
  */
 utils.getStreamText = function(gOptions, stream) {
-    var textArr = [];
+    var lines = [];
 
-    textArr.push(this.htmlSanitize('b', stream.channel.display_name || stream.channel.name));
-
-    var status = '';
-
-    var line = [];
+    var symbol = '';
     if (stream._isTimeout) {
-        line.push(getTimeoutIcon());
+        symbol = getTimeoutIcon();
     } else
     if (stream._isOffline) {
-        line.push(getOfflineIcon());
-    } else
-    if (stream.viewers || stream.viewers === 0) {
-        line.push(stream.viewers);
-    }
-    if (stream.channel.status) {
-        line.push(this.htmlSanitize(status = stream.channel.status));
-    }
-    if (stream.game && status.indexOf(stream.game) === -1) {
-        line.push(this.htmlSanitize('i', stream.game));
-    }
-    if (line.length) {
-        textArr.push(line.join(', '));
+        symbol = getOfflineIcon();
     }
 
-    line = [];
-    if (stream.channel.url) {
-        line.push(stream.channel.url);
+    var status = stream.channel.status || '';
+    var viewers = stream.viewers || 0;
+    var game = stream.game || '';
+    var name = stream.channel.display_name || stream.channel.name || '';
+    if (status.indexOf(game) !== -1) {
+        game = '';
+    }
+    var url = stream.channel.url || '';
+
+    var header = [];
+    if (name) {
+        header.push(this.htmlSanitize('b', name));
+    }
+    if (viewers > 0) {
+        header.push(getOnlineIcon(), viewers);
+    }
+    var headerLine = header.join(' ');
+
+    var title = [];
+    if (symbol) {
+        title.push(symbol);
+    }
+    if (status) {
+        title.push(this.htmlSanitize(status));
+    }
+    if (game) {
+        if (status) {
+            title.push('—');
+        }
+        title.push(this.htmlSanitize(game));
+    }
+    var statusLine = title.join(' ');
+
+    if (headerLine) {
+        lines.push(headerLine);
+    }
+    if (statusLine) {
+        lines.push(statusLine);
+    }
+    if (url) {
+        lines.push(url);
     }
 
-    if (line.length) {
-        textArr.push(line.join(', '));
-    }
-
-    return textArr.join('\n');
+    return lines.join('\n');
 };
 
 utils.extend = function() {
