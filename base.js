@@ -90,6 +90,7 @@ utils.getNowStreamPhotoText = function(gOptions, stream) {
         }
         var url = stream.channel.url || '';
 
+
         var title = [];
         if (symbol) {
             title.push(symbol);
@@ -105,6 +106,7 @@ utils.getNowStreamPhotoText = function(gOptions, stream) {
         }
         var statusLine = title.join(' ');
 
+
         if (statusLine) {
             if (stripLen) {
                 statusLine = statusLine.substr(0, statusLine.length - stripLen - 3) + '...';
@@ -112,7 +114,6 @@ utils.getNowStreamPhotoText = function(gOptions, stream) {
 
             lines.push(statusLine);
         }
-
         if (url) {
             lines.push(url);
         }
@@ -226,6 +227,7 @@ utils.getStreamText = function(gOptions, stream) {
     }
     var url = stream.channel.url || '';
 
+
     var header = [];
     if (name) {
         header.push(this.htmlSanitize('b', name));
@@ -235,6 +237,7 @@ utils.getStreamText = function(gOptions, stream) {
         header.push(viewers);
     }
     var headerLine = header.join(' ');
+
 
     var title = [];
     if (status) {
@@ -247,6 +250,7 @@ utils.getStreamText = function(gOptions, stream) {
         title.push(this.htmlSanitize(game));
     }
     var statusLine = title.join(' ');
+
 
     if (headerLine) {
         lines.push(headerLine);
