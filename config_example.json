@@ -2,13 +2,11 @@
   "token": "",
   "interval": 5,
   "timeout": 900,
-  "botanToken": "",
   "gaId": "",
   "ytToken": "",
   "twitchToken": "",
   "checkOnRun": false,
   "botName": "twiMonBot",
-  "sendPhotoMaxRetry": 3,
   "db": {
     "host": "localhost",
     "port": 3306,
