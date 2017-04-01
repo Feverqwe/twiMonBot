@@ -11,24 +11,22 @@ var Locale = function (options) {
 Locale.prototype.default = {
     "help": "Hi! I will notify you about the beginning of the broadcasts on Youtube Gaming, Twitch, Hitbox and GoodGame!",
     "offline": "All channels in offline",
-    "emptyServiceList": "You don't have channels in watch list, yet.",
+    "emptyServiceList": "You don't have channels in watchlist, yet.",
     "enterChannelName": "Enter the channel URL or name (example: blackufa_twitch):",
     "enterService": "Enter a live streaming video platform",
-    "serviceIsNotSupported": "Oops! Platform {serviceName} is not supported!",
-    "channelExists": "This channel already exists!",
-    "channelAdded": "Success! Channel {channelName} ({serviceName}) added!",
+    "channelExists": "This channel has been added!",
+    "channelAdded": "Success! The channel {channelName} ({serviceName}) has been added!",
     "telegramChannelEnter": "Enter the channel name (example: @telegram):",
     "telegramChannelSet": "Success! The channel {channelName} has been assigned!",
     "telegramChannelError": "Oops! I can't add a {channelName} channel!",
-    "commandCanceled": "The command {command} has been cancelled.",
-    "channelDontExist": "Oops! Can't find channel in watch list!",
-    "channelDeleted": "Success! Channel {channelName} ({serviceName}) deleted!",
-    "cleared": "Success! The channel list has been cleared.",
-    "channelNameIsEmpty": "Oops! Channel name is empty!",
-    "selectDelChannel": "Select the channel that you want to delete",
-    "channelIsNotFound": "Oops! Channel {channelName} ({serviceName}) is not found!",
+    "commandCanceled": "Command {command} was canceled.",
+    "channelDontExist": "Oops! Can't find a channel in the watchlist!",
+    "channelDeleted": "Success! The channel {channelName} ({serviceName}) has been deleted!",
+    "cleared": "Success! Watchlist has been cleared!",
+    "selectDelChannel": "Select the channel you want to delete",
+    "channelIsNotFound": "Oops! Channel {channelName} ({serviceName}) can not be found!",
     "clearSure": "Are you sure?",
-    "streamIsNotFound": "Oops! Stream is not found!",
+    "streamIsNotFound": "Oops! Stream is not found or offline!",
     "users": "Users: {count}",
     "channels": "Channels: {count}",
     "refresh": "Refresh",
@@ -38,7 +36,7 @@ Locale.prototype.default = {
         "⭐️ If you like this bot, please rate us 5 stars in store:",
         "https://telegram.me/storebot?start=twimonbot"
     ],
-    "groupNote": ["", "Note for groups: Use \"Reply\" to send a answer."]
+    "groupNote": ["", "Note for groups: Use \"Reply\" to answer."]
 };
 
 Locale.prototype.init = function () {
