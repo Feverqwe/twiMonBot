@@ -181,7 +181,7 @@ Twitch.prototype.getStreamList = function(_channelIdsList) {
             });
 
             queue = queue.then(function () {
-                var retryLimit = 5;
+                var retryLimit = 1;
                 var getList = function () {
                     return requestPromise({
                         method: 'GET',

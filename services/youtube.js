@@ -185,7 +185,7 @@ Youtube.prototype.getStreamList = function(_channelIdsList) {
     var getPage = function (channel) {
         var channelId = channel.id;
 
-        var retryLimit = 5;
+        var retryLimit = 1;
         var requestPage = function () {
             return requestPromise({
                 method: 'GET',

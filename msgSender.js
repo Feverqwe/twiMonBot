@@ -62,10 +62,7 @@ MsgSender.prototype.updateMsg = function (msg, caption, text) {
 MsgSender.prototype.getValidPhotoUrl = function (stream) {
     var _this = this;
 
-    var requestLimit = _this.gOptions.config.sendPhotoRequestLimit || 10;
-
-    var requestTimeoutSec = _this.gOptions.config.sendPhotoRequestTimeoutSec || 30;
-    requestTimeoutSec *= 1000;
+    var requestLimit = _this.gOptions.config.sendPhotoRequestLimit || 4;
 
     var previewList = stream.preview;
 
@@ -89,7 +86,7 @@ MsgSender.prototype.getValidPhotoUrl = function (stream) {
             }
 
             return new Promise(function(resolve) {
-                setTimeout(resolve, requestTimeoutSec);
+                setTimeout(resolve, 250);
             }).then(function() {
                 return getHead(0);
             });

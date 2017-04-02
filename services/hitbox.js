@@ -188,7 +188,7 @@ Hitbox.prototype.getStreamList = function(_channelIdsList) {
                     return encodeURIComponent(item);
                 }).join(',');
 
-                var retryLimit = 5;
+                var retryLimit = 1;
                 var getList = function () {
                     return requestPromise({
                         method: 'GET',
