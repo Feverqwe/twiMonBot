@@ -122,7 +122,7 @@ LiveController.prototype.insertStreams = function (streams, channelList, service
                     debugLog('Online (U) %s %j', stream.id, stream);
                     updateStreams.push(stream);
                 } else
-                if (prevData.channel.game !== data.channel.game ||
+                if (prevData.game !== data.game ||
                     prevData.channel.status !== data.channel.status
                 ) {
                     debugLog('Changes (U) %s %j', stream.id, stream);
