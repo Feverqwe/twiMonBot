@@ -12,7 +12,7 @@ Locale.prototype.default = {
     "help": "Hi! I will notify you about the beginning of the broadcasts on Youtube Gaming, Twitch, Hitbox and GoodGame!",
     "offline": "All channels in offline",
     "emptyServiceList": "You don't have channels in watchlist, yet.",
-    "enterChannelName": "Enter the channel URL or name (example: blackufa_twitch):",
+    "enterChannelName": "Enter the channel URL or name (example: guit88man):",
     "enterService": "Enter a live streaming video platform",
     "channelExists": "This channel has been added!",
     "channelAdded": "Success! The channel {channelName} ({serviceName}) has been added!",
