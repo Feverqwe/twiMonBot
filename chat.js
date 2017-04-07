@@ -385,7 +385,7 @@ var Chat = function(options) {
 
         var onResponseChannel = function (channelName, serviceName, messageId) {
             return addChannel(req, serviceName, channelName).then(function (/*ChannelInfo*/channel) {
-                var url = base.getChannelUrl(serviceName, channel.id);
+                var url = base.getChannelUrl(_this.gOptions, serviceName, channel.id);
                 var displayName = base.htmlSanitize('a', channel.title, url);
 
                 var result = language.channelAdded
@@ -830,7 +830,7 @@ var Chat = function(options) {
                 var channelList = [];
                 channelList.push(base.htmlSanitize('b', serviceToTitle[service.name]) + ':');
                 service.channels.forEach(function (channel) {
-                    channelList.push(base.htmlSanitize('a', channel.title, base.getChannelUrl(service.name, channel.id)));
+                    channelList.push(base.htmlSanitize('a', channel.title, base.getChannelUrl(_this.gOptions, service.name, channel.id)));
                 });
                 serviceList.push(channelList.join('\n'));
             });

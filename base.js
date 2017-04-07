@@ -296,35 +296,20 @@ utils.getChannelTitle = function(gOptions, service, channelName) {
 };
 
 /**
- * @param {String} service
- * @param {String} channelName
+ * @param {Object} gOptions
+ * @param {String} serviceName
+ * @param {String} channelId
  * @return {String}
  */
-utils.getChannelUrl = function(service, channelName) {
-    var url = '';
-    if (service === 'youtube') {
-        url = 'https://youtube.com/';
-        if (/^UC/.test(channelName)) {
-            url += 'channel/';
-        } else {
-            url += 'user/';
-        }
-        url += channelName;
+utils.getChannelUrl = function(gOptions, serviceName, channelId) {
+    var result = '';
+    var service = gOptions.services[serviceName];
+    if (service.getChannelUrl) {
+        result = service.getChannelUrl(channelId);
+    } else {
+        result = channelId;
     }
-
-    if (service === 'goodgame') {
-        url = 'http://goodgame.ru/channel/' + channelName;
-    }
-
-    if (service === 'twitch') {
-        url = 'http://twitch.tv/' + channelName;
-    }
-
-    if (service === 'hitbox') {
-        url = 'http://hitbox.tv/' + channelName;
-    }
-
-    return url;
+    return result;
 };
 
 /**

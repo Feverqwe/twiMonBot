@@ -55,6 +55,10 @@ Youtube.prototype.isServiceUrl = function (url) {
     });
 };
 
+Youtube.prototype.getChannelUrl = function (channelId) {
+    return 'https://youtube.com/channel/' + channelId;
+};
+
 Youtube.prototype.clean = function(channelIdList) {
     // todo: fix me
     return Promise.resolve();

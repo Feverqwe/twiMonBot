@@ -28,6 +28,10 @@ Hitbox.prototype.isServiceUrl = function (url) {
     });
 };
 
+Hitbox.prototype.getChannelUrl = function (channelId) {
+    return 'http://hitbox.tv/' + channelId;
+};
+
 Hitbox.prototype.init = function () {
     var _this = this;
     var db = this.gOptions.db;

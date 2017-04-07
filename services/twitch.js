@@ -29,6 +29,10 @@ Twitch.prototype.isServiceUrl = function (url) {
     });
 };
 
+Twitch.prototype.getChannelUrl = function (channelId) {
+    return 'https://twitch.tv/' + channelId;
+};
+
 Twitch.prototype.init = function () {
     var _this = this;
     var db = this.gOptions.db;

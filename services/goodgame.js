@@ -51,6 +51,10 @@ GoodGame.prototype.isServiceUrl = function (url) {
     });
 };
 
+GoodGame.prototype.getChannelUrl = function (channelId) {
+    return 'https://goodgame.ru/channel/' + channelId;
+};
+
 GoodGame.prototype.clean = function(channelIdList) {
     // todo: fix me
     return Promise.resolve();
@@ -97,11 +101,10 @@ GoodGame.prototype.insertItem = function (channel, stream) {
         var previewList = [];
         if (thumb) {
             previewList.push(thumb.replace(/_240(\.jpg)$/, '$1'));
-            previewList.push(thumb);
         }
         previewList = previewList.map(function(url) {
             if (noProtocolRe.test(url)) {
-                url = 'http:' + url;
+                url = 'https:' + url;
             }
             return base.noCacheUrl(url);
         });
