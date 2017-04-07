@@ -38,7 +38,8 @@ MsgStack.prototype.init = function () {
                 `isOffline` INT NOT NULL DEFAULT 0, \
                 `isTimeout` INT NOT NULL DEFAULT 0, \
             INDEX `channelId_idx` (`channelId` ASC), \
-            INDEX `service_idx` (`service` ASC),  \
+            INDEX `service_idx` (`service` ASC), \
+            INDEX `insertTime_idx` (`insertTime` ASC), \
             UNIQUE INDEX `id_UNIQUE` (`id` ASC)); \
         ', function (err) {
                 if (err) {
@@ -162,7 +163,7 @@ MsgStack.prototype.getLastStreamList = function () {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
         db.connection.query('\
-            SELECT * FROM streams; \
+            SELECT * FROM streams ORDER BY insertTime ASC; \
         ', function (err, results) {
             if (err) {
                 reject(err);
