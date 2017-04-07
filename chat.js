@@ -937,13 +937,19 @@ var Chat = function(options) {
         return users.setChat(chat);
     };
 
+    /**
+     * @param {Object} req
+     * @param {String} channelId
+     * @param {String} serviceName
+     * @return {Promise.<String>}
+     */
     var deleteChannel = function (req, channelId, serviceName) {
         var found = req.channels.some(function (item) {
             return item.service === serviceName && item.channelId === channelId;
         });
 
         if (!found) {
-            return language.channelDontExist;
+            return Promise.resolve(language.channelDontExist);
         }
 
         return users.removeChannel(req.chat.id, serviceName, channelId).then(function () {
