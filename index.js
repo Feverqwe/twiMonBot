@@ -19,12 +19,13 @@ const Locale = require('./locale');
 
 var options = {
     config: {},
-    serviceList: ['twitch', 'goodgame', 'youtube', 'hitbox'],
+    serviceList: ['twitch', 'goodgame', 'youtube', 'hitbox', 'beam'],
     serviceToTitle: {
         goodgame: 'GoodGame',
         twitch: 'Twitch',
         youtube: 'Youtube',
-        hitbox: 'Hitbox'
+        hitbox: 'Hitbox',
+        beam: 'Beam'
     },
     services: {},
     events: null,
