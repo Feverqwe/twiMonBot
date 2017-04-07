@@ -75,7 +75,7 @@ Beam.prototype.insertItem = function (channel, snippet) {
         var id = snippet.id;
 
         var previewList = [];
-        previewList.push(snippet.thumbnail.url);
+        previewList.push('https://thumbs.beam.pro/channel/' + id + '.big.jpg');
 
         var game = snippet.type && snippet.type.name;
 
