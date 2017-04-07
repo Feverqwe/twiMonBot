@@ -211,6 +211,24 @@ Beam.prototype.getStreamList = function(_channelIdsList) {
     });
 };
 
+Beam.prototype.getChannelIdByUrl = function (url) {
+    var channelId = '';
+    [
+        /beam\.pro\/([\w\-]+)/i
+    ].some(function (re) {
+        var m = re.exec(url);
+        if (m) {
+            channelId = m[1];
+            return true;
+        }
+    });
+    if (!channelId) {
+        return Promise.reject(new CustomError("Is not channel url!"));
+    } else {
+        return Promise.resolve(channelId);
+    }
+};
+
 Beam.prototype.getChannelId = function(channelName) {
     var _this = this;
 
@@ -219,31 +237,39 @@ Beam.prototype.getChannelId = function(channelName) {
         title: null
     };
 
-    return requestPromise({
-        method: 'GET',
-        url: 'https://beam.pro/api/v1/channels',
-        qs: {
-            limit: 1,
-            scope: 'names',
-            q: channelName
-        },
-        json: true,
-        gzip: true,
-        forever: true
-    }).then(function(responseBody) {
-        var item = null;
-        responseBody.some(function (_item) {
-            return item = _item;
-        });
-        if (!item) {
-            throw new CustomError('Channel is not found');
+    return _this.getChannelIdByUrl(channelName).catch(function (err) {
+        if (!(err instanceof CustomError)) {
+            throw err;
         }
 
-        channel.id = item.token.toLowerCase();
-        channel.title = item.token;
+        return channelName;
+    }).then(function (channelId) {
+        return requestPromise({
+            method: 'GET',
+            url: 'https://beam.pro/api/v1/channels',
+            qs: {
+                limit: 1,
+                scope: 'names',
+                q: channelId
+            },
+            json: true,
+            gzip: true,
+            forever: true
+        }).then(function (responseBody) {
+            var item = null;
+            responseBody.some(function (_item) {
+                return item = _item;
+            });
+            if (!item) {
+                throw new CustomError('Channel is not found');
+            }
 
-        return _this.setChannelInfo(channel).then(function () {
-            return channel;
+            channel.id = item.token.toLowerCase();
+            channel.title = item.token;
+
+            return _this.setChannelInfo(channel).then(function () {
+                return channel;
+            });
         });
     });
 };
