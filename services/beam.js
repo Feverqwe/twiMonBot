@@ -1,5 +1,5 @@
 /**
- * Created by Anton on 06.12.2015.
+ * Created by Anton on 06.04.2017.
  */
 "use strict";
 const debug = require('debug')('app:beam');
