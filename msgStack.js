@@ -570,10 +570,10 @@ MsgStack.prototype.updateItem = function (item) {
                 chat_id: chat_id
             }, caption, text).then(function () {
                 if (messageType === 'streamPhoto') {
-                    _this.gOptions.msgSender.track(chat_id, data, 'updatePhoto');
+                    _this.gOptions.tracker.track(chat_id, 'bot', 'updatePhoto', data._channelId);
                 } else
                 if (messageType === 'streamText'){
-                    _this.gOptions.msgSender.track(chat_id, data, 'updateText');
+                    _this.gOptions.tracker.track(chat_id, 'bot', 'updateText', data._channelId);
                 }
                 _this.updateLog(chat_id, streamId, data);
             }).catch(function (err) {

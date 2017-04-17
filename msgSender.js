@@ -170,7 +170,8 @@ MsgSender.prototype.requestPicId = function(chat_id, messageId, caption, text, d
     if (!promise) {
         promise = _this.messageRequestPicturePromise[messageId] = _this.getPicId(chat_id, caption, data).then(function (msg) {
             any();
-            _this.track(chat_id, data, 'sendPhoto');
+            _this.gOptions.tracker.track(chat_id, 'bot', 'sendPhoto', data._channelId);
+
             return _this.addMsgInStream({
                 type: 'streamPhoto',
                 chat_id: chat_id,
@@ -217,7 +218,7 @@ MsgSender.prototype.sendMsg = function(chat_id, noPhotoText, stream, chatId) {
     return _this.gOptions.bot.sendMessage(chat_id, noPhotoText, {
         parse_mode: 'HTML'
     }).then(function(msg) {
-        _this.track(chat_id, stream, 'sendMsg');
+        _this.gOptions.tracker.track(chat_id, 'bot', 'sendMsg', stream._channelId);
         return _this.addMsgInStream({
             type: 'streamText',
             chat_id: chat_id,
@@ -241,7 +242,7 @@ MsgSender.prototype.sendPhoto = function(chat_id, fileId, text, stream, chatId) 
     return _this.gOptions.bot.sendPhotoQuote(chat_id, fileId, {
         caption: text
     }).then(function(msg) {
-        _this.track(chat_id, stream, 'sendPhoto');
+        _this.gOptions.tracker.track(chat_id, 'bot', 'sendPhoto', stream._channelId);
         return _this.addMsgInStream({
             type: 'streamPhoto',
             chat_id: chat_id,
@@ -308,24 +309,6 @@ MsgSender.prototype.sendMessage = function (chat_id, messageId, message, data, u
             return _this.gOptions.msgStack.setImageFileId(messageId, imageFileId);
         }
     });
-};
-
-/**
- * @param {String} chatId
- * @param {Object} stream
- * @param {String} title
- */
-MsgSender.prototype.track = function(chatId, stream, title) {
-    return this.gOptions.tracker.track({
-        text: stream._channelId,
-        from: {
-            id: 1
-        },
-        chat: {
-            id: chatId
-        },
-        date: base.getNow()
-    }, title);
 };
 
 

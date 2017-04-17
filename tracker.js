@@ -55,20 +55,30 @@ Tracker.prototype.getUuid = function(id) {
     return uuid;
 };
 
-Tracker.prototype.track = function(msg, action) {
-    return this.trackerSend(msg, action);
+/**
+ * @param {String} chatId
+ * @param {String} category
+ * @param {String} action
+ * @param {String} label
+ */
+Tracker.prototype.track = function(chatId, category, action, label) {
+    var cid = this.getUuid(chatId);
+    return this.event(category, action, label, {
+        cid: cid
+    });
 };
 
-Tracker.prototype.trackerSend = function(msg, action) {
-    var id = msg.chat.id;
-
+Tracker.prototype.event = function(category, action, label, details) {
     var params = {
-        ec: 'bot',
+        ec: category,
         ea: action,
-        el: msg.text,
-        t: 'event',
-        cid: this.getUuid(id)
+        el: label,
+        t: 'event'
     };
+
+    for (var key in details) {
+        params[key] = details[key];
+    }
 
     return this.send(params);
 };

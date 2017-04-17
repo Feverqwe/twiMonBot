@@ -57,7 +57,7 @@ var Chat = function(options) {
                 if (m) {
                     command = m[1];
                 }
-                _this.track(req.message, command);
+                _this.gOptions.tracker.track(req.message.chat.id, 'command', command, req.message.text);
             });
         } else
         if (req.callback_query) {
@@ -70,7 +70,7 @@ var Chat = function(options) {
             var msg = JSON.parse(JSON.stringify(req.callback_query.message));
             msg.text = message;
             msg.from = req.callback_query.from;
-            _this.track(msg, command);
+            _this.gOptions.tracker.track(msg.chat.id, 'command', command, msg.text);
         }
     });
 
@@ -497,7 +497,7 @@ var Chat = function(options) {
                     fromId: req.getFromId(),
                     throwOnCommand: true
                 }, 3 * 60).then(function (req) {
-                    _this.track(req.message, '/add');
+                    _this.gOptions.tracker.track(req.message.chat.id, 'command', '/add', req.message.text);
 
                     var channel = req.message.text;
 
@@ -752,7 +752,7 @@ var Chat = function(options) {
                 fromId: req.getFromId(),
                 throwOnCommand: true
             }, 3 * 60).then(function (_req) {
-                _this.track(_req.message, '/setChannel');
+                _this.gOptions.tracker.track(_req.message.chat.id, 'command', '/setChannel', _req.message.text);
                 return setChannel(req, _req.message.text).then(function (result) {
                     return editOrSendNewMessage(chatId, msg.message_id, result).then(function () {
                         return updateOptionsMessage();
@@ -1230,19 +1230,6 @@ var Chat = function(options) {
 
         return onlineList.join('\n\n');
     };
-};
-
-Chat.prototype.track = function(msg, command) {
-    return this.gOptions.tracker.track({
-        text: msg.text,
-        from: {
-            id: msg.from.id
-        },
-        chat: {
-            id: msg.chat.id
-        },
-        date: msg.date
-    }, command);
 };
 
 
