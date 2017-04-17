@@ -371,7 +371,7 @@ Youtube.prototype.requestChannelIdByUsername = function(url) {
 Youtube.prototype.getChannelIdByUrl = function (url) {
     var channelId = '';
     [
-        /youtube\.com\/(?:#\/)?channel\/([\w\-]+)/i
+        /youtube\.com\/(?:#\/)?(?:c|channel)\/([\w\-]+)/i
     ].some(function (re) {
         var m = re.exec(url);
         if (m) {
