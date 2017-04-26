@@ -219,6 +219,7 @@ Twitch.prototype.getStreamList = function(_channelIdsList) {
                     var items = responseBody.streams;
                     if (!items) {
                         var err = new Error('Unexpected response');
+                        err.channelIds = channelIds;
                         err.responseBody = responseBody;
                         throw err;
                     }
