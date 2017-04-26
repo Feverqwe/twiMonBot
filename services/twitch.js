@@ -217,6 +217,12 @@ Twitch.prototype.getStreamList = function(_channelIdsList) {
 
                 return getList().then(function (responseBody) {
                     var items = responseBody.streams;
+                    if (!items) {
+                        var err = new Error('Unexpected response');
+                        err.responseBody = responseBody;
+                        throw err;
+                    }
+
                     return insertPool.do(function () {
                         var stream = items.shift();
                         if (!stream) return;
