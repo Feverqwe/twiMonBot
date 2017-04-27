@@ -176,7 +176,7 @@ Youtube.prototype.getViewers = function(id) {
 
         return parseInt(responseBody);
     }).catch(function (err) {
-        debug('getViewers %s error', id, err);
+        debug('getViewers %s error! %o', id, err);
         return -1;
     });
 };

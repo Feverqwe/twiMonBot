@@ -992,7 +992,7 @@ var Chat = function(options) {
             });
         }).catch(function(err) {
             if (!(err instanceof CustomError)) {
-                debug('addChannel %s error!', channelName, err);
+                debug('addChannel %s error! %o', channelName, err);
             } else
             if (err.message !== 'CHANNEL_EXISTS') {
                 debug('Channel is not found! %j', channelName, err);
