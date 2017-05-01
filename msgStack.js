@@ -26,22 +26,23 @@ MsgStack.prototype.init = function () {
     promise = promise.then(function () {
         return new Promise(function (resolve, reject) {
             db.connection.query('\
-            CREATE TABLE IF NOT EXISTS `streams` ( \
-                `id` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
-                `channelId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
-                `service` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
-                `data` LONGTEXT CHARACTER SET utf8mb4 NOT NULL, \
-                `imageFileId` TEXT CHARACTER SET utf8mb4 NULL, \
-                `insertTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
-                `checkTime` INT NOT NULL, \
-                `offlineTime` INT NULL DEFAULT 0, \
-                `isOffline` INT NOT NULL DEFAULT 0, \
-                `isTimeout` INT NOT NULL DEFAULT 0, \
-            INDEX `channelId_idx` (`channelId` ASC), \
-            INDEX `service_idx` (`service` ASC), \
-            INDEX `insertTime_idx` (`insertTime` ASC), \
-            UNIQUE INDEX `id_UNIQUE` (`id` ASC)); \
-        ', function (err) {
+                CREATE TABLE IF NOT EXISTS `streams` ( \
+                    `id` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
+                    `channelId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
+                    `data` LONGTEXT CHARACTER SET utf8mb4 NOT NULL, \
+                    `imageFileId` TEXT CHARACTER SET utf8mb4 NULL, \
+                    `insertTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
+                    `checkTime` INT NOT NULL, \
+                    `offlineTime` INT NULL DEFAULT 0, \
+                    `isOffline` INT NOT NULL DEFAULT 0, \
+                    `isTimeout` INT NOT NULL DEFAULT 0, \
+                INDEX `insertTime_idx` (`insertTime` ASC), \
+                UNIQUE INDEX `id_UNIQUE` (`id` ASC), \
+                FOREIGN KEY (`channelId`) \
+                    REFERENCES `channels` (`id`) \
+                    ON DELETE CASCADE \
+                    ON UPDATE CASCADE); \
+            ', function (err) {
                 if (err) {
                     reject(err);
                 } else {
@@ -112,23 +113,218 @@ MsgStack.prototype.init = function () {
             });
         });
     });
+    promise = promise.then(function () {
+        return _this.migrate();
+    });
+    return promise;
+};
+
+MsgStack.prototype.migrate = function () {
+    var _this = this;
+    var gOptions = _this.gOptions;
+    var db = _this.gOptions.db;
+
+    var getServiceChannels = function (tableName) {
+        return new Promise(function (resolve, reject) {
+            db.connection.query('\
+            SELECT * FROM ' + tableName + '; \
+        ', function (err, results) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(results);
+                }
+            });
+        });
+    };
+
+    var getChatIdChannelId = function (channelId, service) {
+        return new Promise(function (resolve, reject) {
+            db.connection.query('\
+            SELECT * FROM oldChatIdChannelId WHERE channelId = ? AND service = ?; \
+        ', [channelId, service], function (err, results) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(results);
+                }
+            });
+        });
+    };
+
+    var addChatIdChannelId = function (item) {
+        var db = _this.gOptions.db;
+        return new Promise(function (resolve, reject) {
+            db.connection.query('\
+                INSERT INTO chatIdChannelId SET ? ON DUPLICATE KEY UPDATE ?; \
+            ', [item, item], function (err, result) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
+    };
+
+    var getStreams = function (channelId, service) {
+        return new Promise(function (resolve, reject) {
+            db.connection.query('\
+            SELECT * FROM oldStreams WHERE channelId = ? AND service = ?; \
+        ', [channelId, service], function (err, results) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(results);
+                }
+            });
+        });
+    };
+
+    var getStreamMessages = function (streamId) {
+        var db = _this.gOptions.db;
+        return new Promise(function (resolve, reject) {
+            db.connection.query('\
+            SELECT * FROM oldLiveMessages WHERE streamId = ?; \
+        ', [streamId], function (err, results) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(results);
+                }
+            });
+        });
+    };
+
+    var insertPool = new base.Pool(10);
+
+    var promise = Promise.resolve();
+
+    [{
+        name: 'beam',
+        table: 'bChannels'
+    }, {
+        name: 'goodgame',
+        table: 'ggChannels'
+    }, {
+        name: 'hitbox',
+        table: 'hbChannels'
+    }, {
+        name: 'twitch',
+        table: 'twChannels'
+    }, {
+        name: 'youtube',
+        table: 'ytChannels'
+    }].forEach(function (item) {
+        var serviceName = item.name;
+        var tableName = item.table;
+        var service = gOptions.services[serviceName];
+
+        promise = promise.then(function () {
+            return getServiceChannels(tableName);
+        }).then(function (channels) {
+            return insertPool.do(function () {
+                var oldChannel = channels.shift();
+                if (!oldChannel) return;
+
+                return Promise.resolve().then(function () {
+                    var oldId = oldChannel.id;
+                    if (serviceName === 'twitch' && oldId === 'etozhemad') {
+                        oldId = 'PierreDunn';
+                    }
+                    return service.getChannelId(oldId);
+                }).then(function (channel) {
+                    var promise = Promise.resolve();
+                    promise = promise.then(function () {
+                        return getChatIdChannelId(oldChannel.id, serviceName).then(function (rows) {
+                            var promise = Promise.resolve();
+                            rows.forEach(function (row) {
+                                delete row.service;
+                                row.channelId = channel.id;
+                                promise = promise.then(function () {
+                                    return addChatIdChannelId(row).catch(function (err) {
+                                        debug('addChannel error %o %o %o', oldChannel, channel, err);
+                                    });
+                                });
+                            });
+                            return promise;
+                        });
+                    });
+                    promise = promise.then(function () {
+                        return getStreams(oldChannel.id, serviceName).then(function (streams) {
+                            var promise = Promise.resolve();
+                            streams.forEach(function (oldStream) {
+                                var data = JSON.parse(oldStream.data);
+                                delete data._service;
+                                delete data._checkTime;
+                                delete data._insertTime;
+                                delete data._id;
+                                delete data._isOffline;
+                                delete data._isTimeout;
+                                delete data._channelId;
+
+                                var id = oldStream.id.substr(1);
+                                if (['twitch', 'goodgame', 'hitbox', 'beam'].indexOf(serviceName) !== -1) {
+                                    id = parseInt(id);
+                                }
+
+                                var stream = {
+                                    id: gOptions.channels.wrapId(id, serviceName),
+                                    channelId: channel.id,
+                                    data: JSON.stringify(data),
+                                    insertTime: oldStream.insertTime,
+                                    checkTime: oldStream.checkTime,
+                                    offlineTime: oldStream.offlineTime,
+                                    isOffline: oldStream.isOffline,
+                                    isTimeout: oldStream.isTimeout
+                                };
+
+                                promise = promise.then(function () {
+                                    return gOptions.msgStack.setStream(db.connection, stream).then(function () {
+                                        return getStreamMessages(oldStream.id).then(function (rows) {
+                                            var promise = Promise.resolve();
+                                            rows.forEach(function (row) {
+                                                row.streamId = stream.id;
+                                                promise = promise.then(function () {
+                                                    return gOptions.msgStack.addStreamMessage(row).catch(function (err) {
+                                                        debug('addStreamMessage error %o %o', row, err);
+                                                    });
+                                                });
+                                            });
+                                            return promise;
+                                        });
+                                    }).catch(function (err) {
+                                        debug('setStream error %o %o', stream, err);
+                                    });
+                                });
+                            });
+                            return promise;
+                        });
+                    });
+                    return promise;
+                }).catch(function (err) {
+                    debug('getChannelId error %o %o', oldChannel, err);
+                });
+            });
+        });
+    });
+
     return promise;
 };
 
 /**
- * @param {String[]} channelIds
- * @param {String} service
+ * @param {string[]} channelIds
  * @return {Promise.<Object[]>}
  */
-MsgStack.prototype.getStreams = function (channelIds, service) {
+MsgStack.prototype.getStreams = function (channelIds) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
         if (!channelIds.length) {
             return resolve([]);
         }
         db.connection.query('\
-            SELECT * FROM streams WHERE service = ? AND channelId IN ?; \
-        ', [service, [channelIds]], function (err, results) {
+            SELECT * FROM streams WHERE channelId IN ?; \
+        ', [[channelIds]], function (err, results) {
             if (err) {
                 reject(err);
             } else {
@@ -174,6 +370,7 @@ MsgStack.prototype.getLastStreamList = function () {
                     data._photoId = item.imageFileId;
                     data._isOffline = !!item.isOffline;
                     data._isTimeout = !!item.isTimeout;
+                    data._channelId = item.channelId;
                     return data;
                 }));
             }
@@ -201,7 +398,7 @@ MsgStack.prototype.setStream = function (connection, stream) {
 };
 
 /**
- * @param {String} streamIds
+ * @param {string[]} streamIds
  * @return {Promise}
  */
 MsgStack.prototype.removeStreamIds = function (streamIds) {
@@ -224,8 +421,8 @@ MsgStack.prototype.removeStreamIds = function (streamIds) {
 
 /**
  * @param {Object} connection
- * @param {String[]} chatIds
- * @param {String} streamId
+ * @param {string[]} chatIds
+ * @param {string} streamId
  * @return {Promise}
  */
 MsgStack.prototype.addChatIdsStreamId = function (connection, chatIds, streamId) {
@@ -251,7 +448,7 @@ MsgStack.prototype.addChatIdsStreamId = function (connection, chatIds, streamId)
 /**
  * @param {Object} connection
  * @param {Object[]} messages
- * @param {String} streamId
+ * @param {string} streamId
  * @return {Promise}
  */
 MsgStack.prototype.updateChatIdsStreamId = function (connection, messages, streamId) {
@@ -275,7 +472,7 @@ MsgStack.prototype.updateChatIdsStreamId = function (connection, messages, strea
 };
 
 /**
- * @param {String} streamId
+ * @param {string} streamId
  * @return {Promise}
  */
 MsgStack.prototype.getStreamMessages = function (streamId) {
@@ -313,7 +510,7 @@ MsgStack.prototype.addStreamMessage = function (message) {
 };
 
 /**
- * @param {String} messageId
+ * @param {string} messageId
  * @return {Promise}
  */
 MsgStack.prototype.removeStreamMessage = function (messageId) {
@@ -333,8 +530,8 @@ MsgStack.prototype.removeStreamMessage = function (messageId) {
 
 /**
  * @param {Object} connection
- * @param {String} prevStreamId
- * @param {String} streamId
+ * @param {string} prevStreamId
+ * @param {string} streamId
  * @return {Promise}
  */
 MsgStack.prototype.migrateStream = function (connection, prevStreamId, streamId) {
@@ -353,8 +550,8 @@ MsgStack.prototype.migrateStream = function (connection, prevStreamId, streamId)
 };
 
 /**
- * @param {String} streamId
- * @param {String} imageFileId
+ * @param {string} streamId
+ * @param {string} imageFileId
  * @return {Promise}
  */
 MsgStack.prototype.setImageFileId = function (streamId, imageFileId) {
@@ -373,9 +570,9 @@ MsgStack.prototype.setImageFileId = function (streamId, imageFileId) {
 };
 
 /**
- * @param {String} chatId
- * @param {String} streamId
- * @param {String} messageId
+ * @param {string} chatId
+ * @param {string} streamId
+ * @param {string} messageId
  * @return {Promise}
  */
 MsgStack.prototype.removeItem = function (chatId, streamId, messageId) {
@@ -398,35 +595,35 @@ MsgStack.prototype.removeItem = function (chatId, streamId, messageId) {
 };
 
 /**
- * @param {String} chatId
- * @param {String} messageId
+ * @param {string} chatId
+ * @param {string} messageId
  * @param {Object} data
  */
 MsgStack.prototype.updateLog = function (chatId, messageId, data) {
     /*var debugItem = JSON.parse(JSON.stringify(data));
     delete debugItem.preview;
     delete debugItem._videoId;
-    delete debugItem._service;*/
+    delete debugItem.service;*/
     debugLog('[update] %s %s', messageId, chatId);
 };
 
 /**
- * @param {String} chatId
- * @param {String} messageId
+ * @param {string} chatId
+ * @param {string} messageId
  * @param {Object} data
  */
 MsgStack.prototype.sendLog = function (chatId, messageId, data) {
     /*var debugItem = JSON.parse(JSON.stringify(data));
     delete debugItem.preview;
     delete debugItem._videoId;
-    delete debugItem._service;*/
+    delete debugItem.service;*/
     debugLog('[send] %s %s', messageId, chatId);
 };
 
 /**
- * @param {String} chatId
- * @param {String} streamId
- * @param {String} messageId
+ * @param {string} chatId
+ * @param {string} streamId
+ * @param {string} messageId
  * @param {Number} timeout
  */
 MsgStack.prototype.setTimeout = function (chatId, streamId, messageId, timeout) {
@@ -450,21 +647,21 @@ MsgStack.prototype.setTimeout = function (chatId, streamId, messageId, timeout) 
 
 /**
  * @typedef {{}} StackItem
- * @property {String} id
- * @property {String} channelId
- * @property {String} service
- * @property {String} data
- * @property {String} [imageFileId]
- * @property {String} insertTime
+ * @property {string} id
+ * @property {string} channelId
+ * @property {string} service
+ * @property {string} data
+ * @property {string} [imageFileId]
+ * @property {string} insertTime
  * @property {Number} checkTime
  * @property {Number} offlineTime
  * @property {Number} isOffline
  * @property {Number} isTimeout
- * @property {String} chatId
- * @property {String} streamId
- * @property {String} messageId
- * @property {String} messageType
- * @property {String} messageChatId
+ * @property {string} chatId
+ * @property {string} streamId
+ * @property {string} messageId
+ * @property {string} messageType
+ * @property {string} messageChatId
  * @property {Number} timeout
  */
 /**
@@ -554,6 +751,7 @@ MsgStack.prototype.updateItem = function (item) {
         data._id = item.id;
         data._isOffline = !!item.isOffline;
         data._isTimeout = !!item.isTimeout;
+        data._channelId = item.channelId;
 
         return _this.gOptions.users.getChat(chatId).then(function (chat) {
             if (!chat) {
@@ -636,6 +834,7 @@ MsgStack.prototype.sendItem = function (item) {
         data._id = item.id;
         data._isOffline = !!item.isOffline;
         data._isTimeout = !!item.isTimeout;
+        data._channelId = item.channelId;
 
         return _this.gOptions.users.getChat(chatId).then(function (chat) {
             if (!chat) {

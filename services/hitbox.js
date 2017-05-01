@@ -8,13 +8,8 @@ const requestPromise = require('request-promise');
 const CustomError = require('../customError').CustomError;
 
 var Hitbox = function(options) {
-    var _this = this;
+    this.super(options);
     this.name = 'hitbox';
-    this.gOptions = options;
-    this.config = {};
-    this.dbTable = 'hbChannels';
-
-    this.onReady = _this.init();
 };
 
 Hitbox.prototype = Object.create(require('./service').prototype);
@@ -28,58 +23,8 @@ Hitbox.prototype.isServiceUrl = function (url) {
     });
 };
 
-Hitbox.prototype.getChannelUrl = function (channelId) {
-    return 'http://hitbox.tv/' + channelId;
-};
-
-Hitbox.prototype.init = function () {
-    var _this = this;
-    var db = this.gOptions.db;
-    var promise = Promise.resolve();
-    promise = promise.then(function () {
-        return new Promise(function (resolve, reject) {
-            db.connection.query('\
-            CREATE TABLE IF NOT EXISTS ' + _this.dbTable + ' ( \
-                `id` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
-                `title` TEXT CHARACTER SET utf8mb4 NULL, \
-            UNIQUE INDEX `id_UNIQUE` (`id` ASC)); \
-        ', function (err) {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve();
-                }
-            });
-        });
-    });
-    return promise;
-};
-
-Hitbox.prototype.clean = function(channelIdList) {
-    // todo: fix me
-    return Promise.resolve();
-    /*var _this = this;
-    var promiseList = [];
-
-    var needSaveState = false;
-    var channelInfo = _this.config.channelInfo;
-    Object.keys(channelInfo).forEach(function (channelId) {
-        if (channelIdList.indexOf(channelId) === -1) {
-            delete channelInfo[channelId];
-            needSaveState = true;
-            // debug('Removed from channelInfo %s', channelId);
-        }
-    });
-
-    if (needSaveState) {
-        promiseList.push(_this.saveChannelInfo());
-    }
-
-    return Promise.all(promiseList);*/
-};
-
-var videoIdToId = function (videoId) {
-    return 'h' + videoId;
+Hitbox.prototype.getChannelUrl = function (channelName) {
+    return 'http://hitbox.tv/' + channelName;
 };
 
 Hitbox.prototype.insertItem = function (channel, stream) {
@@ -89,14 +34,7 @@ Hitbox.prototype.insertItem = function (channel, stream) {
             return;
         }
 
-        var now = base.getNow();
-
         var id = stream.media_id;
-        var viewers = parseInt(stream.media_views) || 0;
-        var game = stream.category_name;
-        var createdAt = stream.media_live_since;
-        var channelTitle = stream.media_display_name;
-        var channelName = stream.media_user_name;
 
         var previewList = [];
         if (stream.media_thumbnail_large) {
@@ -111,30 +49,20 @@ Hitbox.prototype.insertItem = function (channel, stream) {
         });
 
         var data = {
-            _service: 'hitbox',
-            _checkTime: now,
-            _insertTime: now,
-            _id: videoIdToId(id),
-            _isOffline: false,
-            _isTimeout: false,
-            _channelId: channel.id,
-
-            viewers: viewers,
-            game: game,
+            viewers: parseInt(stream.media_views) || 0,
+            game: stream.category_name || '',
             preview: previewList,
-            created_at: createdAt,
+            created_at: stream.media_live_since,
             channel: {
-                display_name: channelTitle,
-                name: channelName,
+                name: stream.media_display_name || stream.media_user_name || stream.channel.user_name,
                 status: stream.media_status,
                 url: stream.channel.channel_link
             }
         };
 
         var item = {
-            id: videoIdToId(id),
+            id: _this.channels.wrapId(id, _this.name),
             channelId: channel.id,
-            service: 'hitbox',
             data: JSON.stringify(data),
             checkTime: base.getNow(),
             isOffline: 0,
@@ -142,9 +70,10 @@ Hitbox.prototype.insertItem = function (channel, stream) {
         };
 
         var promise = Promise.resolve();
-        if (channelTitle && channel.title !== channelTitle) {
+        if (channel.title !== data.channel.name) {
             promise = promise.then(function () {
-                return _this.setChannelTitle(channel.id, channelTitle);
+                channel.title = data.channel.name;
+                return _this.channels.updateChannel(channel.id, channel);
             });
         }
 
@@ -156,26 +85,11 @@ Hitbox.prototype.insertItem = function (channel, stream) {
 
 var insertPool = new base.Pool(15);
 
-Hitbox.prototype.getStreamList = function(_channelIdsList) {
+Hitbox.prototype.getStreamList = function(_channelList) {
     var _this = this;
     var videoList = [];
 
-    var promise = Promise.resolve();
-
-    promise = promise.then(function () {
-        return _this.getChannelsInfo(_channelIdsList).then(function (channels) {
-            if (_channelIdsList.length !== channels.length) {
-                var foundIds = channels.map(function (channel) {
-                    return channel.id;
-                });
-                var notFoundIds = _channelIdsList.filter(function (id) {
-                    return foundIds.indexOf(id) === -1;
-                });
-                debug('Not found channels %j', notFoundIds);
-            }
-            return channels;
-        });
-    });
+    var promise = Promise.resolve(_channelList);
 
     promise = promise.then(function (channels) {
         if (!channels.length) return;
@@ -183,12 +97,14 @@ Hitbox.prototype.getStreamList = function(_channelIdsList) {
         var queue = Promise.resolve();
 
         base.arrToParts(channels, 100).forEach(function (channelsPart) {
-            var channelIds = channelsPart.map(function (channel) {
-                return channel.id;
+            var channelIdMap = {};
+            channelsPart.forEach(function (channel) {
+                var id = _this.channels.unWrapId(channel.id);
+                channelIdMap[id] = channel;
             });
 
             queue = queue.then(function () {
-                var query = channelIds.map(function (item) {
+                var query = Object.keys(channelIdMap).map(function (item) {
                     return encodeURIComponent(item);
                 }).join(',');
 
@@ -223,29 +139,27 @@ Hitbox.prototype.getStreamList = function(_channelIdsList) {
                         var stream = items.shift();
                         if (!stream) return;
 
-                        if (!stream.channel || !stream.channel.user_name) {
-                            debug('ChannelId is empty! %j', stream);
-                            return Promise.resolve();
-                        }
+                        return Promise.resolve().then(function () {
+                            var channel = channelIdMap[stream.channel.user_name.toLowerCase()];
+                            if (!channel) {
+                                var err = new Error('Channel is not found!');
+                                err.stream = stream;
+                                throw err;
+                            }
 
-                        var channelId = stream.channel.user_name.toLowerCase();
-                        var pos = channelIds.indexOf(channelId);
-                        if (pos === -1) {
-                            debug('Channel is not required! %s', channelId);
-                            return Promise.resolve();
-                        }
-                        var channel = channelsPart[pos];
-
-                        return _this.insertItem(channel, stream).then(function (item) {
-                            item && videoList.push(item);
-                }).catch(function (err) {
-                            videoList.push(base.getTimeoutStream('hitbox', channel.id));
+                            return _this.insertItem(channel, stream).then(function (item) {
+                                item && videoList.push(item);
+                            }).catch(function (err) {
+                                videoList.push(base.getTimeoutStream(channel));
+                                throw err;
+                            });
+                        }).catch(function (err) {
                             debug("insertItem error!", err);
                         });
                     });
                 }).catch(function (err) {
-                    channelIds.forEach(function (channelId) {
-                        videoList.push(base.getTimeoutStream('hitbox', channelId));
+                    channelsPart.forEach(function (channel) {
+                        videoList.push(base.getTimeoutStream(channel));
                     });
                     debug("Request stream list error!", err);
                 });
@@ -308,18 +222,11 @@ Hitbox.prototype.getChannelId = function(channelName) {
                 throw new CustomError('Channel is not found!');
             }
 
-            var username = stream.channel.user_name.toLowerCase();
-            var title = stream.media_display_name;
+            var id = stream.channel.user_name.toLowerCase();
+            var title = stream.media_display_name || stream.media_user_name || stream.channel.user_name;
+            var url = _this.getChannelUrl(id);
 
-            return _this.setChannelInfo({
-                id: username,
-                title: title
-            }).then(function () {
-                return {
-                    id: username,
-                    title: title
-                };
-            });
+            return _this.channels.insertChannel(id, _this.name, title, url);
         });
     });
 };

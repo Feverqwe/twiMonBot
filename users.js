@@ -19,13 +19,14 @@ Users.prototype.init = function () {
     promise = promise.then(function () {
         return new Promise(function (resolve, reject) {
             db.connection.query('\
-            CREATE TABLE IF NOT EXISTS `chats` ( \
-                `id` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
-                `channelId` VARCHAR(191) CHARACTER SET utf8mb4 NULL, \
-                `options` TEXT CHARACTER SET utf8mb4 NOT NULL, \
-            UNIQUE INDEX `id_UNIQUE` (`id` ASC), \
-            UNIQUE INDEX `channelId_UNIQUE` (`id` ASC)); \
-        ', function (err) {
+                CREATE TABLE IF NOT EXISTS `chats` ( \
+                    `id` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
+                    `channelId` VARCHAR(191) CHARACTER SET utf8mb4 NULL, \
+                    `options` TEXT CHARACTER SET utf8mb4 NOT NULL, \
+                    `insertTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
+                UNIQUE INDEX `id_UNIQUE` (`id` ASC), \
+                UNIQUE INDEX `channelId_UNIQUE` (`id` ASC)); \
+            ', function (err) {
                 if (err) {
                     reject(err);
                 } else {
@@ -37,20 +38,21 @@ Users.prototype.init = function () {
     promise = promise.then(function () {
         return new Promise(function (resolve, reject) {
             db.connection.query('\
-            CREATE TABLE IF NOT EXISTS `chatIdChannelId` ( \
-                `chatId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
-                `service` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
-                `channelId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
-                `insertTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
-            INDEX `chatId_idx` (`chatId` ASC), \
-            INDEX `service_idx` (`service` ASC), \
-            INDEX `channelId_idx` (`channelId` ASC), \
-            UNIQUE INDEX `chatIdServiceChannelId_UNIQUE` (`chatId` ASC, `service` ASC, `channelId` ASC), \
-            FOREIGN KEY (`chatId`) \
-                    REFERENCES `chats` (`id`) \
+                CREATE TABLE IF NOT EXISTS `chatIdChannelId` ( \
+                    `chatId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
+                    `channelId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
+                    `insertTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
+                INDEX `chatId_idx` (`chatId` ASC), \
+                UNIQUE INDEX `chatIdChannelId_UNIQUE` (`chatId` ASC, `channelId` ASC), \
+                FOREIGN KEY (`chatId`) \
+                        REFERENCES `chats` (`id`) \
+                        ON DELETE CASCADE \
+                        ON UPDATE CASCADE, \
+                FOREIGN KEY (`channelId`) \
+                    REFERENCES `channels` (`id`) \
                     ON DELETE CASCADE \
                     ON UPDATE CASCADE); \
-        ', function (err) {
+            ', function (err) {
                 if (err) {
                     reject(err);
                 } else {
@@ -216,7 +218,10 @@ Users.prototype.getChannels = function (chatId) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
         db.connection.query('\
-            SELECT service, channelId FROM chatIdChannelId WHERE chatId = ? ORDER BY insertTime ASC; \
+            SELECT channels.* \
+            FROM chatIdChannelId \
+            LEFT JOIN channels ON channelId = channels.id \
+            WHERE chatId = ? ORDER BY insertTime ASC; \
         ', [chatId], function (err, results) {
             if (err) {
                 reject(err);
@@ -236,7 +241,10 @@ Users.prototype.getChannel = function (chatId, channelId) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
         db.connection.query('\
-            SELECT service, channelId FROM chatIdChannelId WHERE chatId = ? AND channelId = ? LIMIT 1; \
+            SELECT channels.* \
+            FROM chatIdChannelId \
+            LEFT JOIN channels ON channelId = channels.id \
+            WHERE chatId = ? AND channelId = ? LIMIT 1; \
         ', [chatId, channelId], function (err, results) {
             if (err) {
                 reject(err);
@@ -249,16 +257,14 @@ Users.prototype.getChannel = function (chatId, channelId) {
 
 /**
  * @param {string} chatId
- * @param {string} service
  * @param {string} channelId
  * @return {Promise}
  */
-Users.prototype.addChannel = function (chatId, service, channelId) {
+Users.prototype.addChannel = function (chatId, channelId) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
         var item = {
             chatId: chatId,
-            service: service,
             channelId: channelId
         };
         db.connection.query('\
@@ -275,16 +281,15 @@ Users.prototype.addChannel = function (chatId, service, channelId) {
 
 /**
  * @param {string} chatId
- * @param {string} service
  * @param {string} channelId
  * @return {Promise}
  */
-Users.prototype.removeChannel = function (chatId, service, channelId) {
+Users.prototype.removeChannel = function (chatId, channelId) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
         db.connection.query('\
-            DELETE FROM chatIdChannelId WHERE chatId = ? AND service = ? AND channelId = ?; \
-        ', [chatId, service, channelId], function (err) {
+            DELETE FROM chatIdChannelId WHERE chatId = ? AND channelId = ?; \
+        ', [chatId, channelId], function (err) {
             if (err) {
                 reject(err);
             } else {
@@ -301,7 +306,9 @@ Users.prototype.getAllChatChannels = function () {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
         db.connection.query('\
-            SELECT * FROM chatIdChannelId; \
+            SELECT chatId, channels.* \
+            FROM chatIdChannelId \
+            LEFT JOIN channels ON channelId = channels.id; \
         ', function (err, results) {
             if (err) {
                 reject(err);
@@ -319,7 +326,9 @@ Users.prototype.getAllChannels = function () {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
         db.connection.query('\
-            SELECT DISTINCT service, channelId FROM chatIdChannelId; \
+            SELECT DISTINCT channels.* \
+            FROM channels \
+            INNER JOIN chatIdChannelId ON chatIdChannelId.channelId = channels.id; \
         ', function (err, results) {
             if (err) {
                 reject(err);
@@ -331,16 +340,15 @@ Users.prototype.getAllChannels = function () {
 };
 
 /**
- * @param {string} service
  * @param {string} channelId
  * @return {Promise}
  */
-Users.prototype.getChatIdsByChannel = function (service, channelId) {
+Users.prototype.getChatIdsByChannel = function (channelId) {
     var db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
         db.connection.query('\
-            SELECT chatId FROM chatIdChannelId WHERE service = ? AND channelId = ?; \
-        ', [service, channelId], function (err, results) {
+            SELECT chatId FROM chatIdChannelId WHERE channelId = ?; \
+        ', [channelId], function (err, results) {
             if (err) {
                 reject(err);
             } else {

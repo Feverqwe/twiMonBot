@@ -16,9 +16,18 @@ const MsgSender = require('./msgSender');
 const Users = require('./users');
 const Db = require('./db');
 const Locale = require('./locale');
+const Channels = require('./channels');
 
-var options = {
-    config: {},
+const options = {
+    events: null,
+    config: null,
+    locale: null,
+    language: null,
+    db: null,
+    channels: null,
+    users: null,
+    msgStack: null,
+    services: {},
     serviceList: ['twitch', 'goodgame', 'youtube', 'hitbox', 'beam'],
     serviceToTitle: {
         goodgame: 'GoodGame',
@@ -27,42 +36,55 @@ var options = {
         hitbox: 'Hitbox',
         beam: 'Beam'
     },
-    services: {},
-    events: null,
+    daemon: null,
+    bot: null,
     tracker: null,
-    db: null,
-    users: null
+    msgSender: null,
+    chat: null,
+    liveController: null,
+    checker: null
 };
 
 (function() {
-    options.events = new EventEmitter();
-    Promise.all([
-        base.loadConfig().then(function(config) {
-            options.config = config;
+    return Promise.resolve().then(function () {
+        options.events = new EventEmitter();
 
+        return base.loadConfig().then(function(config) {
             config.botName && (config.botName = config.botName.toLowerCase());
-        })
-    ]).then(function() {
+
+            options.config = config;
+        });
+    }).then(function() {
         options.locale = new Locale(options);
+
         return options.locale.onReady.then(function () {
             options.language = options.locale.language;
         });
     }).then(function() {
         options.db = new Db(options);
+
         return options.db.onReady;
     }).then(function() {
-        options.users = new Users(options);
-        return options.users.onReady;
-    }).then(function() {
-        options.msgStack = new MsgStack(options);
-        return options.msgStack.onReady;
+        options.channels = new Channels(options);
+
+        return options.channels.onReady;
     }).then(function() {
         return Promise.all(options.serviceList.map(function(name) {
             var service = require('./services/' + name);
             service = options.services[name] = new service(options);
+
             return service.onReady;
         }));
     }).then(function() {
+        options.users = new Users(options);
+
+        return options.users.onReady;
+    }).then(function() {
+        options.msgStack = new MsgStack(options);
+
+        return options.msgStack.onReady;
+    }).then(function() {
+        throw new Error('migrate...');
         options.daemon = new Daemon(options);
     }).then(function() {
         options.bot = new TelegramBot(options.config.token, {

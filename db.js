@@ -27,17 +27,6 @@ Db.prototype.init = function () {
     });
 };
 
-Db.prototype.getPool = function () {
-    return mysql.createPool({
-        connectionLimit : 10,
-        host: this.config.host,
-        user: this.config.user,
-        password: this.config.password,
-        database: this.config.database,
-        charset: 'utf8mb4'
-    });
-};
-
 Db.prototype.getConnection = function () {
     return mysql.createConnection({
         host: this.config.host,

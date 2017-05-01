@@ -8,40 +8,12 @@ const requestPromise = require('request-promise');
 const CustomError = require('../customError').CustomError;
 
 var GoodGame = function (options) {
-    var _this = this;
+    this.super(options);
     this.name = 'goodgame';
-    this.gOptions = options;
-    this.config = {};
-    this.dbTable = 'ggChannels';
-
-    this.onReady = _this.init();
 };
 
 GoodGame.prototype = Object.create(require('./service').prototype);
 GoodGame.prototype.constructor = GoodGame;
-
-GoodGame.prototype.init = function () {
-    var _this = this;
-    var db = this.gOptions.db;
-    var promise = Promise.resolve();
-    promise = promise.then(function () {
-        return new Promise(function (resolve, reject) {
-            db.connection.query('\
-            CREATE TABLE IF NOT EXISTS ' + _this.dbTable + ' ( \
-                `id` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
-                `title` TEXT CHARACTER SET utf8mb4 NULL, \
-            UNIQUE INDEX `id_UNIQUE` (`id` ASC)); \
-        ', function (err) {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve();
-                }
-            });
-        });
-    });
-    return promise;
-};
 
 GoodGame.prototype.isServiceUrl = function (url) {
     return [
@@ -51,35 +23,8 @@ GoodGame.prototype.isServiceUrl = function (url) {
     });
 };
 
-GoodGame.prototype.getChannelUrl = function (channelId) {
-    return 'https://goodgame.ru/channel/' + channelId;
-};
-
-GoodGame.prototype.clean = function(channelIdList) {
-    // todo: fix me
-    return Promise.resolve();
-    /*var _this = this;
-    var promiseList = [];
-
-    var needSaveState = false;
-    var channelInfo = _this.config.channelInfo;
-    Object.keys(channelInfo).forEach(function (channelId) {
-        if (channelIdList.indexOf(channelId) === -1) {
-            delete channelInfo[channelId];
-            needSaveState = true;
-            // debug('Removed from channelInfo %s', channelId);
-        }
-    });
-
-    if (needSaveState) {
-        promiseList.push(_this.saveChannelInfo());
-    }
-
-    return Promise.all(promiseList);*/
-};
-
-var videoIdToId = function (videoId) {
-    return 'g' + videoId;
+GoodGame.prototype.getChannelUrl = function (channelIName) {
+    return 'https://goodgame.ru/channel/' + channelIName;
 };
 
 var noProtocolRe = /^\/\//;
@@ -91,14 +36,10 @@ GoodGame.prototype.insertItem = function (channel, stream) {
             return;
         }
 
-        var now = base.getNow();
-
         var id = stream.id;
-        var viewers = parseInt(stream.viewers) || 0;
-        var channelTitle = stream.key;
 
-        var thumb = stream.channel.thumb;
         var previewList = [];
+        var thumb = stream.channel.thumb;
         if (thumb) {
             previewList.push(thumb.replace(/_240(\.jpg)$/, '$1'));
         }
@@ -109,36 +50,27 @@ GoodGame.prototype.insertItem = function (channel, stream) {
             return base.noCacheUrl(url);
         });
 
-        var games = stream.channel.games;
         var game = '';
+        var games = stream.channel.games;
         games && games.some(function (item) {
             return game = item.title;
         });
 
         var data = {
-            _service: 'goodgame',
-            _checkTime: now,
-            _insertTime: now,
-            _id: videoIdToId(id),
-            _isOffline: false,
-            _isTimeout: false,
-            _channelId: channel.id,
-
-            viewers: viewers,
+            viewers: parseInt(stream.viewers) || 0,
             game: game,
             preview: previewList,
             created_at: undefined,
             channel: {
-                name: channelTitle,
+                name: stream.key,
                 status: stream.channel.title,
                 url: stream.channel.url
             }
         };
 
         var item = {
-            id: videoIdToId(id),
+            id: _this.channels.wrapId(id, _this.name),
             channelId: channel.id,
-            service: 'goodgame',
             data: JSON.stringify(data),
             checkTime: base.getNow(),
             isOffline: 0,
@@ -146,9 +78,10 @@ GoodGame.prototype.insertItem = function (channel, stream) {
         };
 
         var promise = Promise.resolve();
-        if (channelTitle && channel.title !== channelTitle) {
+        if (channel.title !== data.channel.name) {
             promise = promise.then(function () {
-                return _this.setChannelTitle(channel.id, channelTitle);
+                channel.title = data.channel.name;
+                return _this.channels.updateChannel(channel.id, channel);
             });
         }
 
@@ -161,29 +94,14 @@ GoodGame.prototype.insertItem = function (channel, stream) {
 var insertPool = new base.Pool(15);
 
 /**
- * @param _channelIdsList
+ * @param _channelList
  * @return {Promise}
  */
-GoodGame.prototype.getStreamList = function (_channelIdsList) {
+GoodGame.prototype.getStreamList = function (_channelList) {
     var _this = this;
     var videoList = [];
 
-    var promise = Promise.resolve();
-
-    promise = promise.then(function () {
-        return _this.getChannelsInfo(_channelIdsList).then(function (channels) {
-            if (_channelIdsList.length !== channels.length) {
-                var foundIds = channels.map(function (channel) {
-                    return channel.id;
-                });
-                var notFoundIds = _channelIdsList.filter(function (id) {
-                    return foundIds.indexOf(id) === -1;
-                });
-                debug('Not found channels %j', notFoundIds);
-            }
-            return channels;
-        });
-    });
+    var promise = Promise.resolve(_channelList);
 
     promise = promise.then(function (channels) {
         if (!channels.length) return;
@@ -191,8 +109,10 @@ GoodGame.prototype.getStreamList = function (_channelIdsList) {
         var queue = Promise.resolve();
 
         base.arrToParts(channels, 25).forEach(function (channelsPart) {
-            var channelIds = channelsPart.map(function (channel) {
-                return channel.id;
+            var channelIdMap = {};
+            channelsPart.forEach(function (channel) {
+                var id = _this.channels.unWrapId(channel.id);
+                channelIdMap[id] = channel;
             });
 
             queue = queue.then(function () {
@@ -202,7 +122,7 @@ GoodGame.prototype.getStreamList = function (_channelIdsList) {
                         method: 'GET',
                         url: 'https://api2.goodgame.ru/v2/streams',
                         qs: {
-                            ids: channelIds.join(','),
+                            ids: Object.keys(channelIdMap).join(','),
                             adult: true,
                             hidden: true
                         },
@@ -232,29 +152,27 @@ GoodGame.prototype.getStreamList = function (_channelIdsList) {
                         var stream = items.shift();
                         if (!stream) return;
 
-                        if (!stream.key) {
-                            debug('ChannelId is empty! %j', stream);
-                            return Promise.resolve();
-                        }
+                        return Promise.resolve().then(function () {
+                            var channel = channelIdMap[stream.key.toLowerCase()];
+                            if (!channel) {
+                                var err = new Error('Channel is not found!');
+                                err.stream = stream;
+                                throw err;
+                            }
 
-                        var channelId = stream.key.toLowerCase();
-                        var pos = channelIds.indexOf(channelId);
-                        if (pos === -1) {
-                            debug('Channel is not required! %s', channelId);
-                            return Promise.resolve();
-                        }
-                        var channel = channelsPart[pos];
-
-                        return _this.insertItem(channel, stream).then(function (item) {
-                            item && videoList.push(item);
+                            return _this.insertItem(channel, stream).then(function (item) {
+                                item && videoList.push(item);
+                            }).catch(function (err) {
+                                videoList.push(base.getTimeoutStream(channel));
+                                throw err;
+                            });
                         }).catch(function (err) {
-                            videoList.push(base.getTimeoutStream('goodgame', channel.id));
                             debug("insertItem error!", err);
                         });
                     });
                 }).catch(function (err) {
-                    channelIds.forEach(function (channelId) {
-                        videoList.push(base.getTimeoutStream('goodgame', channelId));
+                    channelsPart.forEach(function (channel) {
+                        videoList.push(base.getTimeoutStream(channel));
                     });
                     debug("Request stream list error!", err);
                 });
@@ -317,15 +235,9 @@ GoodGame.prototype.getChannelId = function (channelName) {
             }
 
             var id = title.toLowerCase();
-            return _this.setChannelInfo({
-                id: id,
-                title: title
-            }).then(function () {
-                return {
-                    id: id,
-                    title: title
-                };
-            });
+            var url = _this.getChannelUrl(id);
+
+            return _this.channels.insertChannel(id, _this.name, title, url);
         });
     });
 };

@@ -142,7 +142,7 @@ utils.getNowStreamText = function(gOptions, stream) {
 
     var status = stream.channel.status || '';
     var game = stream.game || '';
-    var name = stream.channel.display_name || stream.channel.name || '';
+    var name = stream.channel.name || '';
     if (status.indexOf(game) !== -1) {
         game = '';
     }
@@ -196,13 +196,12 @@ utils.getNowStreamText = function(gOptions, stream) {
  * @param {number} stream.viewers
  * @param {string} stream.game
  * @param {string} stream._id
- * @param {string} stream._service
  * @param {string} stream._channelId
  * @param {Array} stream.preview
  * @param {boolean} stream._isOffline
  * @param {boolean} stream._isTimeout
  * @param {Object} stream.channel
- * @param {string} stream.channel.display_name
+ * @param {string} stream.channel.name
  * @returns {string}
  */
 utils.getStreamText = function(gOptions, stream) {
@@ -221,7 +220,7 @@ utils.getStreamText = function(gOptions, stream) {
     var status = stream.channel.status || '';
     var viewers = stream.viewers || 0;
     var game = stream.game || '';
-    var name = stream.channel.display_name || stream.channel.name || '';
+    var name = stream.channel.name || '';
     if (status.indexOf(game) !== -1) {
         game = '';
     }
@@ -274,42 +273,6 @@ utils.extend = function() {
         }
     }
     return obj;
-};
-
-/**
- * @param {Object} gOptions
- * @param {String} service
- * @param {String} channelName
- * @return {Promise}
- */
-utils.getChannelTitle = function(gOptions, service, channelName) {
-    var services = gOptions.services;
-
-    var result;
-    if (services[service].getChannelTitle) {
-        result = services[service].getChannelTitle(channelName);
-    } else {
-        result = Promise.resolve(channelName);
-    }
-
-    return result;
-};
-
-/**
- * @param {Object} gOptions
- * @param {String} serviceName
- * @param {String} channelId
- * @return {String}
- */
-utils.getChannelUrl = function(gOptions, serviceName, channelId) {
-    var result = '';
-    var service = gOptions.services[serviceName];
-    if (service.getChannelUrl) {
-        result = service.getChannelUrl(channelId);
-    } else {
-        result = channelId;
-    }
-    return result;
 };
 
 /**
@@ -385,13 +348,11 @@ utils.arrToParts = function (arr, quote) {
     return arrList;
 };
 
-utils.getTimeoutStream = function (service, channelId) {
-    var item = {
+utils.getTimeoutStream = function (channelId) {
+    return {
         channelId: channelId,
-        service: service,
         isTimeout: 1
     };
-    return item;
 };
 
 utils.getNow = function () {

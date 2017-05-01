@@ -8,39 +8,12 @@ const requestPromise = require('request-promise');
 const CustomError = require('../customError').CustomError;
 
 var Beam = function(options) {
-    var _this = this;
+    this.super(options);
     this.name = 'beam';
-    this.gOptions = options;
-    this.dbTable = 'bChannels';
-
-    this.onReady = _this.init();
 };
 
 Beam.prototype = Object.create(require('./service').prototype);
 Beam.prototype.constructor = Beam;
-
-Beam.prototype.init = function () {
-    var _this = this;
-    var db = this.gOptions.db;
-    var promise = Promise.resolve();
-    promise = promise.then(function () {
-        return new Promise(function (resolve, reject) {
-            db.connection.query('\
-            CREATE TABLE IF NOT EXISTS ' + _this.dbTable + ' ( \
-                `id` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
-                `title` TEXT CHARACTER SET utf8mb4 NULL, \
-            UNIQUE INDEX `id_UNIQUE` (`id` ASC)); \
-        ', function (err) {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve();
-                }
-            });
-        });
-    });
-    return promise;
-};
 
 Beam.prototype.isServiceUrl = function (url) {
     return [
@@ -50,17 +23,8 @@ Beam.prototype.isServiceUrl = function (url) {
     });
 };
 
-Beam.prototype.getChannelUrl = function (channelId) {
-    return 'https://beam.pro/' + channelId;
-};
-
-Beam.prototype.clean = function(channelIdList) {
-    // todo: fix me
-    return Promise.resolve();
-};
-
-var videoIdToId = function (videoId) {
-    return 'b:' + videoId;
+Beam.prototype.getChannelUrl = function (channelName) {
+    return 'https://beam.pro/' + channelName;
 };
 
 Beam.prototype.insertItem = function (channel, snippet) {
@@ -70,46 +34,28 @@ Beam.prototype.insertItem = function (channel, snippet) {
             return;
         }
 
-        var now = base.getNow();
-
         var id = snippet.id;
 
         var previewList = [];
         previewList.push('https://thumbs.beam.pro/channel/' + id + '.big.jpg');
 
-        var game = snippet.type && snippet.type.name;
-
-        var viewers = snippet.viewersCurrent || 0;
-
-        var createdAt = snippet.createdAt;
-        var status = snippet.name;
-        var channelTitle = snippet.token;
-        var url = 'https://beam.pro/' + channelTitle;
+        var url = _this.getChannelUrl(snippet.token);
 
         var data = {
-            _service: _this.name,
-            _checkTime: now,
-            _insertTime: now,
-            _id: videoIdToId(id),
-            _isOffline: false,
-            _isTimeout: false,
-            _channelId: channel.id,
-
-            viewers: viewers,
-            game: game,
+            viewers: snippet.viewersCurrent || 0,
+            game: snippet.type && snippet.type.name || '',
             preview: previewList,
-            created_at: createdAt,
+            created_at: snippet.createdAt,
             channel: {
-                name: channelTitle,
-                status: status,
+                name: snippet.token,
+                status: snippet.name,
                 url: url
             }
         };
 
         var item = {
-            id: videoIdToId(id),
+            id: _this.channels.wrapId(id, _this.name),
             channelId: channel.id,
-            service: _this.name,
             data: JSON.stringify(data),
             checkTime: base.getNow(),
             isOffline: 0,
@@ -117,9 +63,10 @@ Beam.prototype.insertItem = function (channel, snippet) {
         };
 
         var promise = Promise.resolve();
-        if (channelTitle && channel.title !== channelTitle) {
+        if (channel.title !== data.channel.name) {
             promise = promise.then(function () {
-                return _this.setChannelTitle(channel.id, channelTitle);
+                channel.title = data.channel.name;
+                return _this.channels.updateChannel(channel.id, channel);
             });
         }
 
@@ -131,17 +78,15 @@ Beam.prototype.insertItem = function (channel, snippet) {
 
 var requestPool = new base.Pool(10);
 
-Beam.prototype.getStreamList = function(_channelIdsList) {
+Beam.prototype.getStreamList = function(_channelList) {
     var _this = this;
 
-    var getPage = function (channel) {
-        var channelId = channel.id;
-
+    var getPage = function (/*dbChannel*/channel) {
         var retryLimit = 1;
         var requestPage = function () {
             return requestPromise({
                 method: 'GET',
-                url: 'https://beam.pro/api/v1/channels/' + channelId,
+                url: 'https://beam.pro/api/v1/channels/' + _this.channels.unWrapId(channel.id),
                 json: true,
                 gzip: true,
                 forever: true
@@ -170,31 +115,16 @@ Beam.prototype.getStreamList = function(_channelIdsList) {
             return _this.insertItem(channel, responseBody).then(function (item) {
                 item && streamList.push(item);
             }).catch(function (err) {
-                streamList.push(base.getTimeoutStream(_this.name, channel.id));
+                streamList.push(base.getTimeoutStream(channel));
                 debug("insertItem error!", err);
             });
         }).catch(function(err) {
-            streamList.push(base.getTimeoutStream(_this.name, channelId));
-            debug('Stream list item %s response error!', channelId, err);
+            streamList.push(base.getTimeoutStream(channel));
+            debug('Stream list item %s response error!', channel.id, err);
         });
     };
 
-    var promise = Promise.resolve();
-
-    promise = promise.then(function () {
-        return _this.getChannelsInfo(_channelIdsList).then(function (channels) {
-            if (_channelIdsList.length !== channels.length) {
-                var foundIds = channels.map(function (channel) {
-                    return channel.id;
-                });
-                var notFoundIds = _channelIdsList.filter(function (id) {
-                    return foundIds.indexOf(id) === -1;
-                });
-                debug('Not found channels %j', notFoundIds);
-            }
-            return channels;
-        });
-    });
+    var promise = Promise.resolve(_channelList);
 
     promise = promise.then(function (channels) {
         return requestPool.do(function () {
@@ -232,11 +162,6 @@ Beam.prototype.getChannelIdByUrl = function (url) {
 Beam.prototype.getChannelId = function(channelName) {
     var _this = this;
 
-    var channel = {
-        id: null,
-        title: null
-    };
-
     return _this.getChannelIdByUrl(channelName).catch(function (err) {
         if (!(err instanceof CustomError)) {
             throw err;
@@ -264,12 +189,11 @@ Beam.prototype.getChannelId = function(channelName) {
                 throw new CustomError('Channel is not found');
             }
 
-            channel.id = item.token.toLowerCase();
-            channel.title = item.token;
+            var id = item.token.toLowerCase();
+            var title = item.token;
+            var url = _this.getChannelUrl(id);
 
-            return _this.setChannelInfo(channel).then(function () {
-                return channel;
-            });
+            return _this.channels.insertChannel(id, _this.name, title, url);
         });
     });
 };
