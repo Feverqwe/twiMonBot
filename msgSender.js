@@ -234,7 +234,7 @@ MsgSender.prototype.sendMessage = function (chat_id, messageId, message, data, u
 
         var imageFileId = null;
         msg.photo && msg.photo.sort(function (a, b) {
-            return a.file_size > b.file_size ? - 1 : 1;
+            return a.file_size > b.file_size ? -1 : 1;
         }).some(function (item) {
             return imageFileId = item.file_id;
         });
