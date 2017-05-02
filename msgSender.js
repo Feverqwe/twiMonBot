@@ -137,14 +137,29 @@ MsgSender.prototype.getPicId = function(chat_id, text, stream) {
 };
 
 /**
+ * @param {Object} msg
+ * @return {string}
+ */
+var getImageFileId = function (msg) {
+    var imageFileId = null;
+    msg.photo.slice(0).sort(function (a, b) {
+        return a.file_size > b.file_size ? -1 : 1;
+    }).some(function (item) {
+        return imageFileId = item.file_id;
+    });
+    return imageFileId;
+};
+
+/**
  * @param {string} chat_id
  * @param {string} messageId
  * @param {string} caption
  * @param {string} text
  * @param {Object} data
+ * @param {Object} message
  * @return {Promise}
  */
-MsgSender.prototype.requestPicId = function(chat_id, messageId, caption, text, data) {
+MsgSender.prototype.requestPicId = function(chat_id, messageId, caption, text, data, message) {
     var _this = this;
 
     var any = function () {
@@ -155,7 +170,20 @@ MsgSender.prototype.requestPicId = function(chat_id, messageId, caption, text, d
     if (!promise) {
         promise = _this.messageRequestPicturePromise[messageId] = _this.getPicId(chat_id, caption, data).then(function (msg) {
             any();
-            return msg;
+
+            var promise = Promise.resolve();
+
+            var imageFileId = getImageFileId(msg);
+            if (imageFileId) {
+                message.imageFileId = imageFileId;
+                promise = promise.then(function () {
+                    return _this.gOptions.msgStack.setImageFileId(messageId, imageFileId);
+                });
+            }
+
+            return promise.then(function () {
+                return msg;
+            });
         }, function (err) {
             any();
             throw err;
@@ -168,16 +196,11 @@ MsgSender.prototype.requestPicId = function(chat_id, messageId, caption, text, d
         });
     } else {
         promise = promise.then(function (msg) {
-            var imageFileId = null;
-            msg.photo.sort(function (a, b) {
-                return a.file_size > b.file_size ? -1 : 1;
-            }).some(function (item) {
-                return imageFileId = item.file_id;
-            });
+            var imageFileId = getImageFileId(msg);
 
             return _this.send(chat_id, imageFileId, caption, text);
         }, function (err) {
-            return _this.requestPicId(chat_id, messageId, caption, text, data);
+            return _this.requestPicId(chat_id, messageId, caption, text, data, message);
         });
     }
     return promise;
@@ -231,26 +254,7 @@ MsgSender.prototype.sendMessage = function (chat_id, messageId, message, data, u
         return _this.send(chat_id, imageFileId, caption, text);
     }
 
-    return _this.requestPicId(chat_id, messageId, caption, text, data).then(function (msg) {
-        var promise = Promise.resolve();
-
-        var imageFileId = null;
-        msg.photo && msg.photo.sort(function (a, b) {
-            return a.file_size > b.file_size ? -1 : 1;
-        }).some(function (item) {
-            return imageFileId = item.file_id;
-        });
-        if (imageFileId) {
-            message.imageFileId = imageFileId;
-            promise = promise.then(function () {
-                return _this.gOptions.msgStack.setImageFileId(messageId, imageFileId);
-            });
-        }
-
-        return promise.then(function () {
-            return msg;
-        });
-    });
+    return _this.requestPicId(chat_id, messageId, caption, text, data, message);
 };
 
 
