@@ -348,9 +348,9 @@ utils.arrToParts = function (arr, quote) {
     return arrList;
 };
 
-utils.getTimeoutStream = function (channelId) {
+utils.getTimeoutStream = function (channel) {
     return {
-        channelId: channelId,
+        channelId: channel.id,
         isTimeout: 1
     };
 };
