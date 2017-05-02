@@ -325,16 +325,7 @@ var Chat = function(options) {
             }
 
             var promiseList = streamList.map(function (stream) {
-                var text = base.getNowStreamText(_this.gOptions, stream);
-                var caption = '';
-                if (!req.chat || !req.chat.options.hidePreview) {
-                    caption = base.getNowStreamPhotoText(_this.gOptions, stream);
-                }
-                return _this.gOptions.msgSender.sendMessage(chatId, stream._id, {
-                    imageFileId: stream._photoId,
-                    caption: caption,
-                    text: text
-                }, stream, true, chatId).catch(function (err) {
+                return sendStreamMessage(chatId, req.chat, stream).catch(function (err) {
                     debug('Command watch error!', err);
                 });
             });
@@ -400,16 +391,7 @@ var Chat = function(options) {
                         var channelList = onlineServiceList[serviceName] || {};
                         var streamList = channelList[channel.id] || [];
                         streamList.forEach(function (stream) {
-                            var text = base.getNowStreamText(_this.gOptions, stream);
-                            var caption = '';
-                            if (!req.chat || !req.chat.options.hidePreview) {
-                                caption = base.getNowStreamPhotoText(_this.gOptions, stream);
-                            }
-                            return _this.gOptions.msgSender.sendMessage(chatId, stream._id, {
-                                imageFileId: stream._photoId,
-                                caption: caption,
-                                text: text
-                            }, stream, true, chatId).catch(function (err) {
+                            return sendStreamMessage(chatId, req.chat, stream).catch(function (err) {
                                 debug('Command add error!', err);
                             });
                         });
@@ -824,6 +806,19 @@ var Chat = function(options) {
             debug('Command list error!', err);
         });
     });
+
+    var sendStreamMessage = function (chatId, chat, stream) {
+        var text = base.getNowStreamText(_this.gOptions, stream);
+        var caption = '';
+        if (!chat || !chat.options.hidePreview) {
+            caption = base.getNowStreamPhotoText(_this.gOptions, stream);
+        }
+        return _this.gOptions.msgStack.sendStreamMessage(chatId, stream._id, {
+            imageFileId: stream._photoId,
+            caption: caption,
+            text: text
+        }, stream, true, chatId);
+    };
 
     /**
      * @param {Number|String} chatId

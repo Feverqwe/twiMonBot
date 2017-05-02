@@ -296,6 +296,11 @@ MsgStack.prototype.getStreamMessages = function (streamId) {
 
 /**
  * @param {Object} message
+ * @param {String} message.type
+ * @param {String} message.chat_id
+ * @param {String} message.streamId
+ * @param {String} message.chatId
+ * @param {String} message.id
  * @return {Promise}
  */
 MsgStack.prototype.addStreamMessage = function (message) {
@@ -370,6 +375,8 @@ MsgStack.prototype.setImageFileId = function (streamId, imageFileId) {
                 resolve();
             }
         });
+    }).catch(function (err) {
+        debug('setImageFileId error %o', err);
     });
 };
 
@@ -621,6 +628,25 @@ MsgStack.prototype.updateItem = function (item) {
     });
 };
 
+MsgStack.prototype.sendStreamMessage = function (chat_id, streamId, message, data, useCache, chatId) {
+    var _this = this;
+    return _this.gOptions.msgSender.sendMessage(chat_id, streamId, message, data, useCache).then(function (msg) {
+        debug('msg', msg);
+
+        var isPhoto = !!msg.photo;
+
+        _this.gOptions.tracker.track(chat_id, 'bot', isPhoto ? 'sendPhoto' : 'sendMsg', data._channelId);
+
+        return _this.addStreamMessage({
+            type: isPhoto ? 'streamPhoto' : 'streamText',
+            chat_id: chat_id,
+            id: msg.message_id,
+            streamId: data._id,
+            chatId: chatId
+        });
+    });
+};
+
 /**
  * @param {StackItem} item
  * @return {Promise}
@@ -679,16 +705,17 @@ MsgStack.prototype.sendItem = function (item) {
 
             var promise = Promise.resolve();
             chatList.forEach(function (itemObj) {
-                var id = itemObj.id;
+                var chat_id = itemObj.id;
                 promise = promise.then(function () {
-                    return _this.gOptions.msgSender.sendMessage(id, streamId, message, data, true, chat.id).then(function () {
-                        _this.sendLog(id, streamId, data);
+                    return _this.sendStreamMessage(chat_id, streamId, message, data, true, chat.id).then(function () {
+                        _this.sendLog(chat_id, streamId, data);
                     });
                 }).catch(function (err) {
                     err.itemObj = itemObj;
                     throw err;
                 });
             });
+
             return promise.catch(function (err) {
                 return _this.onSendMessageError(err);
             });
