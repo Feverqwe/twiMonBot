@@ -631,8 +631,6 @@ MsgStack.prototype.updateItem = function (item) {
 MsgStack.prototype.sendStreamMessage = function (chat_id, streamId, message, data, useCache, chatId) {
     var _this = this;
     return _this.gOptions.msgSender.sendMessage(chat_id, streamId, message, data, useCache).then(function (msg) {
-        debug('msg', msg);
-
         var isPhoto = !!msg.photo;
 
         _this.gOptions.tracker.track(chat_id, 'bot', isPhoto ? 'sendPhoto' : 'sendMsg', data._channelId);
