@@ -109,7 +109,7 @@ Youtube.prototype.getViewers = function(id) {
 
         return parseInt(responseBody);
     }).catch(function (err) {
-        debug('getViewers %s error!', id, err.message);
+        debug('getViewers %s error! %o', id, err);
         return -1;
     });
 };
@@ -182,7 +182,7 @@ Youtube.prototype.getStreamList = function(_channelList) {
             });
         }).catch(function(err) {
             streamList.push(base.getTimeoutStream(channel));
-            debug('Stream %s response error!', channel.id, err.message);
+            debug('Stream %s response error! %o', channel.id, err);
         });
     };
 

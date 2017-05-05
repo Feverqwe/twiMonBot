@@ -174,7 +174,7 @@ Twitch.prototype.getStreamList = function(_channelList) {
                     channelsPart.forEach(function (channel) {
                         videoList.push(base.getTimeoutStream(channel));
                     });
-                    debug("Request stream list error!", err.message);
+                    debug("Request stream list error! %o", err);
                 });
             });
         });
