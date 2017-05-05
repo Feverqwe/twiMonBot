@@ -89,7 +89,7 @@ Beam.prototype.getStreamList = function(_channelList) {
                 url: 'https://beam.pro/api/v1/channels/' + _this.channels.unWrapId(channel.id),
                 json: true,
                 gzip: true,
-                forever: retryLimit === 1
+                forever: true
             }).catch(function (err) {
                 if (err.statusCode === 404) {
                     debug('Channel is not found %o', err);

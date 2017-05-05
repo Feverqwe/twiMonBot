@@ -121,7 +121,7 @@ Twitch.prototype.getStreamList = function(_channelList) {
                         },
                         json: true,
                         gzip: true,
-                        forever: retryLimit === 1
+                        forever: true
                     }).then(function (responseBody) {
                         if (!Array.isArray(responseBody.streams)) {
                             var err = new Error('Unexpected response');
