@@ -42,7 +42,7 @@ var Chat = function(options) {
     router.callback_query(function (req, next) {
         var id = req.callback_query.id;
         bot.answerCallbackQuery(id).then(next).catch(function (err) {
-            debug('answerCallbackQuery error!', err);
+            debug('answerCallbackQuery error! %o', err);
         });
     });
 
@@ -974,7 +974,7 @@ var Chat = function(options) {
                 debug('addChannel %s error! %o', channelName, err);
             } else
             if (err.message !== 'CHANNEL_EXISTS') {
-                debug('Channel is not found! %j', channelName, err);
+                debug('Channel is not found! %j %o', channelName, err);
             }
             throw err;
         });
