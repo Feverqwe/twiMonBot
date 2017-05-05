@@ -132,6 +132,15 @@ GoodGame.prototype.getStreamList = function (_channelList) {
                         json: true,
                         gzip: true,
                         forever: true
+                    }).then(function (responseBody) {
+                        if (!Array.isArray(responseBody._embedded && responseBody._embedded.streams)) {
+                            var err = new Error('Unexpected response');
+                            err.channelIdMap = channelIdMap;
+                            err.responseBody = responseBody;
+                            throw err;
+                        }
+
+                        return responseBody;
                     }).catch(function (err) {
                         if (retryLimit-- < 1) {
                             throw err;
