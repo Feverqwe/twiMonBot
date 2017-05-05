@@ -376,7 +376,7 @@ MsgStack.prototype.setImageFileId = function (streamId, imageFileId) {
             }
         });
     }).catch(function (err) {
-        debug('setImageFileId error %o', err);
+        debug('setImageFileId error', err);
     });
 };
 

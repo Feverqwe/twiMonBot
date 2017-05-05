@@ -42,7 +42,7 @@ var Chat = function(options) {
     router.callback_query(function (req, next) {
         var id = req.callback_query.id;
         bot.answerCallbackQuery(id).then(next).catch(function (err) {
-            debug('answerCallbackQuery error! %o', err);
+            debug('answerCallbackQuery error!', err.message);
         });
     });
 
@@ -971,10 +971,10 @@ var Chat = function(options) {
             });
         }).catch(function(err) {
             if (!(err instanceof CustomError)) {
-                debug('addChannel %s error! %o', channelName, err);
+                debug('addChannel %s error!', channelName, err.message);
             } else
             if (err.message !== 'CHANNEL_EXISTS') {
-                debug('Channel is not found! %j %o', channelName, err);
+                debug('Channel is not found! %s', channelName, err.message);
             }
             throw err;
         });

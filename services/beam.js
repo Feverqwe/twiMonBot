@@ -92,7 +92,7 @@ Beam.prototype.getStreamList = function(_channelList) {
                 forever: retryLimit === 1
             }).catch(function (err) {
                 if (err.statusCode === 404) {
-                    debug('Channel is not found %o', err);
+                    debug('Channel is not found', _this.channels.unWrapId(channel.id));
                     return null;
                 }
 

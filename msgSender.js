@@ -190,7 +190,7 @@ MsgSender.prototype.requestPicId = function(chat_id, messageId, caption, text, d
         });
         promise = promise.catch(function (err) {
             return _this.send(chat_id, null, caption, text).then(function (msg) {
-                debug('getPicId error %o', err);
+                debug('getPicId error', err.message);
                 return msg;
             });
         });
