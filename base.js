@@ -515,7 +515,12 @@ utils.Pool = function (limit) {
     var runPromise = function () {
         if (!getPromiseFnArr.length) return;
 
-        var promise = getPromiseFnArr[0]();
+        var promise = null;
+        try {
+            promise = getPromiseFnArr[0]();
+        } catch (err) {
+            debug('getPromiseFnArr error', err);
+        }
         if (!promise) {
             getPromiseFnArr.shift();
             return runPromise();
