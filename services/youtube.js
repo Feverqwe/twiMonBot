@@ -204,11 +204,27 @@ Youtube.prototype.getStreamList = function(_channelList) {
 };
 
 /**
- * @param {String} query
+ * @param {String} rawQuery
  * @return {Promise.<string>}
  */
-Youtube.prototype.requestChannelIdByQuery = function(query) {
+Youtube.prototype.requestChannelIdByQuery = function(rawQuery) {
     var _this = this;
+
+    var query = '';
+    [
+        /youtube\.com\/(?:#\/)?c\/([\w\-]+)/i
+    ].some(function (re) {
+        var m = re.exec(rawQuery);
+        if (m) {
+            query = m[1];
+            return true;
+        }
+    });
+
+    if (!query) {
+        query = rawQuery;
+    }
+
     return requestPromise({
         method: 'GET',
         url: 'https://www.googleapis.com/youtube/v3/search',
