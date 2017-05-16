@@ -123,7 +123,7 @@ Twitch.prototype.getStreamList = function(_channelList) {
                         gzip: true,
                         forever: retryLimit === 1
                     }).then(function (responseBody) {
-                        if (!Array.isArray(responseBody.streams)) {
+                        if (!Array.isArray(responseBody && responseBody.streams)) {
                             var err = new Error('Unexpected response');
                             err.channelIdMap = channelIdMap;
                             err.responseBody = responseBody;

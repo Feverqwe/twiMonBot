@@ -120,7 +120,7 @@ Hitbox.prototype.getStreamList = function(_channelList) {
                         gzip: true,
                         forever: retryLimit === 1
                     }).then(function (responseBody) {
-                        if (!Array.isArray(responseBody.livestream)) {
+                        if (!Array.isArray(responseBody && responseBody.livestream)) {
                             var err = new Error('Unexpected response');
                             err.channelIdMap = channelIdMap;
                             err.responseBody = responseBody;

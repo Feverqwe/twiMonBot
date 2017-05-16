@@ -140,7 +140,7 @@ Youtube.prototype.getStreamList = function(_channelList) {
                 gzip: true,
                 forever: retryLimit === 1
             }).then(function (responseBody) {
-                if (!Array.isArray(responseBody.items)) {
+                if (!Array.isArray(responseBody && responseBody.items)) {
                     var err = new Error('Unexpected response');
                     err.channelId = _this.channels.unWrapId(channel.id);
                     err.responseBody = responseBody;
