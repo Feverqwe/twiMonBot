@@ -38,6 +38,7 @@ Channels.prototype.init = function () {
 Channels.prototype.migrate = function () {
     var _this = this;
     const base = require('./base');
+    var db = _this.gOptions.db;
 
     var getServiceChannels = function (service) {
         return new Promise(function (resolve, reject) {
