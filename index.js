@@ -84,7 +84,6 @@ const options = {
 
         return options.msgStack.onReady;
     }).then(function() {
-        throw new Error('migrate...');
         options.daemon = new Daemon(options);
     }).then(function() {
         options.bot = new TelegramBot(options.config.token, {
