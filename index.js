@@ -28,13 +28,13 @@ const options = {
     users: null,
     msgStack: null,
     services: {},
-    serviceList: ['twitch', 'goodgame', 'youtube', 'hitbox', 'beam'],
+    serviceList: ['twitch', 'goodgame', 'youtube', 'smashcast', 'beam'],
     serviceToTitle: {
         goodgame: 'GoodGame',
         twitch: 'Twitch',
         youtube: 'Youtube',
-        hitbox: 'Hitbox',
-        beam: 'Beam'
+        beam: 'Beam',
+        smashcast: 'Smashcast'
     },
     daemon: null,
     bot: null,
@@ -84,6 +84,7 @@ const options = {
 
         return options.msgStack.onReady;
     }).then(function() {
+        throw new Error('migrate...');
         options.daemon = new Daemon(options);
     }).then(function() {
         options.bot = new TelegramBot(options.config.token, {

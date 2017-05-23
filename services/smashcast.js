@@ -2,32 +2,32 @@
  * Created by Anton on 06.12.2015.
  */
 "use strict";
-const debug = require('debug')('app:hitbox');
+const debug = require('debug')('app:smashcast');
 const base = require('../base');
 const requestPromise = require('request-promise');
 const CustomError = require('../customError').CustomError;
 
-var Hitbox = function(options) {
+var Smashcast = function(options) {
     this.super(options);
-    this.name = 'hitbox';
+    this.name = 'smashcast';
 };
 
-Hitbox.prototype = Object.create(require('./service').prototype);
-Hitbox.prototype.constructor = Hitbox;
+Smashcast.prototype = Object.create(require('./service').prototype);
+Smashcast.prototype.constructor = Smashcast;
 
-Hitbox.prototype.isServiceUrl = function (url) {
+Smashcast.prototype.isServiceUrl = function (url) {
     return [
-        /hitbox\.tv\//i
+        /smashcast\.tv\//i
     ].some(function (re) {
         return re.test(url);
     });
 };
 
-Hitbox.prototype.getChannelUrl = function (channelName) {
-    return 'http://hitbox.tv/' + channelName;
+Smashcast.prototype.getChannelUrl = function (channelName) {
+    return 'https://smashcast.tv/' + channelName;
 };
 
-Hitbox.prototype.insertItem = function (channel, stream) {
+Smashcast.prototype.insertItem = function (channel, stream) {
     var _this = this;
     return Promise.resolve().then(function () {
         if (stream.media_is_live < 1) {
@@ -85,7 +85,7 @@ Hitbox.prototype.insertItem = function (channel, stream) {
 
 var insertPool = new base.Pool(15);
 
-Hitbox.prototype.getStreamList = function(_channelList) {
+Smashcast.prototype.getStreamList = function(_channelList) {
     var _this = this;
     var videoList = [];
 
@@ -112,7 +112,7 @@ Hitbox.prototype.getStreamList = function(_channelList) {
                 var getList = function () {
                     return requestPromise({
                         method: 'GET',
-                        url: 'https://api.hitbox.tv/media/live/' + query,
+                        url: 'https://api.smashcast.tv/media/live/' + query,
                         qs: {
                             showHidden: 'true'
                         },
@@ -183,10 +183,10 @@ Hitbox.prototype.getStreamList = function(_channelList) {
     });
 };
 
-Hitbox.prototype.getChannelIdByUrl = function (url) {
+Smashcast.prototype.getChannelIdByUrl = function (url) {
     var channelId = '';
     [
-        /hitbox\.tv\/([\w\-]+)/i
+        /smashcast\.tv\/([\w\-]+)/i
     ].some(function (re) {
         var m = re.exec(url);
         if (m) {
@@ -201,7 +201,7 @@ Hitbox.prototype.getChannelIdByUrl = function (url) {
     }
 };
 
-Hitbox.prototype.getChannelId = function(channelName) {
+Smashcast.prototype.getChannelId = function(channelName) {
     var _this = this;
 
     return _this.getChannelIdByUrl(channelName).catch(function (err) {
@@ -213,7 +213,7 @@ Hitbox.prototype.getChannelId = function(channelName) {
     }).then(function (channelId) {
         return requestPromise({
             method: 'GET',
-            url: 'https://api.hitbox.tv/media/live/' + encodeURIComponent(channelId),
+            url: 'https://api.smashcast.tv/media/live/' + encodeURIComponent(channelId),
             qs: {
                 showHidden: 'true'
             },
@@ -240,4 +240,4 @@ Hitbox.prototype.getChannelId = function(channelName) {
     });
 };
 
-module.exports = Hitbox;
+module.exports = Smashcast;
