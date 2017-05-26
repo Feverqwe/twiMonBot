@@ -2,32 +2,32 @@
  * Created by Anton on 06.04.2017.
  */
 "use strict";
-const debug = require('debug')('app:beam');
+const debug = require('debug')('app:mixer');
 const base = require('../base');
 const requestPromise = require('request-promise');
 const CustomError = require('../customError').CustomError;
 
-var Beam = function(options) {
+var Mixer = function(options) {
     this.super(options);
-    this.name = 'beam';
+    this.name = 'mixer';
 };
 
-Beam.prototype = Object.create(require('./service').prototype);
-Beam.prototype.constructor = Beam;
+Mixer.prototype = Object.create(require('./service').prototype);
+Mixer.prototype.constructor = Mixer;
 
-Beam.prototype.isServiceUrl = function (url) {
+Mixer.prototype.isServiceUrl = function (url) {
     return [
-        /beam\.pro\//i
+        /mixer\.com\//i
     ].some(function (re) {
         return re.test(url);
     });
 };
 
-Beam.prototype.getChannelUrl = function (channelName) {
-    return 'https://beam.pro/' + channelName;
+Mixer.prototype.getChannelUrl = function (channelName) {
+    return 'https://mixer.com/' + channelName;
 };
 
-Beam.prototype.insertItem = function (channel, snippet) {
+Mixer.prototype.insertItem = function (channel, snippet) {
     var _this = this;
     return Promise.resolve().then(function () {
         if (!snippet.online) {
@@ -37,7 +37,7 @@ Beam.prototype.insertItem = function (channel, snippet) {
         var id = snippet.id;
 
         var previewList = [];
-        previewList.push('https://thumbs.beam.pro/channel/' + id + '.big.jpg');
+        previewList.push('https://thumbs.mixer.com/channel/' + id + '.big.jpg');
 
         var url = _this.getChannelUrl(snippet.token);
 
@@ -78,7 +78,7 @@ Beam.prototype.insertItem = function (channel, snippet) {
 
 var requestPool = new base.Pool(10);
 
-Beam.prototype.getStreamList = function(_channelList) {
+Mixer.prototype.getStreamList = function(_channelList) {
     var _this = this;
 
     var getPage = function (/*dbChannel*/channel) {
@@ -86,7 +86,7 @@ Beam.prototype.getStreamList = function(_channelList) {
         var requestPage = function () {
             return requestPromise({
                 method: 'GET',
-                url: 'https://beam.pro/api/v1/channels/' + _this.channels.unWrapId(channel.id),
+                url: 'https://mixer.com/api/v1/channels/' + _this.channels.unWrapId(channel.id),
                 json: true,
                 gzip: true,
                 forever: retryLimit === 1
@@ -141,10 +141,10 @@ Beam.prototype.getStreamList = function(_channelList) {
     });
 };
 
-Beam.prototype.getChannelIdByUrl = function (url) {
+Mixer.prototype.getChannelIdByUrl = function (url) {
     var channelId = '';
     [
-        /beam\.pro\/([\w\-]+)/i
+        /mixer\.com\/([\w\-]+)/i
     ].some(function (re) {
         var m = re.exec(url);
         if (m) {
@@ -159,7 +159,7 @@ Beam.prototype.getChannelIdByUrl = function (url) {
     }
 };
 
-Beam.prototype.getChannelId = function(channelName) {
+Mixer.prototype.getChannelId = function(channelName) {
     var _this = this;
 
     return _this.getChannelIdByUrl(channelName).catch(function (err) {
@@ -171,7 +171,7 @@ Beam.prototype.getChannelId = function(channelName) {
     }).then(function (channelId) {
         return requestPromise({
             method: 'GET',
-            url: 'https://beam.pro/api/v1/channels',
+            url: 'https://mixer.com/api/v1/channels',
             qs: {
                 limit: 1,
                 scope: 'names',
@@ -198,4 +198,4 @@ Beam.prototype.getChannelId = function(channelName) {
     });
 };
 
-module.exports = Beam;
+module.exports = Mixer;
