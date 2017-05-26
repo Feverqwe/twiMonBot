@@ -30,50 +30,6 @@ Channels.prototype.init = function () {
                 resolve();
             }
         });
-    }).then(function () {
-        return _this.migrate();
-    });
-};
-
-Channels.prototype.migrate = function () {
-    var _this = this;
-    const base = require('./base');
-    var db = _this.gOptions.db;
-
-    var getServiceChannels = function (service) {
-        return new Promise(function (resolve, reject) {
-            db.connection.query('\
-            SELECT * FROM channels WHERE service = ?; \
-        ', service, function (err, results) {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(results);
-                }
-            });
-        });
-    };
-
-    var insertPool = new base.Pool(10);
-
-    var service = 'beam';
-    var newService = 'mixer';
-    return getServiceChannels(service).then(function (channels) {
-        return insertPool.do(function () {
-            var channel = channels.shift();
-            if (!channel) return;
-
-
-            var id = channel.id;
-            var unWrappedId = _this.unWrapId(id);
-            var newId = _this.wrapId(unWrappedId, newService);
-
-            return _this.updateChannel(id, {
-                id: newId,
-                service: newService,
-                url: 'https://mixer.com/' + unWrappedId
-            });
-        });
     });
 };
 
