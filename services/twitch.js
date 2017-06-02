@@ -35,6 +35,11 @@ Twitch.prototype.insertItem = function (channel, stream) {
     return Promise.resolve().then(function () {
         var id = stream._id;
 
+        if (stream.stream_type !== 'live') {
+            debug('Skip by stream_type', stream.stream_type, stream.channel.url);
+            return;
+        }
+
         var previewList = [];
         stream.preview && ['template', 'large', 'medium'].forEach(function(quality) {
             var url = stream.preview[quality];
