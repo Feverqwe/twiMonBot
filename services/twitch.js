@@ -36,7 +36,7 @@ Twitch.prototype.insertItem = function (channel, stream) {
         var id = stream._id;
 
         if (stream.stream_type !== 'live') {
-            debug('Skip by stream_type', stream.stream_type, stream.channel.url);
+            // debug('Skip by stream_type', stream.stream_type, stream.channel.url);
             return;
         }
 
