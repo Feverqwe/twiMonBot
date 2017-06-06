@@ -10,15 +10,13 @@ var apiQuote = new base.Quote(1000);
 const requestPromise = apiQuote.wrapper(require('request-promise'));
 
 var Youtube = function(options) {
-    this.super(options);
+    this.gOptions = options;
+    this.channels = options.channels;
     this.name = 'youtube';
     this.config = {
         token: options.config.ytToken
     };
 };
-
-Youtube.prototype = Object.create(require('./service').prototype);
-Youtube.prototype.constructor = Youtube;
 
 Youtube.prototype.isServiceUrl = function (url) {
     return [

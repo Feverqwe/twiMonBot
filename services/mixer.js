@@ -8,12 +8,10 @@ const requestPromise = require('request-promise');
 const CustomError = require('../customError').CustomError;
 
 var Mixer = function(options) {
-    this.super(options);
+    this.gOptions = options;
+    this.channels = options.channels;
     this.name = 'mixer';
 };
-
-Mixer.prototype = Object.create(require('./service').prototype);
-Mixer.prototype.constructor = Mixer;
 
 Mixer.prototype.isServiceUrl = function (url) {
     return [

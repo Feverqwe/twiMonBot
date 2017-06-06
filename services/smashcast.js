@@ -8,12 +8,10 @@ const requestPromise = require('request-promise');
 const CustomError = require('../customError').CustomError;
 
 var Smashcast = function(options) {
-    this.super(options);
+    this.gOptions = options;
+    this.channels = options.channels;
     this.name = 'smashcast';
 };
-
-Smashcast.prototype = Object.create(require('./service').prototype);
-Smashcast.prototype.constructor = Smashcast;
 
 Smashcast.prototype.isServiceUrl = function (url) {
     return [

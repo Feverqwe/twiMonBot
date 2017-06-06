@@ -8,12 +8,10 @@ const requestPromise = require('request-promise');
 const CustomError = require('../customError').CustomError;
 
 var GoodGame = function (options) {
-    this.super(options);
+    this.gOptions = options;
+    this.channels = options.channels;
     this.name = 'goodgame';
 };
-
-GoodGame.prototype = Object.create(require('./service').prototype);
-GoodGame.prototype.constructor = GoodGame;
 
 GoodGame.prototype.isServiceUrl = function (url) {
     return [

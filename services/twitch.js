@@ -8,15 +8,13 @@ const requestPromise = require('request-promise');
 const CustomError = require('../customError').CustomError;
 
 var Twitch = function(options) {
-    this.super(options);
+    this.gOptions = options;
+    this.channels = options.channels;
     this.name = 'twitch';
     this.config = {
         token: options.config.twitchToken
     };
 };
-
-Twitch.prototype = Object.create(require('./service').prototype);
-Twitch.prototype.constructor = Twitch;
 
 Twitch.prototype.isServiceUrl = function (url) {
     return [
