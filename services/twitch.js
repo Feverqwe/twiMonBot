@@ -243,7 +243,9 @@ Twitch.prototype.getChannelNameByUrl = function (url) {
 Twitch.prototype.getChannelId = function(channelName) {
     var _this = this;
 
-    return _this.getChannelNameByUrl(channelName).catch(function (err) {
+    return _this.getChannelNameByUrl(channelName).then(function (channelName) {
+        return JSON.stringify(channelName);
+    }).catch(function (err) {
         if (!(err instanceof CustomError)) {
             throw err;
         }
