@@ -90,8 +90,19 @@ Mixer.prototype.getStreamList = function(_channelList) {
                 forever: retryLimit === 1
             }).catch(function (err) {
                 if (err.statusCode === 404) {
-                    debug('Channel is not found %o', err);
-                    return null;
+                    var isRemovedChannel = false;
+                    try {
+                        var body = err.response.body;
+                        isRemovedChannel = body.statusCode === 404 &&
+                            body.message === 'Channel not found.' &&
+                            body.error === 'Not Found';
+                    } catch (err) {}
+                    if (isRemovedChannel) {
+                        debug('Channel is not found, remove! %o', channel.id);
+                        return _this.gOptions.channels.removeChannel(channel.id).then(function () {
+                            return null;
+                        });
+                    }
                 }
 
                 if (retryLimit-- < 1) {

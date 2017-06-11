@@ -135,4 +135,25 @@ Channels.prototype.updateChannel = function (id, channel) {
     });
 };
 
+/**
+ * @param {string} id
+ * @return {Promise}
+ */
+Channels.prototype.removeChannel = function (id) {
+    var _this = this;
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            DELETE FROM channels WHERE id = ?; \
+        ', [id], function (err) {
+            if (err) {
+                debug('deleteChannel', err);
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+};
+
 module.exports = Channels;
