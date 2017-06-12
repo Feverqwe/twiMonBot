@@ -85,6 +85,9 @@ Mixer.prototype.getStreamList = function(_channelList) {
             return requestPromise({
                 method: 'GET',
                 url: 'https://mixer.com/api/v1/channels/' + _this.channels.unWrapId(channel.id),
+                headers: {
+                    'user-agent': ''
+                },
                 json: true,
                 gzip: true,
                 forever: retryLimit === 1
@@ -185,6 +188,9 @@ Mixer.prototype.getChannelId = function(channelName) {
                 limit: 1,
                 scope: 'names',
                 q: channelId
+            },
+            headers: {
+                'user-agent': ''
             },
             json: true,
             gzip: true,
