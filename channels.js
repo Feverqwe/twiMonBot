@@ -19,7 +19,6 @@ Channels.prototype.init = function () {
                 `service` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
                 `title` TEXT CHARACTER SET utf8mb4 NULL, \
                 `url` TEXT CHARACTER SET utf8mb4 NOT NULL, \
-            INDEX `id_idx` (`id` ASC),  \
             INDEX `service_idx` (`service` ASC),  \
             UNIQUE INDEX `id_UNIQUE` (`id` ASC),\
             UNIQUE INDEX `idService_UNIQUE` (`id` ASC, `service` ASC)); \
