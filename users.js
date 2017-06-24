@@ -25,7 +25,7 @@ Users.prototype.init = function () {
                     `options` TEXT CHARACTER SET utf8mb4 NOT NULL, \
                     `insertTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
                 UNIQUE INDEX `id_UNIQUE` (`id` ASC), \
-                UNIQUE INDEX `channelId_UNIQUE` (`id` ASC)); \
+                UNIQUE INDEX `channelId_UNIQUE` (`channelId` ASC)); \
             ', function (err) {
                 if (err) {
                     reject(err);
