@@ -234,7 +234,6 @@ Youtube.prototype.hasBroadcasts = function (channelId) {
             return hasBroadcast('upcoming');
         });
     }).then(function (list) {
-        debug('list', list);
         return !!list.length;
     });
 };
