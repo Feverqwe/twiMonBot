@@ -201,6 +201,44 @@ Youtube.prototype.getStreamList = function(_channelList) {
     });
 };
 
+Youtube.prototype.hasBroadcasts = function (channelId) {
+    const _this = this;
+    const hasBroadcast = function (type) {
+        return requestPromise({
+            method: 'GET',
+            url: 'https://www.googleapis.com/youtube/v3/search',
+            qs: {
+                part: 'snippet',
+                channelId: channelId,
+                eventType: type,
+                maxResults: 1,
+                order: 'date',
+                safeSearch: 'none',
+                type: 'video',
+                fields: 'items(id/videoId)',
+                key: _this.config.token
+            },
+            json: true,
+            gzip: true,
+            forever: true
+        }).then(function (data) {
+            return data.items;
+        });
+    };
+    return hasBroadcast('completed').then(function (list) {
+        if (list.length) return list;
+
+        return hasBroadcast('live').then(function (list) {
+            if (list.length) return list;
+
+            return hasBroadcast('upcoming');
+        });
+    }).then(function (list) {
+        debug('list', list);
+        return !!list.length;
+    });
+};
+
 /**
  * @param {String} rawQuery
  * @return {Promise.<string>}
@@ -428,7 +466,13 @@ Youtube.prototype.getChannelId = function(channelName) {
             var title = snippet.channelTitle || channelId;
             var url = _this.getChannelUrl(channelId);
 
-            return _this.channels.insertChannel(id, _this.name, title, url);
+            return _this.hasBroadcasts(channelId).then(function (hasBroadcasts) {
+                if (!hasBroadcasts) {
+                    throw new CustomError('Channel broadcasts is not found');
+                }
+
+                return _this.channels.insertChannel(id, _this.name, title, url);
+            });
         });
     });
 };
