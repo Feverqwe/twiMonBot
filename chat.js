@@ -824,6 +824,11 @@ var Chat = function(options) {
                 promise = promise.then(function () {
                     const ytChannelId = _this.gOptions.channels.unWrapId(channel.id);
                     return _this.gOptions.services.youtube.getChannelId(ytChannelId).catch(function (err) {
+                        if (!(err instanceof CustomError)) {
+                            debug('getChannelId error! %s %o', channel.id, err);
+                            return;
+                        }
+
                         debug('Channel error! %s %o', channel.id, err);
                         return _this.gOptions.channels.removeChannel(channel.id);
                     });
@@ -832,6 +837,8 @@ var Chat = function(options) {
             return promise;
         }).then(function () {
             return bot.sendMessage(chatId, 'Success');
+        }).catch(function (err) {
+            debug('Command cleanYoutubeChannels error!', err);
         });
     });
 
