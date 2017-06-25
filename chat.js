@@ -875,6 +875,20 @@ var Chat = function(options) {
         });
     });
 
+    textOrCb(/\/removeUnusedChannels/, function (req) {
+        const chatId = req.chat.id;
+        const adminIds = _this.gOptions.config.adminIds || [];
+        if (adminIds.indexOf(chatId) === -1) {
+            return bot.sendMessage(chatId, 'Deny');
+        }
+
+        return _this.gOptions.channels.removeUnusedChannels().then(function () {
+            return bot.sendMessage(chatId, 'Success');
+        }).catch(function (err) {
+            debug('Command removeUnusedChannels error!', err);
+        });
+    });
+
     var sendStreamMessage = function (chatId, chat, stream) {
         var text = base.getNowStreamText(_this.gOptions, stream);
         var caption = '';

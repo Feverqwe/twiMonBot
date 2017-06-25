@@ -155,4 +155,21 @@ Channels.prototype.removeChannel = function (id) {
     });
 };
 
+Channels.prototype.removeUnusedChannels = function () {
+    var db = this.gOptions.db;
+    return new Promise(function (resolve, reject) {
+        db.connection.query('\
+            DELETE FROM channels WHERE id NOT IN (SELECT DISTINCT channelId FROM chatIdChannelId); \
+        ', function (err, results) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    }).catch(function (err) {
+        debug('removeUnusedChannels error', err);
+    });
+};
+
 module.exports = Channels;
