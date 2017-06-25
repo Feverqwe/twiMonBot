@@ -842,6 +842,40 @@ var Chat = function(options) {
         });
     });
 
+    textOrCb(/\/cleanTwitchChannels/, function (req) {
+        const chatId = req.chat.id;
+        const adminIds = _this.gOptions.config.adminIds || [];
+        if (adminIds.indexOf(chatId) === -1) {
+            return bot.sendMessage(chatId, 'Deny');
+        }
+
+        return _this.gOptions.users.getAllChannels().then(function (channels) {
+            return channels.filter(function (channel) {
+                return channel.service === 'twitch';
+            });
+        }).then(function (channels) {
+            let promise = Promise.resolve();
+            channels.forEach(function (channel) {
+                promise = promise.then(function () {
+                    return _this.gOptions.services.twitch.channelExists(channel).catch(function (err) {
+                        if (!(err instanceof CustomError)) {
+                            debug('channelExists error! %s %o', channel.id, err);
+                            return;
+                        }
+
+                        debug('Channel error! %s %o', channel.id, err);
+                        return _this.gOptions.channels.removeChannel(channel.id);
+                    });
+                });
+            });
+            return promise;
+        }).then(function () {
+            return bot.sendMessage(chatId, 'Success');
+        }).catch(function (err) {
+            debug('Command cleanTwitchChannels error!', err);
+        });
+    });
+
     var sendStreamMessage = function (chatId, chat, stream) {
         var text = base.getNowStreamText(_this.gOptions, stream);
         var caption = '';

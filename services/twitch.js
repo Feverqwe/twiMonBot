@@ -192,6 +192,27 @@ Twitch.prototype.getStreamList = function(_channelList) {
 
 var insertPool = new base.Pool(15);
 
+Twitch.prototype.channelExists = function (channel) {
+    var _this = this;
+    const channelId = _this.channels.unWrapId(channel.id);
+    return requestPromise({
+        method: 'GET',
+        url: 'https://api.twitch.tv/kraken/channels/' + channelId,
+        headers: {
+            'Accept': 'application/vnd.twitchtv.v5+json',
+            'Client-ID': _this.config.token
+        },
+        json: true,
+        gzip: true,
+        forever: true
+    }).catch(function (err) {
+        if (err.statusCode === 404) {
+            throw new CustomError('Channel is not found!');
+        }
+        throw err;
+    });
+};
+
 Twitch.prototype.requestChannelByName = function (channelName) {
     var _this = this;
     return requestPromise({
