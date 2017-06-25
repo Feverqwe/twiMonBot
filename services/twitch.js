@@ -192,6 +192,10 @@ Twitch.prototype.getStreamList = function(_channelList) {
 
 var insertPool = new base.Pool(15);
 
+/**
+ * @param {dbChannel} channel
+ * @return {Promise}
+ */
 Twitch.prototype.channelExists = function (channel) {
     var _this = this;
     const channelId = _this.channels.unWrapId(channel.id);

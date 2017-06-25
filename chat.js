@@ -822,8 +822,7 @@ var Chat = function(options) {
             let promise = Promise.resolve();
             channels.forEach(function (channel) {
                 promise = promise.then(function () {
-                    const ytChannelId = _this.gOptions.channels.unWrapId(channel.id);
-                    return _this.gOptions.services.youtube.getChannelId(ytChannelId).catch(function (err) {
+                    return _this.gOptions.services.youtube.channelExists(channel).catch(function (err) {
                         if (!(err instanceof CustomError)) {
                             debug('getChannelId error! %s %o', channel.id, err);
                             return;

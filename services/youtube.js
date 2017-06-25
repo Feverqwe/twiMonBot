@@ -201,6 +201,16 @@ Youtube.prototype.getStreamList = function(_channelList) {
     });
 };
 
+/**
+ * @param {dbChannel} channel
+ * @return {Promise.<dbChannel>}
+ */
+Youtube.prototype.channelExists = function (channel) {
+    var _this = this;
+    const channelId = _this.channels.unWrapId(channel.id);
+    return _this.getChannelId(channelId);
+};
+
 Youtube.prototype.hasBroadcasts = function (channelId) {
     const _this = this;
     const hasBroadcast = function (type) {
