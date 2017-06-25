@@ -13,5 +13,6 @@
     "database": "twiMonBot",
     "user": "",
     "password": ""
-  }
+  },
+  "adminIds": []
 }
