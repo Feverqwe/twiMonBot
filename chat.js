@@ -807,6 +807,34 @@ var Chat = function(options) {
         });
     });
 
+    textOrCb(/\/cleanYoutubeChannels/, function (req) {
+        const chatId = req.chat.id;
+        const adminIds = _this.gOptions.config.adminIds || [];
+        if (adminIds.indexOf(chatId) === -1) {
+            return bot.sendMessage(chatId, 'Deny');
+        }
+
+        return _this.gOptions.users.getAllChannels().then(function (channels) {
+            return channels.filter(function (channel) {
+                return channel.service === 'youtube';
+            });
+        }).then(function (channels) {
+            let promise = Promise.resolve();
+            channels.forEach(function (channel) {
+                promise = promise.then(function () {
+                    const ytChannelId = _this.gOptions.channels.unWrapId(channel.id);
+                    return _this.gOptions.services.youtube.getChannelId(ytChannelId).catch(function (err) {
+                        debug('Channel error! %s %o', channel.id, err);
+                        return _this.gOptions.channels.removeChannel(channel.id);
+                    });
+                });
+            });
+            return promise;
+        }).then(function () {
+            return bot.sendMessage(chatId, 'Success');
+        });
+    });
+
     var sendStreamMessage = function (chatId, chat, stream) {
         var text = base.getNowStreamText(_this.gOptions, stream);
         var caption = '';
