@@ -90,7 +90,7 @@ const options = {
             polling: true
         });
         options.bot.on('polling_error', function (err) {
-            debug('pollingError', err.message);
+            debug('pollingError %o', err.message);
         });
 
         var quote = new base.Quote(30);
