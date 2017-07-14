@@ -408,27 +408,19 @@ MsgStack.prototype.removeItem = function (chatId, streamId, messageId) {
 /**
  * @param {string} chatId
  * @param {string} messageId
- * @param {Object} data
+ * @param {boolean} isPhoto
  */
-MsgStack.prototype.updateLog = function (chatId, messageId, data) {
-    /*var debugItem = JSON.parse(JSON.stringify(data));
-    delete debugItem.preview;
-    delete debugItem._videoId;
-    delete debugItem.service;*/
-    debugLog('[update] %s %s', messageId, chatId);
+MsgStack.prototype.updateLog = function (chatId, messageId, isPhoto) {
+    debugLog('[update] %s %s %s', isPhoto ? '(p)' : '(t)', messageId, chatId);
 };
 
 /**
  * @param {string} chatId
  * @param {string} messageId
- * @param {Object} data
+ * @param {boolean} isPhoto
  */
-MsgStack.prototype.sendLog = function (chatId, messageId, data) {
-    /*var debugItem = JSON.parse(JSON.stringify(data));
-    delete debugItem.preview;
-    delete debugItem._videoId;
-    delete debugItem.service;*/
-    debugLog('[send] %s %s', messageId, chatId);
+MsgStack.prototype.sendLog = function (chatId, messageId, isPhoto) {
+    debugLog('[send] %s %s %s', isPhoto ? '(p)' : '(t)', messageId, chatId);
 };
 
 /**
@@ -578,13 +570,14 @@ MsgStack.prototype.updateItem = function (item) {
                 type: messageType,
                 chat_id: chat_id
             }, caption, text).then(function () {
+                let isPhoto = messageType === 'streamPhoto';
                 if (messageType === 'streamPhoto') {
                     _this.gOptions.tracker.track(chat_id, 'bot', 'updatePhoto', data._channelId);
                 } else
                 if (messageType === 'streamText'){
                     _this.gOptions.tracker.track(chat_id, 'bot', 'updateText', data._channelId);
                 }
-                _this.updateLog(chat_id, streamId, data);
+                _this.updateLog(chat_id, streamId, isPhoto);
             }).catch(function (err) {
                 if (err.code === 'ETELEGRAM') {
                     var body = err.response.body;
@@ -634,6 +627,8 @@ MsgStack.prototype.sendStreamMessage = function (chat_id, streamId, message, dat
         var isPhoto = !!msg.photo;
 
         _this.gOptions.tracker.track(chat_id, 'bot', isPhoto ? 'sendPhoto' : 'sendMsg', data._channelId);
+
+        _this.sendLog(chat_id, streamId, isPhoto);
 
         return _this.addStreamMessage({
             type: isPhoto ? 'streamPhoto' : 'streamText',
@@ -709,9 +704,7 @@ MsgStack.prototype.sendItem = function (item) {
             chatList.forEach(function (itemObj) {
                 var chat_id = itemObj.id;
                 promise = promise.then(function () {
-                    return _this.sendStreamMessage(chat_id, streamId, message, data, true, chat.id).then(function () {
-                        _this.sendLog(chat_id, streamId, data);
-                    });
+                    return _this.sendStreamMessage(chat_id, streamId, message, data, true, chat.id);
                 }).catch(function (err) {
                     err.itemObj = itemObj;
                     throw err;
