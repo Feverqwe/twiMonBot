@@ -53,6 +53,7 @@ Youtube.prototype.insertItem = function (channel, snippet, id, viewers) {
         var game = '';
 
         var data = {
+            isRecord: false,
             viewers: viewers,
             game: game,
             preview: previewList,

@@ -55,6 +55,7 @@ GoodGame.prototype.insertItem = function (channel, stream) {
         });
 
         var data = {
+            isRecord: false,
             viewers: parseInt(stream.viewers) || 0,
             game: game,
             preview: previewList,

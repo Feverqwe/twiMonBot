@@ -71,6 +71,7 @@ Users.prototype.init = function () {
  * @property {{}} [options]
  * @property {boolean} [options.mute]
  * @property {boolean} [options.hidePreview]
+ * @property {boolean} [options.unMuteRecords]
  */
 
 /**

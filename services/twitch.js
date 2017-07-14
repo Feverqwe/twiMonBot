@@ -33,10 +33,7 @@ Twitch.prototype.insertItem = function (channel, stream) {
     return Promise.resolve().then(function () {
         var id = stream._id;
 
-        if (stream.stream_type !== 'live') {
-            // debug('Skip by stream_type', stream.stream_type, stream.channel.url);
-            return;
-        }
+        const isRecord = stream.stream_type !== 'live';
 
         var previewList = [];
         stream.preview && ['template', 'large', 'medium'].forEach(function(quality) {
@@ -52,6 +49,7 @@ Twitch.prototype.insertItem = function (channel, stream) {
         previewList = previewList.map(base.noCacheUrl);
 
         var data = {
+            isRecord: isRecord,
             viewers: parseInt(stream.viewers) || 0,
             game: stream.game || '',
             preview: previewList,
@@ -116,7 +114,7 @@ Twitch.prototype.getStreamList = function(_channelList) {
                         qs: {
                             limit: 100,
                             channel: Object.keys(channelIdMap).join(','),
-                            stream_type: 'live'
+                            stream_type: 'all'
                         },
                         headers: {
                             'Accept': 'application/vnd.twitchtv.v5+json',

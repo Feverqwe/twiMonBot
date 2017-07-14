@@ -71,6 +71,10 @@ var getOnlineIcon = function () {
     return '🎈';
 };
 
+var getRecordIcon = function () {
+    return '📽️️';
+};
+
 utils.getNowStreamPhotoText = function(gOptions, stream) {
     var getText = function (stripLen) {
         var lines = [];
@@ -81,6 +85,9 @@ utils.getNowStreamPhotoText = function(gOptions, stream) {
         } else
         if (stream._isOffline) {
             symbol = getOfflineIcon();
+        } else
+        if (stream.isRecord) {
+            symbol = getRecordIcon();
         }
 
         var status = stream.channel.status || '';
@@ -138,6 +145,9 @@ utils.getNowStreamText = function(gOptions, stream) {
     } else
     if (stream._isOffline) {
         symbol = getOfflineIcon();
+    } else
+    if (stream.isRecord) {
+        symbol = getRecordIcon();
     }
 
     var status = stream.channel.status || '';
@@ -200,6 +210,7 @@ utils.getNowStreamText = function(gOptions, stream) {
  * @param {Array} stream.preview
  * @param {boolean} stream._isOffline
  * @param {boolean} stream._isTimeout
+ * @param {boolean} stream.isRecord
  * @param {Object} stream.channel
  * @param {string} stream.channel.name
  * @returns {string}
@@ -213,6 +224,9 @@ utils.getStreamText = function(gOptions, stream) {
     } else
     if (stream._isOffline) {
         symbol = getOfflineIcon();
+    } else
+    if (stream.isRecord) {
+        symbol = getRecordIcon();
     } else {
         symbol = getOnlineIcon();
     }

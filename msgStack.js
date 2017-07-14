@@ -672,6 +672,10 @@ MsgStack.prototype.sendItem = function (item) {
 
             var options = chat.options;
 
+            if (data.isRecord && !options.unMuteRecords) {
+                return;
+            }
+
             var text = base.getNowStreamText(_this.gOptions, data);
             var caption = '';
 

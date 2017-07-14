@@ -979,7 +979,7 @@ var Chat = function(options) {
     };
 
     var setOption = function (chat, key, value) {
-        ['hidePreview', 'mute'].forEach(function (option) {
+        ['hidePreview', 'mute', 'unMuteRecords'].forEach(function (option) {
             if (option === key) {
                 chat.options[option] = value === 'true';
                 if (!chat.options[option]) {
@@ -1133,6 +1133,24 @@ var Chat = function(options) {
                 text: 'Hide preview',
                 callback_data: '/options?' + querystring.stringify({
                     key: 'hidePreview',
+                    value: true
+                })
+            }]);
+        }
+
+        if (options.unMuteRecords) {
+            btnList.push([{
+                text: 'Mute records',
+                callback_data: '/options?' + querystring.stringify({
+                    key: 'unMuteRecords',
+                    value: false
+                })
+            }]);
+        } else {
+            btnList.push([{
+                text: 'Unmute records',
+                callback_data: '/options?' + querystring.stringify({
+                    key: 'unMuteRecords',
                     value: true
                 })
             }]);

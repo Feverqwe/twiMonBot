@@ -47,6 +47,7 @@ Smashcast.prototype.insertItem = function (channel, stream) {
         });
 
         var data = {
+            isRecord: false,
             viewers: parseInt(stream.media_views) || 0,
             game: stream.category_name || '',
             preview: previewList,

@@ -43,7 +43,8 @@ LiveController.prototype.findPrevStreamId = function (prevStreams, stream) {
     prevStreams.some(function (prevStream) {
         var prevData = JSON.parse(prevStream.data);
         if (prevData.channel.status === data.channel.status &&
-            prevData.game === data.game
+            prevData.game === data.game &&
+            prevData.isRecord === data.isRecord
         ) {
             prevStreamId = prevStream.id;
             return true;
