@@ -40,6 +40,7 @@ Mixer.prototype.insertItem = function (channel, snippet) {
         var url = _this.getChannelUrl(snippet.token);
 
         var data = {
+            isRecord: false,
             viewers: snippet.viewersCurrent || 0,
             game: snippet.type && snippet.type.name || '',
             preview: previewList,
@@ -52,7 +53,6 @@ Mixer.prototype.insertItem = function (channel, snippet) {
         };
 
         var item = {
-            isRecord: false,
             id: _this.channels.wrapId(id, _this.name),
             channelId: channel.id,
             data: JSON.stringify(data),
