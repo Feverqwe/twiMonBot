@@ -463,6 +463,45 @@ utils.pageBtnList = function (query, btnList, command, mediumBtn) {
     return pageList;
 };
 
+utils.splitTextToPages = function (text) {
+    const maxLen = 4096;
+
+    const textByLines = function (text) {
+        const lines = [];
+        let line = '';
+        for (let i = 0, char = '', len = text.length; i < len; i++) {
+            char = text[i];
+            line += char;
+            if (char === '\n' || line.length === maxLen) {
+                lines.push(line);
+                line = '';
+            }
+        }
+        if (line.length) {
+            lines.push(line);
+        }
+        return lines;
+    };
+
+    const linesByPage = function (lines) {
+        const pages = [];
+        let page = '';
+        lines.forEach(function (line) {
+            if (page.length + line.length > maxLen) {
+                pages.push(page);
+                page = '';
+            }
+            page += line;
+        });
+        if (page.length) {
+            pages.push(page);
+        }
+        return pages;
+    };
+
+    return linesByPage(textByLines(text));
+};
+
 var sepRe = /\?/;
 utils.noCacheUrl = function (url) {
     var sep = sepRe.test(url) ? '&' : '?';

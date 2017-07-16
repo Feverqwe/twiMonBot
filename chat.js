@@ -734,6 +734,7 @@ var Chat = function(options) {
 
     textOrCb(/\/list/, function (req) {
         var chatId = req.chat.id;
+        var query = req.getQuery();
         var channels = req.channels;
 
         var services = [];
@@ -792,10 +793,44 @@ var Chat = function(options) {
                 serviceList.push(channelList.join('\n'));
             });
 
-            return bot.sendMessage(chatId, serviceList.join('\n\n'), {
+            const fullText = serviceList.join('\n\n');
+
+            const pageIndex = parseInt(query.page || 0);
+            const pages = base.splitTextToPages(fullText).slice(pageIndex);
+
+            const pageText = pages.shift();
+
+            const pageControls = [];
+            if (pageIndex > 0) {
+                pageControls.push({
+                    text: '<',
+                    callback_data: '/list' + '?page=' + (pageIndex - 1)
+                });
+            }
+            if (pages.length) {
+                pageControls.push({
+                    text: '>',
+                    callback_data: '/list' + '?page=' + (pageIndex + 1)
+                });
+            }
+
+            const options = {
                 disable_web_page_preview: true,
-                parse_mode: 'HTML'
-            });
+                parse_mode: 'HTML',
+                reply_markup: JSON.stringify({
+                    inline_keyboard: [pageControls]
+                })
+            };
+
+            if (req.callback_query && !query.rel) {
+                var messageId = req.getMessageId();
+                return bot.editMessageText(pageText, Object.assign(options, {
+                    chat_id: chatId,
+                    message_id: messageId,
+                }));
+            } else {
+                return bot.sendMessage(chatId, pageText, options);
+            }
         }).catch(function (err) {
             debug('Command list error! %o', err);
         });
@@ -1090,7 +1125,7 @@ var Chat = function(options) {
                     },
                     {
                         text: 'Show the channel list',
-                        callback_data: '/list'
+                        callback_data: '/list?rel=menu'
                     }
                 ],
                 [
