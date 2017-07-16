@@ -796,9 +796,9 @@ var Chat = function(options) {
             const fullText = serviceList.join('\n\n');
 
             const pageIndex = parseInt(query.page || 0);
-            const pages = base.splitTextToPages(fullText).slice(pageIndex);
-
-            const pageText = pages.shift();
+            const pages = base.splitTextToPages(fullText);
+            const prevPages = pages.splice(0, pageIndex);
+            const pageText = pages.shift() || prevPages.shift();
 
             const pageControls = [];
             if (pageIndex > 0) {
