@@ -428,8 +428,8 @@ utils.dDblUpdates = function (updates) {
     return dDblUpdates;
 };
 
-utils.pageBtnList = function (btnList, command, page, mediumBtn) {
-    page = parseInt(page || 0);
+utils.pageBtnList = function (query, btnList, command, mediumBtn) {
+    const page = parseInt(query.page || 0);
     if (mediumBtn && !Array.isArray(mediumBtn)) {
         mediumBtn = [mediumBtn];
     }

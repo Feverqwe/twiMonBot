@@ -272,8 +272,7 @@ var Chat = function(options) {
             }
 
             var query = req.getQuery();
-            var page = query.page || 0;
-            var btnList = getWatchBtnList(req.channels, page, lastStreamList);
+            var btnList = getWatchBtnList(req.channels, query, lastStreamList);
 
             btnList.unshift([{
                 text: language.refresh,
@@ -593,7 +592,6 @@ var Chat = function(options) {
             return;
         }
 
-        var page = query.page || 0;
         var mediumBtn = {
             text: 'Cancel',
             callback_data: '/delete?cancel=true'
@@ -615,7 +613,7 @@ var Chat = function(options) {
         });
 
         return promise.then(function () {
-            var pageBtnList = base.pageBtnList(btnList, '/delete', page, mediumBtn);
+            var pageBtnList = base.pageBtnList(query, btnList, '/delete', mediumBtn);
 
             if (req.callback_query && !query.rel) {
                 return bot.editMessageReplyMarkup(JSON.stringify({
@@ -1217,7 +1215,7 @@ var Chat = function(options) {
         return btnList;
     };
 
-    var getWatchBtnList = function (channels, page, lastStreamList) {
+    var getWatchBtnList = function (channels, query, lastStreamList) {
         var btnList = [];
 
         var serviceChannelStreams = getOnlineServiceChannelStreams(channels, lastStreamList);
@@ -1242,7 +1240,7 @@ var Chat = function(options) {
             });
         });
 
-        return base.pageBtnList(btnList, '/online', page);
+        return base.pageBtnList(query, btnList, '/online');
     };
 
     var getOnlineServiceChannelStreams = function (channels, lastStreamList) {
