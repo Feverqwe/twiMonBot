@@ -983,8 +983,13 @@ var Chat = function(options) {
                 }
 
                 return bot.sendChatAction(channelId, 'typing').then(function () {
-                    chat.options.mute = false;
-                    chat.channelId = channelId;
+                    return bot.getChat(channelId).then(function (result) {
+                        if (result.type !== 'channel') {
+                            throw new Error('CHANNEL_ONLY');
+                        }
+                        chat.options.mute = false;
+                        chat.channelId = channelId;
+                    });
                 });
             }).then(function () {
                 return users.setChat(chat);
@@ -998,6 +1003,9 @@ var Chat = function(options) {
             } else
             if (err.message === 'CHANNEL_EXISTS') {
                 msgText += ' The channel has already been added.';
+            } else
+            if (err.message === 'CHANNEL_ONLY') {
+                msgText += ' Support only channels.';
             } else
             if (/bot is not a member of the (?:channel|supergroup) chat/.test(err.message)) {
                 msgText += ' Bot must be admin in this channel.';
