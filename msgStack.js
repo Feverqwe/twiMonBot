@@ -522,7 +522,7 @@ MsgStack.prototype.onSendMessageError = function (err) {
                 result = _this.gOptions.users.removeChat(itemObj.chatId, body.description);
             } else {
                 result = _this.gOptions.users.removeChatChannel(itemObj.chatId, itemObj.id, body.description).then(function () {
-                    const text = 'Channel ' + itemObj.id + 'removed. Reason: ' + body.description;
+                    const text = 'Channel ' + itemObj.id + ' removed. Reason: ' + body.description;
                     return _this.gOptions.bot.sendMessage(itemObj.chatId, text).catch(function (err) {
                         debug('Send message about channel error! %s %s %o', itemObj.chatId, itemObj.id, err);
                     });
