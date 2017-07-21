@@ -521,11 +521,11 @@ MsgStack.prototype.onSendMessageError = function (err) {
             if (itemObj.type === 'chat') {
                 result = _this.gOptions.users.removeChat(itemObj.chatId, body.description);
             } else {
-                const text = 'Can\'t send message to channel ' + itemObj.id + '. Error: ' + body.description;
-                result = _this.gOptions.bot.sendMessage(itemObj.chatId, text).then(function () {
-                    debug('Send message to channel error! %s %s %o', itemObj.chatId, itemObj.id, err);
-                }, function (err) {
-                    debug('Send message about channel error! %s %s %o', itemObj.chatId, itemObj.id, err);
+                result = _this.gOptions.users.removeChatChannel(itemObj.chatId, itemObj.id, body.description).then(function () {
+                    const text = 'Channel ' + itemObj.id + 'removed. Reason: ' + body.description;
+                    return _this.gOptions.bot.sendMessage(itemObj.chatId, text).catch(function (err) {
+                        debug('Send message about channel error! %s %s %o', itemObj.chatId, itemObj.id, err);
+                    });
                 });
             }
         } else
