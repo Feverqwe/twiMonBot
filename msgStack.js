@@ -511,7 +511,8 @@ MsgStack.prototype.onSendMessageError = function (err) {
                 /group chat is deactivated/,
                 /chat not found/,
                 /channel not found/,
-                /USER_DEACTIVATED/
+                /USER_DEACTIVATED/,
+                /not enough rights to send photos to the chat/
             ].some(function (re) {
                 return re.test(body.description);
             });
@@ -594,6 +595,7 @@ MsgStack.prototype.updateItem = function (item) {
                             /chat not found/,
                             /channel not found/,
                             /USER_DEACTIVATED/,
+                            /not enough rights to send photos to the chat/,
                         ].some(function (re) {
                             return re.test(body.description);
                         });

@@ -189,6 +189,9 @@ MsgSender.prototype.requestPicId = function(chat_id, messageId, caption, text, d
             throw err;
         });
         promise = promise.catch(function (err) {
+            if (err.code === 'ETELEGRAM' && /not enough rights to send photos/.test(err.response.body)) {
+                throw err;
+            }
             return _this.send(chat_id, null, caption, text).then(function (msg) {
                 debug('getPicId error %j', err.message);
                 return msg;
