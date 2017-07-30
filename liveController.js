@@ -195,9 +195,9 @@ LiveController.prototype.insertStreams = function (streams, channels) {
                     if (!item) return;
 
                     return _this.gOptions.db.transaction(function (connection) {
-                        return _this.gOptions.msgStack.migrateStream(connection, item[0], item[1]).catch(function (err) {
-                            debug('migrateStreams', err);
-                        });
+                        return _this.gOptions.msgStack.migrateStream(connection, item[0], item[1]);
+                    }).catch(function (err) {
+                        debug('migrateStreams', err);
                     });
                 });
             });
@@ -281,9 +281,9 @@ LiveController.prototype.insertStreams = function (streams, channels) {
                     if (!stream) return;
 
                     return _this.gOptions.db.transaction(function (connection) {
-                        return _this.gOptions.msgStack.setStream(connection, stream).catch(function (err) {
-                            debug('syncStreams', err);
-                        });
+                        return _this.gOptions.msgStack.setStream(connection, stream);
+                    }).catch(function (err) {
+                        debug('syncStreams', err);
                     });
                 });
             });
