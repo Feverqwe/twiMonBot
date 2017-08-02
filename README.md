@@ -1,4 +1,4 @@
-Twitch, Youtube Gaming, Mixer, GoodGame and Smashcast monitor
+Twitch, Youtube Gaming, Mixer and GoodGame monitor
 =======
 
 It bot for telegram.

@@ -9,7 +9,7 @@ var Locale = function (options) {
 };
 
 Locale.prototype.default = {
-    "help": "Hi! I will notify you about the beginning of the broadcasts on Twitch, Youtube Gaming, GoodGame, Smashcast and Mixer!",
+    "help": "Hi! I will notify you about the beginning of the broadcasts on Twitch, Youtube Gaming, GoodGame and Mixer!",
     "offline": "All channels in offline",
     "emptyServiceList": "You don't have channels in watchlist, yet.",
     "enterChannelName": "Enter the channel URL or name (example: guit88man):",
