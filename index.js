@@ -28,13 +28,12 @@ const options = {
     users: null,
     msgStack: null,
     services: {},
-    serviceList: ['twitch', 'goodgame', 'youtube', 'smashcast', 'mixer'],
+    serviceList: ['twitch', 'goodgame', 'youtube', 'mixer'],
     serviceToTitle: {
         goodgame: 'GoodGame',
         twitch: 'Twitch',
         youtube: 'Youtube',
-        mixer: 'Mixer',
-        smashcast: 'Smashcast'
+        mixer: 'Mixer'
     },
     daemon: null,
     bot: null,
