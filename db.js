@@ -13,24 +13,29 @@ var Db = function (options) {
 };
 
 Db.prototype.init = function () {
-    "use strict";
-    var connection = this.connection = this.getConnection();
-
-    return new Promise(function (resolve, reject) {
-        connection.connect(function(err) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
-    });
+    const self = this;
+    self.connection = self.getPool();
+    return self.getVersion();
 };
 
 Db.prototype.getConnection = function () {
     return mysql.createConnection({
         host: this.config.host,
         user: this.config.user,
+        port: this.config.port,
+        password: this.config.password,
+        database: this.config.database,
+        charset: 'utf8mb4'
+    });
+};
+
+Db.prototype.getPool = function (limit) {
+    limit = limit || 1;
+    return mysql.createPool({
+        connectionLimit: limit,
+        host: this.config.host,
+        user: this.config.user,
+        port: this.config.port,
         password: this.config.password,
         database: this.config.database,
         charset: 'utf8mb4'
@@ -84,6 +89,15 @@ Db.prototype.transaction = function (promise) {
         }, function (err) {
             connection.end();
             throw err;
+        });
+    });
+};
+
+Db.prototype.getVersion = function () {
+    const self = this;
+    return new Promise(function (resove, reject) {
+        self.connection.query('SELECT VERSION()', function (err, results) {
+            err ? reject(err) : resove(results[0]['VERSION()']);
         });
     });
 };
