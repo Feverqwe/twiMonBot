@@ -102,4 +102,29 @@ Db.prototype.getVersion = function () {
     });
 };
 
+Db.prototype.wrapTableParams = function (table, params) {
+    return params.map(function (param) {
+        return [[table, param].join('.'), 'AS', [table, param].join('_DOT_')].join(' ')
+    }).join(', ');
+};
+
+Db.prototype.unWrapTableParams = function (row) {
+    const result = {};
+    Object.keys(row).forEach(function (key) {
+        const keyValue = /^(.+)_DOT_(.+)$/.exec(key);
+        if (!keyValue) {
+            result[key] = row[key];
+        } else {
+            let tableName = keyValue[1];
+            let field = keyValue[2];
+            let table = result[tableName];
+            if (!table) {
+                table = result[tableName] = {};
+            }
+            table[field] = row[key];
+        }
+    });
+    return result;
+};
+
 module.exports = Db;

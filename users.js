@@ -89,6 +89,8 @@ var dbChatToChat = function (dbChat) {
     return dbChat || null;
 };
 
+Users.prototype.deSerializeChatRow = dbChatToChat;
+
 /**
  * @param {string} id
  * @return {Promise.<Chat|null>}

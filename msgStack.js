@@ -449,40 +449,60 @@ MsgStack.prototype.setTimeout = function (chatId, streamId, messageId, timeout) 
 };
 
 /**
- * @typedef {{}} StackItem
- * @property {string} id
- * @property {string} channelId
- * @property {string} service
- * @property {string} data
- * @property {string} [imageFileId]
- * @property {string} insertTime
- * @property {Number} checkTime
- * @property {Number} offlineTime
- * @property {Number} isOffline
- * @property {Number} isTimeout
+ * @typedef {{}} DbChatIdStreamId
  * @property {string} chatId
  * @property {string} streamId
- * @property {string} messageId
- * @property {string} messageType
- * @property {string} messageChatId
- * @property {Number} timeout
+ * @property {string|null} messageId
+ * @property {string|null} messageType
+ * @property {string|null} messageChatId
+ * @property {number|null} timeout
+ */
+
+/**
+ * @typedef {{}} DbStream
+ * @property {string} id
+ * @property {string} channelId
+ * @property {string} data
+ * @property {string|null} imageFileId
+ * @property {string} insertTime
+ * @property {number} checkTime
+ * @property {number} offlineTime
+ * @property {boolean} isOffline
+ * @property {boolean} isTimeout
+ */
+
+/**
+ * @typedef {{}} StackItem
+ * @property {DbChatIdStreamId} chatIdStreamId
+ * @property {DbStream} streams
+ * @property {Chat} chats
  */
 /**
  * @return {Promise.<StackItem[]>}
  */
 MsgStack.prototype.getStackItems = function () {
-    var db = this.gOptions.db;
+    const self = this;
+    const db = this.gOptions.db;
     return new Promise(function (resolve, reject) {
         db.connection.query('\
-            SELECT * FROM chatIdStreamId \
-            LEFT JOIN streams ON chatIdStreamId.streamId = streams.id \
+            SELECT \
+            ' + db.wrapTableParams('chatIdStreamId', ['chatId', 'streamId', 'messageId', 'messageType', 'messageChatId', 'timeout']) + ', \
+            ' + db.wrapTableParams('streams', ['id', 'channelId', 'data', 'imageFileId', 'insertTime', 'checkTime', 'offlineTime', 'isOffline', 'isTimeout']) + ', \
+            ' + db.wrapTableParams('chats', ['id', 'channelId', 'options', 'insertTime']) + ' \
+            FROM chatIdStreamId \
+            INNER JOIN streams ON chatIdStreamId.streamId = streams.id \
+            INNER JOIN chats ON chatIdStreamId.chatId = chats.id \
             WHERE chatIdStreamId.timeout < ? \
             LIMIT 30; \
         ', [base.getNow()], function (err, results) {
             if (err) {
                 reject(err);
             } else {
-                resolve(results);
+                resolve(results.map(function (row) {
+                    const item = db.unWrapTableParams(row);
+                    item.chats = self.gOptions.users.deSerializeChatRow(item.chats);
+                    return item;
+                }));
             }
         });
     });
@@ -549,77 +569,70 @@ MsgStack.prototype.onSendMessageError = function (err) {
  */
 MsgStack.prototype.updateItem = function (item) {
     var _this = this;
-    var chatId = item.chatId;
-    var streamId = item.streamId;
-    var messageId = item.messageId;
-    var chat_id = item.messageChatId;
-    var messageType = item.messageType;
+    var chatId = item.chats.id;
+    var streamId = item.streams.id;
+    var messageId = item.chatIdStreamId.messageId;
+    var chat_id = item.chatIdStreamId.messageChatId;
+    var messageType = item.chatIdStreamId.messageType;
 
     var timeout = 5 * 60;
     return _this.setTimeout(chatId, streamId, messageId, base.getNow() + timeout).then(function () {
-        var data = JSON.parse(item.data);
-        data._id = item.id;
-        data._isOffline = !!item.isOffline;
-        data._isTimeout = !!item.isTimeout;
-        data._channelId = item.channelId;
+        var data = JSON.parse(item.streams.data);
+        data._id = item.streams.id;
+        data._isOffline = !!item.streams.isOffline;
+        data._isTimeout = !!item.streams.isTimeout;
+        data._channelId = item.streams.channelId;
 
-        return _this.gOptions.users.getChat(chatId).then(function (chat) {
-            if (!chat) {
-                debug('Can\'t send message %s, user %s is not found!', streamId, chatId, chat_id);
-                return;
+        var text = base.getNowStreamText(_this.gOptions, data);
+        var caption = base.getNowStreamPhotoText(_this.gOptions, data);
+
+        return _this.gOptions.msgSender.updateMsg({
+            id: messageId,
+            type: messageType,
+            chat_id: chat_id
+        }, caption, text).then(function () {
+            let isPhoto = messageType === 'streamPhoto';
+            if (messageType === 'streamPhoto') {
+                _this.gOptions.tracker.track(chat_id, 'bot', 'updatePhoto', data._channelId);
+            } else
+            if (messageType === 'streamText'){
+                _this.gOptions.tracker.track(chat_id, 'bot', 'updateText', data._channelId);
             }
+            _this.updateLog(chat_id, streamId, isPhoto);
+        }).catch(function (err) {
+            if (err.code === 'ETELEGRAM') {
+                var body = err.response.body;
 
-            var text = base.getNowStreamText(_this.gOptions, data);
-            var caption = base.getNowStreamPhotoText(_this.gOptions, data);
+                var isBlocked = body.error_code === 403;
+                if (!isBlocked) {
+                    isBlocked = [
+                        /group chat is deactivated/,
+                        /chat not found/,
+                        /channel not found/,
+                        /USER_DEACTIVATED/,
+                        /not enough rights to send photos to the chat/,
+                        /need administrator rights in the channel chat/
+                    ].some(function (re) {
+                        return re.test(body.description);
+                    });
+                }
 
-            return _this.gOptions.msgSender.updateMsg({
-                id: messageId,
-                type: messageType,
-                chat_id: chat_id
-            }, caption, text).then(function () {
-                let isPhoto = messageType === 'streamPhoto';
-                if (messageType === 'streamPhoto') {
-                    _this.gOptions.tracker.track(chat_id, 'bot', 'updatePhoto', data._channelId);
+                if (!isBlocked) {
+                    isBlocked = [
+                        /message to edit not found/
+                    ].some(function (re) {
+                        return re.test(body.description);
+                    });
+                }
+
+                if (isBlocked) {
+                    return _this.removeStreamMessage(messageId);
                 } else
-                if (messageType === 'streamText'){
-                    _this.gOptions.tracker.track(chat_id, 'bot', 'updateText', data._channelId);
+                if (/message is not modified/.test(body.description)) {
+                    return;
                 }
-                _this.updateLog(chat_id, streamId, isPhoto);
-            }).catch(function (err) {
-                if (err.code === 'ETELEGRAM') {
-                    var body = err.response.body;
-
-                    var isBlocked = body.error_code === 403;
-                    if (!isBlocked) {
-                        isBlocked = [
-                            /group chat is deactivated/,
-                            /chat not found/,
-                            /channel not found/,
-                            /USER_DEACTIVATED/,
-                            /not enough rights to send photos to the chat/,
-                            /need administrator rights in the channel chat/
-                        ].some(function (re) {
-                            return re.test(body.description);
-                        });
-                    }
-
-                    if (!isBlocked) {
-                        isBlocked = [
-                            /message to edit not found/
-                        ].some(function (re) {
-                            return re.test(body.description);
-                        });
-                    }
-
-                    if (isBlocked) {
-                        return _this.removeStreamMessage(messageId);
-                    } else
-                    if (/message is not modified/.test(body.description)) {
-                        return;
-                    }
-                }
-                throw err;
-            });
+            }
+            throw err;
         });
     }).then(function () {
         return _this.removeItem(chatId, streamId, messageId);
@@ -655,74 +668,68 @@ MsgStack.prototype.sendStreamMessage = function (chat_id, streamId, message, dat
  */
 MsgStack.prototype.sendItem = function (item) {
     var _this = this;
-    var chatId = item.chatId;
-    var streamId = item.streamId;
-    var messageId = item.messageId;
-    var imageFileId = item.imageFileId;
+    var chatId = item.chats.id;
+    var streamId = item.streams.id;
+    var imageFileId = item.streams.imageFileId;
+    var messageId = item.chatIdStreamId.messageId;
 
     var timeout = 5 * 60;
     return _this.setTimeout(chatId, streamId, messageId, base.getNow() + timeout).then(function () {
-        var data = JSON.parse(item.data);
-        data._id = item.id;
-        data._isOffline = !!item.isOffline;
-        data._isTimeout = !!item.isTimeout;
-        data._channelId = item.channelId;
+        var data = JSON.parse(item.streams.data);
+        data._id = item.streams.id;
+        data._isOffline = !!item.streams.isOffline;
+        data._isTimeout = !!item.streams.isTimeout;
+        data._channelId = item.streams.channelId;
 
-        return _this.gOptions.users.getChat(chatId).then(function (chat) {
-            if (!chat) {
-                debug('Can\'t send message %s, user %s is not found!', streamId, chatId);
-                return;
-            }
+        const chat = item.chats;
+        var options = chat.options;
 
-            var options = chat.options;
+        if (data.isRecord && !options.unMuteRecords) {
+            return;
+        }
 
-            if (data.isRecord && !options.unMuteRecords) {
-                return;
-            }
+        var text = base.getNowStreamText(_this.gOptions, data);
+        var caption = '';
 
-            var text = base.getNowStreamText(_this.gOptions, data);
-            var caption = '';
+        if (!options.hidePreview) {
+            caption = base.getNowStreamPhotoText(_this.gOptions, data);
+        }
 
-            if (!options.hidePreview) {
-                caption = base.getNowStreamPhotoText(_this.gOptions, data);
-            }
+        var message = {
+            imageFileId: imageFileId,
+            caption: caption,
+            text: text
+        };
 
-            var message = {
-                imageFileId: imageFileId,
-                caption: caption,
-                text: text
-            };
-
-            var chatList = [{
-                type: 'chat',
-                id: chat.id,
+        var chatList = [{
+            type: 'chat',
+            id: chat.id,
+            chatId: chat.id
+        }];
+        if (chat.channelId) {
+            chatList.push({
+                type: 'channel',
+                id: chat.channelId,
                 chatId: chat.id
-            }];
-            if (chat.channelId) {
-                chatList.push({
-                    type: 'channel',
-                    id: chat.channelId,
-                    chatId: chat.id
-                });
-                if (options.mute) {
-                    chatList.shift();
-                }
+            });
+            if (options.mute) {
+                chatList.shift();
             }
+        }
 
-            var promise = Promise.resolve();
-            chatList.forEach(function (itemObj) {
-                var chat_id = itemObj.id;
-                promise = promise.then(function () {
-                    return _this.sendStreamMessage(chat_id, streamId, message, data, true, chat.id);
-                }).catch(function (err) {
-                    err.itemObj = itemObj;
-                    throw err;
-                });
+        var promise = Promise.resolve();
+        chatList.forEach(function (itemObj) {
+            var chat_id = itemObj.id;
+            promise = promise.then(function () {
+                return _this.sendStreamMessage(chat_id, streamId, message, data, true, chat.id);
+            }).catch(function (err) {
+                err.itemObj = itemObj;
+                throw err;
             });
+        });
 
-            return promise.catch(function (err) {
-                return _this.onSendMessageError(err);
-            });
+        return promise.catch(function (err) {
+            return _this.onSendMessageError(err);
         });
     }).then(function () {
         return _this.removeItem(chatId, streamId, messageId);
@@ -744,15 +751,15 @@ MsgStack.prototype.checkStack = function () {
     var limit = 10;
     if (activePromises.length >= limit) return;
 
-    _this.getStackItems().then(function (/*[StackItem]*/items) {
+    _this.getStackItems().then(function (/*StackItem[]*/items) {
         items.some(function (item) {
-            var chatId = item.chatId;
+            var chatId = item.chats.id;
 
             if (activePromises.length >= limit) return true;
             if (activeChatIds.indexOf(chatId) !== -1) return;
 
             var promise = null;
-            if (item.messageId) {
+            if (item.chatIdStreamId.messageId) {
                 promise = _this.updateItem(item);
             } else {
                 promise = _this.sendItem(item);
