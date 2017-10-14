@@ -117,6 +117,41 @@ MsgStack.prototype.init = function () {
 };
 
 /**
+ * @typedef {{}} Stream
+ * @property {string} id
+ * @property {string} channelId
+ * @property {{}} data
+ * @property {boolean} data.isRecord
+ * @property {number} data.viewers
+ * @property {string} data.game
+ * @property {string[]} data.preview
+ * @property {string} [data.created_at]
+ * @property {{}} data.channel
+ * @property {string} data.channel.name
+ * @property {string} data.channel.status
+ * @property {string} data.channel.url
+ * @property {string|null} imageFileId
+ * @property {string} insertTime
+ * @property {number} checkTime
+ * @property {number} offlineTime
+ * @property {number} isOffline
+ * @property {number} isTimeout
+ */
+
+/**
+ * @param {{}} dbStream
+ * @return {Stream|null}
+ */
+const dbStreamToStream = function (dbStream) {
+    if (dbStream) {
+        dbStream.data = JSON.parse(dbStream.data);
+    }
+    return dbStream || null;
+};
+
+MsgStack.prototype.deSerializeStreamRow = dbStreamToStream;
+
+/**
  * @param {string[]} channelIds
  * @return {Promise.<Object[]>}
  */
