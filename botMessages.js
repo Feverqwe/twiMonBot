@@ -85,16 +85,16 @@ class BotMessages {
         const db = this.gOptions.db;
         return new Promise(function (resolve, reject) {
             db.connection.query('\
-            SELECT \
-            ' + db.wrapTableParams('botMessages', ['chatId', 'streamId', 'msgId', 'msgChatId', 'type', 'data', 'insertTime', 'timeout']) + ', \
-            ' + db.wrapTableParams('streams', ['id', 'channelId', 'data', 'imageFileId', 'insertTime', 'checkTime', 'offlineTime', 'isOffline', 'isTimeout']) + ', \
-            ' + db.wrapTableParams('chats', ['id', 'channelId', 'options', 'insertTime']) + ' \
-            FROM botMessages \
-            LEFT JOIN streams ON botMessages.streamId = streams.id \
-            INNER JOIN chats ON botMessages.chatId = chats.id \
-            WHERE botMessages.timeout < ? \
-            LIMIT 30; \
-        ', [base.getNow()], function (err, results) {
+                SELECT \
+                ' + db.wrapTableParams('botMessages', ['chatId', 'streamId', 'msgId', 'msgChatId', 'type', 'data', 'insertTime', 'timeout']) + ', \
+                ' + db.wrapTableParams('streams', ['id', 'channelId', 'data', 'imageFileId', 'insertTime', 'checkTime', 'offlineTime', 'isOffline', 'isTimeout']) + ', \
+                ' + db.wrapTableParams('chats', ['id', 'channelId', 'options', 'insertTime']) + ' \
+                FROM botMessages \
+                LEFT JOIN streams ON botMessages.streamId = streams.id \
+                INNER JOIN chats ON botMessages.chatId = chats.id \
+                WHERE botMessages.timeout < ? \
+                LIMIT 30; \
+            ', [base.getNow()], function (err, results) {
                 if (err) {
                     reject(err);
                 } else {
