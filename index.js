@@ -17,6 +17,7 @@ const Users = require('./users');
 const Db = require('./db');
 const Locale = require('./locale');
 const Channels = require('./channels');
+const BotMessages = require('./botMessages');
 
 const options = {
     events: null,
@@ -39,6 +40,7 @@ const options = {
     bot: null,
     tracker: null,
     msgSender: null,
+    botMessages: null,
     chat: null,
     liveController: null,
     checker: null
@@ -78,6 +80,10 @@ const options = {
         options.users = new Users(options);
 
         return options.users.onReady;
+    }).then(function() {
+        options.botMessages = new BotMessages(options);
+
+        return options.botMessages.onReady;
     }).then(function() {
         options.msgStack = new MsgStack(options);
 

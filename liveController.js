@@ -298,6 +298,7 @@ LiveController.prototype.insertStreams = function (streams, channels) {
         return queue;
     }).then(function () {
         _this.gOptions.events.emit('checkStack');
+        _this.gOptions.events.emit('checkBotMessages');
     }).catch(function (err) {
         debug('insertStreams', err);
     });

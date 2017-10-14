@@ -678,7 +678,7 @@ MsgStack.prototype.updateItem = function (item) {
     });
 };
 
-MsgStack.prototype.sendStreamMessage = function (chat_id, streamId, message, data, useCache, chatId) {
+MsgStack.prototype.sendStreamMessage = function (chat_id, streamId, message, data, useCache, chatId, autoClean) {
     var _this = this;
     return _this.gOptions.msgSender.sendMessage(chat_id, streamId, message, data, useCache).then(function (msg) {
         var isPhoto = !!msg.photo;
@@ -693,6 +693,10 @@ MsgStack.prototype.sendStreamMessage = function (chat_id, streamId, message, dat
             id: msg.message_id,
             streamId: data._id,
             chatId: chatId
+        }).then(function () {
+            if (autoClean) {
+                return _this.gOptions.botMessages.insertDeleteMessage(chatId, data._id, chat_id, msg.message_id);
+            }
         });
     });
 };
@@ -752,11 +756,13 @@ MsgStack.prototype.sendItem = function (item) {
             }
         }
 
+        const autoClean = !!options.autoClean;
+
         var promise = Promise.resolve();
         chatList.forEach(function (itemObj) {
             var chat_id = itemObj.id;
             promise = promise.then(function () {
-                return _this.sendStreamMessage(chat_id, streamId, message, data, true, chat.id);
+                return _this.sendStreamMessage(chat_id, streamId, message, data, true, chat.id, autoClean);
             }).catch(function (err) {
                 err.itemObj = itemObj;
                 throw err;

@@ -924,11 +924,17 @@ var Chat = function(options) {
         if (!chat || !chat.options.hidePreview) {
             caption = base.getNowStreamPhotoText(_this.gOptions, stream);
         }
+
+        let autoClean = false;
+        if (chat && chat.options) {
+            autoClean = !!chat.options.autoClean;
+        }
+
         return _this.gOptions.msgStack.sendStreamMessage(chatId, stream._id, {
             imageFileId: stream._photoId,
             caption: caption,
             text: text
-        }, stream, true, chatId);
+        }, stream, true, chatId, autoClean);
     };
 
     /**
@@ -1021,7 +1027,7 @@ var Chat = function(options) {
     };
 
     var setOption = function (chat, key, value) {
-        ['hidePreview', 'mute', 'unMuteRecords'].forEach(function (option) {
+        ['hidePreview', 'mute', 'unMuteRecords', 'autoClean'].forEach(function (option) {
             if (option === key) {
                 chat.options[option] = value === 'true';
                 if (!chat.options[option]) {
@@ -1193,6 +1199,24 @@ var Chat = function(options) {
                 text: 'Unmute records',
                 callback_data: '/options?' + querystring.stringify({
                     key: 'unMuteRecords',
+                    value: true
+                })
+            }]);
+        }
+
+        if (options.autoClean) {
+            btnList.push([{
+                text: 'Don\'t remove messages',
+                callback_data: '/options?' + querystring.stringify({
+                    key: 'autoClean',
+                    value: false
+                })
+            }]);
+        } else {
+            btnList.push([{
+                text: 'Remove messages after 24h',
+                callback_data: '/options?' + querystring.stringify({
+                    key: 'autoClean',
                     value: true
                 })
             }]);
