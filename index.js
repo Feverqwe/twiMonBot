@@ -91,12 +91,21 @@ const options = {
     }).then(function() {
         options.daemon = new Daemon(options);
     }).then(function() {
-        options.bot = new TelegramBot(options.config.token, {
-            polling: true
-        });
-        options.bot.on('polling_error', function (err) {
-            debug('pollingError %o', err.message);
-        });
+        const token = options.config.token;
+        const botWebHookUrl = options.config.botWebHookUrl;
+        const botOptions = options.config.bot;
+
+        options.bot = new TelegramBot(token, botOptions);
+
+        if (botOptions.polling) {
+            options.bot.on('polling_error', function (err) {
+                debug('pollingError %o', err.message);
+            });
+        } else {
+            options.bot.setWebHook(`${botWebHookUrl}/bot${token}`, {
+                certificate: botOptions.webHook.cert,
+            });
+        }
 
         var quote = new base.Quote(30);
         options.bot.sendMessage = quote.wrapper(options.bot.sendMessage, options.bot);

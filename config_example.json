@@ -14,5 +14,14 @@
     "user": "",
     "password": ""
   },
-  "adminIds": []
+  "adminIds": [],
+  "botWebHookUrl": "",
+  "bot": {
+    "polling": true,
+    "webHook": {
+      "port": 80,
+      "key": "<key_filename>",
+      "cert": "<cert_filename>"
+    }
+  }
 }
