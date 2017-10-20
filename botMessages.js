@@ -195,7 +195,10 @@ class BotMessages {
                     return self.gOptions.bot.deleteMessage(botMessage.msgChatId, botMessage.msgId).catch(function (err) {
                         if (err.code === 'ETELEGRAM') {
                             const body = err.response.body;
-                            if (body.error_code !== 403) {
+                            if (
+                                body.error_code !== 403 &&
+                                !/message to delete not found/.test(body.description)
+                            ) {
                                 throw err;
                             }
                         } else {
