@@ -62,7 +62,8 @@ MsgSender.prototype.getValidPhotoUrl = function (stream) {
             url: previewUrl,
             gzip: true,
             forever: true,
-            resolveWithFullResponse: true
+            resolveWithFullResponse: true,
+            timeout: 10 * 1000
         }).then(function (response) {
             return response.request.href;
         }).catch(function(err) {
