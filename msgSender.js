@@ -50,7 +50,7 @@ MsgSender.prototype.getValidPhotoUrl = function (stream) {
 
     var requestLimit = _this.gOptions.config.sendPhotoRequestLimit || 10;
 
-    var requestTimeoutSec = _this.gOptions.config.sendPhotoRequestTimeoutSec || 30;
+    var requestTimeoutSec = _this.gOptions.config.sendPhotoRequestTimeoutSec || 6;
     requestTimeoutSec *= 1000;
 
     var previewList = stream.preview;
