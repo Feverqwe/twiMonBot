@@ -48,9 +48,9 @@ MsgSender.prototype.updateMsg = function (msg, caption, text) {
 MsgSender.prototype.getValidPhotoUrl = function (stream) {
     var _this = this;
 
-    var requestLimit = _this.gOptions.config.sendPhotoRequestLimit || 10;
+    var requestLimit = _this.gOptions.config.sendPhotoRequestLimit || 30;
 
-    var requestTimeoutSec = _this.gOptions.config.sendPhotoRequestTimeoutSec || 6;
+    var requestTimeoutSec = _this.gOptions.config.sendPhotoRequestTimeoutSec || 5;
     requestTimeoutSec *= 1000;
 
     var previewList = stream.preview;
@@ -62,8 +62,7 @@ MsgSender.prototype.getValidPhotoUrl = function (stream) {
             url: previewUrl,
             gzip: true,
             forever: true,
-            resolveWithFullResponse: true,
-            timeout: 10 * 1000
+            resolveWithFullResponse: true
         }).then(function (response) {
             return response.request.href;
         }).catch(function(err) {
@@ -72,6 +71,8 @@ MsgSender.prototype.getValidPhotoUrl = function (stream) {
             }
 
             if (requestLimit-- < 1) {
+                const err = new Error('REQUEST_PHOTO_ERROR');
+                err.parentError = err;
                 throw err;
             }
 
@@ -204,7 +205,11 @@ MsgSender.prototype.requestPicId = function(chat_id, messageId, caption, text, d
 
             return _this.send(chat_id, imageFileId, caption, text);
         }, function (err) {
-            return _this.requestPicId(chat_id, messageId, caption, text, data, message);
+            if (err.message === 'REQUEST_PHOTO_ERROR') {
+                return _this.send(chat_id, null, caption, text);
+            } else {
+                return _this.requestPicId(chat_id, messageId, caption, text, data, message);
+            }
         });
     }
     return promise;
