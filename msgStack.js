@@ -528,7 +528,6 @@ MsgStack.prototype.getStackItems = function () {
             INNER JOIN streams ON chatIdStreamId.streamId = streams.id \
             INNER JOIN chats ON chatIdStreamId.chatId = chats.id \
             WHERE chatIdStreamId.timeout < ? \
-            ORDER BY chatIdStreamId.timeout ASC \
             LIMIT 30; \
         ', [base.getNow()], function (err, results) {
             if (err) {
