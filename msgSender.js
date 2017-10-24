@@ -71,9 +71,9 @@ MsgSender.prototype.getValidPhotoUrl = function (stream) {
             }
 
             if (requestLimit-- < 1) {
-                const err = new Error('REQUEST_PHOTO_ERROR');
-                err.parentError = err;
-                throw err;
+                const _err = new Error('REQUEST_PHOTO_ERROR');
+                _err.parentError = err;
+                throw _err;
             }
 
             return new Promise(function(resolve) {
