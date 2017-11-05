@@ -184,10 +184,10 @@ class BotMessages {
             if (stream) {
                 const diffSeconds = base.getNow() - botMessage.insertTime;
                 if (diffSeconds > 48 * 60 * 60) {
-                    debug('removeItem mor 48h', botMessage.chatId, botMessage.msgId);
+                    // debug('removeItem mor 48h', botMessage.chatId, botMessage.msgId);
                     return self.removeItem(botMessage);
                 } else {
-                    debug('setTimeout', botMessage.chatId, botMessage.msgId);
+                    // debug('setTimeout', botMessage.chatId, botMessage.msgId);
                     return self.setTimeout(botMessage, base.getNow() + 60 * 60);
                 }
             } else {
