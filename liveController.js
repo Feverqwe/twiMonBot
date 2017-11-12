@@ -179,6 +179,11 @@ LiveController.prototype.insertStreams = function (streams, channels) {
                 debugLog('Offline (U) %s %j', stream.id, stream);
                 offlineStreams.push(stream);
             } else
+            if (stream.isTimeout) {
+                stream.isTimeout = 0;
+                debugLog('Offline (T>U) %s %j', stream.id, stream);
+                offlineStreams.push(stream);
+            } else
             if (base.getNow() - stream.offlineTime > TIMEOUT) {
                 debugLog('Remove %s %j', stream.id, stream);
                 removeStreamIds.push(stream.id);
