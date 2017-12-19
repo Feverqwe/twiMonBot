@@ -215,14 +215,17 @@ Twitch.prototype.channelExists = function (channel) {
     });
 };
 
+/**
+ * @param {string} channelName
+ * @return {Promise.<string>}
+ */
 Twitch.prototype.requestChannelByName = function (channelName) {
     var _this = this;
     return requestPromise({
         method: 'GET',
         url: 'https://api.twitch.tv/kraken/search/channels',
         qs: {
-            query: channelName,
-            limit: 1
+            query: channelName
         },
         headers: {
             'Accept': 'application/vnd.twitchtv.v5+json',
@@ -234,8 +237,15 @@ Twitch.prototype.requestChannelByName = function (channelName) {
     }).then(function(responseBody) {
         var channel = null;
         responseBody.channels.some(function (item) {
-            return channel = item;
+            if (item.name === channelName) {
+                return channel = item;
+            }
         });
+        if (!channel) {
+            responseBody.channels.some(function (item) {
+                return channel = item;
+            });
+        }
         if (!channel) {
             throw new CustomError('Channel is not found by name!');
         }
