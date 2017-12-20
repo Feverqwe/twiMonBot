@@ -225,7 +225,7 @@ Twitch.prototype.requestChannelByName = function (channelName) {
         method: 'GET',
         url: 'https://api.twitch.tv/kraken/search/channels',
         qs: {
-            query: channelName
+            query: JSON.stringify(channelName)
         },
         headers: {
             'Accept': 'application/vnd.twitchtv.v5+json',
@@ -237,7 +237,7 @@ Twitch.prototype.requestChannelByName = function (channelName) {
     }).then(function(responseBody) {
         var channel = null;
         responseBody.channels.some(function (item) {
-            if (item.name === channelName) {
+            if (item.name.toLowerCase() === channelName.toLowerCase()) {
                 return channel = item;
             }
         });
@@ -274,9 +274,7 @@ Twitch.prototype.getChannelNameByUrl = function (url) {
 Twitch.prototype.getChannelId = function(channelName) {
     var _this = this;
 
-    return _this.getChannelNameByUrl(channelName).then(function (channelName) {
-        return JSON.stringify(channelName);
-    }).catch(function (err) {
+    return _this.getChannelNameByUrl(channelName).catch(function (err) {
         if (!(err instanceof CustomError)) {
             throw err;
         }
