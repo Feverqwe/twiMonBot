@@ -35,7 +35,7 @@ LiveController.prototype.clean = function () {
     });
 };
 
-var insertPool = new base.Pool(15);
+var insertPool = new base.Pool(1);
 
 LiveController.prototype.findPrevStreamId = function (prevStreams, stream) {
     var prevStreamId = null;
