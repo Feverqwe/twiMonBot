@@ -26,7 +26,7 @@ class BotMessages {
                 db.connection.query('\
                     CREATE TABLE IF NOT EXISTS `botMessages` ( \
                         `chatId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
-                        `streamId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
+                        `streamId` VARCHAR(191) CHARACTER SET utf8mb4, \
                         `msgId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
                         `msgChatId` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
                         `type` VARCHAR(191) CHARACTER SET utf8mb4 NOT NULL, \
@@ -39,6 +39,10 @@ class BotMessages {
                     INDEX `msgChatId_idx` (`msgChatId` ASC), \
                     INDEX `type_idx` (`type` ASC), \
                     INDEX `timeout_idx` (`timeout` ASC), \
+                    FOREIGN KEY (`streamId`) \
+                        REFERENCES `streams` (`id`) \
+                        ON DELETE SET NULL \
+                        ON UPDATE CASCADE, \
                     FOREIGN KEY (`chatId`) \
                         REFERENCES `chats` (`id`) \
                         ON DELETE CASCADE \
@@ -53,9 +57,9 @@ class BotMessages {
     /**
      * @typedef {{}} BotMessage
      * @property {string} chatId
-     * @property {number} streamId
-     * @property {number} msgId
-     * @property {number} msgChatId
+     * @property {string|null} streamId
+     * @property {string} msgId
+     * @property {string} msgChatId
      * @property {string} type
      * @property {Object} data
      * @property {number} insertTime
@@ -75,7 +79,6 @@ class BotMessages {
      * @typedef {{}} BotMessageItem
      * @property {BotMessage} botMessages
      * @property {Chat} chats
-     * @property {Stream} streams
      */
     /**
      * @return {Promise.<BotMessageItem[]>}
@@ -87,10 +90,8 @@ class BotMessages {
             db.connection.query('\
                 SELECT \
                 ' + db.wrapTableParams('botMessages', ['chatId', 'streamId', 'msgId', 'msgChatId', 'type', 'data', 'insertTime', 'timeout']) + ', \
-                ' + db.wrapTableParams('streams', ['id', 'channelId', 'data', 'imageFileId', 'insertTime', 'checkTime', 'offlineTime', 'isOffline', 'isTimeout']) + ', \
                 ' + db.wrapTableParams('chats', ['id', 'channelId', 'options', 'insertTime']) + ' \
                 FROM botMessages \
-                LEFT JOIN streams ON botMessages.streamId = streams.id \
                 INNER JOIN chats ON botMessages.chatId = chats.id \
                 WHERE botMessages.timeout < ? \
                 LIMIT 30; \
@@ -102,10 +103,6 @@ class BotMessages {
                         const item = db.unWrapTableParams(row);
                         item.botMessages = self.deSerializeMessageRow(item.botMessages);
                         item.chats = self.gOptions.users.deSerializeChatRow(item.chats);
-                        if (item.streams.id === null) {
-                            item.streams = null;
-                        }
-                        item.streams = self.gOptions.msgStack.deSerializeStreamRow(item.streams);
                         return item;
                     }));
                 }
@@ -175,13 +172,12 @@ class BotMessages {
     }
     /**
      * @param {BotMessage} botMessage
-     * @param {Stream} stream
      * @return {Promise}
      */
-    deleteMessageTask(botMessage, stream) {
+    deleteMessageTask(botMessage) {
         const self = this;
         return Promise.resolve().then(function () {
-            if (stream) {
+            if (botMessage.streamId !== null) {
                 const diffSeconds = base.getNow() - botMessage.insertTime;
                 if (diffSeconds > 48 * 60 * 60) {
                     // debug('removeItem mor 48h', botMessage.chatId, botMessage.msgId);
@@ -221,7 +217,7 @@ class BotMessages {
         const self = this;
         switch (item.botMessages.type) {
             case 'delete': {
-                return self.deleteMessageTask(item.botMessages, item.streams);
+                return self.deleteMessageTask(item.botMessages);
             }
             default: {
                 throw new Error('Unknown action type');
