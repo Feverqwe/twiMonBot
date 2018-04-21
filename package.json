@@ -1,12 +1,16 @@
 {
   "name": "application-name",
   "version": "0.0.1",
+  "scripts": {
+    "start": "node ./index"
+  },
   "dependencies": {
+    "bluebird": "^3.5.1",
     "debug": "^3.1.0",
-    "mysql": "^2.13.0",
-    "node-telegram-bot-api": "^0.28.0",
-    "request": "^2.74.0",
-    "request-promise": "^4.1.1",
-    "uuid": "^3.0.1"
+    "mysql": "^2.15.0",
+    "node-telegram-bot-api": "^0.30.0",
+    "request": "^2.85.0",
+    "request-promise": "^4.2.2",
+    "uuid": "^3.2.1"
   }
 }
