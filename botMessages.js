@@ -193,7 +193,9 @@ class BotMessages {
                             const body = err.response.body;
                             if (
                                 body.error_code !== 403 &&
-                                !/message to delete not found/.test(body.description)
+                                !/message to delete not found/.test(body.description) &&
+                                !/chat not found/.test(body.description) &&
+                                !/group chat was upgraded/.test(body.description)
                             ) {
                                 throw err;
                             }
