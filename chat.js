@@ -41,9 +41,7 @@ var Chat = function(options) {
 
     router.callback_query(function (req, next) {
         var id = req.callback_query.id;
-        bot.answerCallbackQuery({
-            callback_query_id: id
-        }).then(next).catch(function (err) {
+        bot.answerCallbackQuery(id).then(next).catch(function (err) {
             debug('answerCallbackQuery error! %o', err);
         });
     });
@@ -430,9 +428,7 @@ var Chat = function(options) {
                     chatId: chatId,
                     fromId: req.getFromId()
                 }, 3 * 60).then(function (req) {
-                    return bot.answerCallbackQuery({
-                        callback_query_id: req.callback_query.id
-                    }).then(function () {
+                    return bot.answerCallbackQuery(req.callback_query.id).then(function () {
                         var query = req.getQuery();
                         if (query.cancel === 'true' || !query.service) {
                             return editOrSendNewMessage(chatId, msg.message_id, language.commandCanceled.replace('{command}', 'add'));

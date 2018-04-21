@@ -103,6 +103,8 @@ MsgSender.prototype.getPicId = function(chat_id, text, stream) {
                 forever: true
             }), {
                 caption: text
+            }, {
+                contentType: 'image/jpeg',
             });
         };
 
