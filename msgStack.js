@@ -411,7 +411,7 @@ MsgStack.prototype.setImageFileId = function (streamId, imageFileId) {
             }
         });
     }).catch(function (err) {
-        debug('setImageFileId error', err);
+        debug('setImageFileId error %o', err);
     });
 };
 
@@ -672,7 +672,7 @@ MsgStack.prototype.updateItem = function (item) {
     }).then(function () {
         return _this.removeItem(chatId, streamId, messageId);
     }).catch(function (err) {
-        debug('updateItem', chat_id, streamId, err);
+        debug('updateItem %s %s %o', chat_id, streamId, err);
 
         return _this.setTimeout(chatId, streamId, messageId, base.getNow() + timeout);
     });
@@ -775,7 +775,7 @@ MsgStack.prototype.sendItem = function (item) {
     }).then(function () {
         return _this.removeItem(chatId, streamId, messageId);
     }).catch(function (err) {
-        debug('sendItem', chatId, streamId, err);
+        debug('sendItem %s %s %o', chatId, streamId, err);
 
         if (/PEER_ID_INVALID/.test(err)) {
             timeout = 6 * 60 * 60;
