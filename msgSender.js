@@ -70,7 +70,7 @@ MsgSender.prototype.getValidPhotoUrl = function (stream) {
                 return getHead(index);
             }
 
-            if (requestLimit-- < 1) {
+            if (/ETIMEDOUT/.test(err.message) || requestLimit-- < 1) {
                 const _err = new Error('REQUEST_PHOTO_ERROR');
                 _err.parentError = err;
                 throw _err;
