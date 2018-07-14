@@ -6,6 +6,7 @@ const debug = require('debug')('app:goodgame');
 const base = require('../base');
 const requestPromise = require('request-promise');
 const CustomError = require('../customError').CustomError;
+const qs = require('querystring');
 
 var GoodGame = function (options) {
     this.gOptions = options;
@@ -46,6 +47,13 @@ GoodGame.prototype.insertItem = function (channel, stream) {
                 url = 'https:' + url;
             }
             return base.noCacheUrl(url);
+        });
+
+        previewList.slice(0).forEach(url => {
+            previewList.unshift('https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?' + qs.stringify({
+                container: 'focus',
+                url: url
+            }));
         });
 
         var game = '';
