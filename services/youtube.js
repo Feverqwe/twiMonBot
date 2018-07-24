@@ -111,6 +111,39 @@ Youtube.prototype.getViewers = function(id) {
     });
 };
 
+Youtube.prototype.isLiveFilter = function(items, channelId) {
+    const idItemMap = {};
+    items.forEach(item => {
+        idItemMap[item.id.videoId] = item;
+    });
+    const videoIds = Object.keys(idItemMap);
+
+    return gotLimited('https://www.googleapis.com/youtube/v3/videos', {
+        query: {
+            part: 'snippet',
+            id: videoIds.join(','),
+            maxResults: videoIds.length,
+            fields: 'items(id,snippet/liveBroadcastContent)',
+            key: this.config.token
+        },
+        json: true
+    }).then(({body}) => {
+        const result = [];
+        body.items.forEach(item => {
+            if (item.snippet.liveBroadcastContent === 'live') {
+                result.push(idItemMap[item.id]);
+            }
+        });
+        if (videoIds.length !== result.length) {
+            debug('Still exists api bug', channelId);
+        }
+        return result;
+    }).catch(function (err) {
+        debug('isLive %s error! %o', channelId, err);
+        return items;
+    });
+};
+
 var requestPool = new base.Pool(10);
 
 Youtube.prototype.getStreamList = function(_channelList) {
@@ -155,8 +188,14 @@ Youtube.prototype.getStreamList = function(_channelList) {
             });
         };
 
-        return requestPage().then(function (responseBody) {
-            var items = responseBody.items;
+        return requestPage().then(({items}) => {
+            // todo: disable me after bug fix
+            if (items.length) {
+                return _this.isLiveFilter(items, _this.channels.unWrapId(channel.id));
+            } else {
+                return items;
+            }
+        }).then(function (items) {
             return insertPool.do(function () {
                 var item = items.shift();
                 if (!item) return;
