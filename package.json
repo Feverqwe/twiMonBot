@@ -7,10 +7,11 @@
   "dependencies": {
     "bluebird": "^3.5.1",
     "debug": "^3.1.0",
-    "mysql": "^2.15.0",
+    "got": "^8.3.2",
+    "mysql": "^2.16.0",
     "node-telegram-bot-api": "^0.30.0",
-    "request": "^2.85.0",
+    "request": "^2.87.0",
     "request-promise": "^4.2.2",
-    "uuid": "^3.2.1"
+    "uuid": "^3.3.2"
   }
 }

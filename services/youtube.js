@@ -5,9 +5,10 @@
 const debug = require('debug')('app:youtube');
 const base = require('../base');
 const CustomError = require('../customError').CustomError;
+const got = require('got');
 
-var apiQuote = new base.Quote(1000);
-const requestPromise = apiQuote.wrapper(require('request-promise'));
+const apiQuote = new base.Quote(1000);
+const gotLimited = apiQuote.wrapper(got);
 
 var Youtube = function(options) {
     this.gOptions = options;
@@ -93,20 +94,17 @@ var insertPool = new base.Pool(15);
 var intRe = /^\d+$/;
 
 Youtube.prototype.getViewers = function(id) {
-    return requestPromise({
-        url: 'https://gaming.youtube.com/live_stats',
-        qs: {
+    return gotLimited('https://gaming.youtube.com/live_stats', {
+        query: {
             v: id,
             t: Date.now()
-        },
-        gzip: true,
-        forever: true
-    }).then(function(responseBody) {
-        if (!intRe.test(responseBody)) {
-            throw new Error('NOT INT ' + JSON.stringify(responseBody));
+        }
+    }).then(({body}) => {
+        if (!intRe.test(body)) {
+            throw new Error('NOT INT ' + JSON.stringify(body));
         }
 
-        return parseInt(responseBody);
+        return parseInt(body, 10);
     }).catch(function (err) {
         debug('getViewers %s error! %o', id, err);
         return -1;
@@ -121,10 +119,8 @@ Youtube.prototype.getStreamList = function(_channelList) {
     var getPage = function (/*dbChannel*/channel) {
         var retryLimit = 1;
         var requestPage = function () {
-            return requestPromise({
-                method: 'GET',
-                url: 'https://www.googleapis.com/youtube/v3/search',
-                qs: {
+            return gotLimited('https://www.googleapis.com/youtube/v3/search', {
+                query: {
                     part: 'snippet',
                     channelId: _this.channels.unWrapId(channel.id),
                     eventType: 'live',
@@ -135,19 +131,17 @@ Youtube.prototype.getStreamList = function(_channelList) {
                     fields: 'items(id/videoId,snippet)',
                     key: _this.config.token
                 },
-                json: true,
-                gzip: true,
-                forever: retryLimit === 1
-            }).then(function (responseBody) {
-                if (!Array.isArray(responseBody && responseBody.items)) {
+                json: true
+            }).then(({body}) => {
+                if (!Array.isArray(body && body.items)) {
                     var err = new Error('Unexpected response');
                     err.channelId = _this.channels.unWrapId(channel.id);
-                    err.responseBody = responseBody;
+                    err.responseBody = body;
                     throw err;
                 }
 
-                return responseBody;
-            }).catch(function (err) {
+                return body;
+            }).catch(err => {
                 if (retryLimit-- < 1) {
                     throw err;
                 }
@@ -215,10 +209,8 @@ Youtube.prototype.channelExists = function (channel) {
 Youtube.prototype.hasBroadcasts = function (channelId) {
     const _this = this;
     const hasBroadcast = function (type) {
-        return requestPromise({
-            method: 'GET',
-            url: 'https://www.googleapis.com/youtube/v3/search',
-            qs: {
+        return gotLimited('https://www.googleapis.com/youtube/v3/search', {
+            query: {
                 part: 'snippet',
                 channelId: channelId,
                 eventType: type,
@@ -229,11 +221,9 @@ Youtube.prototype.hasBroadcasts = function (channelId) {
                 fields: 'items(id/videoId)',
                 key: _this.config.token
             },
-            json: true,
-            gzip: true,
-            forever: true
-        }).then(function (data) {
-            return data.items;
+            json: true
+        }).then(({body}) => {
+            return body.items;
         });
     };
     return hasBroadcast('completed').then(function (list) {
@@ -271,10 +261,8 @@ Youtube.prototype.requestChannelIdByQuery = function(rawQuery) {
         query = rawQuery;
     }
 
-    return requestPromise({
-        method: 'GET',
-        url: 'https://www.googleapis.com/youtube/v3/search',
-        qs: {
+    return gotLimited('https://www.googleapis.com/youtube/v3/search', {
+        query: {
             part: 'snippet',
             q: query,
             type: 'channel',
@@ -282,12 +270,10 @@ Youtube.prototype.requestChannelIdByQuery = function(rawQuery) {
             fields: 'items(id)',
             key: _this.config.token
         },
-        json: true,
-        gzip: true,
-        forever: true
-    }).then(function(responseBody) {
+        json: true
+    }).then(({body}) => {
         var channelId = '';
-        responseBody.items.some(function (item) {
+        body.items.some(function (item) {
             return channelId = item.id.channelId;
         });
         if (!channelId) {
@@ -325,22 +311,18 @@ Youtube.prototype.requestChannelIdByUsername = function(url) {
         return Promise.reject(new CustomError('It is not username!'));
     }
 
-    return requestPromise({
-        method: 'GET',
-        url: 'https://www.googleapis.com/youtube/v3/channels',
-        qs: {
+    return gotLimited('https://www.googleapis.com/youtube/v3/channels', {
+        query: {
             part: 'snippet',
             forUsername: username,
             maxResults: 1,
             fields: 'items/id',
             key: _this.config.token
         },
-        json: true,
-        gzip: true,
-        forever: true
-    }).then(function(responseBody) {
+        json: true
+    }).then(({body}) => {
         var id = '';
-        responseBody.items.some(function (item) {
+        body.items.some(function (item) {
             return id = item.id;
         });
         if (!id) {
@@ -402,22 +384,18 @@ Youtube.prototype.requestChannelIdByVideoUrl = function (url) {
         return Promise.reject(new CustomError('It is not video url!'));
     }
 
-    return requestPromise({
-        method: 'GET',
-        url: 'https://www.googleapis.com/youtube/v3/videos',
-        qs: {
+    return gotLimited('https://www.googleapis.com/youtube/v3/videos', {
+        query: {
             part: 'snippet',
             id: videoId,
             maxResults: 1,
             fields: 'items/snippet',
             key: _this.config.token
         },
-        json: true,
-        gzip: true,
-        forever: true
-    }).then(function(responseBody) {
+        json: true
+    }).then(({body}) => {
         var channelId = '';
-        responseBody.items.some(function (item) {
+        body.items.some(function (item) {
             return channelId = item.snippet.channelId;
         });
         if (!channelId) {
@@ -450,22 +428,18 @@ Youtube.prototype.getChannelId = function(channelName) {
             });
         });
     }).then(function(channelId) {
-        return requestPromise({
-            method: 'GET',
-            url: 'https://www.googleapis.com/youtube/v3/search',
-            qs: {
+        return gotLimited('https://www.googleapis.com/youtube/v3/search', {
+            query: {
                 part: 'snippet',
                 channelId: channelId,
                 maxResults: 1,
                 fields: 'items/snippet',
                 key: _this.config.token
             },
-            json: true,
-            gzip: true,
-            forever: true
-        }).then(function(responseBody) {
+            json: true
+        }).then(({body}) => {
             var snippet = null;
-            responseBody.items.some(function (item) {
+            body.items.some(function (item) {
                 return snippet = item.snippet;
             });
             if (!snippet) {
