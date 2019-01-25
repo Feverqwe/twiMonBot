@@ -86,11 +86,6 @@ var Chat = function(options) {
 
         if (req.message) {
             var help = language.help;
-            if (req.params[0] === 'help') {
-                if (base.getRandomInt(0, 100) < 30) {
-                    help += language.rateMe;
-                }
-            }
             bot.sendMessage(chatId, help, {
                 disable_web_page_preview: true,
                 reply_markup: JSON.stringify({
@@ -237,8 +232,6 @@ var Chat = function(options) {
         }
 
         message = message.replace('{count}', count);
-
-        message += language.rateMe;
 
         return bot.sendMessage(chatId, message).catch(function (err) {
             debug('Command about error! %o', err);
