@@ -921,7 +921,7 @@ var Chat = function(options) {
                 promise = promise.then(function () {
                     return _this.gOptions.services.goodgame.channelExists(channel).catch(function (err) {
                         if (err.code === 'CHANNEL_NOT_FOUND') {
-                            debug('Channel not found, removing... %s %o', channel.id);
+                            debug('Channel not found, removing... %s', channel.id);
                             return _this.gOptions.channels.removeChannel(channel.id);
                         }
                         debug('channelExists error! %s %o', channel.id, err);
