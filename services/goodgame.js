@@ -7,6 +7,7 @@ const base = require('../base');
 const requestPromise = require('request-promise');
 const CustomError = require('../customError').CustomError;
 const qs = require('querystring');
+const ErrorWithCode = require('../errorWithCode');
 
 var GoodGame = function (options) {
     this.gOptions = options;
@@ -200,6 +201,21 @@ GoodGame.prototype.getStreamList = function (_channelList) {
 
     return promise.then(function () {
         return videoList;
+    });
+};
+
+/**
+ * @param {dbChannel} channel
+ * @return {Promise.<dbChannel>}
+ */
+GoodGame.prototype.channelExists = function (channel) {
+    var _this = this;
+    const channelId = _this.channels.unWrapId(channel.id);
+    return _this.getChannelId(channelId).catch((err) => {
+        if (err.statusCode === 404) {
+            throw new ErrorWithCode('Channel is not found', 'CHANNEL_NOT_FOUND');
+        }
+        throw err;
     });
 };
 
