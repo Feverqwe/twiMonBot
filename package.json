@@ -5,9 +5,9 @@
     "start": "node ./index"
   },
   "dependencies": {
-    "bluebird": "^3.5.1",
-    "debug": "^3.1.0",
-    "got": "^8.3.2",
+    "bluebird": "^3.5.3",
+    "debug": "^4.1.1",
+    "got": "^9.6.0",
     "mysql": "^2.16.0",
     "node-telegram-bot-api": "^0.30.0",
     "request": "^2.87.0",
