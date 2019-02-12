@@ -2,10 +2,8 @@
  * Created by Anton on 02.10.2016.
  */
 "use strict";
-const base = require('./base');
 const debug = require('debug')('app:msgSender');
-const request = require('request');
-const requestPromise = require('request-promise');
+const got = require('got');
 
 var MsgSender = function (options) {
     var _this = this;
@@ -57,14 +55,8 @@ MsgSender.prototype.getValidPhotoUrl = function (stream) {
 
     var getHead = function (index) {
         var previewUrl = previewList[index];
-        return requestPromise({
-            method: 'HEAD',
-            url: previewUrl,
-            gzip: true,
-            forever: true,
-            resolveWithFullResponse: true
-        }).then(function (response) {
-            return response.request.href;
+        return got.head(previewUrl).then(function (response) {
+            return response.url;
         }).catch(function(err) {
             if (++index < previewList.length) {
                 return getHead(index);
@@ -98,10 +90,7 @@ MsgSender.prototype.getPicId = function(chat_id, text, stream) {
 
     var sendingPic = function () {
         var uploadPhoto = function (photoUrl) {
-            return _this.gOptions.bot.sendPhoto(chat_id, request({
-                url: photoUrl,
-                forever: true
-            }), {
+            return _this.gOptions.bot.sendPhoto(chat_id, got.stream(photoUrl), {
                 caption: text
             }, {
                 contentType: 'image/jpeg',

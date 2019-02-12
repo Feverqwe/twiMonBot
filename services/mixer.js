@@ -4,8 +4,8 @@
 "use strict";
 const debug = require('debug')('app:mixer');
 const base = require('../base');
-const requestPromise = require('request-promise');
 const CustomError = require('../customError').CustomError;
+const got = require('got');
 
 var requestPool = new base.Pool(10);
 
@@ -72,20 +72,17 @@ class Mixer {
         var getPage = function (/*dbChannel*/ channel) {
             var retryLimit = 1;
             var requestPage = function () {
-                return requestPromise({
-                    method: 'GET',
-                    url: 'https://mixer.com/api/v1/channels/' + _this.channels.unWrapId(channel.id),
+                return got('https://mixer.com/api/v1/channels/' + encodeURIComponent(_this.channels.unWrapId(channel.id)), {
                     headers: {
                         'user-agent': ''
                     },
-                    json: true,
-                    gzip: true,
-                    forever: retryLimit === 1
+                    responseType: 'json',
+                    resolveBodyOnly: true
                 }).catch(function (err) {
                     if (err.statusCode === 404) {
                         var isRemovedChannel = false;
                         try {
-                            var body = err.response.body;
+                            var body = err.body;
                             isRemovedChannel = body.statusCode === 404 &&
                                 body.message === 'Channel not found.' &&
                                 body.error === 'Not Found';
@@ -163,10 +160,8 @@ class Mixer {
             }
             return channelName;
         }).then(function (channelId) {
-            return requestPromise({
-                method: 'GET',
-                url: 'https://mixer.com/api/v1/channels',
-                qs: {
+            return got('https://mixer.com/api/v1/channels', {
+                searchParams: {
                     limit: 1,
                     scope: 'names',
                     q: channelId
@@ -174,9 +169,8 @@ class Mixer {
                 headers: {
                     'user-agent': ''
                 },
-                json: true,
-                gzip: true,
-                forever: true
+                responseType: 'json',
+                resolveBodyOnly: true
             }).then(function (responseBody) {
                 var item = null;
                 responseBody.some(function (_item) {

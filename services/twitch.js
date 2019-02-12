@@ -4,8 +4,8 @@
 "use strict";
 const debug = require('debug')('app:twitch');
 const base = require('../base');
-const requestPromise = require('request-promise');
 const CustomError = require('../customError').CustomError;
+const got = require('got');
 
 var insertPool = new base.Pool(15);
 
@@ -95,10 +95,8 @@ class Twitch {
                 queue = queue.then(function () {
                     var retryLimit = 1;
                     var getList = function () {
-                        return requestPromise({
-                            method: 'GET',
-                            url: 'https://api.twitch.tv/kraken/streams',
-                            qs: {
+                        return got('https://api.twitch.tv/kraken/streams', {
+                            searchParams: {
                                 limit: 100,
                                 channel: Object.keys(channelIdMap).join(','),
                                 stream_type: 'all'
@@ -107,9 +105,8 @@ class Twitch {
                                 'Accept': 'application/vnd.twitchtv.v5+json',
                                 'Client-ID': _this.config.token
                             },
-                            json: true,
-                            gzip: true,
-                            forever: retryLimit === 1
+                            responseType: 'json',
+                            resolveBodyOnly: true
                         }).then(function (responseBody) {
                             if (!Array.isArray(responseBody && responseBody.streams)) {
                                 var err = new Error('Unexpected response');
@@ -174,16 +171,13 @@ class Twitch {
     channelExists(channel) {
         var _this = this;
         const channelId = _this.channels.unWrapId(channel.id);
-        return requestPromise({
-            method: 'GET',
-            url: 'https://api.twitch.tv/kraken/channels/' + channelId,
+        return got('https://api.twitch.tv/kraken/channels/' + encodeURIComponent(channelId), {
             headers: {
                 'Accept': 'application/vnd.twitchtv.v5+json',
                 'Client-ID': _this.config.token
             },
-            json: true,
-            gzip: true,
-            forever: true
+            responseType: 'json',
+            resolveBodyOnly: true
         }).catch(function (err) {
             if (err.statusCode === 404) {
                 throw new CustomError('Channel is not found!');
@@ -197,19 +191,16 @@ class Twitch {
      */
     requestChannelByName(channelName) {
         var _this = this;
-        return requestPromise({
-            method: 'GET',
-            url: 'https://api.twitch.tv/kraken/search/channels',
-            qs: {
+        return got('https://api.twitch.tv/kraken/search/channels', {
+            searchParams: {
                 query: JSON.stringify(channelName)
             },
             headers: {
                 'Accept': 'application/vnd.twitchtv.v5+json',
                 'Client-ID': _this.config.token
             },
-            json: true,
-            gzip: true,
-            forever: true
+            responseType: 'json',
+            resolveBodyOnly: true
         }).then(function (responseBody) {
             var channel = null;
             responseBody.channels.some(function (item) {

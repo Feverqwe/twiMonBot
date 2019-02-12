@@ -4,7 +4,7 @@
 "use strict";
 const debug = require('debug')('app:tracker');
 const Uuid = require('uuid');
-const requestPromise = require('request-promise');
+const got = require('got');
 
 var Tracker = function(options) {
     this.gOptions = options;
@@ -95,20 +95,10 @@ Tracker.prototype.send = function(params) {
         an: 'bot'
     };
 
-    for (var key in defaultParams) {
-        if(!params.hasOwnProperty(key)) {
-            params[key] = defaultParams[key];
-        }
-    }
-
     var limit = 5;
     var send = function () {
-        return requestPromise({
-            url: 'https://www.google-analytics.com/collect',
-            method: 'POST',
-            form: params,
-            gzip: true,
-            forever: true
+        return got.post('https://www.google-analytics.com/collect', {
+            form: Object.assign({}, defaultParams, params)
         }).catch(function (err) {
             if (limit-- < 1) {
                 debug('Track error %s %s %s', err.name, err.statusCode, err.message);
