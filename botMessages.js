@@ -195,7 +195,8 @@ class BotMessages {
                                 body.error_code !== 403 &&
                                 !/message to delete not found/.test(body.description) &&
                                 !/chat not found/.test(body.description) &&
-                                !/group chat was upgraded/.test(body.description)
+                                !/group chat was upgraded/.test(body.description) &&
+                                !/message can't be deleted/.test(body.description)
                             ) {
                                 throw err;
                             }
