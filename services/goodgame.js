@@ -108,7 +108,7 @@ class GoodGame {
                     var retryLimit = 1;
                     var getList = function () {
                         return got('https://api2.goodgame.ru/v2/streams', {
-                            searchParams: {
+                            query: {
                                 ids: Object.keys(channelIdMap).join(','),
                                 adult: true,
                                 hidden: true
@@ -116,9 +116,8 @@ class GoodGame {
                             headers: {
                                 'Accept': 'application/vnd.goodgame.v2+json'
                             },
-                            responseType: 'json',
-                            resolveBodyOnly: true
-                        }).then((responseBody) => {
+                            json: true,
+                        }).then(({body: responseBody}) => {
                             if (!Array.isArray(responseBody && responseBody._embedded && responseBody._embedded.streams)) {
                                 var err = new Error('Unexpected response');
                                 err.channelIdMap = channelIdMap;
@@ -223,9 +222,8 @@ class GoodGame {
                 headers: {
                     'Accept': 'application/vnd.goodgame.v2+json'
                 },
-                responseType: 'json',
-                resolveBodyOnly: true
-            }).then((responseBody) => {
+                json: true,
+            }).then(({body: responseBody}) => {
                 var title = responseBody.key;
                 if (!title) {
                     throw new CustomError('Channel is not found!');

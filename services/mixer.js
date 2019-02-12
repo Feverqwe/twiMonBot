@@ -76,8 +76,7 @@ class Mixer {
                     headers: {
                         'user-agent': ''
                     },
-                    responseType: 'json',
-                    resolveBodyOnly: true
+                    json: true,
                 }).catch(function (err) {
                     if (err.statusCode === 404) {
                         var isRemovedChannel = false;
@@ -106,7 +105,7 @@ class Mixer {
                     });
                 });
             };
-            return requestPage().then(function (responseBody) {
+            return requestPage().then(function ({body: responseBody}) {
                 if (!responseBody)
                     return;
                 return _this.insertItem(channel, responseBody).then(function (item) {
@@ -161,7 +160,7 @@ class Mixer {
             return channelName;
         }).then(function (channelId) {
             return got('https://mixer.com/api/v1/channels', {
-                searchParams: {
+                query: {
                     limit: 1,
                     scope: 'names',
                     q: channelId
@@ -169,9 +168,8 @@ class Mixer {
                 headers: {
                     'user-agent': ''
                 },
-                responseType: 'json',
-                resolveBodyOnly: true
-            }).then(function (responseBody) {
+                json: true,
+            }).then(({body: responseBody}) => {
                 var item = null;
                 responseBody.some(function (_item) {
                     return item = _item;

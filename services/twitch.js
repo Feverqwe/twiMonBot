@@ -96,7 +96,7 @@ class Twitch {
                     var retryLimit = 1;
                     var getList = function () {
                         return got('https://api.twitch.tv/kraken/streams', {
-                            searchParams: {
+                            query: {
                                 limit: 100,
                                 channel: Object.keys(channelIdMap).join(','),
                                 stream_type: 'all'
@@ -105,9 +105,8 @@ class Twitch {
                                 'Accept': 'application/vnd.twitchtv.v5+json',
                                 'Client-ID': _this.config.token
                             },
-                            responseType: 'json',
-                            resolveBodyOnly: true
-                        }).then(function (responseBody) {
+                            json: true,
+                        }).then(({body: responseBody}) => {
                             if (!Array.isArray(responseBody && responseBody.streams)) {
                                 var err = new Error('Unexpected response');
                                 err.channelIdMap = channelIdMap;
@@ -176,8 +175,6 @@ class Twitch {
                 'Accept': 'application/vnd.twitchtv.v5+json',
                 'Client-ID': _this.config.token
             },
-            responseType: 'json',
-            resolveBodyOnly: true
         }).catch(function (err) {
             if (err.statusCode === 404) {
                 throw new CustomError('Channel is not found!');
@@ -192,16 +189,15 @@ class Twitch {
     requestChannelByName(channelName) {
         var _this = this;
         return got('https://api.twitch.tv/kraken/search/channels', {
-            searchParams: {
+            query: {
                 query: JSON.stringify(channelName)
             },
             headers: {
                 'Accept': 'application/vnd.twitchtv.v5+json',
                 'Client-ID': _this.config.token
             },
-            responseType: 'json',
-            resolveBodyOnly: true
-        }).then(function (responseBody) {
+            json: true,
+        }).then(({body: responseBody}) => {
             var channel = null;
             responseBody.channels.some(function (item) {
                 if (item.name.toLowerCase() === channelName.toLowerCase()) {
