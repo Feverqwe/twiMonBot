@@ -14,5 +14,6 @@
     "user": "",
     "password": ""
   },
-  "adminIds": []
+  "adminIds": [],
+  "proxy": null
 }

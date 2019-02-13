@@ -4,6 +4,7 @@ const CustomError = require('../customError').CustomError;
 const qs = require('querystring');
 const ErrorWithCode = require('../errorWithCode');
 const got = require('got');
+const tunnel = require('tunnel');
 
 
 const noProtocolRe = /^\/\//;
@@ -14,6 +15,13 @@ class GoodGame {
         this.gOptions = options;
         this.channels = options.channels;
         this.name = 'goodgame';
+
+        this.proxyAgent = null;
+        if (this.gOptions.config.proxy) {
+            this.proxyAgent = tunnel.httpOverHttp({
+                proxy: this.gOptions.config.proxy
+            });
+        }
     }
     isServiceUrl(url) {
         return [
@@ -117,6 +125,7 @@ class GoodGame {
                                 'Accept': 'application/vnd.goodgame.v2+json'
                             },
                             json: true,
+                            agent: this.proxyAgent,
                         }).then(({body: responseBody}) => {
                             if (!Array.isArray(responseBody && responseBody._embedded && responseBody._embedded.streams)) {
                                 var err = new Error('Unexpected response');
@@ -223,6 +232,7 @@ class GoodGame {
                     'Accept': 'application/vnd.goodgame.v2+json'
                 },
                 json: true,
+                agent: this.proxyAgent,
             }).then(({body: responseBody}) => {
                 var title = responseBody.key;
                 if (!title) {

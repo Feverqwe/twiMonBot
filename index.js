@@ -48,7 +48,8 @@ const options = {
     botMessages: null,
     chat: null,
     liveController: null,
-    checker: null
+    checker: null,
+    proxy: null
 };
 
 (function() {
