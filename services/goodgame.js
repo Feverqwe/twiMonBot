@@ -4,7 +4,6 @@ const CustomError = require('../customError').CustomError;
 const qs = require('querystring');
 const ErrorWithCode = require('../errorWithCode');
 const got = require('got');
-const tunnel = require('tunnel');
 
 
 const noProtocolRe = /^\/\//;
@@ -15,20 +14,6 @@ class GoodGame {
         this.gOptions = options;
         this.channels = options.channels;
         this.name = 'goodgame';
-
-        this.isRatedProxyList = false;
-        this.proxyAgents = [];
-        if (this.gOptions.config.proxyList) {
-            this.proxyAgents = this.gOptions.config.proxyList.map((proxy) => {
-                if (typeof proxy === 'string') {
-                    const [host, port] = proxy.split(':');
-                    proxy = {host, port};
-                }
-                return tunnel.httpsOverHttp({
-                    proxy
-                });
-            });
-        }
     }
     isServiceUrl(url) {
         return [
@@ -251,63 +236,13 @@ class GoodGame {
     }
 
     gotWithProxy(url, options) {
-        const viaProxy = (index) => {
-            const agent = this.proxyAgents[index];
-            return got(url, Object.assign({}, options, {agent})).then((result) => {
-                if (index > 0) {
-                    const pos = this.proxyAgents.indexOf(agent);
-                    if (pos !== -1) {
-                        this.proxyAgents.splice(pos, 1);
-                    }
-                    this.proxyAgents.unshift(agent);
-                }
-                return result;
-            }, (err) => {
-                debug(`gotWithProxy: Proxy ${agent.proxyOptions.host}:${agent.proxyOptions.port} error: %s`, err.message);
-                if (/tunneling socket could not be established/.test(err.message)) {
-                    if (this.proxyAgents[++index]) {
-                        return viaProxy(index);
-                    }
-                }
-                throw err;
-            });
-        };
-
         return got(url, options).catch((err) => {
             if (err.code === 'ECONNRESET') {
-                if (this.proxyAgents.length) {
-                    if (!this.isRatedProxyList) {
-                        this.rateProxyList();
-                    }
-                    return viaProxy(0);
+                if (this.gOptions.proxyList.hasOnline()) {
+                    return this.gOptions.proxyList.got(url, options);
                 }
             }
             throw err;
-        });
-    }
-
-    rateProxyList() {
-        if (this.isRatedProxyList) return this.isRatedProxyList;
-
-        return this.isRatedProxyList = Promise.all(this.proxyAgents.map((agent) => {
-            const startTime = Date.now();
-            return got('https://api2.goodgame.ru/v2/streams', {
-                headers: {
-                    'Accept': 'application/vnd.goodgame.v2+json'
-                },
-                agent,
-            }).then(() => {
-                agent._latency = Date.now() - startTime;
-            }, (err) => {
-                debug(`rateProxyList: Proxy ${agent.proxyOptions.host}:${agent.proxyOptions.port} error: %s`, err.message);
-                agent._latency = Infinity;
-            });
-        })).then(() => {
-            this.proxyAgents.sort((a, b) => {
-               return a._latency > b._latency ? 1 : -1;
-            });
-            // debug(this.proxyAgents.map(p=>p._latency));
-            this.isRatedProxyList = true;
         });
     }
 }

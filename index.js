@@ -23,6 +23,7 @@ const Db = require('./db');
 const Locale = require('./locale');
 const Channels = require('./channels');
 const BotMessages = require('./botMessages');
+const ProxyList = require('./proxyList');
 
 const options = {
     events: null,
@@ -49,7 +50,7 @@ const options = {
     chat: null,
     liveController: null,
     checker: null,
-    proxyList: []
+    proxyList: null
 };
 
 (function() {
@@ -109,14 +110,11 @@ const options = {
         options.bot.sendPhotoQuote = quote.wrapper(options.bot.sendPhoto, options.bot);
     }).then(function() {
         options.tracker = new Tracker(options);
-    }).then(function() {
         options.msgSender = new MsgSender(options);
-    }).then(function() {
         options.chat = new Chat(options);
-    }).then(function() {
         options.liveController = new LiveController(options);
-    }).then(function() {
         options.checker = new Checker(options);
+        options.proxyList = new ProxyList(options);
     }).catch(function(err) {
         debug('Loading error', err);
     });

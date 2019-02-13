@@ -15,5 +15,6 @@
     "password": ""
   },
   "adminIds": [],
-  "proxyList": null
+  "proxyList": null,
+  "proxyCheckInterval": 10800
 }
