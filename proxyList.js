@@ -4,11 +4,6 @@ const got = require('got');
 const promiseLimit = require('promise-limit');
 const {arrToParts} = require('./base');
 
-const oppositeType = {
-    online: 'offline',
-    offline: 'online',
-};
-
 class ProxyList {
     constructor(main) {
         this.main = main;
@@ -120,22 +115,20 @@ class ProxyList {
     }
 
     moveToOffline(agent) {
-        return this.moveTo(agent, 'offline');
+        return this.moveTo(agent, this.online, this.offline);
     }
 
     moveToOnline(agent) {
-        return this.moveTo(agent, 'online');
+        return this.moveTo(agent, this.offline, this.online);
     }
 
-    moveTo(agent, type) {
-        const fromAgents = this[oppositeType[type]];
-        const toAgents = this[type];
-        const pos = fromAgents.indexOf(agent);
+    moveTo(agent, from, to) {
+        const pos = from.indexOf(agent);
         if (pos !== -1) {
-            fromAgents.splice(pos, 1);
+            from.splice(pos, 1);
         }
-        if (toAgents.indexOf(agent) === -1) {
-            toAgents.push(agent);
+        if (to.indexOf(agent) === -1) {
+            to.push(agent);
         }
     }
 
