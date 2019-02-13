@@ -88,13 +88,13 @@ const options = {
 
         return options.users.onReady;
     }).then(function() {
-        options.botMessages = new BotMessages(options);
-
-        return options.botMessages.onReady;
-    }).then(function() {
         options.msgStack = new MsgStack(options);
 
         return options.msgStack.onReady;
+    }).then(function() {
+        options.botMessages = new BotMessages(options);
+
+        return options.botMessages.onReady;
     }).then(function() {
         options.daemon = new Daemon(options);
     }).then(function() {
