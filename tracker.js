@@ -98,7 +98,8 @@ Tracker.prototype.send = function(params) {
     var limit = 5;
     var send = function () {
         return got.post('https://www.google-analytics.com/collect', {
-            form: Object.assign({}, defaultParams, params)
+            body: Object.assign({}, defaultParams, params),
+            form: true,
         }).catch(function (err) {
             if (limit-- < 1) {
                 debug('Track error %s %s %s', err.name, err.statusCode, err.message);
