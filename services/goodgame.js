@@ -20,6 +20,10 @@ class GoodGame {
         this.proxyAgents = [];
         if (this.gOptions.config.proxyList) {
             this.proxyAgents = this.gOptions.config.proxyList.map((proxy) => {
+                if (typeof proxy === 'string') {
+                    const [host, port] = proxy.split(':');
+                    proxy = {host, port};
+                }
                 return tunnel.httpsOverHttp({
                     proxy
                 });
@@ -272,13 +276,10 @@ class GoodGame {
         return got(url, options).catch((err) => {
             if (err.code === 'ECONNRESET') {
                 if (this.proxyAgents.length) {
-                    return Promise.resolve().then(() => {
-                        if (!this.isRatedProxyList) {
-                            return this.rateProxyList();
-                        }
-                    }).then(() => {
-                        return viaProxy(0);
-                    });
+                    if (!this.isRatedProxyList) {
+                        this.rateProxyList();
+                    }
+                    return viaProxy(0);
                 }
             }
             throw err;
@@ -305,6 +306,7 @@ class GoodGame {
             this.proxyAgents.sort((a, b) => {
                return a._latency > b._latency ? 1 : -1;
             });
+            // debug(this.proxyAgents.map(p=>p._latency));
             this.isRatedProxyList = true;
         });
     }
