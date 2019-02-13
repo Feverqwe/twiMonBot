@@ -16,10 +16,13 @@ class GoodGame {
         this.channels = options.channels;
         this.name = 'goodgame';
 
-        this.proxyAgent = null;
-        if (this.gOptions.config.proxy) {
-            this.proxyAgent = tunnel.httpsOverHttp({
-                proxy: this.gOptions.config.proxy
+        this.isRatedProxyList = false;
+        this.proxyAgents = [];
+        if (this.gOptions.config.proxyList) {
+            this.proxyAgents = this.gOptions.config.proxyList.map((proxy) => {
+                return tunnel.httpsOverHttp({
+                    proxy
+                });
             });
         }
     }
@@ -115,7 +118,7 @@ class GoodGame {
                 queue = queue.then(function () {
                     var retryLimit = 1;
                     var getList = function () {
-                        return got('https://api2.goodgame.ru/v2/streams', {
+                        return _this.gotWithProxy('https://api2.goodgame.ru/v2/streams', {
                             query: {
                                 ids: Object.keys(channelIdMap).join(','),
                                 adult: true,
@@ -125,7 +128,6 @@ class GoodGame {
                                 'Accept': 'application/vnd.goodgame.v2+json'
                             },
                             json: true,
-                            agent: _this.proxyAgent,
                         }).then(({body: responseBody}) => {
                             if (!Array.isArray(responseBody && responseBody._embedded && responseBody._embedded.streams)) {
                                 var err = new Error('Unexpected response');
@@ -227,12 +229,11 @@ class GoodGame {
             }
             return channelName;
         }).then(function (channelId) {
-            return got('https://api2.goodgame.ru/v2/streams/' + encodeURIComponent(channelId), {
+            return _this.gotWithProxy('https://api2.goodgame.ru/v2/streams/' + encodeURIComponent(channelId), {
                 headers: {
                     'Accept': 'application/vnd.goodgame.v2+json'
                 },
                 json: true,
-                agent: _this.proxyAgent,
             }).then(({body: responseBody}) => {
                 var title = responseBody.key;
                 if (!title) {
@@ -242,6 +243,69 @@ class GoodGame {
                 var url = _this.getChannelUrl(id);
                 return _this.channels.insertChannel(id, _this.name, title, url);
             });
+        });
+    }
+
+    gotWithProxy(url, options) {
+        const viaProxy = (index) => {
+            const agent = this.proxyAgents[index];
+            return got(url, Object.assign({}, options, {agent})).then((result) => {
+                if (index > 0) {
+                    const pos = this.proxyAgents.indexOf(agent);
+                    if (pos !== -1) {
+                        this.proxyAgents.splice(pos, 1);
+                    }
+                    this.proxyAgents.unshift(agent);
+                }
+                return result;
+            }, (err) => {
+                debug(`gotWithProxy: Proxy ${agent.proxyOptions.host}:${agent.proxyOptions.port} error: %s`, err.message);
+                if (/tunneling socket could not be established/.test(err.message)) {
+                    if (this.proxyAgents[++index]) {
+                        return viaProxy(index);
+                    }
+                }
+                throw err;
+            });
+        };
+
+        return got(url, options).catch((err) => {
+            if (err.code === 'ECONNRESET') {
+                if (this.proxyAgents.length) {
+                    return Promise.resolve().then(() => {
+                        if (!this.isRatedProxyList) {
+                            return this.rateProxyList();
+                        }
+                    }).then(() => {
+                        return viaProxy(0);
+                    });
+                }
+            }
+            throw err;
+        });
+    }
+
+    rateProxyList() {
+        if (this.isRatedProxyList) return this.isRatedProxyList;
+
+        return this.isRatedProxyList = Promise.all(this.proxyAgents.map((agent) => {
+            const startTime = Date.now();
+            return got('https://api2.goodgame.ru/v2/streams', {
+                headers: {
+                    'Accept': 'application/vnd.goodgame.v2+json'
+                },
+                agent,
+            }).then(() => {
+                agent._latency = Date.now() - startTime;
+            }, (err) => {
+                debug(`rateProxyList: Proxy ${agent.proxyOptions.host}:${agent.proxyOptions.port} error: %s`, err.message);
+                agent._latency = Infinity;
+            });
+        })).then(() => {
+            this.proxyAgents.sort((a, b) => {
+               return a._latency > b._latency ? 1 : -1;
+            });
+            this.isRatedProxyList = true;
         });
     }
 }

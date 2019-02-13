@@ -49,7 +49,7 @@ const options = {
     chat: null,
     liveController: null,
     checker: null,
-    proxy: null
+    proxyList: []
 };
 
 (function() {
