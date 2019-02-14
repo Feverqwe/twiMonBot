@@ -60,7 +60,7 @@ class ProxyList {
                     agent,
                     timeout: 10 * 1000
                 }, options)).catch((err) => {
-                    if (isProxyError(err)) {
+                    if (isProxyError(err) || err.name === 'TimeoutError') {
                         throw err;
                     }
                     if (err.name !== 'HTTPError') {
