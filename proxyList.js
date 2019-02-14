@@ -21,6 +21,8 @@ class ProxyList {
 
     init() {
         const proxyList = this.main.config.proxyList || [];
+        if (!proxyList.length) return;
+
         proxyList.map((proxy) => {
             if (typeof proxy === 'string') {
                 const [host, port] = proxy.split(':');
@@ -33,16 +35,15 @@ class ProxyList {
         });
 
         const interval = this.main.config.proxyCheckInterval || 21600;
-
         setInterval(() => {
             if (interval > getNow() - this.lastTimeUsed) {
                 this.check();
             }
         }, interval * 1000);
 
-        setTimeout(() => {
-            this.check();
-        }, 1000);
+        if (this.main.config.proxyCheckOnRun) {
+            setTimeout(() => this.check(), 1000);
+        }
     }
 
     check() {
