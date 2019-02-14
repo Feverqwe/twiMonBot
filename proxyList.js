@@ -88,10 +88,10 @@ class ProxyList {
                 return a._latency > b._latency ? 1 : -1;
             });
 
+            debug(`Check state: %s/%s`, this.online.length, this.offline.length);
             if (false) {
                 const online = this.online.map(agentToString);
                 const offline = this.offline.map(agentToString);
-                debug(`Check state: %s/%s`, online.length, offline.length);
                 debug(`Online: %j`, online);
                 debug(`Offline: %j`, offline);
             }
