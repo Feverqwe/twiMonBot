@@ -1,8 +1,6 @@
 const debug = require('debug')('app:proxyList');
 const tunnel = require('tunnel');
 const got = require('got');
-const promiseLimit = require('promise-limit');
-const {arrToParts} = require('./base');
 
 class ProxyList {
     constructor(main) {
@@ -46,11 +44,9 @@ class ProxyList {
         if (this.checkPromise) return this.checkPromise;
         // debug('checking...');
 
-        const limit = promiseLimit(8);
-
         return this.checkPromise = Promise.resolve().then(() => {
-            const next = (agents, index) => {
-                const agent = agents[index];
+            const next = (agents) => {
+                const agent = agents.shift();
                 if (!agent) return;
                 // debug('check', agentToString(agent));
 
@@ -73,14 +69,16 @@ class ProxyList {
                     agent._latency = Infinity;
                     this.moveToOffline(agent);
                 }).then(() => {
-                    return next(agents, index + 1);
+                    return next(agents);
                 });
             };
 
             const agents = [].concat(this.online, this.offline);
-            return Promise.all(arrToParts(agents, Math.trunc(agents.length / 8)).map(arr => {
-                return limit(() => next(arr, 0));
-            }));
+            const threads = [];
+            for (let i = 0; i < 8; i++) {
+                threads.push(next(agents));
+            }
+            return Promise.all(threads);
         }).then(() => {
             this.online.sort((a, b) => {
                 return a._latency > b._latency ? 1 : -1;
