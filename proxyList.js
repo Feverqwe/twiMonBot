@@ -13,11 +13,7 @@ class ProxyList {
 
         this.checkPromise = null;
 
-        this.testRequst = ['https://api2.goodgame.ru/v2/streams', {
-            headers: {
-                'Accept': 'application/vnd.goodgame.v2+json'
-            }
-        }];
+        this.testRequst = ['https://ya.ru'];
 
         this.init();
     }
