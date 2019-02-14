@@ -105,7 +105,6 @@ class ProxyList {
     }
 
     got(url, options) {
-        this.lastTimeUsed = getNow();
         const agent = this.getAgent();
         return got(url, Object.assign({}, options, {agent})).catch((err) => {
             if (err.name !== 'HTTPError') {
@@ -130,10 +129,12 @@ class ProxyList {
     }
 
     getAgent() {
+        this.lastTimeUsed = getNow();
         return this.online[0];
     }
 
     hasOnline() {
+        this.lastTimeUsed = getNow();
         return this.online.length > 0;
     }
 }
