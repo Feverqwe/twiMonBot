@@ -13,14 +13,11 @@ class ProxyList {
 
         this.checkPromise = null;
 
-        this.testRequst = {
-            url: 'https://api2.goodgame.ru/v2/streams',
-            options: {
-                headers: {
-                    'Accept': 'application/vnd.goodgame.v2+json'
-                },
+        this.testRequst = ['https://api2.goodgame.ru/v2/streams', {
+            headers: {
+                'Accept': 'application/vnd.goodgame.v2+json'
             }
-        };
+        }];
 
         this.init();
     }
@@ -61,17 +58,20 @@ class ProxyList {
                 if (!agent) return;
                 // debug('check', agentToString(agent));
 
-                const url = this.testRequst.url;
-                const options = Object.assign({
+                const [url, options] = this.testRequst;
+                const startTime = Date.now();
+                return got(url, Object.assign({
                     agent,
                     timeout: 5 * 1000
-                }, this.testRequst.options);
-                const startTime = Date.now();
-                return got(url, options).then(() => {
+                }, options)).catch((err) => {
+                    if (isProxyError(err)) {
+                        throw err;
+                    }
+                    debug(`Check: Proxy ${agentToString(agent)} error: %s`, err.message);
+                }).then(() => {
                     agent._latency = Date.now() - startTime;
                     this.moveToOnline(agent);
                 }, (err) => {
-                    // debug(`Check: Proxy ${agent.proxyOptions.host}:${agent.proxyOptions.port} error: %s`, err.message);
                     agent._latency = Infinity;
                     this.moveToOffline(agent);
                 }).then(() => {
@@ -103,7 +103,7 @@ class ProxyList {
     got(url, options) {
         const agent = this.getAgent();
         return got(url, Object.assign({}, options, {agent})).catch((err) => {
-            debug(`got: Proxy ${agent.proxyOptions.host}:${agent.proxyOptions.port} error: %s`, err.message);
+            debug(`got: Proxy ${agentToString(agent)} error: %s`, err.message);
             if (isProxyError(err)) {
                 this.moveToOffline(agent);
                 if (this.hasOnline()) {
