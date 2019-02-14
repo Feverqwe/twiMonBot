@@ -85,14 +85,14 @@ class ProxyList {
             });
 
             debug(`Check state: %s/%s`, this.online.length, this.offline.length);
+
             if (false) {
                 const online = this.online.map(agentToString);
                 debug(`Online: %j`, online);
             }
-            if (true) {
-                const offline = this.offline.map(agentToString);
-                debug(`Offline: %j`, offline);
-            }
+
+            const offline = this.offline.map(agentToString);
+            debug(`Offline: %j`, offline);
 
             this.checkPromise = null;
         });
@@ -115,21 +115,11 @@ class ProxyList {
     }
 
     moveToOffline(agent) {
-        return this.moveTo(agent, this.online, this.offline);
+        return moveTo(agent, this.online, this.offline);
     }
 
     moveToOnline(agent) {
-        return this.moveTo(agent, this.offline, this.online);
-    }
-
-    moveTo(agent, from, to) {
-        const pos = from.indexOf(agent);
-        if (pos !== -1) {
-            from.splice(pos, 1);
-        }
-        if (to.indexOf(agent) === -1) {
-            to.push(agent);
-        }
+        return moveTo(agent, this.offline, this.online);
     }
 
     getAgent() {
@@ -140,6 +130,16 @@ class ProxyList {
         return this.online.length > 0;
     }
 }
+
+const moveTo = (agent, from, to) => {
+    const pos = from.indexOf(agent);
+    if (pos !== -1) {
+        from.splice(pos, 1);
+    }
+    if (to.indexOf(agent) === -1) {
+        to.push(agent);
+    }
+};
 
 const isProxyError = (err) => {
     return [
