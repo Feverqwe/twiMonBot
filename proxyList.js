@@ -12,7 +12,7 @@ class ProxyList {
 
         this.checkPromise = null;
 
-        this.testRequst = ['https://ya.ru'];
+        this.testRequest = ['https://ya.ru'];
 
         this.lastTimeUsed = 0;
 
@@ -56,7 +56,7 @@ class ProxyList {
                 if (!agent) return;
                 // debug('check', agentToString(agent));
 
-                const [url, options] = this.testRequst;
+                const [url, options] = this.testRequest;
                 const startTime = Date.now();
                 return got(url, Object.assign({
                     agent,
