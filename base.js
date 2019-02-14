@@ -370,7 +370,7 @@ utils.getTimeoutStream = function (channel) {
 };
 
 utils.getNow = function () {
-    return parseInt(Date.now() / 1000);
+    return Math.trunc(Date.now() / 1000);
 };
 
 /**

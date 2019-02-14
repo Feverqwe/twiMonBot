@@ -1,6 +1,7 @@
 const debug = require('debug')('app:proxyList');
 const tunnel = require('tunnel');
 const got = require('got');
+const {getNow} = require('./base');
 
 class ProxyList {
     constructor(main) {
@@ -12,6 +13,8 @@ class ProxyList {
         this.checkPromise = null;
 
         this.testRequst = ['https://ya.ru'];
+
+        this.lastTimeUsed = getNow();
 
         this.init();
     }
@@ -32,7 +35,9 @@ class ProxyList {
         const interval = this.main.config.proxyCheckInterval || 21600;
 
         setInterval(() => {
-            this.check();
+            if (interval > getNow() - this.lastTimeUsed) {
+                this.check();
+            }
         }, interval * 1000);
 
         setTimeout(() => {
@@ -99,6 +104,7 @@ class ProxyList {
     }
 
     got(url, options) {
+        this.lastTimeUsed = getNow();
         const agent = this.getAgent();
         return got(url, Object.assign({}, options, {agent})).catch((err) => {
             if (err.name !== 'HTTPError') {
