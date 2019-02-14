@@ -67,7 +67,9 @@ class ProxyList {
                     if (isProxyError(err)) {
                         throw err;
                     }
-                    debug(`Check: Proxy ${agentToString(agent)} error: %o`, err);
+                    if (err.name !== 'HTTPError') {
+                        debug(`Check: Proxy ${agentToString(agent)} error: %o`, err);
+                    }
                 }).then(() => {
                     agent._latency = Date.now() - startTime;
                     this.moveToOnline(agent);
@@ -103,7 +105,9 @@ class ProxyList {
     got(url, options) {
         const agent = this.getAgent();
         return got(url, Object.assign({}, options, {agent})).catch((err) => {
-            debug(`got: Proxy ${agentToString(agent)} error: %o`, err);
+            if (err.name !== 'HTTPError') {
+                debug(`got: Proxy ${agentToString(agent)} error: %o`, err);
+            }
             if (isProxyError(err)) {
                 this.moveToOffline(agent);
                 if (this.hasOnline()) {
@@ -142,7 +146,10 @@ class ProxyList {
 }
 
 const isProxyError = (err) => {
-    return /tunneling socket could not be established/.test(err.message);
+    return [
+        /tunneling socket could not be established/,
+        /got illegal response body from proxy/
+    ].some(re => re.test(err.message));
 };
 
 const agentToString = (agent) => {
