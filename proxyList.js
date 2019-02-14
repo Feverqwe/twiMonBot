@@ -62,7 +62,7 @@ class ProxyList {
                 const startTime = Date.now();
                 return got(url, Object.assign({
                     agent,
-                    timeout: 5 * 1000
+                    timeout: 10 * 1000
                 }, options)).catch((err) => {
                     if (isProxyError(err)) {
                         throw err;
