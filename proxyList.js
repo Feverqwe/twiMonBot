@@ -14,7 +14,7 @@ class ProxyList {
 
         this.testRequst = ['https://ya.ru'];
 
-        this.lastTimeUsed = getNow();
+        this.lastTimeUsed = 0;
 
         this.init();
     }
@@ -92,11 +92,11 @@ class ProxyList {
             debug(`Check state: %s/%s`, this.online.length, this.offline.length);
 
             if (false) {
-                const online = this.online.map(agentToString);
+                const online = this.online.map(agentToString).sort();
                 debug(`Online: %j`, online);
             }
 
-            const offline = this.offline.map(agentToString);
+            const offline = this.offline.map(agentToString).sort();
             debug(`Offline: %j`, offline);
 
             this.checkPromise = null;
