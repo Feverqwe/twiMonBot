@@ -9,12 +9,10 @@ const debug = require('debug')('app:base');
 var utils = {};
 /**
  *
- * @returns {Promise}
+ * @returns {Object}
  */
 utils.loadConfig = function() {
-    return Promise.resolve().then(function() {
-        return JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json')));
-    });
+    return JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json')));
 };
 
 /**
