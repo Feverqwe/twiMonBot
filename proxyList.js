@@ -152,7 +152,8 @@ const moveTo = (agent, from, to) => {
 const isProxyError = (err) => {
     return [
         /tunneling socket could not be established/,
-        /got illegal response body from proxy/
+        /got illegal response body from proxy/,
+        /Client network socket disconnected before secure TLS connection was established/
     ].some(re => re.test(err.message));
 };
 
