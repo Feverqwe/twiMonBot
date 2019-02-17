@@ -93,7 +93,7 @@ class ProxyList {
             debug(`Check state: %s/%s`, this.online.length, this.offline.length);
 
             if (false) {
-                const online = this.online.map(agentToString).sort();
+                const online = this.online.map(agentToString);
                 debug(`Online: %j`, online);
             }
 
