@@ -46,31 +46,30 @@ MsgSender.prototype.updateMsg = function (msg, caption, text) {
 MsgSender.prototype.getValidPhotoUrl = function (stream) {
     var _this = this;
 
-    var requestLimit = _this.gOptions.config.sendPhotoRequestLimit || 30;
+    var requestLimit = _this.gOptions.config.sendPhotoRequestLimit || 10;
 
     var requestTimeoutSec = _this.gOptions.config.sendPhotoRequestTimeoutSec || 5;
-    requestTimeoutSec *= 1000;
 
     var previewList = stream.preview;
 
     var getHead = function (index) {
         var previewUrl = previewList[index];
-        return got.head(previewUrl).then(function (response) {
+        return got.head(previewUrl, {
+            timeout: 5 * 1000
+        }).then(function (response) {
             return response.url;
         }).catch(function(err) {
             if (++index < previewList.length) {
                 return getHead(index);
             }
 
-            if (/ETIMEDOUT/.test(err.message) || requestLimit-- < 1) {
+            if (err.code === 'ETIMEDOUT' || requestLimit-- < 1) {
                 const _err = new Error('REQUEST_PHOTO_ERROR');
                 _err.parentError = err;
                 throw _err;
             }
 
-            return new Promise(function(resolve) {
-                setTimeout(resolve, requestTimeoutSec);
-            }).then(function() {
+            return new Promise(resolve => setTimeout(resolve, requestTimeoutSec * 1000)).then(() => {
                 return getHead(0);
             });
         });
