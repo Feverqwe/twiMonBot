@@ -83,21 +83,8 @@ class Youtube {
             });
         });
     }
-    getViewers(id) {
-        return gotLimited('https://gaming.youtube.com/live_stats', {
-            query: {
-                v: id,
-                t: Date.now()
-            }
-        }).then(({ body }) => {
-            if (!intRe.test(body)) {
-                throw new Error('NOT INT ' + JSON.stringify(body));
-            }
-            return parseInt(body, 10);
-        }).catch(function (err) {
-            debug('getViewers %s error! %o', id, err);
-            return -1;
-        });
+    async getViewers(id) {
+        return -1;
     }
     isLiveFilter(items, channelId) {
         const idItemMap = {};
