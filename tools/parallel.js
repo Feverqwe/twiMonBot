@@ -21,9 +21,9 @@ const parallel = (limit, items, callback) => {
         });
     };
 
-    const threads = [];
+    const threads = new Array(limit);
     for (let i = 0; i < limit; i++) {
-        threads.push(runThread());
+        threads[i] = runThread();
     }
     return Promise.all(threads).then(() => results);
 };
