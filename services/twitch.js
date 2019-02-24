@@ -128,8 +128,6 @@ class Twitch {
                     return getList().then(function (responseBody) {
                         var items = responseBody.streams;
                         return parallel(15, items, (stream) => {
-                            if (!stream) return;
-
                             return Promise.resolve().then(function () {
                                 var channel = channelIdMap[stream.channel._id];
                                 if (!channel) {

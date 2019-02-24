@@ -165,8 +165,6 @@ class Youtube {
                 }
             }).then(function (items) {
                 return parallel(15, items, (item) => {
-                    if (!item) return;
-
                     const snippet = item.snippet;
                     const videoId = item.id.videoId;
                     const viewers = item.viewers;
@@ -185,8 +183,6 @@ class Youtube {
         var promise = Promise.resolve(_channelList);
         promise = promise.then(function (channels) {
             return parallel(10, channels, (channel) => {
-                if (!channel) return;
-
                 return getPage(channel);
             });
         });

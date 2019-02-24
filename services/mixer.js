@@ -121,8 +121,6 @@ class Mixer {
         var promise = Promise.resolve(_channelList);
         promise = promise.then(function (channels) {
             return parallel(10, channels, (channel) => {
-                if (!channel) return;
-
                 return getPage(channel);
             });
         });

@@ -140,8 +140,6 @@ class GoodGame {
                     return getList().then(function (responseBody) {
                         var items = responseBody._embedded.streams;
                         return parallel(15, items, (stream) => {
-                            if (!stream) return;
-
                             return Promise.resolve().then(function () {
                                 var channel = channelIdMap[stream.key.toLowerCase()];
                                 if (!channel) {

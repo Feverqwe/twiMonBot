@@ -191,109 +191,75 @@ LiveController.prototype.insertStreams = function (streams, channels) {
             }
         });
 
-        var queue = Promise.resolve();
-        if (migrateStreamIds.length) {
-            queue = queue.then(function () {
-                return parallel(1, migrateStreamIds, (item) => {
-                    if (!item) return;
-
+        return Promise.resolve().then(() => {
+            return parallel(1, migrateStreamIds, (item) => {
+                return _this.gOptions.db.transaction(function (connection) {
+                    return _this.gOptions.msgStack.migrateStream(connection, item[0], item[1]);
+                }).catch(function (err) {
+                    debug('migrateStreams', err);
+                });
+            });
+        }).then(function () {
+            return parallel(1, newStreams, (stream) => {
+                return _this.gOptions.users.getChatIdsByChannel(stream.channelId).then(function (chatIds) {
                     return _this.gOptions.db.transaction(function (connection) {
-                        return _this.gOptions.msgStack.migrateStream(connection, item[0], item[1]);
-                    }).catch(function (err) {
-                        debug('migrateStreams', err);
-                    });
-                });
-            });
-        }
-        if (newStreams.length) {
-            queue = queue.then(function () {
-                return parallel(1, newStreams, (stream) => {
-                    if (!stream) return;
-
-                    return _this.gOptions.users.getChatIdsByChannel(stream.channelId).then(function (chatIds) {
-                        return _this.gOptions.db.transaction(function (connection) {
-                            return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
-                                return _this.gOptions.msgStack.addChatIdsStreamId(connection, chatIds, stream.id);
-                            });
+                        return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
+                            return _this.gOptions.msgStack.addChatIdsStreamId(connection, chatIds, stream.id);
                         });
-                    }).catch(function (err) {
-                        debug('newStreams', err);
                     });
+                }).catch(function (err) {
+                    debug('newStreams', err);
                 });
             });
-        }
-        if (updateStreams.length) {
-            queue = queue.then(function () {
-                return parallel(1, updateStreams, (stream) => {
-                    if (!stream) return;
-
-                    return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (messages) {
-                        return _this.gOptions.db.transaction(function (connection) {
-                            return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
-                                return _this.gOptions.msgStack.updateChatIdsStreamId(connection, messages, stream.id);
-                            });
-                        });
-                    }).catch(function (err) {
-                        debug('updateStreams', err);
-                    });
-                });
-            });
-        }
-        if (offlineStreams.length) {
-            queue = queue.then(function () {
-                return parallel(1, offlineStreams, (stream) => {
-                    if (!stream) return;
-
-                    return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (messages) {
-                        return _this.gOptions.db.transaction(function (connection) {
-                            return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
-                                return _this.gOptions.msgStack.updateChatIdsStreamId(connection, messages, stream.id);
-                            });
-                        });
-                    }).catch(function (err) {
-                        debug('offlineStreams', err);
-                    });
-                });
-            });
-        }
-        if (timeoutStreams.length) {
-            queue = queue.then(function () {
-                return parallel(1, timeoutStreams, (stream) => {
-                    if (!stream) return;
-
-                    return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (messages) {
-                        return _this.gOptions.db.transaction(function (connection) {
-                            return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
-                                return _this.gOptions.msgStack.updateChatIdsStreamId(connection, messages, stream.id);
-                            });
-                        });
-                    }).catch(function (err) {
-                        debug('timeoutStreams', err);
-                    });
-                });
-            });
-        }
-        if (syncStreams.length) {
-            queue = queue.then(function () {
-                return parallel(1, syncStreams, (stream) => {
-                    if (!stream) return;
-
+        }).then(function () {
+            return parallel(1, updateStreams, (stream) => {
+                return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (messages) {
                     return _this.gOptions.db.transaction(function (connection) {
-                        return _this.gOptions.msgStack.setStream(connection, stream);
-                    }).catch(function (err) {
-                        debug('syncStreams', err);
+                        return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
+                            return _this.gOptions.msgStack.updateChatIdsStreamId(connection, messages, stream.id);
+                        });
                     });
+                }).catch(function (err) {
+                    debug('updateStreams', err);
                 });
             });
-        }
-        if (removeStreamIds.length) {
-            queue = queue.then(function () {
-                return _this.gOptions.msgStack.removeStreamIds(removeStreamIds).catch(function (err) {
-                    debug('removeStreamIds', err);
+        }).then(function () {
+            return parallel(1, offlineStreams, (stream) => {
+                return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (messages) {
+                    return _this.gOptions.db.transaction(function (connection) {
+                        return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
+                            return _this.gOptions.msgStack.updateChatIdsStreamId(connection, messages, stream.id);
+                        });
+                    });
+                }).catch(function (err) {
+                    debug('offlineStreams', err);
                 });
             });
-        }
-        return queue;
+        }).then(function () {
+            return parallel(1, timeoutStreams, (stream) => {
+                return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (messages) {
+                    return _this.gOptions.db.transaction(function (connection) {
+                        return _this.gOptions.msgStack.setStream(connection, stream).then(function () {
+                            return _this.gOptions.msgStack.updateChatIdsStreamId(connection, messages, stream.id);
+                        });
+                    });
+                }).catch(function (err) {
+                    debug('timeoutStreams', err);
+                });
+            });
+        }).then(function () {
+            return parallel(1, syncStreams, (stream) => {
+                return _this.gOptions.db.transaction(function (connection) {
+                    return _this.gOptions.msgStack.setStream(connection, stream);
+                }).catch(function (err) {
+                    debug('syncStreams', err);
+                });
+            });
+        }).then(function () {
+            return _this.gOptions.msgStack.removeStreamIds(removeStreamIds).catch(function (err) {
+                debug('removeStreamIds', err);
+            });
+        });
     }).then(function () {
         _this.gOptions.events.emit('checkStack');
         _this.gOptions.events.emit('checkBotMessages');
