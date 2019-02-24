@@ -58,7 +58,7 @@ class Youtube {
                 channel: {
                     name: snippet.channelTitle || snippet.channelId,
                     status: snippet.title,
-                    url: 'https://gaming.youtube.com/watch?v=' + id
+                    url: 'https://youtube.com/watch?v=' + id
                 }
             };
             var item = {
