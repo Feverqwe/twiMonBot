@@ -7,9 +7,10 @@ const base = require('../base');
 const CustomError = require('../customError').CustomError;
 const got = require('got');
 const parallel = require('../tools/parallel');
+const Quote = require('../tools/quote');
 
-const apiQuote = new base.Quote(1000);
-const gotLimited = apiQuote.wrapper(got);
+const apiQuote = new Quote(1000);
+const gotLimited = apiQuote.wrap(got);
 
 class Youtube {
     constructor(options) {

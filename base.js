@@ -287,60 +287,6 @@ utils.extend = function() {
     return obj;
 };
 
-/**
- * @param {number} limitPerSecond
- * @constructor
- */
-utils.Quote = function (limitPerSecond) {
-    var queue = [];
-    var time = 0;
-    var count = 0;
-    var timer = null;
-    var next = function () {
-        if (timer !== null) return;
-
-        var now = Date.now();
-        if (now - time >= 1000) {
-            time = now;
-            count = 0;
-        }
-
-        while (queue.length && count < limitPerSecond) {
-            count++;
-            queue.shift()();
-        }
-
-        if (count === limitPerSecond) {
-            timer = setTimeout(function () {
-                timer = null;
-                next();
-            }, 1000 - (Date.now() - time));
-        }
-    };
-
-    /**
-     * @param {Function} callback
-     * @param {Object} [thisArg]
-     * @returns {Function}
-     */
-    this.wrapper = function(callback, thisArg) {
-        return function () {
-            var args = [].slice.call(arguments);
-
-            return new Promise(function (resolve, reject) {
-                queue.push(function () {
-                    try {
-                        resolve(callback.apply(thisArg, args));
-                    } catch (err) {
-                        reject(err);
-                    }
-                });
-                next();
-            });
-        };
-    };
-};
-
 utils.getRandomInt = function (min, max) {
     return Math.floor(Math.random() * (max - min)) + min;
 };

@@ -6,6 +6,7 @@ const debug = require('debug')('app:index');
 const base = require('./base');
 const Checker = require('./checker');
 const Chat = require('./chat');
+const Quote = require('./tools/quote');
 const bluebird = require('bluebird');
 bluebird.config({
     cancellation: true,
@@ -134,9 +135,9 @@ class Main {
             debug('pollingError %o', err.message);
         });
 
-        const quote = new base.Quote(30);
-        bot.sendMessage = quote.wrapper(bot.sendMessage, bot);
-        bot.sendPhotoQuote = quote.wrapper(bot.sendPhoto, bot);
+        const quote = new Quote(30);
+        bot.sendMessage = quote.wrap(bot.sendMessage.bind(bot));
+        bot.sendPhotoQuote = quote.wrap(bot.sendPhoto.bind(bot));
     }
 }
 
