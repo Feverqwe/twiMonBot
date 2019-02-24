@@ -148,7 +148,7 @@ class MsgSender {
                     throw err;
                 }
                 return this.send(chat_id, null, caption, text).then((msg) => {
-                    debug('getPicId error %j', err.message);
+                    debug('getPicId error %o', err);
                     return msg;
                 });
             });
