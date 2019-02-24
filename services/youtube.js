@@ -83,9 +83,6 @@ class Youtube {
             });
         });
     }
-    async getViewers(id) {
-        return -1;
-    }
     isLiveFilter(items, channelId) {
         const idItemMap = {};
         items.forEach(item => {
@@ -94,23 +91,30 @@ class Youtube {
         const videoIds = Object.keys(idItemMap);
         return gotLimited('https://www.googleapis.com/youtube/v3/videos', {
             query: {
-                part: 'snippet',
+                part: 'liveStreamingDetails',
                 id: videoIds.join(','),
                 maxResults: videoIds.length,
-                fields: 'items(id,snippet/liveBroadcastContent)',
+                fields: 'items(id,liveStreamingDetails)',
                 key: this.config.token
             },
             json: true
         }).then(({ body }) => {
             const result = [];
-            body.items.forEach(item => {
-                if (item.snippet.liveBroadcastContent === 'live') {
-                    result.push(idItemMap[item.id]);
+            body.items.forEach((item) => {
+                let {actualStartTime, actualEndTime, concurrentViewers} = item.liveStreamingDetails;
+                if (actualStartTime && !actualEndTime) {
+                    concurrentViewers = parseInt(concurrentViewers, 10);
+                    if (!Number.isFinite(concurrentViewers)) {
+                        concurrentViewers = -1;
+                    }
+                    const videoItem = idItemMap[item.id];
+                    videoItem.viewers = concurrentViewers;
+                    result.push(videoItem);
                 }
             });
-            if (videoIds.length !== result.length) {
+            /*if (videoIds.length !== result.length) {
                 debug('Still exists api bug', channelId);
-            }
+            }*/
             return result;
         }).catch(function (err) {
             debug('isLive %s error! %o', channelId, err);
@@ -156,7 +160,6 @@ class Youtube {
                 });
             };
             return requestPage().then(({ items }) => {
-                // todo: disable me after bug fix
                 if (items.length) {
                     return _this.isLiveFilter(items, _this.channels.unWrapId(channel.id));
                 }
@@ -165,18 +168,17 @@ class Youtube {
                 }
             }).then(function (items) {
                 return insertPool.do(function () {
-                    var item = items.shift();
-                    if (!item)
-                        return;
-                    var snippet = item.snippet;
-                    var videoId = item.id.videoId;
-                    return _this.getViewers(videoId).then(function (viewers) {
-                        return _this.insertItem(channel, snippet, videoId, viewers).then(function (item) {
-                            item && streamList.push(item);
-                        }).catch(function (err) {
-                            streamList.push(base.getTimeoutStream(channel));
-                            debug("insertItem error!", err);
-                        });
+                    const item = items.shift();
+                    if (!item) return;
+
+                    const snippet = item.snippet;
+                    const videoId = item.id.videoId;
+                    const viewers = item.viewers;
+                    return _this.insertItem(channel, snippet, videoId, viewers).then(function (item) {
+                        item && streamList.push(item);
+                    }).catch(function (err) {
+                        streamList.push(base.getTimeoutStream(channel));
+                        debug("insertItem error!", err);
                     });
                 });
             }).catch(function (err) {
