@@ -6,8 +6,7 @@ const debug = require('debug')('app:twitch');
 const base = require('../base');
 const CustomError = require('../customError').CustomError;
 const got = require('got');
-
-var insertPool = new base.Pool(15);
+const parallel = require('../tools/parallel');
 
 class Twitch {
     constructor(options) {
@@ -128,10 +127,9 @@ class Twitch {
                     };
                     return getList().then(function (responseBody) {
                         var items = responseBody.streams;
-                        return insertPool.do(function () {
-                            var stream = items.shift();
-                            if (!stream)
-                                return;
+                        return parallel(15, items, (stream) => {
+                            if (!stream) return;
+
                             return Promise.resolve().then(function () {
                                 var channel = channelIdMap[stream.channel._id];
                                 if (!channel) {

@@ -3,6 +3,7 @@ const debug = require('debug')('app:liveController');
 const debugLog = require('debug')('app:liveController:log');
 debugLog.log = console.log.bind(console);
 const base = require('./base');
+const parallel = require('./tools/parallel');
 
 var LiveController = function (options) {
     var _this = this;
@@ -34,8 +35,6 @@ LiveController.prototype.clean = function () {
         debug('clean', err);
     });
 };
-
-var insertPool = new base.Pool(1);
 
 LiveController.prototype.findPrevStreamId = function (prevStreams, stream) {
     var prevStreamId = null;
@@ -195,8 +194,7 @@ LiveController.prototype.insertStreams = function (streams, channels) {
         var queue = Promise.resolve();
         if (migrateStreamIds.length) {
             queue = queue.then(function () {
-                return insertPool.do(function () {
-                    var item = migrateStreamIds.shift();
+                return parallel(1, migrateStreamIds, (item) => {
                     if (!item) return;
 
                     return _this.gOptions.db.transaction(function (connection) {
@@ -209,8 +207,7 @@ LiveController.prototype.insertStreams = function (streams, channels) {
         }
         if (newStreams.length) {
             queue = queue.then(function () {
-                return insertPool.do(function () {
-                    var stream = newStreams.shift();
+                return parallel(1, newStreams, (stream) => {
                     if (!stream) return;
 
                     return _this.gOptions.users.getChatIdsByChannel(stream.channelId).then(function (chatIds) {
@@ -227,8 +224,7 @@ LiveController.prototype.insertStreams = function (streams, channels) {
         }
         if (updateStreams.length) {
             queue = queue.then(function () {
-                return insertPool.do(function () {
-                    var stream = updateStreams.shift();
+                return parallel(1, updateStreams, (stream) => {
                     if (!stream) return;
 
                     return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (messages) {
@@ -245,8 +241,7 @@ LiveController.prototype.insertStreams = function (streams, channels) {
         }
         if (offlineStreams.length) {
             queue = queue.then(function () {
-                return insertPool.do(function () {
-                    var stream = offlineStreams.shift();
+                return parallel(1, offlineStreams, (stream) => {
                     if (!stream) return;
 
                     return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (messages) {
@@ -263,8 +258,7 @@ LiveController.prototype.insertStreams = function (streams, channels) {
         }
         if (timeoutStreams.length) {
             queue = queue.then(function () {
-                return insertPool.do(function () {
-                    var stream = timeoutStreams.shift();
+                return parallel(1, timeoutStreams, (stream) => {
                     if (!stream) return;
 
                     return _this.gOptions.msgStack.getStreamMessages(stream.id).then(function (messages) {
@@ -281,8 +275,7 @@ LiveController.prototype.insertStreams = function (streams, channels) {
         }
         if (syncStreams.length) {
             queue = queue.then(function () {
-                return insertPool.do(function () {
-                    var stream = syncStreams.shift();
+                return parallel(1, syncStreams, (stream) => {
                     if (!stream) return;
 
                     return _this.gOptions.db.transaction(function (connection) {

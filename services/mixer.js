@@ -6,8 +6,7 @@ const debug = require('debug')('app:mixer');
 const base = require('../base');
 const CustomError = require('../customError').CustomError;
 const got = require('got');
-
-var requestPool = new base.Pool(10);
+const parallel = require('../tools/parallel');
 
 class Mixer {
     constructor(options) {
@@ -121,10 +120,9 @@ class Mixer {
         };
         var promise = Promise.resolve(_channelList);
         promise = promise.then(function (channels) {
-            return requestPool.do(function () {
-                var channel = channels.shift();
-                if (!channel)
-                    return;
+            return parallel(10, channels, (channel) => {
+                if (!channel) return;
+
                 return getPage(channel);
             });
         });

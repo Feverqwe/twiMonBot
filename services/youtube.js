@@ -6,13 +6,10 @@ const debug = require('debug')('app:youtube');
 const base = require('../base');
 const CustomError = require('../customError').CustomError;
 const got = require('got');
+const parallel = require('../tools/parallel');
 
 const apiQuote = new base.Quote(1000);
 const gotLimited = apiQuote.wrapper(got);
-
-var insertPool = new base.Pool(15);
-var intRe = /^\d+$/;
-var requestPool = new base.Pool(10);
 
 class Youtube {
     constructor(options) {
@@ -167,8 +164,7 @@ class Youtube {
                     return items;
                 }
             }).then(function (items) {
-                return insertPool.do(function () {
-                    const item = items.shift();
+                return parallel(15, items, (item) => {
                     if (!item) return;
 
                     const snippet = item.snippet;
@@ -188,10 +184,9 @@ class Youtube {
         };
         var promise = Promise.resolve(_channelList);
         promise = promise.then(function (channels) {
-            return requestPool.do(function () {
-                var channel = channels.shift();
-                if (!channel)
-                    return;
+            return parallel(10, channels, (channel) => {
+                if (!channel) return;
+
                 return getPage(channel);
             });
         });

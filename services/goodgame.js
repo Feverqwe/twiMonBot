@@ -4,10 +4,10 @@ const CustomError = require('../customError').CustomError;
 const qs = require('querystring');
 const ErrorWithCode = require('../errorWithCode');
 const got = require('got');
+const parallel = require('../tools/parallel');
 
 
 const noProtocolRe = /^\/\//;
-const insertPool = new base.Pool(15);
 
 class GoodGame {
     constructor(options) {
@@ -139,10 +139,9 @@ class GoodGame {
                     };
                     return getList().then(function (responseBody) {
                         var items = responseBody._embedded.streams;
-                        return insertPool.do(function () {
-                            var stream = items.shift();
-                            if (!stream)
-                                return;
+                        return parallel(15, items, (stream) => {
+                            if (!stream) return;
+
                             return Promise.resolve().then(function () {
                                 var channel = channelIdMap[stream.key.toLowerCase()];
                                 if (!channel) {
