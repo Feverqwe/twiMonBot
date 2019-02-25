@@ -144,11 +144,11 @@ class MsgSender {
                 }).then(() => msg);
             });
             promise = promise.catch((err) => {
-                if (err.code === 'ETELEGRAM' && /not enough rights to send photos/.test(err.response.body)) {
+                if (err.code === 'ETELEGRAM' && /not enough rights to send photos/.test(err.response.body.description)) {
                     throw err;
                 }
                 return this.send(chat_id, null, caption, text).then((msg) => {
-                    debug('getPicId error %o', err);
+                    debug('getPicId error %j', err.message);
                     return msg;
                 });
             });

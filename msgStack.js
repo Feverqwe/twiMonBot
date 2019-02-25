@@ -570,6 +570,7 @@ MsgStack.prototype.onSendMessageError = function (err) {
                 /not enough rights to send photos to the chat/,
                 /need administrator rights in the channel chat/,
                 /CHAT_WRITE_FORBIDDEN/,
+                /CHAT_SEND_MEDIA_FORBIDDEN/
             ].some(function (re) {
                 return re.test(body.description);
             });
