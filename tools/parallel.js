@@ -7,10 +7,11 @@
 const parallel = (limit, items, callback) => {
     limit = Math.min(limit, items.length);
     let index = 0;
+    let canceled = false;
     const results = new Array(items.length);
 
     const runThread = () => {
-        if (index >= items.length) return;
+        if (canceled || index >= items.length) return;
 
         const idx = index++;
         const item = items[idx];
@@ -18,6 +19,9 @@ const parallel = (limit, items, callback) => {
         return Promise.resolve(callback(item, idx, items)).then((result) => {
             results[idx] = result;
             return runThread();
+        }, (err) => {
+            canceled = true;
+            throw err;
         });
     };
 
