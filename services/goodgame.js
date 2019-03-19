@@ -107,7 +107,7 @@ class GoodGame {
                 queue = queue.then(function () {
                     var retryLimit = 1;
                     var getList = function () {
-                        return _this.gotWithProxy('https://api2.goodgame.ru/v2/streams', {
+                        return _this.gotWithProxy('http://api2.goodgame.ru/v2/streams', {
                             query: {
                                 ids: Object.keys(channelIdMap).join(','),
                                 adult: true,
@@ -215,7 +215,7 @@ class GoodGame {
             }
             return channelName;
         }).then(function (channelId) {
-            return _this.gotWithProxy('https://api2.goodgame.ru/v2/streams/' + encodeURIComponent(channelId), {
+            return _this.gotWithProxy('http://api2.goodgame.ru/v2/streams/' + encodeURIComponent(channelId), {
                 headers: {
                     'Accept': 'application/vnd.goodgame.v2+json'
                 },
