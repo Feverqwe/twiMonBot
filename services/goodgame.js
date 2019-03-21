@@ -234,7 +234,7 @@ class GoodGame {
 
     gotWithProxy(url, options) {
         return got(url, options).catch((err) => {
-            if (err.code === 'ECONNRESET') {
+            if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT') {
                 if (this.gOptions.proxyList.hasOnline()) {
                     return this.gOptions.proxyList.got(url, options);
                 }
