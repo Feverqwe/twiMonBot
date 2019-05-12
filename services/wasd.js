@@ -7,6 +7,8 @@ const ErrorWithCode = require('../errorWithCode');
 const {CustomError} = require("../customError");
 const got = require('got');
 const {CookieJar} = require('tough-cookie');
+const promiseLimit = require('promise-limit');
+const singleThread = promiseLimit(1);
 
 const StreamList = struct.partial({
   result: [struct.partial({
@@ -55,29 +57,29 @@ class Wasd {
     return 'https://wasd.tv/channel/' + encodeURIComponent(channelId);
   }
 
-  async prepCookieJar() {
-    const cookies = await new Promise((resolve, reject) => this.cookieJar.getCookies('https://wasd.tv/', {}, (err, result) => {
-      err ? reject(err) : resolve(result);
-    }));
-    const hasToken = cookies.some((item) => {
-      if (item.key === 'cronos-auth-token') {
-        return true;
-      }
-    });
-    const hasTokenSignature = cookies.some((item) => {
-      if (item.key === 'cronos-auth-token-signature') {
-        return true;
-      }
-    });
-
-    if (!hasToken || !hasTokenSignature) {
-      await this.gotWithProxy('https://wasd.tv/api/auth/anon-token', {
-        cookieJar: this.cookieJar,
-        method: 'POST'
+  prepCookieJar() {
+    return singleThread(async () => {
+      const cookies = await new Promise((resolve, reject) => this.cookieJar.getCookies('https://wasd.tv/', {}, (err, result) => {
+        err ? reject(err) : resolve(result);
+      }));
+      const hasToken = cookies.some((item) => {
+        if (item.key === 'cronos-auth-token') {
+          return true;
+        }
       });
-    }
+      const hasTokenSignature = cookies.some((item) => {
+        if (item.key === 'cronos-auth-token-signature') {
+          return true;
+        }
+      });
 
-    return this.cookieJar;
+      if (!hasToken || !hasTokenSignature) {
+        await this.gotWithProxy('https://wasd.tv/api/auth/anon-token', {
+          cookieJar: this.cookieJar,
+          method: 'POST'
+        });
+      }
+    });
   }
 
   async insertItem(channel, stream) {
