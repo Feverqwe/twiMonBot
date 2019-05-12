@@ -75,8 +75,9 @@ class Wasd {
 
       if (!hasToken || !hasTokenSignature) {
         await this.gotWithProxy('https://wasd.tv/api/auth/anon-token', {
+          method: 'POST',
+          timeout: 10 * 1000,
           cookieJar: this.cookieJar,
-          method: 'POST'
         });
       }
     });
@@ -144,6 +145,7 @@ class Wasd {
               offset: 0,
               channel_id: Object.keys(channelIdChannelMap).join(',')
             },
+            timeout: 10 * 1000,
             cookieJar: this.cookieJar,
             json: true,
           })
@@ -226,6 +228,7 @@ class Wasd {
     }).then((channelId) => {
       return this.prepCookieJar().then(() => {
         return this.gotWithProxy('https://wasd.tv/api/channels/' + encodeURIComponent(channelId), {
+          timeout: 10 * 1000,
           cookieJar: this.cookieJar,
           json: true,
         });
