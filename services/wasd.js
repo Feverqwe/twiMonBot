@@ -83,6 +83,19 @@ class Wasd {
     });
   }
 
+  retryIfLocationMismatch(cb) {
+    return Promise.resolve(cb()).catch(async (err) => {
+      const bodyError = err.body && err.body.error;
+      if (bodyError && bodyError.statusCode === 401 && bodyError.code === 'AUTH_TOKEN_LOCATION_MISMATCH') {
+        await new Promise((resolve, reject) => this.cookieJar.removeAllCookies((err) => {
+          err ? reject(err) : resolve();
+        }));
+        return cb();
+      }
+      throw err;
+    });
+  }
+
   async insertItem(channel, stream) {
     const id = stream.stream_id;
 
@@ -137,18 +150,20 @@ class Wasd {
           const id = this.main.channels.unWrapId(channel.id);
           channelIdChannelMap[id] = channel;
         });
-        return this.prepCookieJar().then(() => {
-          return this.gotWithProxy('https://wasd.tv/api/media-containers', {
-            query:{
-              media_container_status: 'RUNNING',
-              limit: 100,
-              offset: 0,
-              channel_id: Object.keys(channelIdChannelMap).join(',')
-            },
-            timeout: 10 * 1000,
-            cookieJar: this.cookieJar,
-            json: true,
-          })
+        return this.retryIfLocationMismatch(() => {
+          return this.prepCookieJar().then(() => {
+            return this.gotWithProxy('https://wasd.tv/api/media-containers', {
+              query: {
+                media_container_status: 'RUNNING',
+                limit: 100,
+                offset: 0,
+                channel_id: Object.keys(channelIdChannelMap).join(',')
+              },
+              timeout: 10 * 1000,
+              cookieJar: this.cookieJar,
+              json: true,
+            });
+          });
         }).then(({body}) => {
           const streamList = StreamList(body).result;
           return parallel(15, streamList, (mediaContainer) => {
@@ -226,11 +241,13 @@ class Wasd {
       }
       return channelName;
     }).then((channelId) => {
-      return this.prepCookieJar().then(() => {
-        return this.gotWithProxy('https://wasd.tv/api/channels/' + encodeURIComponent(channelId), {
-          timeout: 10 * 1000,
-          cookieJar: this.cookieJar,
-          json: true,
+      return this.retryIfLocationMismatch(() => {
+        return this.prepCookieJar().then(() => {
+          return this.gotWithProxy('https://wasd.tv/api/channels/' + encodeURIComponent(channelId), {
+            timeout: 10 * 1000,
+            cookieJar: this.cookieJar,
+            json: true,
+          });
         });
       }).then(({body}) => {
         const channel = Channel(body).result;
