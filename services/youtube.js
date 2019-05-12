@@ -99,15 +99,17 @@ class Youtube {
         }).then(({ body }) => {
             const result = [];
             body.items.forEach((item) => {
-                let {actualStartTime, actualEndTime, concurrentViewers} = item.liveStreamingDetails;
-                if (actualStartTime && !actualEndTime) {
-                    concurrentViewers = parseInt(concurrentViewers, 10);
-                    if (!Number.isFinite(concurrentViewers)) {
-                        concurrentViewers = -1;
+                if (item.liveStreamingDetails) {
+                    let {actualStartTime, actualEndTime, concurrentViewers} = item.liveStreamingDetails;
+                    if (actualStartTime && !actualEndTime) {
+                        concurrentViewers = parseInt(concurrentViewers, 10);
+                        if (!Number.isFinite(concurrentViewers)) {
+                            concurrentViewers = -1;
+                        }
+                        const videoItem = idItemMap[item.id];
+                        videoItem.viewers = concurrentViewers;
+                        result.push(videoItem);
                     }
-                    const videoItem = idItemMap[item.id];
-                    videoItem.viewers = concurrentViewers;
-                    result.push(videoItem);
                 }
             });
             /*if (videoIds.length !== result.length) {
