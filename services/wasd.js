@@ -119,7 +119,7 @@ class Wasd {
       channel: {
         name: stream.stream_channel.channel_name,
         status: stream.stream_name,
-        url: this.getChannelUrl(stream.channel_id)
+        url: this.getChannelUrl(stream.channel_id) + '/videos/' + id
       }
     };
     const item = {
