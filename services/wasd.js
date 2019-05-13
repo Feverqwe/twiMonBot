@@ -12,6 +12,7 @@ const singleThread = promiseLimit(1);
 
 const StreamList = struct.partial({
   result: [struct.partial({
+    media_container_id: 'number',
     channel_id: 'number',
     media_container_streams: [struct.partial({
       stream_id: 'number',
@@ -96,7 +97,7 @@ class Wasd {
     });
   }
 
-  async insertItem(channel, stream) {
+  async insertItem(channel, stream, mediaContainerId) {
     const id = stream.stream_id;
 
     if (stream.stream_status !== 'RUNNING') {
@@ -119,7 +120,7 @@ class Wasd {
       channel: {
         name: stream.stream_channel.channel_name,
         status: stream.stream_name,
-        url: this.getChannelUrl(stream.channel_id) + '/videos/' + id
+        url: this.getChannelUrl(stream.channel_id) + '/videos/' + mediaContainerId
       }
     };
     const item = {
@@ -181,7 +182,7 @@ class Wasd {
                   return ;
                 }
 
-                return this.insertItem(channel, stream).then((stream) => {
+                return this.insertItem(channel, stream, mediaContainer.media_container_id).then((stream) => {
                   results.push(stream);
                 }, (err) => {
                   if (err.code === 'IS_NOT_RUNNING') {
