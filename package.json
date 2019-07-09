@@ -5,10 +5,10 @@
     "start": "node ./index"
   },
   "dependencies": {
-    "bluebird": "^3.5.3",
+    "bluebird": "^3.5.5",
     "debug": "^4.1.1",
     "got": "^9.6.0",
-    "mysql": "^2.16.0",
+    "mysql": "^2.17.1",
     "node-telegram-bot-api": "^0.30.0",
     "promise-limit": "^2.7.0",
     "superstruct": "^0.6.1",
