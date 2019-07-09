@@ -59,13 +59,12 @@ class Main {
         this.users = null;
         this.msgStack = null;
         this.services = {};
-        this.serviceList = ['twitch', 'goodgame', 'youtube', 'mixer', 'wasd'];
+        this.serviceList = ['twitch', 'goodgame', 'youtube', 'mixer'];
         this.serviceToTitle = {
             goodgame: 'GoodGame',
             twitch: 'Twitch',
             youtube: 'Youtube',
             mixer: 'Mixer',
-            wasd: 'Wasd',
         };
         this.daemon = null;
         this.bot = null;

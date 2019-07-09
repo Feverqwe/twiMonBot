@@ -929,38 +929,6 @@ var Chat = function(options) {
         });
     });
 
-    textOrCb(/\/cleanWasdChannels/, function (req) {
-        const chatId = req.chat.id;
-        const adminIds = _this.gOptions.config.adminIds || [];
-        if (adminIds.indexOf(chatId) === -1) {
-            return bot.sendMessage(chatId, 'Deny');
-        }
-
-        return _this.gOptions.users.getAllChannels().then(function (channels) {
-            return channels.filter(function (channel) {
-                return channel.service === 'wasd';
-            });
-        }).then(function (channels) {
-            let promise = Promise.resolve();
-            channels.forEach(function (channel) {
-                promise = promise.then(function () {
-                    return _this.gOptions.services.wasd.channelExists(channel).catch(function (err) {
-                        if (err.code === 'CHANNEL_NOT_FOUND') {
-                            debug('Channel not found, removing... %s', channel.id);
-                            return _this.gOptions.channels.removeChannel(channel.id);
-                        }
-                        debug('channelExists error! %s %o', channel.id, err);
-                    });
-                });
-            });
-            return promise;
-        }).then(function () {
-            return bot.sendMessage(chatId, 'Success');
-        }).catch(function (err) {
-            debug('Command cleanWasdChannels error! %o', err);
-        });
-    });
-
     textOrCb(/\/removeUnusedChannels/, function (req) {
         const chatId = req.chat.id;
         const adminIds = _this.gOptions.config.adminIds || [];
