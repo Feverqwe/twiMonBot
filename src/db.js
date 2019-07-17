@@ -143,7 +143,7 @@ class Db {
     ChatIdStreamId.belongsTo(Stream, {foreignKey: 'streamId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
 
     const Message = this.sequelize.define('message', {
-      id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true, autoIncrement: true},
+      id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
       chatId: {type: Sequelize.STRING(191), allowNull: false},
       streamId: {type: Sequelize.STRING(191), allowNull: true},
       type: {type: Sequelize.STRING(191), allowNull: false},
