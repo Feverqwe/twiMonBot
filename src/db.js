@@ -66,7 +66,13 @@ class Db {
     }, {
       tableName: 'channels',
       timestamps: true,
-      indexes: [{
+      indexes: [/*{
+        name: 'syncTimeoutExpiresAt_idx',
+        fields: ['syncTimeoutExpiresAt']
+      }, {
+        name: 'lastSyncAt_idx',
+        fields: ['lastSyncAt']
+      }, */{
         name: 'syncTimeoutExpiresAt_lastSyncAt_idx',
         fields: ['syncTimeoutExpiresAt', 'lastSyncAt']
       }]
@@ -148,7 +154,16 @@ class Db {
       tableName: 'messages',
       timestamps: true,
       updatedAt: false,
-      indexes: []
+      indexes: [/*{
+        name: 'hasChanges_idx',
+        fields: ['hasChanges']
+      }, {
+        name: 'syncTimeoutExpiresAt_idx',
+        fields: ['syncTimeoutExpiresAt']
+      }, */{
+        name: 'hasChanges_syncTimeoutExpiresAt_idx',
+        fields: ['hasChanges', 'syncTimeoutExpiresAt']
+      }]
     });
     Message.belongsTo(Chat, {foreignKey: 'chatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
     Message.belongsTo(Stream, {foreignKey: 'streamId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'SET NULL'});
