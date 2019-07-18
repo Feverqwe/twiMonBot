@@ -284,7 +284,7 @@ class Chat {
             arrayByPart(this.main.services.map((service) => {
               return {
                 text: service.name,
-                callback_data: '/choose/' + encodeURIComponent(service.id)
+                callback_data: '/choose/' + service.id
               };
             }), 2),
             [{
