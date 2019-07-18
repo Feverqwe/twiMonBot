@@ -389,6 +389,23 @@ class Db {
       }
     });
   }
+
+  getStreamsByChannelIds(channelIds) {
+    return this.model.Stream.findAll({
+      where: {channelId: channelIds}
+    });
+  }
+
+  getStreamById(id) {
+    return this.model.Stream.findOne({
+      where: {id}
+    }).then((stream) => {
+      if (!stream) {
+        throw new ErrorWithCode('Stream is not found', 'STREAM_IS_NOT_FOUND');
+      }
+      return stream;
+    });
+  }
 }
 
 function bulk(results, callback) {

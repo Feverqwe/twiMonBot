@@ -661,8 +661,7 @@ class Chat {
 
     this.router.callback_query(/\/watch\/(?<streamId>.+)/, (req, res) => {
       const {streamId} = req.params;
-
-      return Promise.resolve().then(() => {
+      return this.main.db.getStreamById(streamId).then((stream) => {
         // todo: fix me
       }).catch((err) => {
         debug('%j error %o', req.command, err);
