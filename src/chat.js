@@ -289,7 +289,7 @@ class Chat {
             }), 2),
             [{
               text: 'Cancel',
-              callback_data: '/cancel/add'
+              callback_data: '/choose/cancel'
             }]
           ];
           return requestChoose(req.chatId, req.fromId, messageId, messageText, cancelText, chooseKeyboard).then((req, msg) => {
@@ -353,7 +353,7 @@ class Chat {
           });
         });
       }).catch((err) => {
-        if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
+        if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT', 'RESPONSE_CANCEL'].includes(err.code)) {
           // pass
         } else {
           debug('%j %j error %o', req.command, requestedData, err);
@@ -776,7 +776,11 @@ class Chat {
           chatId: chatId,
           fromId: fromId,
         }, 3 * 60).then(({req, res, next}) => {
-          return this.main.bot.answerCallbackQuery(req.callback_query.id).then(() => {
+          return this.main.bot.answerCallbackQuery(req.callback_query.id).then(async () => {
+            if (req.params.value === 'cancel') {
+              await editOrSendNewMessage(chatId, msg.message_id, cancelText);
+              throw new ErrorWithCode('RESPONSE_CANCEL');
+            }
             return {req, msg};
           });
         }, async (err) => {
