@@ -37,9 +37,7 @@ const config = {
   botProxy: null,
   emitCheckProxyEveryHours: 3,
   proxy: {
-    testUrls: [
-      'https://ya.ru'
-    ],
+    testUrls: ['https://ya.ru'],
     list: [],
     checkOnRun: true
   }

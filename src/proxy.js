@@ -16,7 +16,7 @@ class Proxy {
     this.online = [];
     this.offline = [];
 
-    this.testRequest = this.main.config.proxy.testUrls;
+    this.testRequests = [];
 
     this.lastTimeUsed = 0;
 
@@ -26,6 +26,13 @@ class Proxy {
   init() {
     const proxyList = this.main.config.proxy.list || [];
     if (!proxyList.length) return;
+
+    this.testRequests = this.main.config.proxy.testUrls.map((req) => {
+      if (typeof req === "string") {
+        return {url: req};
+      }
+      return req;
+    });
 
     proxyList.map((proxy) => {
       if (typeof proxy === 'string') {
@@ -57,21 +64,29 @@ class Proxy {
       const agents = [].concat(this.online, this.offline);
       return parallel(8, agents, (agent) => {
         isVerbose && debug('check', agentToString(agent));
-        const [url, options] = this.testRequest;
-        const startTime = Date.now();
-        return got(url, {
-          agent,
-          timeout: 10 * 1000,
-          ...options
-        }).catch((err) => {
-          if (isProxyError(err) || err.name === 'TimeoutError') {
-            throw err;
-          }
-          if (err.name !== 'HTTPError') {
-            this.log.write(`Check: Proxy ${agentToString(agent)} error:`, err);
-          }
-        }).then(() => {
-          agent._latency = Date.now() - startTime;
+        return parallel(1, this.testRequests, ({url, options}) => {
+          const startTime = Date.now();
+          return got(url, {
+            agent,
+            timeout: 10 * 1000,
+            ...options
+          }).catch((err) => {
+            if (isProxyError(err) || err.name === 'TimeoutError') {
+              throw err;
+            }
+            if (err.name !== 'HTTPError') {
+              this.log.write(`Check: Proxy ${agentToString(agent)} error:`, err);
+            }
+            return null;
+          }).then((res) => {
+            const latency = Date.now() - startTime;
+            return {res, latency};
+          });
+        }).then((results) => {
+          const latency = results.reduce((sum, {latency}) => {
+            return sum + latency;
+          }, 0) / results.length;
+          agent._latency = latency;
           this.moveToOnline(agent);
         }, (err) => {
           agent._latency = Infinity;
