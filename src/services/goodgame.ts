@@ -137,7 +137,7 @@ class Goodgame {
             channelTitle: stream.key,
           });
         });
-      }, (err) => {
+      }).catch((err) => {
         debug(`getStreams for channels (%j) skip, cause: %o`, channelIds, err);
         skippedChannelIds.push(...channelIds);
       });
