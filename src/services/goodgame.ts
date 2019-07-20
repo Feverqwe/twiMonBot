@@ -158,7 +158,6 @@ class Goodgame {
         } else {
           debug('requestChannelById (%s) error: %o', channelId, err);
           resultChannelIds.push(channelId);
-          throw err;
         }
       });
     }).then(() => resultChannelIds);
