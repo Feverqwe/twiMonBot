@@ -97,6 +97,12 @@ class Goodgame {
         streams.forEach((stream) => {
           if (stream.status !== 'Live') return;
 
+          const channelId = stream.key.toLowerCase();
+          if (!channelIds.includes(channelId)) {
+            debug(`getStreams for channel (%j) skip, cause: Not required`, channelId);
+            return;
+          }
+
           let gameTitle = null;
           stream.channel.games.some((game) => {
             if (game.title) {
@@ -127,7 +133,7 @@ class Goodgame {
             isRecord: false,
             previews: previews,
             viewers: viewers,
-            channelId: stream.key.toLowerCase(),
+            channelId: channelId,
             channelTitle: stream.key,
           });
         });
