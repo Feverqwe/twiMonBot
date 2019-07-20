@@ -9,3 +9,4 @@ node-twiMon
 /backup
 /liveTime.json
 old/
+dist/
