@@ -1,4 +1,4 @@
-const arrayByPart = (array, len) => {
+const arrayByPart = <T>(array: T[], len: number): T[][] => {
   array = array.slice(0);
   const parts = [];
   while (array.length) {

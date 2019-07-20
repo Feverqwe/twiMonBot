@@ -4,13 +4,13 @@
  * @param {function(*, number, Array)} callback
  * @return {Promise<Array>}
  */
-const parallel = (limit, items, callback) => {
+const parallel = <T, F>(limit: number, items: T[], callback:(item: T, index: number, array: T[]) => F):Promise<F[]> => {
   limit = Math.min(limit, items.length);
   let index = 0;
   let canceled = false;
   const results = new Array(items.length);
 
-  const runThread = () => {
+  const runThread = () : Promise<any> => {
     if (canceled || index >= items.length) return;
 
     const idx = index++;

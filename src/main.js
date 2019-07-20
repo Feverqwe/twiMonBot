@@ -8,6 +8,7 @@ import Chat from "./chat";
 import Checker from "./checker";
 import RateLimit from "./tools/rateLimit";
 import Proxy from "./proxy";
+import Goodgame from "./services/goodgame";
 
 process.env.NTBA_FIX_319 = true;
 process.env.NTBA_FIX_350 = true;
@@ -64,7 +65,7 @@ class Main extends Events {
     this.twitch = null;
     // this.youtube = new Youtube(this);
     this.mixer = null;
-    this.goodgame = null;
+    this.goodgame = new Goodgame(this);
     this.services = [this.twitch, this.youtube, this.mixer, this.goodgame];
 
     this.tracker = new Tracker(this);
@@ -121,3 +122,5 @@ class Main extends Events {
 }
 
 const main = new Main();
+
+export default Main;

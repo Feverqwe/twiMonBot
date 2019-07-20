@@ -1,4 +1,4 @@
-async function withRetry(params, callback, ...errorHandlers) {
+async function withRetry<T>(params: {count: number, timeout: number|null}, callback: () => T, ...errorHandlers:Function[]):Promise<T> {
   if (typeof params === 'function') {
     errorHandlers.unshift(callback);
     callback = params;
