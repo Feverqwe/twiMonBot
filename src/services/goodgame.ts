@@ -4,6 +4,7 @@ import Main from "../main";
 import parallel from "../tools/parallel";
 import arrayByPart from "../tools/arrayByPart";
 import withRetry from "../tools/withRetry";
+import {StreamInterface} from "../checker";
 
 const got = require('got');
 const debug = require('debug')('app:Goodgame');
@@ -75,7 +76,7 @@ class Goodgame {
   }
 
   getStreams(channelIds: string[]) {
-    const resultStreams = [];
+    const resultStreams:StreamInterface[] = [];
     const skippedChannelIds = [];
     return parallel(10, arrayByPart(channelIds, 25), (channelIds) => {
       return withRetry({count: 3, timeout: 250}, () => {
