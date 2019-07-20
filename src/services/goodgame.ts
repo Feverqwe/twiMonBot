@@ -81,7 +81,7 @@ class Goodgame {
       return withRetry({count: 3, timeout: 250}, () => {
         return this.gotWithProxy('https://api2.goodgame.ru/v2/streams', {
           query: {
-            ids: Object.keys(channelIds).join(','),
+            ids: channelIds.join(','),
             adult: true,
             hidden: true
           },
