@@ -4,7 +4,7 @@ import Main from "../main";
 import parallel from "../tools/parallel";
 import arrayByPart from "../tools/arrayByPart";
 import withRetry from "../tools/withRetry";
-import {StreamInterface} from "../checker";
+import {ServiceInterface, StreamInterface} from "../checker";
 
 const got = require('got');
 const debug = require('debug')('app:Goodgame');
@@ -14,10 +14,10 @@ interface Stream {
   url: string
 }
 
-const Stream = struct.partial({
+const Stream: (any) => Stream = struct(struct.partial({
   key: 'string',
   url: 'string',
-});
+}));
 
 interface Streams {
   _embedded: {
@@ -38,7 +38,7 @@ interface Streams {
   }
 }
 
-const Streams = struct.partial({
+const Streams = struct(struct.partial({
   _embedded: struct.partial({
     streams: [struct.partial({
       key: 'string',
@@ -55,9 +55,9 @@ const Streams = struct.partial({
       })
     })]
   }),
-});
+}));
 
-class Goodgame {
+class Goodgame implements ServiceInterface {
   main: Main;
   id: string;
   name: string;
@@ -70,14 +70,13 @@ class Goodgame {
   match(url: string) {
     return [
       /goodgame\.ru\//i
-    ].some(function (re) {
-      return re.test(url);
-    });
+    ].some(re => re.test(url));
   }
 
   getStreams(channelIds: string[]) {
     const resultStreams:StreamInterface[] = [];
-    const skippedChannelIds = [];
+    const skippedChannelIds:string[] = [];
+    const removedChannelIds:string[] = [];
     return parallel(10, arrayByPart(channelIds, 25), (channelIds) => {
       return withRetry({count: 3, timeout: 250}, () => {
         return this.gotWithProxy('https://api2.goodgame.ru/v2/streams', {
@@ -92,7 +91,6 @@ class Goodgame {
           json: true,
         });
       }).then(({body}) => {
-        // @ts-ignore
         const streams = (Streams(body) as Streams)._embedded.streams;
 
         streams.forEach((stream) => {
@@ -143,7 +141,7 @@ class Goodgame {
         skippedChannelIds.push(...channelIds);
       });
     }).then(() => {
-      return {resultStreams, skippedChannelIds};
+      return {streams: resultStreams, skippedChannelIds, removedChannelIds};
     });
   }
 
@@ -182,15 +180,14 @@ class Goodgame {
       },
       json: true,
     }).then(({body}: {body: object}) => {
-      // @ts-ignore
-      const stream = Stream(body) as Stream;
+      const stream = Stream(body);
       const id = stream.key.toLowerCase();
       const url = stream.url;
       const title = stream.key;
       return {id, title, url};
     }, (err) => {
       if (err.statusCode === 404) {
-        throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
+        throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
       }
       throw err;
     });

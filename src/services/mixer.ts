@@ -1,0 +1,210 @@
+import Main from "../main";
+import {ServiceInterface, StreamInterface} from "../checker";
+import ErrorWithCode from "../tools/errorWithCode";
+import {struct} from "superstruct";
+import parallel from "../tools/parallel";
+import withRetry from "../tools/withRetry";
+
+const got = require('got');
+const debug = require('debug')('app:Mixer');
+
+interface Channel {
+  id: number,
+  token: string,
+  name: string,
+  online: boolean,
+  viewersCurrent: number,
+  createdAt: string
+}
+
+const Channels:(any) => Channel[] = struct([struct.partial({
+  id: 'number',
+  token: 'string',
+  name: 'string',
+  online: 'boolean',
+  viewersCurrent: 'number',
+  createdAt: 'string'
+})]);
+
+interface ExtendedChannel extends Channel {
+  type?: {
+    name: string
+  }
+}
+
+const Channel:(any) => ExtendedChannel = struct(struct.partial({
+  id: 'number',
+  token: 'string',
+  name: 'string',
+  online: 'boolean',
+  viewersCurrent: 'number',
+  type: struct.optional(struct.partial({
+    name: 'string'
+  })),
+  createdAt: 'string'
+}));
+
+class Mixer implements ServiceInterface {
+  main: Main;
+  id: string;
+  name: string;
+  constructor(main: Main) {
+    this.main = main;
+    this.id = 'mixer';
+    this.name = 'Mixer';
+  }
+
+  match(url: string) {
+    return [
+      /mixer\.com\//i
+    ].some(re => re.test(url));
+  }
+
+  getStreams(channelIds: string[]) {
+    const resultStreams: StreamInterface[] = [];
+    const skippedChannelIds = [];
+    const removedChannelIds = [];
+    return parallel(10, channelIds, (channelId) => {
+      return withRetry({count: 3, timeout: 250}, () => {
+        return got('https://mixer.com/api/v1/channels/' + encodeURIComponent(channelId), {
+          headers: {
+            'user-agent': ''
+          },
+          json: true,
+        });
+      }, isNotFoundChannel).then(({body}) => {
+        const channel = Channel(body);
+
+        const channelId = channel.token.toLowerCase();
+        if (!channelIds.includes(channelId)) {
+          debug(`getStreams for channel (%j) skip, cause: Not required`, channelId);
+          return;
+        }
+
+        if (!channel.online) return;
+
+        const url = getChannelUrl(channel.token);
+
+        let game = null;
+        if (channel.type) {
+          game = channel.type.name;
+        }
+
+        const previews = [
+          `https://thumbs.mixer.com/channel/${encodeURIComponent('' + channel.id)}.big.jpg`
+        ];
+
+        resultStreams.push({
+          id: '' + channel.id,
+          url: url,
+          title: channel.name,
+          game: game,
+          isRecord: false,
+          previews: previews,
+          viewers: channel.viewersCurrent,
+          channelId: channelId,
+          channelTitle: channel.token,
+        });
+      }, (err) => {
+        if (isNotFoundChannel(err)) {
+          removedChannelIds.push(channelId);
+        } else {
+          debug(`getStreams for channel (%j) skip, cause: %o`, channelId, err);
+          skippedChannelIds.push(channelId);
+        }
+      });
+    }).then(() => {
+      return {streams: resultStreams, skippedChannelIds, removedChannelIds};
+    });
+  }
+
+  async getExistsChannelIds(ids: string[]) {
+    return ids;
+  }
+
+  findChannel(query: string) {
+    return this.getChannelIdByUrl(query).then((channelId) => {
+      return this.requestChannelById(channelId);
+    }, (err) => {
+      if (err.code === 'IS_NOT_CHANNEL_URL') {
+        return this.requestChannelByQuery(query);
+      }
+      throw err;
+    });
+  }
+
+  requestChannelByQuery(query: string) {
+    return got('https://mixer.com/api/v1/channels', {
+      query: {
+        limit: 1,
+        scope: 'names',
+        q: query
+      },
+      headers: {
+        'user-agent': ''
+      },
+      json: true,
+    }).then(({body}) => {
+      const channels = Channels(body);
+      if (!channels.length) {
+        throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
+      }
+      const channel = channels[0];
+      const id = channel.token.toLowerCase();
+      const title = channel.token;
+      const url = getChannelUrl(channel.token);
+      return {id, title, url};
+    });
+  }
+
+  requestChannelById(channelId: string) {
+    return got('https://mixer.com/api/v1/channels/' + encodeURIComponent(channelId), {
+      headers: {
+        'user-agent': ''
+      },
+      json: true,
+    }).then(({body}) => {
+      const channel = Channel(body);
+      const id = channel.token.toLowerCase();
+      const title = channel.token;
+      const url = getChannelUrl(channel.token);
+      return {id, title, url};
+    }, (err) => {
+      if (err.statusCode === 404) {
+        throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
+      }
+      throw err;
+    });
+  }
+
+  async getChannelIdByUrl(url: string) {
+    let channelId = null;
+    [
+      /mixer\.com\/([\w\-]+)/i
+    ].some((re: RegExp) => {
+      const m = re.exec(url);
+      if (m) {
+        channelId = m[1];
+        return true;
+      }
+      return false;
+    });
+
+    if (!channelId) {
+      throw new ErrorWithCode('Is not channel url', 'IS_NOT_CHANNEL_URL');
+    }
+
+    return channelId;
+  }
+}
+
+function getChannelUrl(channelId) {
+  return 'https://mixer.com/' + encodeURIComponent(channelId);
+}
+
+function isNotFoundChannel(err) {
+  return err.name === 'HTTPError' && err.statusCode === 404 &&
+    err.body && err.body.error === 'Not Found' && err.body.message === 'Channel not found.';
+}
+
+export default Mixer;
