@@ -95,7 +95,7 @@ class Mixer implements ServiceInterface {
         ];
 
         resultStreams.push({
-          id: '' + channel.id,
+          id: channel.id,
           url: url,
           title: channel.name,
           game: game,

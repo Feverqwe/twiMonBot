@@ -21,7 +21,7 @@ const Stream: (any) => Stream = struct(struct.partial({
 
 interface Streams {
   _embedded: {
-    streams: [{
+    streams: {
       key: string,
       status: string,
       id: number,
@@ -30,11 +30,11 @@ interface Streams {
         title: string,
         url: string,
         thumb: string,
-        games: [{
+        games: {
           title: string|null
-        }]
+        }[]
       }
-    }]
+    }[]
   }
 }
 
@@ -98,7 +98,7 @@ class Goodgame implements ServiceInterface {
 
           const channelId = stream.key.toLowerCase();
           if (!channelIds.includes(channelId)) {
-            debug(`getStreams for channel (%j) skip, cause: Not required`, channelId);
+            debug(`getStreams for channel (%s) skip, cause: Not required`, channelId);
             return;
           }
 
@@ -125,7 +125,7 @@ class Goodgame implements ServiceInterface {
           }
 
           resultStreams.push({
-            id: '' + stream.id,
+            id: stream.id,
             url: stream.channel.url,
             title: stream.channel.title,
             game: gameTitle,
@@ -151,7 +151,7 @@ class Goodgame implements ServiceInterface {
       return this.requestChannelById(channelId).then(() => {
         resultChannelIds.push(channelId);
       }, (err) => {
-        if (err.code === 'CHANNEL_BY_QUERY_IS_NOT_FOUND') {
+        if (err.code === 'CHANNEL_BY_ID_IS_NOT_FOUND') {
           // pass
         } else {
           debug('requestChannelById (%s) error: %o', channelId, err);
@@ -187,7 +187,7 @@ class Goodgame implements ServiceInterface {
       return {id, title, url};
     }, (err) => {
       if (err.statusCode === 404) {
-        throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
+        throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
       }
       throw err;
     });

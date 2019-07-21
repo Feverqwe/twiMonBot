@@ -9,6 +9,8 @@ import Checker from "./checker";
 import RateLimit from "./tools/rateLimit";
 import Proxy from "./proxy";
 import Goodgame from "./services/goodgame";
+import Mixer from "./services/mixer";
+import Twitch from "./services/twitch";
 
 process.env.NTBA_FIX_319 = true;
 process.env.NTBA_FIX_350 = true;
@@ -62,9 +64,9 @@ class Main extends Events {
       return this.db.migrate();
     }
 
-    this.twitch = null;
+    this.twitch = new Twitch(this);
     // this.youtube = new Youtube(this);
-    this.mixer = null;
+    this.mixer = new Mixer(this);
     this.goodgame = new Goodgame(this);
     this.services = [this.twitch, this.youtube, this.mixer, this.goodgame];
 
