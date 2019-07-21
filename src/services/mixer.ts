@@ -109,7 +109,7 @@ class Mixer implements ServiceInterface {
         if (isNotFoundChannel(err)) {
           removedChannelIds.push(channelId);
         } else {
-          debug(`getStreams for channel (%j) skip, cause: %o`, channelId, err);
+          debug(`getStreams for channel (%s) skip, cause: %o`, channelId, err);
           skippedChannelIds.push(channelId);
         }
       });
