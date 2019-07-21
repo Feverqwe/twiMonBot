@@ -32,7 +32,7 @@ interface ExtendedChannel extends Channel {
   }
 }
 
-const Channel:(any) => ExtendedChannel = struct(struct.partial({
+const ExtendedChannel:(any) => ExtendedChannel = struct(struct.partial({
   id: 'number',
   token: 'string',
   name: 'string',
@@ -73,7 +73,7 @@ class Mixer implements ServiceInterface {
           json: true,
         });
       }, isNotFoundChannel).then(({body}) => {
-        const channel = Channel(body);
+        const channel = ExtendedChannel(body);
 
         const channelId = channel.token.toLowerCase();
         if (!channelIds.includes(channelId)) {
@@ -165,7 +165,7 @@ class Mixer implements ServiceInterface {
       },
       json: true,
     }).then(({body}) => {
-      return Channel(body);
+      return ExtendedChannel(body);
     }, (err) => {
       if (err.statusCode === 404) {
         throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
@@ -195,7 +195,7 @@ class Mixer implements ServiceInterface {
   }
 }
 
-function getChannelUrl(channelId) {
+function getChannelUrl(channelId: string) {
   return 'https://mixer.com/' + encodeURIComponent(channelId);
 }
 
