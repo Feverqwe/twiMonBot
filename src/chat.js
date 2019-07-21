@@ -48,7 +48,9 @@ class Chat {
             await this.main.db.changeChatId(sourceChatId, req.chatId);
             this.log.write(`[migrate msg] ${req.chatId} < ${sourceChatId}`);
           }
-        }).then(next);
+        }).then(next, (err) => {
+          debug('Process message %s %j error %o', req.chatId, req.message, err);
+        });
       } else {
         return next();
       }
