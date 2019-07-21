@@ -130,6 +130,11 @@ class Mixer implements ServiceInterface {
         return this.requestChannelByQuery(query);
       }
       throw err;
+    }).then((channel: Channel) => {
+      const id = channel.token.toLowerCase();
+      const title = channel.token;
+      const url = getChannelUrl(channel.token);
+      return {id, title, url};
     });
   }
 
@@ -149,11 +154,7 @@ class Mixer implements ServiceInterface {
       if (!channels.length) {
         throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
       }
-      const channel = channels[0];
-      const id = channel.token.toLowerCase();
-      const title = channel.token;
-      const url = getChannelUrl(channel.token);
-      return {id, title, url};
+      return channels[0];
     });
   }
 
@@ -164,11 +165,7 @@ class Mixer implements ServiceInterface {
       },
       json: true,
     }).then(({body}) => {
-      const channel = Channel(body);
-      const id = channel.token.toLowerCase();
-      const title = channel.token;
-      const url = getChannelUrl(channel.token);
-      return {id, title, url};
+      return Channel(body);
     }, (err) => {
       if (err.statusCode === 404) {
         throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
