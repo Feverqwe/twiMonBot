@@ -75,13 +75,13 @@ class Mixer implements ServiceInterface {
       }, isNotFoundChannel).then(({body}) => {
         const channel = ExtendedChannel(body);
 
+        if (!channel.online) return;
+
         const channelId = channel.token.toLowerCase();
         if (!channelIds.includes(channelId)) {
           debug(`getStreams for channel (%j) skip, cause: Not required`, channelId);
           return;
         }
-
-        if (!channel.online) return;
 
         const url = getChannelUrl(channel.token);
 
