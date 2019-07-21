@@ -206,23 +206,23 @@ class Twitch implements ServiceInterface {
   }
 
   getChannelNameByUrl(url: string) {
-    let channelId = null;
+    let channelName = null;
     [
       /twitch\.tv\/([\w\-]+)/i
     ].some((re: RegExp) => {
       const m = re.exec(url);
       if (m) {
-        channelId = m[1];
+        channelName = m[1];
         return true;
       }
       return false;
     });
 
-    if (!channelId) {
+    if (!channelName) {
       throw new ErrorWithCode('Is not channel url', 'IS_NOT_CHANNEL_URL');
     }
 
-    return channelId;
+    return channelName;
   }
 }
 
