@@ -139,7 +139,7 @@ class Twitch implements ServiceInterface {
     });
   }
 
-  async getExistsChannelIds(ids: number[]) {
+  getExistsChannelIds(ids: number[]) {
     const resultChannelIds = [];
     return parallel(10, ids, (channelId) => {
       return this.requestChannelById(channelId).then(() => {
