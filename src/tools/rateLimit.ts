@@ -41,7 +41,7 @@ class RateLimit {
     }
   }
 
-  wrap<T>(callback: (...any) => T): (...any) => Promise<T> {
+  wrap<T>(callback: (...any) => T): (...any) => Promise<T|any> {
     return (...args) => {
       return new Promise((resolve, reject) => {
         this.queue.push(() => {

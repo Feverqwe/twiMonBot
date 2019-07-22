@@ -1,7 +1,6 @@
 import loadConfig from "./tools/loadConfig";
 import Locale from "./locale";
 import Db from "./db";
-// import Youtube from "./services/youtube";
 import Tracker from "./tracker";
 import Sender from "./sender";
 import Chat from "./chat";
@@ -11,6 +10,7 @@ import Proxy from "./proxy";
 import Goodgame from "./services/goodgame";
 import Mixer from "./services/mixer";
 import Twitch from "./services/twitch";
+import Youtube from "./services/youtube";
 
 process.env.NTBA_FIX_319 = true;
 process.env.NTBA_FIX_350 = true;
@@ -65,7 +65,7 @@ class Main extends Events {
     }
 
     this.twitch = new Twitch(this);
-    // this.youtube = new Youtube(this);
+    this.youtube = new Youtube(this);
     this.mixer = new Mixer(this);
     this.goodgame = new Goodgame(this);
     this.services = [this.twitch, this.youtube, this.mixer, this.goodgame];
