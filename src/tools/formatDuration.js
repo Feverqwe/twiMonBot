@@ -1,21 +1,17 @@
-// from momentjs ISO_8601
-const isoRegex = /^PT(?:(-?[0-9,.]*)H)?(?:(-?[0-9,.]*)M)?(?:(-?[0-9,.]*)S)?$/;
+import {parse, toSeconds} from 'iso8601-duration';
 
-const parseIso = (inp) => {
-  const res = inp && parseFloat(inp.replace(',', '.'));
-  return (!Number.isFinite(res) ? 0 : res);
-};
+const formatDuration = (duration) => {
+  let seconds = toSeconds(parse(duration));
 
-const formatDuration = (str) => {
-  const match = isoRegex.exec(str);
-  if (!match) {
-    throw new Error(`Incorrect format! ${str}`);
-  }
+  const hours = Math.floor(seconds / 60 / 60);
+  seconds -= hours * 60 * 60;
+  const minutes = Math.floor(seconds / 60);
+  seconds -= minutes * 60;
 
   const parts = [
-    parseIso(match[1]),
-    parseIso(match[2]),
-    parseIso(match[3])
+    hours,
+    minutes,
+    seconds
   ];
 
   if (parts[0] === 0) {
