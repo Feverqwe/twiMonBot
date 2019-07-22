@@ -192,6 +192,10 @@ class Youtube implements ServiceInterface {
         }, isDailyLimitExceeded).then(({body}) => {
           const result = SearchVideoResponse(body);
           result.items.forEach((item) => {
+            if (channelId !== item.snippet.channelId) {
+              debug(`Video ${item.id.videoId} skip, cause: Channel id ${item.snippet.channelId} is not equal ${channelId}`);
+              return;
+            }
             idSnippet.set(item.id.videoId, item.snippet);
           });
         }).catch((err) => {
