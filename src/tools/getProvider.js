@@ -1,4 +1,5 @@
 import promiseFinally from "./promiseFinally";
+import promiseTry from "./promiseTry";
 
 const getProvider = (requestDataById, keepAlive = 0) => {
   const idCacheMap = new Map();
@@ -7,7 +8,7 @@ const getProvider = (requestDataById, keepAlive = 0) => {
   return (id, callback) => {
     const key = `key-${id}`;
 
-    return Promise.resolve().then(() => {
+    return promiseTry(() => {
       const cache = idCacheMap.get(id);
       if (cache) {
         return cache;
@@ -26,7 +27,7 @@ const getProvider = (requestDataById, keepAlive = 0) => {
       }));
     }).then((cache) => {
       cache.useCount++;
-      return Promise.resolve(callback(cache.result)).then(...promiseFinally(() => {
+      return promiseTry(() => callback(cache.result)).then(...promiseFinally(() => {
         cache.useCount--;
         clearTimeout(cache.timerId);
         cache.timerId = setTimeout(() => {

@@ -6,6 +6,7 @@ import ErrorWithCode from "../tools/errorWithCode";
 import {struct} from "superstruct";
 import arrayByPart from "../tools/arrayByPart";
 import withRetry from "../tools/withRetry";
+import promiseTry from "../tools/promiseTry";
 
 const got = require('got');
 const debug = require('debug')('app:Youtube');
@@ -170,7 +171,7 @@ class Youtube implements ServiceInterface {
     const resultStreams: StreamInterface[] = [];
     const skippedChannelIds = [];
     const removedChannelIds = [];
-    return Promise.resolve().then(() => {
+    return promiseTry(() => {
       const idSnippet = new Map();
       return parallel(10, channelIds, (channelId) => {
         return withRetry({count: 3, timeout: 250}, () => {
@@ -201,8 +202,7 @@ class Youtube implements ServiceInterface {
     }).then((idSnippet) => {
       const results:{id: string, viewers: number|null, snippet: SearchVideoResponseSnippet}[] = [];
       return parallel(10, arrayByPart(Array.from(idSnippet.keys()), 50), (videoIds) => {
-        let pageLimit = 100;
-        const getPage = (pageToken?) => {
+        return iterPages((pageToken?) => {
           return withRetry({count: 3, timeout: 250}, () => {
             return gotLimited('https://www.googleapis.com/youtube/v3/videos', {
               query: {
@@ -214,41 +214,33 @@ class Youtube implements ServiceInterface {
               },
               json: true,
             });
-          }, isDailyLimitExceeded).then(({body}) => {
-            const videosResponse = VideosResponse(body);
+          }, isDailyLimitExceeded);
+        }, ({body}) => {
+          const videosResponse = VideosResponse(body);
 
-            videosResponse.items.forEach((item) => {
-              if (!item.liveStreamingDetails) return;
+          videosResponse.items.forEach((item) => {
+            if (!item.liveStreamingDetails) return;
 
-              const snippet = idSnippet.get(item.id);
-              if (!snippet) {
-                debug('Skip video %s, cause: snippet is not found', item.id);
-                return;
+            const snippet = idSnippet.get(item.id);
+            if (!snippet) {
+              debug('Skip video %s, cause: snippet is not found', item.id);
+              return;
+            }
+
+            const {actualStartTime, actualEndTime, concurrentViewers} = item.liveStreamingDetails;
+            if (actualStartTime && !actualEndTime) {
+              let viewers = parseInt(concurrentViewers, 10);
+              if (!isFinite(viewers)) {
+                viewers = null;
               }
-
-              const {actualStartTime, actualEndTime, concurrentViewers} = item.liveStreamingDetails;
-              if (actualStartTime && !actualEndTime) {
-                let viewers = parseInt(concurrentViewers, 10);
-                if (!isFinite(viewers)) {
-                  viewers = null;
-                }
-                results.push({
-                  id: item.id,
-                  viewers: viewers,
-                  snippet: snippet
-                });
-              }
-            });
-
-            if (videosResponse.nextPageToken) {
-              if (--pageLimit < 0) {
-                throw new ErrorWithCode(`Page limit reached `, 'PAGE_LIMIT_REACHED');
-              }
-              return getPage(videosResponse.nextPageToken);
+              results.push({
+                id: item.id,
+                viewers: viewers,
+                snippet: snippet
+              });
             }
           });
-        };
-        return getPage();
+        });
       }).then(() => results);
     }).then((results) => {
       results.forEach(({id, snippet, viewers}) => {
@@ -278,8 +270,7 @@ class Youtube implements ServiceInterface {
   getExistsChannelIds(ids: string[]) {
     const resultChannelIds = [];
     return parallel(10, arrayByPart(ids, 50), (ids) => {
-      let pageLimit = 100;
-      const getPage = (pageToken?) => {
+      return iterPages((pageToken?) => {
         return withRetry({count: 3, timeout: 250}, () => {
           return gotLimited('https://www.googleapis.com/youtube/v3/channels', {
             query: {
@@ -292,21 +283,13 @@ class Youtube implements ServiceInterface {
             },
             json: true,
           });
-        }, isDailyLimitExceeded).then(({body}) => {
-          const channelsItemsId = ChannelsItemsId(body);
-          channelsItemsId.items.forEach((item) => {
-            resultChannelIds.push(item.id);
-          });
-
-          if (channelsItemsId.nextPageToken) {
-            if (--pageLimit < 0) {
-              throw new ErrorWithCode(`Page limit reached `, 'PAGE_LIMIT_REACHED');
-            }
-            return getPage(channelsItemsId.nextPageToken);
-          }
+        }, isDailyLimitExceeded);
+      }, ({body}) => {
+        const channelsItemsId = ChannelsItemsId(body);
+        channelsItemsId.items.forEach((item) => {
+          resultChannelIds.push(item.id);
         });
-      };
-      return getPage();
+      });
     }).then(() => resultChannelIds);
   }
 
@@ -480,7 +463,7 @@ class Youtube implements ServiceInterface {
   }
 
   async channelHasBroadcasts(channelId: string) {
-    for (let type of ['completed', 'live', 'upcoming']) {
+    for (const type of ['completed', 'live', 'upcoming']) {
       const result = await gotLimited('https://www.googleapis.com/youtube/v3/search', {
         query: {
           part: 'snippet',
@@ -518,6 +501,25 @@ function isDailyLimitExceeded(err) {
     return true;
   }
   return false;
+}
+
+function iterPages<T>(callback: (string?) => T, onResponse: (T) => any):Promise<void> {
+  let pageLimit = 100;
+  const getPage = (pageToken?: string) => {
+    return promiseTry(() => callback(pageToken)).then((response) => {
+      return promiseTry(() => onResponse(response)).then(() => {
+        // @ts-ignore
+        const nextPageToken: string = response.body.nextPageToken;
+        if (nextPageToken) {
+          if (--pageLimit < 0) {
+            throw new ErrorWithCode(`Page limit reached `, 'PAGE_LIMIT_REACHED');
+          }
+          return getPage(nextPageToken);
+        }
+      });
+    });
+  };
+  return getPage();
 }
 
 export default Youtube;

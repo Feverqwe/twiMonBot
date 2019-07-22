@@ -7,6 +7,7 @@ import resolvePath from "./tools/resolvePath";
 import LogFile from "./logFile";
 import ensureMap from "./tools/ensureMap";
 import arrayByPart from "./tools/arrayByPart";
+import promiseTry from "./tools/promiseTry";
 
 const debug = require('debug')('app:Chat');
 const jsonStringifyPretty = require("json-stringify-pretty-compact");
@@ -39,7 +40,7 @@ class Chat {
     this.router.message((req, res, next) => {
       const {migrate_to_chat_id: targetChatId, migrate_from_chat_id: sourceChatId} = req.message;
       if (targetChatId || sourceChatId) {
-        return Promise.resolve().then(async () => {
+        return promiseTry(async () => {
           if (targetChatId) {
             await this.main.db.changeChatId(req.chatId, targetChatId);
             this.log.write(`[migrate msg] ${req.chatId} > ${targetChatId}`);
@@ -256,7 +257,7 @@ class Chat {
       const query = req.params.query;
       let requestedData = null;
 
-      return Promise.resolve().then(() => {
+      return promiseTry(() => {
         if (query) {
           return {query: query.trim()};
         }
@@ -274,7 +275,7 @@ class Chat {
           return {query: req.message.text.trim(), messageId: msg.message_id};
         });
       }).then(({query, messageId}) => {
-        return Promise.resolve().then(() => {
+        return promiseTry(() => {
           const service = this.main.services.find((service) => service.match(query));
           if (service) {
             return {service, messageId};
@@ -437,7 +438,7 @@ class Chat {
         callback_data: '/cancel/delete'
       });
 
-      return Promise.resolve().then(() => {
+      return promiseTry(() => {
         if (req.callback_query && !req.query.rel) {
           return this.main.bot.editMessageReplyMarkup(JSON.stringify({
             inline_keyboard: page
@@ -464,7 +465,7 @@ class Chat {
     });
 
     this.router.callback_query(/\/deleteChannel/, provideChat, (req, res) => {
-      return Promise.resolve().then(() => {
+      return promiseTry(() => {
         return this.main.db.deleteChatById(req.chat.channelId);
       }).then(() => {
         return this.main.bot.editMessageReplyMarkup(JSON.stringify({
@@ -487,7 +488,7 @@ class Chat {
       const channelId = req.params.channelId;
       let requestedData = null;
 
-      return Promise.resolve().then(() => {
+      return promiseTry(() => {
         if (channelId) {
           return {channelId: channelId.trim()};
         }
@@ -505,7 +506,7 @@ class Chat {
           return {channelId: req.message.text.trim(), messageId: msg.message_id};
         });
       }).then(({channelId, messageId}) => {
-        return Promise.resolve().then(() => {
+        return promiseTry(() => {
           if (!/^@\w+$/.test(channelId)) {
             throw new ErrorWithCode('Incorrect channel name', 'INCORRECT_CHANNEL_NAME');
           }
@@ -579,7 +580,7 @@ class Chat {
 
     this.router.callback_query(/\/(?<optionsType>options|channelOptions)\/(?<key>[^\/]+)\/(?<value>.+)/, provideChat, (req, res) => {
       const {optionsType, key, value} = req.params;
-      return Promise.resolve().then(() => {
+      return promiseTry(() => {
         const changes = {};
         switch (key) {
           case 'isHidePreview': {
@@ -633,7 +634,7 @@ class Chat {
     });
 
     this.router.textOrCallbackQuery(/\/options/, provideChat, (req, res) => {
-      return Promise.resolve().then(() => {
+      return promiseTry(() => {
         if (req.callback_query && !req.query.rel) {
           return this.main.bot.editMessageReplyMarkup(JSON.stringify({
             inline_keyboard: getOptions(req.chat)
@@ -726,7 +727,7 @@ class Chat {
         })
       };
 
-      return Promise.resolve().then(() => {
+      return promiseTry(() => {
         if (req.callback_query && !req.query.rel) {
           return this.main.bot.editMessageText(pageText, Object.assign(options, {
             chat_id: req.chatId,
@@ -794,7 +795,7 @@ class Chat {
     };
 
     const editOrSendNewMessage = (chatId, messageId, text, form) => {
-      return Promise.resolve().then(() => {
+      return promiseTry(() => {
         if (!messageId) {
           throw new ErrorWithCode('messageId is empty', 'MESSAGE_ID_IS_EMPTY');
         }
@@ -838,7 +839,7 @@ class Chat {
 
     this.router.callback_query(/\/admin\/(?<command>.+)/, isAdmin, (req, res) => {
       const command = req.params.command;
-      return Promise.resolve().then(() => {
+      return promiseTry(() => {
         if (!commands.some(({method}) => method === command)) {
           throw new ErrorWithCode('Method is not found', 'METHOD_IS_NOT_FOUND');
         }

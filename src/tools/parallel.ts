@@ -1,3 +1,5 @@
+import promiseTry from "./promiseTry";
+
 /**
  * @param {number} limit
  * @param {Array} items
@@ -17,7 +19,7 @@ const parallel = <T, F>(limit: number, items: T[], callback:(item: T, index: num
     const item = items[idx];
 
     try {
-      return Promise.resolve(callback(item, idx, items)).then((result) => {
+      return promiseTry(() => callback(item, idx, items)).then((result) => {
         results[idx] = result;
         return runThread();
       }, (err) => {
