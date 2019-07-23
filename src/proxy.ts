@@ -3,12 +3,27 @@ import {everyMinutes} from "./tools/everyTime";
 import getNow from "./tools/getNow";
 import getInProgress from "./tools/getInProgress";
 import parallel from "./tools/parallel";
+import Main from "./main";
 
 const debug = require('debug')('app:proxyList');
 const tunnel = require('tunnel');
 const got = require('got');
 
+interface Agent {
+  _latency: number,
+  proxyOptions: {
+    host: string,
+    port: number,
+  }
+}
+
 class Proxy {
+  main: Main;
+  log: LogFile;
+  online: Agent[];
+  offline: Agent[];
+  testRequests: {url: string, options?: object}[];
+  lastTimeUsed: number;
   constructor(/**Main*/main) {
     this.main = main;
     this.log = new LogFile('proxy');
@@ -58,7 +73,7 @@ class Proxy {
   }
 
   inProgress = getInProgress();
-  check(isVerbose) {
+  check(isVerbose = false) {
     return this.inProgress(() => {
       isVerbose && debug('checking...');
       const agents = [].concat(this.online, this.offline);
@@ -77,7 +92,6 @@ class Proxy {
             if (err.name !== 'HTTPError') {
               this.log.write(`Check: Proxy ${agentToString(agent)} error:`, err);
             }
-            return null;
           }).then((res) => {
             const latency = Date.now() - startTime;
             return {res, latency};
@@ -110,7 +124,7 @@ class Proxy {
     });
   }
 
-  got(url, options) {
+  got(url: string, options: any):Promise<any> {
     const agent = this.getAgent();
     return got(url, {...options, agent}).catch((err) => {
       if (err.name !== 'HTTPError') {
@@ -126,15 +140,15 @@ class Proxy {
     });
   }
 
-  moveToOffline(agent) {
+  moveToOffline(agent: Agent) {
     return moveTo(agent, this.online, this.offline);
   }
 
-  moveToOnline(agent) {
+  moveToOnline(agent: Agent) {
     return moveTo(agent, this.offline, this.online);
   }
 
-  getAgent() {
+  getAgent(): Agent|undefined {
     this.lastTimeUsed = getNow();
     return this.online[0];
   }
@@ -145,7 +159,7 @@ class Proxy {
   }
 }
 
-function moveTo(agent, from, to) {
+function moveTo<T>(agent: T, from:T[], to:T[]) {
   const pos = from.indexOf(agent);
   if (pos !== -1) {
     from.splice(pos, 1);
@@ -163,7 +177,7 @@ function isProxyError(err) {
   ].some(re => re.test(err.message));
 }
 
-function agentToString(agent) {
+function agentToString(agent:Agent):string {
   return `${agent.proxyOptions.host}:${agent.proxyOptions.port}`;
 }
 

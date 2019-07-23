@@ -1,9 +1,13 @@
+import {WriteStream} from "fs";
+
 const fs = require('fs');
 const path = require('path');
 const debug = require('debug')('app:LogFile');
 
 class LogFile {
-  constructor(name) {
+  name: string;
+  stream: WriteStream;
+  constructor(name: string) {
     this.name = name;
 
     const place = path.join(__dirname, '..', 'log');
@@ -14,7 +18,7 @@ class LogFile {
     });
   }
 
-  write(...args) {
+  write(...args: any):void {
     args.unshift(`[${clfdate(new Date())}]`);
     try {
       this.stream.write(args.join(' ') + '\n');
@@ -24,7 +28,7 @@ class LogFile {
   }
 }
 
-function ensureDir(place) {
+function ensureDir(place: string) {
   try {
     fs.accessSync(place);
   } catch (err) {
@@ -38,7 +42,7 @@ const CLF_MONTH = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
 ];
 
-function clfdate(dateTime) {
+function clfdate(dateTime: Date): string {
   const date = dateTime.getUTCDate();
   const hour = dateTime.getUTCHours();
   const mins = dateTime.getUTCMinutes();
@@ -52,7 +56,7 @@ function clfdate(dateTime) {
     ' +0000';
 }
 
-function pad2 (num) {
+function pad2(num: number): string {
   const str = String(num);
 
   return (str.length === 1 ? '0' : '') + str;

@@ -1,11 +1,12 @@
 import promiseFinally from "./promiseFinally";
 import promiseTry from "./promiseTry";
 
-const getInProgress = () => {
+const getInProgress = (): <T>(callback: () => T) => Promise<T|undefined> => {
   let isInProgress = false;
-  return (callback) => {
-    if (isInProgress) return Promise.resolve();
+  return <T>(callback: () => T): Promise<T|undefined> => {
+    if (isInProgress) return Promise.resolve(undefined);
     isInProgress = true;
+    // @ts-ignore
     return promiseTry(() => callback()).then(...promiseFinally(() => {
       isInProgress = false;
     }));

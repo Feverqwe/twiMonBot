@@ -4,7 +4,7 @@ class Locale {
   }
 }
 
-const languages = {};
+const languages:{[s: string]: {[s: string]: string}} = {};
 
 languages.en = {
   help: 'Hi! I will notify you about the beginning of the broadcasts on Twitch, Youtube, GoodGame and Mixer!',
