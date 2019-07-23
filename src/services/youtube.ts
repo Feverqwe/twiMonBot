@@ -508,15 +508,15 @@ function isDailyLimitExceeded(err) {
 }
 
 function iterPages<T>(callback: (string?) => T, onResponse: (T) => any):Promise<void> {
-  let pageLimit = 100;
+  let limit = 100;
   const getPage = (pageToken?: string) => {
     return promiseTry(() => callback(pageToken)).then((response) => {
       return promiseTry(() => onResponse(response)).then(() => {
         // @ts-ignore
         const nextPageToken: string = response.body.nextPageToken;
         if (nextPageToken) {
-          if (--pageLimit < 0) {
-            throw new ErrorWithCode(`Page limit reached `, 'PAGE_LIMIT_REACHED');
+          if (--limit < 0) {
+            throw new ErrorWithCode(`Page limit reached`, 'PAGE_LIMIT_REACHED');
           }
           return getPage(nextPageToken);
         }
