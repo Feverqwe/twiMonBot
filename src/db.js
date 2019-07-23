@@ -110,10 +110,10 @@ class Db {
       viewers: {type: Sequelize.NUMBER, allowNull: true},
       channelId: {type: Sequelize.STRING(191), allowNull: false},
       telegramPreviewFileId: {type: Sequelize.TEXT, allowNull: true},
-      offlineFrom: {type: Sequelize.DATE, allowNull: true},
       isOffline: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
-      timeoutFrom: {type: Sequelize.DATE, allowNull: true},
+      offlineFrom: {type: Sequelize.DATE, allowNull: true},
       isTimeout: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
+      timeoutFrom: {type: Sequelize.DATE, allowNull: true},
     }, {
       tableName: 'streams',
       timestamps: true,
