@@ -18,18 +18,13 @@ const parallel = <T, F>(limit: number, items: T[], callback:(item: T, index: num
     const idx = index++;
     const item = items[idx];
 
-    try {
-      return promiseTry(() => callback(item, idx, items)).then((result) => {
-        results[idx] = result;
-        return runThread();
-      }, (err) => {
-        canceled = true;
-        throw err;
-      });
-    } catch (err) {
+    return promiseTry(() => callback(item, idx, items)).then((result) => {
+      results[idx] = result;
+      return runThread();
+    }, (err) => {
       canceled = true;
-      return Promise.reject(err);
-    }
+      throw err;
+    });
   };
 
   const threads = new Array(limit);
