@@ -1,8 +1,12 @@
 const arrayByPart = <T>(array: T[], len: number): T[][] => {
-  array = array.slice(0);
-  const parts = [];
-  while (array.length) {
-    parts.push(array.splice(0, len));
+  const size = Math.ceil(array.length / len);
+  const parts = new Array(size);
+  let offset = 0;
+  let index = 0;
+  while (index < size) {
+    const part = array.slice(offset, offset + len);
+    offset += len;
+    parts[index++] = part;
   }
   return parts;
 };
