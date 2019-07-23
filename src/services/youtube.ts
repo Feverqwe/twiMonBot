@@ -218,31 +218,33 @@ class Youtube implements ServiceInterface {
               },
               json: true,
             });
-          }, isDailyLimitExceeded);
-        }, ({body}) => {
-          const videosResponse = VideosResponse(body);
+          }, isDailyLimitExceeded).then(({body}) => {
+            const videosResponse = VideosResponse(body);
 
-          videosResponse.items.forEach((item) => {
-            if (!item.liveStreamingDetails) return;
+            videosResponse.items.forEach((item) => {
+              if (!item.liveStreamingDetails) return;
 
-            const snippet = idSnippet.get(item.id);
-            if (!snippet) {
-              debug('Skip video %s, cause: snippet is not found', item.id);
-              return;
-            }
-
-            const {actualStartTime, actualEndTime, concurrentViewers} = item.liveStreamingDetails;
-            if (actualStartTime && !actualEndTime) {
-              let viewers = parseInt(concurrentViewers, 10);
-              if (!isFinite(viewers)) {
-                viewers = null;
+              const snippet = idSnippet.get(item.id);
+              if (!snippet) {
+                debug('Skip video %s, cause: snippet is not found', item.id);
+                return;
               }
-              results.push({
-                id: item.id,
-                viewers: viewers,
-                snippet: snippet
-              });
-            }
+
+              const {actualStartTime, actualEndTime, concurrentViewers} = item.liveStreamingDetails;
+              if (actualStartTime && !actualEndTime) {
+                let viewers = parseInt(concurrentViewers, 10);
+                if (!isFinite(viewers)) {
+                  viewers = null;
+                }
+                results.push({
+                  id: item.id,
+                  viewers: viewers,
+                  snippet: snippet
+                });
+              }
+            });
+
+            return videosResponse.nextPageToken;
           });
         });
       }).then(() => results);
@@ -287,11 +289,13 @@ class Youtube implements ServiceInterface {
             },
             json: true,
           });
-        }, isDailyLimitExceeded);
-      }, ({body}) => {
-        const channelsItemsId = ChannelsItemsId(body);
-        channelsItemsId.items.forEach((item) => {
-          resultChannelIds.push(item.id);
+        }, isDailyLimitExceeded).then(({body}) => {
+          const channelsItemsId = ChannelsItemsId(body);
+          channelsItemsId.items.forEach((item) => {
+            resultChannelIds.push(item.id);
+          });
+
+          return channelsItemsId.nextPageToken;
         });
       });
     }).then(() => resultChannelIds);
@@ -507,20 +511,16 @@ function isDailyLimitExceeded(err) {
   return false;
 }
 
-function iterPages<T>(callback: (string?) => T, onResponse: (T) => any):Promise<void> {
+function iterPages(callback: (pageToken?: string) => Promise<string|undefined>):Promise<void> {
   let limit = 100;
   const getPage = (pageToken?: string) => {
-    return promiseTry(() => callback(pageToken)).then((response) => {
-      return promiseTry(() => onResponse(response)).then(() => {
-        // @ts-ignore
-        const nextPageToken: string = response.body.nextPageToken;
-        if (nextPageToken) {
-          if (--limit < 0) {
-            throw new ErrorWithCode(`Page limit reached`, 'PAGE_LIMIT_REACHED');
-          }
-          return getPage(nextPageToken);
+    return promiseTry(() => callback(pageToken)).then((nextPageToken?: string) => {
+      if (nextPageToken) {
+        if (--limit < 0) {
+          throw new ErrorWithCode(`Page limit reached`, 'PAGE_LIMIT_REACHED');
         }
-      });
+        return getPage(nextPageToken);
+      }
     });
   };
   return getPage();
