@@ -2,6 +2,7 @@ import Main from "./main";
 import {everyMinutes} from "./tools/everyTime";
 import serviceId from "./tools/serviceId";
 import ensureMap from "./tools/ensureMap";
+import arrayDifferent from "./tools/arrayDifferent";
 
 const debug = require('debug')('app:Checker');
 
@@ -20,6 +21,10 @@ export interface RawStream {
 interface Stream extends RawStream {
   id: string,
   channelId: string,
+}
+
+interface DbStream extends Channel {
+  get: (any) => Stream
 }
 
 export interface ServiceInterface {
@@ -96,6 +101,7 @@ class Checker {
         return service.getStreams(rawChannelIds);
       }).then(({streams: rawStreams, skippedChannelIds: skippedRawChannelIds, removedChannelIds: removedRawChannelIds}) => {
         const streamIdStream:Map<string, Stream> = new Map();
+        const streamIds: string[] = [];
         const streams: Stream[] = [];
 
         const skippedChannelIds = skippedRawChannelIds.map(id => serviceId.wrap(service, id));
@@ -114,6 +120,7 @@ class Checker {
 
           streamIdStream.set(stream.id, stream);
           streams.push(stream);
+          streamIds.push(stream.id);
         });
 
         const checkedChannelIds = channelIds.slice(0);
@@ -130,8 +137,31 @@ class Checker {
           }
         });
 
-        return {streams, streamIdStream, checkedChannelIds, skippedChannelIds, removedChannelIds};
-      }).then(({streams, streamIdStream, checkedChannelIds, skippedChannelIds, removedChannelIds}) => {
+        return this.main.db.getStreamsByChannelIds(channelIds).then((existsStreams: DbStream[]) => {
+          const existsStreamIdStream = new Map();
+          const existsStreamIds = existsStreams.map(stream => {
+            existsStreamIdStream.set(stream.id, stream);
+            return stream.id;
+          });
+
+          const offlineStreamIds = arrayDifferent(existsStreamIds, streamIds);
+          const newStreamIds = arrayDifferent(streamIds, existsStreamIds);
+          const updatedStreamIds = arrayDifferent(streamIds, newStreamIds);
+
+          return {
+            streams, streamIdStream,
+            existsStreams, existsStreamIdStream,
+            newStreamIds, updatedStreamIds, offlineStreamIds,
+            checkedChannelIds, skippedChannelIds, removedChannelIds
+          };
+        });
+      }).then((result) => {
+        const {
+          streams, streamIdStream,
+          existsStreams, existsStreamIdStream,
+          newStreamIds, updatedStreamIds, offlineStreamIds,
+          checkedChannelIds, skippedChannelIds, removedChannelIds
+        } = result;
         const channelIdsChanges:{[s: string]: {[s: string]: any}} = {};
         const channelIdSteamIds:Map<string, string[]> = new Map();
 
