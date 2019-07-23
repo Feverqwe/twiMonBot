@@ -7,6 +7,7 @@ const base = require('./base');
 const Router = require('./router');
 const CustomError = require('./customError').CustomError;
 const querystring = require('querystring');
+const parallel = require('./tools/parallel');
 
 var Chat = function(options) {
     var _this = this;
@@ -942,6 +943,59 @@ var Chat = function(options) {
             debug('Command removeUnusedChannels error! %o', err);
         });
     });
+
+    textOrCb(/\/checkChatsExists/, function (req) {
+        const chatId = req.chat.id;
+        const adminIds = _this.gOptions.config.adminIds || [];
+        if (adminIds.indexOf(chatId) === -1) {
+            return bot.sendMessage(chatId, 'Deny');
+        }
+
+        return _this.gOptions.users.getAllChatIds().then((chatIds) => {
+            return parallel(10, chatIds, (chatId) => {
+                return _this.gOptions.bot.sendChatAction(chatId, 'typing').catch((err) => {
+                    const isBlocked = isBlockedError(err);
+                    if (isBlocked) {
+                        const body = err.response.body;
+                        return _this.gOptions.users.removeChat(chatId, body.description);
+                    } else {
+                        debug('checkChatsExists typing to %s error, cause: %o', chatId, err);
+                    }
+                });
+            });
+        }).then(function () {
+            return bot.sendMessage(chatId, 'Success');
+        }).catch(function (err) {
+            debug('Command checkChatsExists error! %o', err);
+            return bot.sendMessage(chatId, 'Error');
+        });
+    });
+
+    const blockedErrors = [
+        /group chat is deactivated/,
+        /chat not found/,
+        /channel not found/,
+        /USER_DEACTIVATED/,
+        /not enough rights to send photos to the chat/,
+        /have no rights to send a message/,
+        /need administrator rights in the channel chat/,
+        /CHAT_WRITE_FORBIDDEN/,
+        /CHAT_SEND_MEDIA_FORBIDDEN/
+    ];
+
+    function isBlockedError(err) {
+        if (err.code === 'ETELEGRAM') {
+            const body = err.response.body;
+
+            let isBlocked = body.error_code === 403;
+            if (!isBlocked) {
+                isBlocked = blockedErrors.some(re => re.test(body.description));
+            }
+
+            return isBlocked;
+        }
+        return false;
+    }
 
     var sendStreamMessage = function (chatId, chat, stream) {
         var text = base.getNowStreamText(_this.gOptions, stream);
