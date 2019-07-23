@@ -11,6 +11,8 @@ export interface StreamInterface {
 }
 
 export interface ServiceInterface {
+  id: string,
+  name: string,
   match(string): boolean,
   getStreams(channelsIds: string[]|number[]): Promise<{streams: StreamInterface[], skippedChannelIds: string[]|number[], removedChannelIds: string[]|number[]}>,
   getExistsChannelIds(channelsIds: string[]|number[]): Promise<string[]|number[]>,
