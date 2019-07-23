@@ -1,4 +1,4 @@
-import {ServiceInterface, StreamInterface} from "../checker";
+import {ServiceInterface, RawStream} from "../checker";
 import Main from "../main";
 import RateLimit from "../tools/rateLimit";
 import parallel from "../tools/parallel";
@@ -154,10 +154,12 @@ class Youtube implements ServiceInterface {
   main: Main;
   id: string;
   name: string;
+  batchSize: number;
   constructor(main: Main) {
     this.main = main;
     this.id = 'youtube';
     this.name = 'Youtube';
+    this.batchSize = 50;
   }
 
   match(url: string) {
@@ -168,7 +170,7 @@ class Youtube implements ServiceInterface {
   }
 
   getStreams(channelIds: string[]) {
-    const resultStreams: StreamInterface[] = [];
+    const resultStreams: RawStream[] = [];
     const skippedChannelIds = [];
     const removedChannelIds = [];
     return promiseTry(() => {
@@ -192,10 +194,6 @@ class Youtube implements ServiceInterface {
         }, isDailyLimitExceeded).then(({body}) => {
           const result = SearchVideoResponse(body);
           result.items.forEach((item) => {
-            if (channelId !== item.snippet.channelId) {
-              debug(`Video ${item.id.videoId} skip, cause: Channel id ${item.snippet.channelId} is not equal ${channelId}`);
-              return;
-            }
             idSnippet.set(item.id.videoId, item.snippet);
           });
         }).catch((err) => {

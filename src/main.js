@@ -29,6 +29,10 @@ const config = {
   token: '',
   gaId: '',
   ytToken: '',
+  twitchToken: '',
+  checkChannelIfLastSyncLessThenMinutes: 5,
+  channelSyncTimeoutMinutes: 5,
+  emitCheckProxyEveryHours: 3,
   db: {
     host: 'localhost',
     port: 3306,
@@ -38,7 +42,6 @@ const config = {
   },
   adminIds: [],
   botProxy: null,
-  emitCheckProxyEveryHours: 3,
   proxy: {
     testUrls: ['https://ya.ru'],
     list: [],

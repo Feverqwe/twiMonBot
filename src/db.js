@@ -356,11 +356,12 @@ class Db {
     });
   }
 
-  getChannelsForSync(limit) {
+  getServiceChannelsForSync(serviceId, limit) {
     const date = new Date();
-    date.setHours(date.getHours() - this.main.config.checkChannelIfLastSyncLessThenHours);
+    date.setMinutes(date.getMinutes() - this.main.config.checkChannelIfLastSyncLessThenMinutes);
     return this.model.Channel.findAll({
       where: {
+        service: serviceId,
         syncTimeoutExpiresAt: {[Op.lt]: new Date()},
         lastSyncAt: {[Op.lt]: date},
       },
@@ -375,6 +376,16 @@ class Db {
       offset, limit,
     }).then((channels) => {
       return channels.map(channel => channel.id);
+    });
+  }
+
+  setChannelsSyncTimeoutExpiresAt(ids) {
+    const date = new Date();
+    date.setMinutes(date.getMinutes() + this.main.config.channelSyncTimeoutMinutes);
+    return this.model.Channel.update({
+      syncTimeoutExpiresAt: date
+    }, {
+      where: {id: ids}
     });
   }
 

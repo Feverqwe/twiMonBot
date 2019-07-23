@@ -1,5 +1,5 @@
 import Main from "../main";
-import {ServiceInterface, StreamInterface} from "../checker";
+import {ServiceInterface, RawStream} from "../checker";
 import ErrorWithCode from "../tools/errorWithCode";
 import {struct} from "superstruct";
 import parallel from "../tools/parallel";
@@ -48,10 +48,12 @@ class Mixer implements ServiceInterface {
   main: Main;
   id: string;
   name: string;
+  batchSize: number;
   constructor(main: Main) {
     this.main = main;
     this.id = 'mixer';
     this.name = 'Mixer';
+    this.batchSize = 50;
   }
 
   match(url: string) {
@@ -61,7 +63,7 @@ class Mixer implements ServiceInterface {
   }
 
   getStreams(channelIds: string[]) {
-    const resultStreams: StreamInterface[] = [];
+    const resultStreams: RawStream[] = [];
     const skippedChannelIds = [];
     const removedChannelIds = [];
     return parallel(10, channelIds, (channelId) => {
@@ -78,10 +80,6 @@ class Mixer implements ServiceInterface {
         if (!channel.online) return;
 
         const channelId = channel.token.toLowerCase();
-        if (!channelIds.includes(channelId)) {
-          debug(`getStreams for channel (%j) skip, cause: Not required`, channelId);
-          return;
-        }
 
         const url = getChannelUrl(channel.token);
 

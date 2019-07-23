@@ -8,7 +8,7 @@ const dayMs = 24 * hourMs;
  * @param {function} callback
  * @return {Function}
  */
-const everyTime = (ms, callback) => {
+const everyTime = (ms: number|{ms: number, offset?: number}, callback: () => any): () => void => {
   let _ms = 0;
   let _offset = 0;
   if (typeof ms === 'object') {
@@ -34,23 +34,23 @@ const everyTime = (ms, callback) => {
   };
 };
 
-const everyMinutes = (minutes, callback) => {
+const everyMinutes = (minutes: number, callback: () => any) => {
   return everyTime({ms: minutes * minuteMs}, callback);
 };
 
-const everyHourAt = (minutes, callback) => {
+const everyHourAt = (minutes: number, callback: () => any) => {
   return everyTime({ms: hourMs, offset: minutes * minuteMs}, callback);
 };
 
-const everyDayAt = (hours, minutes, callback) => {
+const everyDayAt = (hours: number, minutes: number, callback: () => any) => {
   return everyTime({ms: dayMs, offset: hours * hourMs + minutes * minuteMs}, callback);
 };
 
-const everyWeekAt = (day, hours, minutes, callback) => {
+const everyWeekAt = (day: number, hours: number, minutes: number, callback: () => any) => {
   return everyTime({ms: 7 * dayMs, offset: day * dayMs + hours * hourMs + minutes * minuteMs}, callback);
 };
 
-function getOffset(step, offset = 0) {
+function getOffset(step: number, offset: number = 0) {
   if (!step) throw new Error(`Incorrect step value ${step}`);
 
   const now = new Date();

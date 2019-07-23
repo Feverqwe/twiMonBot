@@ -4,7 +4,7 @@ import Main from "../main";
 import parallel from "../tools/parallel";
 import arrayByPart from "../tools/arrayByPart";
 import withRetry from "../tools/withRetry";
-import {ServiceInterface, StreamInterface} from "../checker";
+import {ServiceInterface, RawStream} from "../checker";
 
 const got = require('got');
 const debug = require('debug')('app:Goodgame');
@@ -61,10 +61,12 @@ class Goodgame implements ServiceInterface {
   main: Main;
   id: string;
   name: string;
+  batchSize: number;
   constructor(main: Main) {
     this.main = main;
     this.id = 'goodgame';
     this.name = 'Goodgame';
+    this.batchSize = 25;
   }
 
   match(url: string) {
@@ -74,7 +76,7 @@ class Goodgame implements ServiceInterface {
   }
 
   getStreams(channelIds: string[]) {
-    const resultStreams:StreamInterface[] = [];
+    const resultStreams:RawStream[] = [];
     const skippedChannelIds:string[] = [];
     const removedChannelIds:string[] = [];
     return parallel(10, arrayByPart(channelIds, 25), (channelIds) => {
@@ -97,10 +99,6 @@ class Goodgame implements ServiceInterface {
           if (stream.status !== 'Live') return;
 
           const channelId = stream.key.toLowerCase();
-          if (!channelIds.includes(channelId)) {
-            debug(`getStreams for channel (%s) skip, cause: Not required`, channelId);
-            return;
-          }
 
           let gameTitle = null;
           stream.channel.games.some((game) => {

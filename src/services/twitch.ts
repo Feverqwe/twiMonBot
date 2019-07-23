@@ -1,4 +1,4 @@
-import {ServiceInterface, StreamInterface} from "../checker";
+import {ServiceInterface, RawStream} from "../checker";
 import Main from "../main";
 import parallel from "../tools/parallel";
 import ErrorWithCode from "../tools/errorWithCode";
@@ -68,10 +68,12 @@ class Twitch implements ServiceInterface {
   main: Main;
   id: string;
   name: string;
+  batchSize: number;
   constructor(main: Main) {
     this.main = main;
     this.id = 'twitch';
     this.name = 'Twitch';
+    this.batchSize = 100;
   }
 
   match(url: string) {
@@ -81,7 +83,7 @@ class Twitch implements ServiceInterface {
   }
 
   getStreams(channelIds: number[]) {
-    const resultStreams: StreamInterface[] = [];
+    const resultStreams: RawStream[] = [];
     const skippedChannelIds = [];
     const removedChannelIds = [];
     return parallel(10, arrayByPart(channelIds, 100), (channelIds) => {
@@ -102,11 +104,6 @@ class Twitch implements ServiceInterface {
         const streams = Streams(body).streams;
 
         streams.forEach((stream) => {
-          if (!channelIds.includes(stream.channel._id)) {
-            debug(`getStreams for channel (%s) skip, cause: Not required`, stream.channel._id);
-            return;
-          }
-
           const previews = [];
           ['template', 'large', 'medium'/*, 'small'*/].forEach((size) => {
             let url = stream.preview[size];

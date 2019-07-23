@@ -1,6 +1,7 @@
 import withRetry from "./tools/withRetry";
 import parallel from "./tools/parallel";
 import arrayByPart from "./tools/arrayByPart";
+import Main from "./main";
 
 const debug = require('debug')('app:tracker');
 const got = require('got');
@@ -13,6 +14,11 @@ const promiseLimit = require('promise-limit');
 const oneLimit = promiseLimit(1);
 
 class Tracker {
+  main: Main;
+  tid: string;
+  lru: typeof QuickLRU;
+  defaultParams: {[s: string]: string|number};
+  queue: [number, {[s: string]: string|number}][];
   constructor(/**Main*/main) {
     this.main = main;
     this.tid = main.config.gaId;
@@ -28,7 +34,7 @@ class Tracker {
     this.queue = [];
   }
 
-  track(chatId, params) {
+  track(chatId, params: {[s: string]: string|number}) {
     const cid = this.getUuid(chatId);
 
     this.queue.push([Date.now(), Object.assign({cid}, this.defaultParams, params)]);
