@@ -79,54 +79,10 @@ class Checker {
       });
 
       const syncAt = new Date();
-      await this.main.db.setChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
-        return service.getStreams(rawChannelIds);
-      }).then(({streams: rawStreams, skippedChannelIds: skippedRawChannelIds, removedChannelIds: removedRawChannelIds}) => {
-        const streams: Stream[] = [];
-
-        const checkedChannelIds = channelIds.slice(0);
-        const onMapRawChannel = (rawId) => {
-          const id = serviceId.wrap(service, rawId);
-          const pos = checkedChannelIds.indexOf(id);
-          if (pos !== -1) {
-            checkedChannelIds.splice(pos, 1);
-          }
-          return id;
-        };
-        const skippedChannelIds = skippedRawChannelIds.map(onMapRawChannel);
-        const removedChannelIds = removedRawChannelIds.map(onMapRawChannel);
-
-        rawStreams.forEach((rawStream) => {
-          const stream: Stream = Object.assign({}, rawStream, {
-            id: serviceId.wrap(service, rawStream.id),
-            channelId: serviceId.wrap(service, rawStream.channelId),
-            telegramPreviewFileId: null,
-            isOffline: false,
-            offlineFrom: null,
-            isTimeout: false,
-            timeoutFrom: null,
-          });
-
-          if (!checkedChannelIds.includes(stream.channelId)) {
-            debug('Stream %s skip, cause: Channel %s is not exists', stream.id, stream.channelId);
-            return;
-          }
-
-          streams.push(stream);
-        });
-
-        return this.main.db.getStreamsByChannelIds(channelIds).then((existsDbStreams) => {
-          const existsStreamIds: string[] = [];
-          const existsStreamIdStream: Map<string, Stream> = new Map();
-          existsDbStreams.forEach((dbStream) => {
-            const stream = dbStream.get({plain: true}) as Stream;
-            existsStreamIds.push(stream.id);
-            existsStreamIdStream.set(stream.id, stream);
-          });
-
-          return {streams, existsStreamIds, existsStreamIdStream, checkedChannelIds, skippedChannelIds, removedChannelIds};
-        });
-      }).then(({streams, existsStreamIds, existsStreamIdStream, checkedChannelIds, skippedChannelIds, removedChannelIds}) => {
+      await Promise.all([
+        this.getStreams(service, channelIds, rawChannelIds),
+        this.getExistsStreams(channelIds)
+      ]).then(([{streams, checkedChannelIds, skippedChannelIds, removedChannelIds}, {existsStreams, existsStreamIds, existsStreamIdStream}]) => {
         const streamIds: string[] = [];
         const streamIdStream: Map<string, Stream> = new Map();
         const channelIdsChanges:{[s: string]: {[s: string]: any}} = {};
@@ -235,38 +191,38 @@ class Checker {
             chatIdStreamIdChanges,
           ).then(() => {
             streams.forEach((stream) => {
-              if (newStreamIds.includes(stream.id)) {
+              const id = stream.id;
+              if (newStreamIds.includes(id)) {
                 this.log.write(`[new] ${stream.channelId} ${stream.id}`);
               } else
-              if (migratedStreamsIds.includes(stream.id)) {
-                const fromId = migratedStreamToIdFromId.get(stream.id);
-                this.log.write(`[${fromId} > ${stream.id}] ${stream.channelId} ${stream.id}`);
+              if (migratedStreamsIds.includes(id)) {
+                const fromId = migratedStreamToIdFromId.get(id);
+                this.log.write(`[${fromId} > ${id}] ${stream.channelId} ${stream.id}`);
               } else
-              if (updatedStreamIds.includes(stream.id)) {
+              if (updatedStreamIds.includes(id)) {
                 // pass
               } else {
                 this.log.write(`[?] ${stream.channelId} ${stream.id}`);
               }
             });
-            existsStreamIds.forEach((id) => {
+            existsStreams.forEach((stream) => {
+              const id = stream.id;
               if (updatedStreamIds.includes(id)) {
                 // pass
               } else
               if (migratedStreamFromIdToId.has(id)) {
                 // pass
+              } else
+              if (timeoutStreamIds.includes(id)) {
+                this.log.write(`[timeout] ${stream.channelId} ${stream.id}`);
+              } else
+              if (offlineStreamIds.includes(id)) {
+                this.log.write(`[offline] ${stream.channelId} ${stream.id}`);
+              } else
+              if (removedStreamIds.includes(id)) {
+                this.log.write(`[removed] ${stream.channelId} ${stream.id}`);
               } else {
-                const stream = existsStreamIdStream.get(id);
-                if (timeoutStreamIds.includes(id)) {
-                  this.log.write(`[timeout] ${stream.channelId} ${stream.id}`);
-                } else
-                if (offlineStreamIds.includes(id)) {
-                  this.log.write(`[offline] ${stream.channelId} ${stream.id}`);
-                } else
-                if (removedStreamIds.includes(id)) {
-                  this.log.write(`[removed] ${stream.channelId} ${stream.id}`);
-                } else {
-                  this.log.write(`[??] ${stream.channelId} ${stream.id}`);
-                }
+                this.log.write(`[??] ${stream.channelId} ${stream.id}`);
               }
             });
 
@@ -287,6 +243,63 @@ class Checker {
     }
 
     this.serviceThread.delete(service);
+  }
+
+  getStreams(service, channelIds, rawChannelIds) {
+    return this.main.db.setChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
+      return service.getStreams(rawChannelIds);
+    }).then(({streams: rawStreams, skippedChannelIds: skippedRawChannelIds, removedChannelIds: removedRawChannelIds}) => {
+      const streams: Stream[] = [];
+
+      const checkedChannelIds = channelIds.slice(0);
+      const onMapRawChannel = (rawId) => {
+        const id = serviceId.wrap(service, rawId);
+        const pos = checkedChannelIds.indexOf(id);
+        if (pos !== -1) {
+          checkedChannelIds.splice(pos, 1);
+        }
+        return id;
+      };
+      const skippedChannelIds = skippedRawChannelIds.map(onMapRawChannel);
+      const removedChannelIds = removedRawChannelIds.map(onMapRawChannel);
+
+      rawStreams.forEach((rawStream) => {
+        const stream: Stream = Object.assign({}, rawStream, {
+          id: serviceId.wrap(service, rawStream.id),
+          channelId: serviceId.wrap(service, rawStream.channelId),
+          telegramPreviewFileId: null,
+          isOffline: false,
+          offlineFrom: null,
+          isTimeout: false,
+          timeoutFrom: null,
+        });
+
+        if (!checkedChannelIds.includes(stream.channelId)) {
+          debug('Stream %s skip, cause: Channel %s is not exists', stream.id, stream.channelId);
+          return;
+        }
+
+        streams.push(stream);
+      });
+
+      return {streams, checkedChannelIds, skippedChannelIds, removedChannelIds};
+    });
+  }
+
+  getExistsStreams(channelIds) {
+    return this.main.db.getStreamsByChannelIds(channelIds).then((existsDbStreams) => {
+      const existsStreams: Stream[] = [];
+      const existsStreamIds: string[] = [];
+      const existsStreamIdStream: Map<string, Stream> = new Map();
+      existsDbStreams.forEach((dbStream) => {
+        const stream = dbStream.get({plain: true}) as Stream;
+        existsStreamIds.push(stream.id);
+        existsStreamIdStream.set(stream.id, stream);
+        existsStreams.push(stream);
+      });
+
+      return {existsStreams, existsStreamIds, existsStreamIdStream};
+    });
   }
 
   getChatIdStreamIdChanges(streamIdStream, newStreamIds: string[]) {
