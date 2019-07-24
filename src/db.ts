@@ -4,17 +4,55 @@ import serviceId from "./tools/serviceId";
 import arrayDifferent from "./tools/arrayDifferent";
 import Main from "./main";
 import * as Sequelize from "sequelize";
+import {RawStream} from "./checker";
 
 const debug = require('debug')('app:db');
 const {Op} = Sequelize;
 const ISOLATION_LEVELS = Sequelize.Transaction.ISOLATION_LEVELS;
 
-class Chat extends Sequelize.Model {}
-class Channel extends Sequelize.Model {}
-class ChatIdStreamId extends Sequelize.Model {}
-class Stream extends Sequelize.Model {}
-class ChatIdChannelId extends Sequelize.Model {}
-class Message extends Sequelize.Model {}
+class ChatModel extends Sequelize.Model {}
+
+export interface Channel {
+  id: string,
+  service: string,
+  title: string,
+  url: string,
+  lastSyncAt: Date,
+  syncTimeoutExpiresAt: Date
+}
+export interface IChannel extends Channel, Sequelize.Model {}
+class ChannelModel extends Sequelize.Model {}
+
+class ChatIdStreamIdModel extends Sequelize.Model {}
+
+export interface Stream {
+  id: string,
+  url: string,
+  title: string,
+  game: string|null,
+  isRecord: boolean,
+  previews: string[],
+  viewers: number|null,
+  channelId: string,
+  telegramPreviewFileId: string|null,
+  offlineFrom: Date|null,
+  isOffline: boolean,
+  timeoutFrom: Date|null,
+  isTimeout: boolean,
+  hasChanges: boolean,
+}
+export interface IStream extends Stream, Sequelize.Model {}
+class StreamModel extends Sequelize.Model {}
+
+export interface ChatIdChannelId {
+  chatId: string,
+  channelId: string,
+  createdAt: Date,
+}
+export interface IChatIdChannelId extends ChatIdChannelId, Sequelize.Model {}
+class ChatIdChannelIdModel extends Sequelize.Model {}
+
+class MessageModel extends Sequelize.Model {}
 
 class Db {
   main: Main;
@@ -43,7 +81,7 @@ class Db {
       }
     });
 
-    Chat.init({
+    ChatModel.init({
       id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
       channelId: {type: Sequelize.STRING(191), allowNull: true},
       isHidePreview: {type: Sequelize.BOOLEAN, defaultValue: false},
@@ -66,10 +104,10 @@ class Db {
         fields: ['sendTimeoutExpiresAt']
       }]
     });
-    Chat.belongsTo(Chat, {foreignKey: 'channelId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'SET NULL', as: 'channel'});
-    Chat.belongsTo(Chat, {foreignKey: 'parentChatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE', as: 'parentChat'});
+    ChatModel.belongsTo(ChatModel, {foreignKey: 'channelId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'SET NULL', as: 'channel'});
+    ChatModel.belongsTo(ChatModel, {foreignKey: 'parentChatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE', as: 'parentChat'});
 
-    Channel.init({
+    ChannelModel.init({
       id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
       service: {type: Sequelize.STRING(191), allowNull: false},
       title: {type: Sequelize.TEXT, allowNull: true},
@@ -93,7 +131,7 @@ class Db {
       }]
     });
 
-    ChatIdChannelId.init({
+    ChatIdChannelIdModel.init({
       chatId: {type: Sequelize.STRING(191), allowNull: false},
       channelId: {type: Sequelize.STRING(191), allowNull: false},
     }, {
@@ -114,10 +152,10 @@ class Db {
         fields: ['chatId', 'channelId']
       }]
     });
-    ChatIdChannelId.belongsTo(Chat, {foreignKey: 'chatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
-    ChatIdChannelId.belongsTo(Channel, {foreignKey: 'channelId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
+    ChatIdChannelIdModel.belongsTo(ChatModel, {foreignKey: 'chatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
+    ChatIdChannelIdModel.belongsTo(ChannelModel, {foreignKey: 'channelId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
 
-    Stream.init({
+    StreamModel.init({
       id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
       url: {type: Sequelize.STRING(191), allowNull: false},
       title: {type: Sequelize.STRING(191), allowNull: false},
@@ -140,9 +178,9 @@ class Db {
       updatedAt: false,
       indexes: []
     });
-    Stream.belongsTo(Channel, {foreignKey: 'channelId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
+    StreamModel.belongsTo(ChannelModel, {foreignKey: 'channelId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
 
-    ChatIdStreamId.init({
+    ChatIdStreamIdModel.init({
       id: {type: Sequelize.INTEGER, allowNull: false, primaryKey: true, autoIncrement: true},
       chatId: {type: Sequelize.STRING(191), allowNull: false},
       streamId: {type: Sequelize.STRING(191), allowNull: false},
@@ -161,10 +199,10 @@ class Db {
         fields: ['chatId']
       }]
     });
-    ChatIdStreamId.belongsTo(Chat, {foreignKey: 'chatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
-    ChatIdStreamId.belongsTo(Stream, {foreignKey: 'streamId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
+    ChatIdStreamIdModel.belongsTo(ChatModel, {foreignKey: 'chatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
+    ChatIdStreamIdModel.belongsTo(StreamModel, {foreignKey: 'streamId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
 
-    Message.init({
+    MessageModel.init({
       id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
       chatId: {type: Sequelize.STRING(191), allowNull: false},
       streamId: {type: Sequelize.STRING(191), allowNull: true},
@@ -189,8 +227,8 @@ class Db {
         fields: ['hasChanges', 'syncTimeoutExpiresAt']
       }]
     });
-    Message.belongsTo(Chat, {foreignKey: 'chatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
-    Message.belongsTo(Stream, {foreignKey: 'streamId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'SET NULL'});
+    MessageModel.belongsTo(ChatModel, {foreignKey: 'chatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
+    MessageModel.belongsTo(StreamModel, {foreignKey: 'streamId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'SET NULL'});
   }
 
   /**
@@ -203,11 +241,11 @@ class Db {
   }
 
   ensureChat(id) {
-    return Chat.findOrCreate({
+    return ChatModel.findOrCreate({
       where: {id},
       //@ts-ignore
       include: [
-        {model: Chat, as: 'channel'}
+        {model: ChatModel, as: 'channel'}
       ]
     }).then(([model, isCreated]) => {
       return model;
@@ -218,13 +256,13 @@ class Db {
     return this.sequelize.transaction({
       isolationLevel: ISOLATION_LEVELS.REPEATABLE_READ,
     }, async (transaction) => {
-      await Chat.create({
+      await ChatModel.create({
         id: channelId,
         parentChatId: chatId,
       }, {
         transaction
       });
-      await Chat.upsert({
+      await ChatModel.upsert({
         id: chatId,
         channelId: channelId
       }, {
@@ -234,13 +272,13 @@ class Db {
   }
 
   changeChatId(id, newId) {
-    return Chat.update({id: newId}, {
+    return ChatModel.update({id: newId}, {
       where: {id}
     });
   }
 
   getChatIds(offset, limit) {
-    return Chat.findAll({
+    return ChatModel.findAll({
       offset,
       limit,
       attributes: ['id']
@@ -250,7 +288,7 @@ class Db {
   }
 
   getChatById(id) {
-    return Chat.findByPk(id).then((chat) => {
+    return ChatModel.findByPk(id).then((chat) => {
       if (!chat) {
         throw new ErrorWithCode('Chat is not found', 'CHAT_IS_NOT_FOUND');
       }
@@ -259,7 +297,7 @@ class Db {
   }
 
   getChatsByIds(ids) {
-    return Chat.findAll({
+    return ChatModel.findAll({
       where: {id: ids},
     });
   }
@@ -267,25 +305,25 @@ class Db {
   setChatSendTimeoutExpiresAt(ids) {
     const date = new Date();
     date.setMinutes(date.getMinutes() + this.main.config.chatSendTimeoutMinutes);
-    return Chat.update({sendTimeoutExpiresAt: date}, {
+    return ChatModel.update({sendTimeoutExpiresAt: date}, {
       where: {id: ids}
     });
   }
 
   deleteChatById(id) {
-    return Chat.destroy({
+    return ChatModel.destroy({
       where: {id}
     });
   }
 
   deleteChatsByIds(ids) {
-    return Chat.destroy({
+    return ChatModel.destroy({
       where: {id: ids}
     });
   }
 
   cleanChats() {
-    return Chat.destroy({
+    return ChatModel.destroy({
       where: {
         id: {[Op.notIn]: Sequelize.literal(`(SELECT DISTINCT chatId FROM chatIdChannelId)`)},
         parentChatId: null
@@ -296,7 +334,7 @@ class Db {
   ensureChannel(service, rawChannel) {
     const id = serviceId.wrap(service, rawChannel.id);
 
-    return Channel.findOrCreate({
+    return ChannelModel.findOrCreate({
       where: {id},
       defaults: Object.assign({}, rawChannel, {id, service: service.id})
     }).then(([channel, isCreated]) => {
@@ -329,9 +367,9 @@ class Db {
   }
 
   getChannelsByChatId(chatId) {
-    return ChatIdChannelId.findAll({
+    return ChatIdChannelIdModel.findAll({
       include: [
-        {model: Channel, required: true}
+        {model: ChannelModel, required: true}
       ],
       where: {chatId},
       attributes: [],
@@ -342,13 +380,13 @@ class Db {
   }
 
   getChannelsByIds(ids) {
-    return Channel.findAll({
+    return ChannelModel.findAll({
       where: {id: ids}
     });
   }
 
   getChannelById(id) {
-    return Channel.findByPk(id).then((channel) => {
+    return ChannelModel.findByPk(id).then((channel) => {
       if (!channel) {
         throw new ErrorWithCode('Channel is not found', 'CHANNEL_IS_NOT_FOUND');
       }
@@ -357,25 +395,25 @@ class Db {
   }
 
   getChannelCountByChatId(chatId) {
-    return ChatIdChannelId.count({
+    return ChatIdChannelIdModel.count({
       where: {chatId}
     });
   }
 
   putChatIdChannelId(chatId, channelId) {
-    return ChatIdChannelId.upsert({chatId, channelId});
+    return ChatIdChannelIdModel.upsert({chatId, channelId});
   }
 
   deleteChatIdChannelId(chatId, channelId) {
-    return ChatIdChannelId.destroy({
+    return ChatIdChannelIdModel.destroy({
       where: {chatId, channelId}
     });
   }
 
-  getServiceChannelsForSync(serviceId, limit) {
+  getServiceChannelsForSync(serviceId, limit): Promise<IChannel[]> {
     const date = new Date();
     date.setMinutes(date.getMinutes() - this.main.config.checkChannelIfLastSyncLessThenMinutes);
-    return Channel.findAll({
+    return ChannelModel.findAll({
       where: {
         service: serviceId,
         syncTimeoutExpiresAt: {[Op.lt]: new Date()},
@@ -386,7 +424,7 @@ class Db {
   }
 
   getChannelIdsByServiceId(service, offset, limit) {
-    return Channel.findAll({
+    return ChannelModel.findAll({
       where: {service},
       attributes: ['id'],
       offset, limit,
@@ -398,7 +436,7 @@ class Db {
   setChannelsSyncTimeoutExpiresAt(ids) {
     const date = new Date();
     date.setMinutes(date.getMinutes() + this.main.config.channelSyncTimeoutMinutes);
-    return Channel.update({
+    return ChannelModel.update({
       syncTimeoutExpiresAt: date
     }, {
       where: {id: ids}
@@ -406,36 +444,41 @@ class Db {
   }
 
   removeChannelByIds(ids) {
-    return Channel.destroy({where: {id: ids}});
+    return ChannelModel.destroy({where: {id: ids}});
   }
 
   cleanChannels() {
-    return Channel.destroy({
+    return ChannelModel.destroy({
       where: {
         id: {[Op.notIn]: Sequelize.literal(`(SELECT DISTINCT channelId FROM chatIdChannelId)`)}
       }
     });
   }
 
-  getChatIdChannelIdByChannelIds(channelIds) {
-    return ChatIdChannelId.findAll({
+  getChatIdChannelIdByChannelIds(channelIds): Promise<{
+    chatId: string,
+    channelId: string,
+    createdAt: Date,
+    chat: {id: string, channelId: string|null, isMuted: boolean, isMutedRecords: boolean}
+  }[]> {
+    return ChatIdChannelIdModel.findAll({
       where: {channelId: channelIds},
       include: [{
-        model: Chat,
+        model: ChatModel,
         attributes: ['id', 'channelId', 'isMuted', 'isMutedRecords'],
         required: true
       }]
     });
   }
 
-  getStreamsByChannelIds(channelIds) {
-    return Stream.findAll({
+  getStreamsByChannelIds(channelIds): Promise<IStream[]> {
+    return StreamModel.findAll({
       where: {channelId: channelIds}
     });
   }
 
   getStreamById(id) {
-    return Stream.findOne({
+    return StreamModel.findOne({
       where: {id}
     }).then((stream) => {
       if (!stream) {
