@@ -26,6 +26,7 @@ interface Stream extends RawStream {
   isOffline: boolean,
   timeoutFrom: Date|null,
   isTimeout: boolean,
+  hasChanges: boolean,
 }
 
 interface DbStream extends Stream {
@@ -105,13 +106,19 @@ class Checker {
       await this.main.db.setChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
         return service.getStreams(rawChannelIds);
       }).then(({streams: rawStreams, skippedChannelIds: skippedRawChannelIds, removedChannelIds: removedRawChannelIds}) => {
-        const channelIdStreamIds: Map<string, string[]> = new Map();
-        const streamIdStream: Map<string, Stream> = new Map();
-        const streamIds: string[] = [];
         const streams: Stream[] = [];
 
-        const skippedChannelIds = skippedRawChannelIds.map(id => serviceId.wrap(service, id));
-        const removedChannelIds = removedRawChannelIds.map(id => serviceId.wrap(service, id));
+        const checkedChannelIds = channelIds.slice(0);
+        const onMapRawChannel = (rawId) => {
+          const id = serviceId.wrap(service, rawId);
+          const pos = checkedChannelIds.indexOf(id);
+          if (pos !== -1) {
+            checkedChannelIds.splice(pos, 1);
+          }
+          return id;
+        };
+        const skippedChannelIds = skippedRawChannelIds.map(onMapRawChannel);
+        const removedChannelIds = removedRawChannelIds.map(onMapRawChannel);
 
         rawStreams.forEach((rawStream) => {
           const stream: Stream = Object.assign({}, rawStream, {
@@ -122,112 +129,33 @@ class Checker {
             offlineFrom: null,
             isTimeout: false,
             timeoutFrom: null,
+            hasChanges: true,
           });
 
-          if (!channelIdChannel.has(stream.channelId)) {
+          if (!checkedChannelIds.includes(stream.channelId)) {
             debug('Stream %s skip, cause: Channel %s is not exists', stream.id, stream.channelId);
             return;
           }
 
-          const channelStreamIds = ensureMap(channelIdStreamIds, stream.channelId, []);
-          channelStreamIds.push(stream.id);
-
-          streamIdStream.set(stream.id, stream);
           streams.push(stream);
-          streamIds.push(stream.id);
         });
 
-        const checkedChannelIds = channelIds.slice(0);
-        skippedChannelIds.forEach((id) => {
-          const pos = checkedChannelIds.indexOf(id);
-          if (pos !== -1) {
-            checkedChannelIds.splice(pos, 1);
-          }
-        });
-        removedChannelIds.forEach((id) => {
-          const pos = checkedChannelIds.indexOf(id);
-          if (pos !== -1) {
-            checkedChannelIds.splice(pos, 1);
-          }
-        });
-
-        return this.main.db.getStreamsByChannelIds(channelIds).then((existsStreams: DbStream[]) => {
+        return this.main.db.getStreamsByChannelIds(channelIds).then((existsDbStreams: DbStream[]) => {
+          const existsStreamIds: string[] = [];
           const existsStreamIdStream: Map<string, Stream> = new Map();
-          const existsStreamIds = existsStreams.map((dbStream) => {
+          existsDbStreams.forEach((dbStream) => {
             const stream = dbStream.get({plain: true});
+            existsStreamIds.push(stream.id);
             existsStreamIdStream.set(stream.id, stream);
-            return stream.id;
           });
 
-          const offlineStreamIds = arrayDifferent(existsStreamIds, streamIds);
-          const newStreamIds = arrayDifferent(streamIds, existsStreamIds);
-          const updatedStreamIds = arrayDifferent(streamIds, newStreamIds);
-
-          const migratedStreamsIds = [];
-          const timeoutStreamIds = [];
-          const removedStreamIds = [];
-          offlineStreamIds.slice(0).forEach((id) => {
-            const stream = existsStreamIdStream.get(id);
-
-            if (skippedChannelIds.includes(stream.channelId)) {
-              timeoutStreamIds.push(id);
-              if (!stream.isTimeout) {
-                stream.isTimeout = true;
-                stream.timeoutFrom = new Date();
-              }
-              const pos = offlineStreamIds.indexOf(id);
-              if (pos !== -1) {
-                offlineStreamIds.splice(pos, 1);
-              }
-              return;
-            }
-
-            const channelStreamIds = channelIdStreamIds.get(stream.channelId);
-            if (channelStreamIds) {
-              const channelNewStreams = arrayDifferent(channelStreamIds, updatedStreamIds).map(id => streamIdStream.get(id));
-              const similarStream = findSimilarStream(channelNewStreams, stream);
-              if (similarStream) {
-                migratedStreamsIds.push([stream.id, similarStream.id]);
-                const pos = newStreamIds.indexOf(id);
-                if (pos !== -1) {
-                  newStreamIds.splice(pos, 1);
-                }
-                return;
-              }
-            }
-
-            if (!stream.isOffline) {
-              stream.isOffline = true;
-              stream.offlineFrom = new Date();
-            } else {
-              const date = new Date();
-              date.setMinutes(date.getMinutes() - this.main.config.removeStreamIfOfflineMoreThanMinutes);
-              if (stream.offlineFrom.getTime() < date.getTime()) {
-                removedStreamIds.push(id);
-                const pos = offlineStreamIds.indexOf(id);
-                if (pos !== -1) {
-                  offlineStreamIds.splice(pos, 1);
-                }
-              }
-            }
-          });
-
-          return {
-            streams, streamIdStream,
-            existsStreams, existsStreamIdStream,
-            newStreamIds, updatedStreamIds, migratedStreamsIds, timeoutStreamIds, offlineStreamIds, removedStreamIds,
-            checkedChannelIds, skippedChannelIds, removedChannelIds
-          };
+          return {streams, existsStreamIds, existsStreamIdStream, checkedChannelIds, skippedChannelIds, removedChannelIds};
         });
-      }).then((result) => {
-        const {
-          streams, streamIdStream,
-          existsStreams, existsStreamIdStream,
-          newStreamIds, updatedStreamIds, migratedStreamsIds, timeoutStreamIds, offlineStreamIds, removedStreamIds,
-          checkedChannelIds, skippedChannelIds, removedChannelIds
-        } = result;
+      }).then(({streams, existsStreamIds, existsStreamIdStream, checkedChannelIds, skippedChannelIds, removedChannelIds}) => {
+        const streamIds: string[] = [];
+        const streamIdStream: Map<string, Stream> = new Map();
         const channelIdsChanges:{[s: string]: {[s: string]: any}} = {};
-        const channelIdSteamIds:Map<string, string[]> = new Map();
+        const channelIdStreamIds:Map<string, string[]> = new Map();
 
         checkedChannelIds.forEach((id) => {
           const channel = channelIdChannel.get(id);
@@ -245,11 +173,76 @@ class Checker {
             channelChanges.title = stream.channelTitle;
           }
 
-          const channelStreamIds = ensureMap(channelIdSteamIds, stream.channelId, []);
+          const channelStreamIds = ensureMap(channelIdStreamIds, stream.channelId, []);
           channelStreamIds.push(stream.id);
+
+          streamIds.push(stream.id);
+          streamIdStream.set(stream.id, stream);
         });
 
-        //
+        const offlineStreamIds = arrayDifferent(existsStreamIds, streamIds);
+        const newStreamIds = arrayDifferent(streamIds, existsStreamIds);
+        const updatedStreamIds = arrayDifferent(streamIds, newStreamIds);
+
+        const migratedStreamsIds = [];
+        const timeoutStreamIds = [];
+        const removedStreamIds = [];
+        offlineStreamIds.slice(0).forEach((id) => {
+          const stream = existsStreamIdStream.get(id);
+
+          if (skippedChannelIds.includes(stream.channelId)) {
+            timeoutStreamIds.push(id);
+            if (!stream.isTimeout) {
+              stream.isTimeout = true;
+              stream.timeoutFrom = new Date();
+              stream.hasChanges = true;
+            }
+            const pos = offlineStreamIds.indexOf(id);
+            if (pos !== -1) {
+              offlineStreamIds.splice(pos, 1);
+            }
+            return;
+          }
+
+          const channelStreamIds = channelIdStreamIds.get(stream.channelId);
+          if (channelStreamIds) {
+            const channelNewStreams = arrayDifferent(channelStreamIds, updatedStreamIds).map(id => streamIdStream.get(id));
+            const similarStream = findSimilarStream(channelNewStreams, stream);
+            if (similarStream) {
+              migratedStreamsIds.push([stream.id, similarStream.id]);
+              const pos = newStreamIds.indexOf(id);
+              if (pos !== -1) {
+                newStreamIds.splice(pos, 1);
+              }
+              return;
+            }
+          }
+
+          if (!stream.isOffline) {
+            stream.isOffline = true;
+            stream.offlineFrom = new Date();
+            stream.hasChanges = true;
+          } else {
+            const minOfflineDate = new Date();
+            minOfflineDate.setMinutes(minOfflineDate.getMinutes() - this.main.config.removeStreamIfOfflineMoreThanMinutes);
+            if (stream.offlineFrom.getTime() < minOfflineDate.getTime()) {
+              removedStreamIds.push(id);
+              const pos = offlineStreamIds.indexOf(id);
+              if (pos !== -1) {
+                offlineStreamIds.splice(pos, 1);
+              }
+            }
+          }
+        });
+
+        const newStreamChannelIds = newStreamIds.map((id) => {
+          const stream = streamIdStream.get(id);
+          return stream.channelId;
+        });
+
+        return this.main.db.getChatIdChannelIdByChannelIds(newStreamChannelIds).then((chatIdChannelIdList) => {
+          // todo...
+        });
       });
     }
 

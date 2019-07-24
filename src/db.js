@@ -114,6 +114,7 @@ class Db {
       offlineFrom: {type: Sequelize.DATE, allowNull: true},
       isTimeout: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
       timeoutFrom: {type: Sequelize.DATE, allowNull: true},
+      hasChanges: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
     }, {
       tableName: 'streams',
       timestamps: true,
@@ -398,6 +399,17 @@ class Db {
       where: {
         id: {[Op.notIn]: Sequelize.literal(`(SELECT DISTINCT channelId FROM chatIdChannelId)`)}
       }
+    });
+  }
+
+  getChatIdChannelIdByChannelIds(channelIds) {
+    return this.model.ChatIdChannelId.findAll({
+      where: {channelId: channelIds},
+      include: [{
+        model: this.model.Chat,
+        attributes: ['id', 'channelId', 'isMuted', 'isMutedRecords'],
+        required: true
+      }]
     });
   }
 
