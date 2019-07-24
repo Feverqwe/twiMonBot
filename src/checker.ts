@@ -20,7 +20,7 @@ export interface ServiceStream {
   channelTitle: string,
 }
 
-interface ServiceGetStreamsResponse {
+interface ServiceGetStreamsResult {
   streams: ServiceStream[],
   skippedChannelIds: (string | number)[],
   removedChannelIds: (string | number)[]
@@ -31,7 +31,7 @@ export interface ServiceInterface {
   name: string,
   batchSize: number,
   match(query: string): boolean,
-  getStreams(channelsIds: (string|number)[]): Promise<ServiceGetStreamsResponse>,
+  getStreams(channelsIds: (string|number)[]): Promise<ServiceGetStreamsResult>,
   getExistsChannelIds(channelsIds: (string|number)[]): Promise<(string|number)[]>,
   findChannel(query: string): Promise<{id: string|number, title: string, url: string}>,
 }
@@ -260,7 +260,7 @@ class Checker {
   getStreams(service: ServiceInterface, channelIds: string[], rawChannelIds: (string|number)[]) {
     return this.main.db.setChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
       return service.getStreams(rawChannelIds);
-    }).then(({streams: rawStreams, skippedChannelIds: skippedRawChannelIds, removedChannelIds: removedRawChannelIds}: ServiceGetStreamsResponse) => {
+    }).then(({streams: rawStreams, skippedChannelIds: skippedRawChannelIds, removedChannelIds: removedRawChannelIds}: ServiceGetStreamsResult) => {
       const streams: Stream[] = [];
 
       const checkedChannelIds = channelIds.slice(0);
