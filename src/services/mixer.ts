@@ -17,7 +17,7 @@ interface Channel {
   createdAt: string
 }
 
-const Channels:(any) => Channel[] = struct([struct.partial({
+const Channels:(any: any) => Channel[] = struct([struct.partial({
   id: 'number',
   token: 'string',
   name: 'string',
@@ -32,7 +32,7 @@ interface ExtendedChannel extends Channel {
   }
 }
 
-const ExtendedChannel:(any) => ExtendedChannel = struct(struct.partial({
+const ExtendedChannel:(any: any) => ExtendedChannel = struct(struct.partial({
   id: 'number',
   token: 'string',
   name: 'string',
@@ -64,8 +64,8 @@ class Mixer implements ServiceInterface {
 
   getStreams(channelIds: string[]) {
     const resultStreams: ServiceStream[] = [];
-    const skippedChannelIds = [];
-    const removedChannelIds = [];
+    const skippedChannelIds: string[] = [];
+    const removedChannelIds: string[] = [];
     return parallel(10, channelIds, (channelId) => {
       return withRetry({count: 3, timeout: 250}, () => {
         return got('https://mixer.com/api/v1/channels/' + encodeURIComponent(channelId), {
@@ -147,7 +147,7 @@ class Mixer implements ServiceInterface {
         'user-agent': ''
       },
       json: true,
-    }).then(({body}) => {
+    }).then(({body}: {body: object}) => {
       const channels = Channels(body);
       if (!channels.length) {
         throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
@@ -162,9 +162,9 @@ class Mixer implements ServiceInterface {
         'user-agent': ''
       },
       json: true,
-    }).then(({body}) => {
+    }).then(({body}: {body: object}) => {
       return ExtendedChannel(body);
-    }, (err) => {
+    }, (err: any) => {
       if (err.statusCode === 404) {
         throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
       }
@@ -197,7 +197,7 @@ function getChannelUrl(channelId: string) {
   return 'https://mixer.com/' + encodeURIComponent(channelId);
 }
 
-function isNotFoundChannel(err) {
+function isNotFoundChannel(err: any) {
   return err.name === 'HTTPError' && err.statusCode === 404 &&
     err.body && err.body.error === 'Not Found' && err.body.message === 'Channel not found.';
 }

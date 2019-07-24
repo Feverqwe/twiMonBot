@@ -1,12 +1,10 @@
-import Timeout = NodeJS.Timeout;
-
 class RateLimit {
   limit: number;
   interval: number;
   queue: (() => any)[];
   time: number;
   count: number;
-  timerId: null|Timeout;
+  timerId: NodeJS.Timeout;
   constructor(limit: number, interval?: number) {
     this.limit = limit;
     this.interval = interval || 1000;
@@ -41,7 +39,7 @@ class RateLimit {
     }
   }
 
-  wrap<T>(callback: (...any) => T): (...any) => Promise<T|any> {
+  wrap<T>(callback: (...any: any[]) => T): (...any: any[]) => Promise<T|any> {
     return (...args) => {
       return new Promise((resolve, reject) => {
         this.queue.push(() => {

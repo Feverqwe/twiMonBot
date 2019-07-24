@@ -1,5 +1,5 @@
 class Locale {
-  getMessage(messageName) {
+  getMessage(messageName: string) {
     return languages.en[messageName];
   }
 }

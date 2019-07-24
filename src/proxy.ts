@@ -24,7 +24,7 @@ class Proxy {
   offline: Agent[];
   testRequests: {url: string, options?: object}[];
   lastTimeUsed: number;
-  constructor(/**Main*/main) {
+  constructor(main: Main) {
     this.main = main;
     this.log = new LogFile('proxy');
 
@@ -85,14 +85,14 @@ class Proxy {
             agent,
             timeout: 10 * 1000,
             ...options
-          }).catch((err) => {
+          }).catch((err: any) => {
             if (isProxyError(err) || err.name === 'TimeoutError') {
               throw err;
             }
             if (err.name !== 'HTTPError') {
               this.log.write(`Check: Proxy ${agentToString(agent)} error:`, err);
             }
-          }).then((res) => {
+          }).then((res: any) => {
             const latency = Date.now() - startTime;
             return {res, latency};
           });
@@ -126,7 +126,7 @@ class Proxy {
 
   got(url: string, options: any):Promise<any> {
     const agent = this.getAgent();
-    return got(url, {...options, agent}).catch((err) => {
+    return got(url, {...options, agent}).catch((err: any) => {
       if (err.name !== 'HTTPError') {
         this.log.write(`got: Proxy ${agentToString(agent)} error: %o`, err);
       }
@@ -169,7 +169,7 @@ function moveTo<T>(agent: T, from:T[], to:T[]) {
   }
 }
 
-function isProxyError(err) {
+function isProxyError(err: any) {
   return [
     /tunneling socket could not be established/,
     /got illegal response body from proxy/,

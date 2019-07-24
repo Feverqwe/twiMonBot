@@ -19,7 +19,7 @@ class Tracker {
   lru: typeof QuickLRU;
   defaultParams: {[s: string]: string|number};
   queue: [number, {[s: string]: string|number}][];
-  constructor(/**Main*/main) {
+  constructor(main: Main) {
     this.main = main;
     this.tid = main.config.gaId;
     this.lru = new QuickLRU({maxSize: 100});
@@ -34,7 +34,7 @@ class Tracker {
     this.queue = [];
   }
 
-  track(chatId, params: {[s: string]: string|number}) {
+  track(chatId: number|string, params: {[s: string]: string|number}) {
     const cid = this.getUuid(chatId);
 
     this.queue.push([Date.now(), Object.assign({cid}, this.defaultParams, params)]);
@@ -75,12 +75,12 @@ class Tracker {
     leading: false
   });
 
-  getUuid(chatId) {
+  getUuid(chatId: number|string) {
     if (this.lru.has(chatId)) {
       return this.lru.get(chatId);
     }
 
-    let vId = chatId;
+    let vId: any = chatId;
 
     let prefix = 0;
     if (vId < 0) {

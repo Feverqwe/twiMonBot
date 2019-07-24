@@ -20,20 +20,30 @@ export interface ServiceStream {
   channelTitle: string,
 }
 
+interface ServiceGetStreamsResponse {
+  streams: ServiceStream[],
+  skippedChannelIds: (string | number)[],
+  removedChannelIds: (string | number)[]
+}
+
 export interface ServiceInterface {
   id: string,
   name: string,
   batchSize: number,
-  match(string): boolean,
-  getStreams(channelsIds: (string|number)[]): Promise<{streams: ServiceStream[], skippedChannelIds: (string|number)[], removedChannelIds: (string|number)[]}>,
+  match(query: string): boolean,
+  getStreams(channelsIds: (string|number)[]): Promise<ServiceGetStreamsResponse>,
   getExistsChannelIds(channelsIds: (string|number)[]): Promise<(string|number)[]>,
   findChannel(query: string): Promise<{id: string|number, title: string, url: string}>,
+}
+
+interface StreamWithChannelTitle extends Stream {
+  channelTitle: string
 }
 
 class Checker {
   main: Main;
   log: LogFile;
-  constructor(main) {
+  constructor(main: Main) {
     this.main = main;
     this.log = new LogFile('checker');
   }
@@ -42,7 +52,7 @@ class Checker {
     this.startUpdateInterval();
   }
 
-  updateTimer = null;
+  updateTimer: Function = null;
   startUpdateInterval() {
     this.updateTimer && this.updateTimer();
     this.updateTimer = everyMinutes(this.main.config.emitCheckChannelsEveryMinutes, () => {
@@ -91,14 +101,14 @@ class Checker {
         const channelIdsChanges:{[s: string]: {[s: string]: any}} = {};
         const channelIdStreamIds:Map<string, string[]> = new Map();
 
-        checkedChannelIds.forEach((id) => {
+        checkedChannelIds.forEach((id: string) => {
           const channel = channelIdChannel.get(id);
           channelIdsChanges[id] = Object.assign({}, channel, {
             lastSyncAt: syncAt
           });
         });
 
-        streams.forEach((stream) => {
+        streams.forEach((stream: StreamWithChannelTitle) => {
           const channel = channelIdChannel.get(stream.channelId);
           const channelChanges = channelIdsChanges[channel.id];
 
@@ -120,9 +130,9 @@ class Checker {
 
         const migratedStreamFromIdToId = new Map();
         const migratedStreamToIdFromId = new Map();
-        const migratedStreamsIds = [];
-        const timeoutStreamIds = [];
-        const removedStreamIds = [];
+        const migratedStreamsIds: string[] = [];
+        const timeoutStreamIds: string[] = [];
+        const removedStreamIds: string[] = [];
         offlineStreamIds.slice(0).forEach((id) => {
           const stream = existsStreamIdStream.get(id);
 
@@ -193,7 +203,7 @@ class Checker {
             chatIdStreamIdChanges,
           );
         }).then(() => {
-          streams.forEach((stream) => {
+          streams.forEach((stream: Stream) => {
             const id = stream.id;
             if (newStreamIds.includes(id)) {
               this.log.write(`[new] ${stream.channelId} ${stream.id}`);
@@ -247,14 +257,14 @@ class Checker {
     this.serviceThread.delete(service);
   }
 
-  getStreams(service, channelIds, rawChannelIds) {
+  getStreams(service: ServiceInterface, channelIds: string[], rawChannelIds: (string|number)[]) {
     return this.main.db.setChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
       return service.getStreams(rawChannelIds);
-    }).then(({streams: rawStreams, skippedChannelIds: skippedRawChannelIds, removedChannelIds: removedRawChannelIds}) => {
+    }).then(({streams: rawStreams, skippedChannelIds: skippedRawChannelIds, removedChannelIds: removedRawChannelIds}: ServiceGetStreamsResponse) => {
       const streams: Stream[] = [];
 
       const checkedChannelIds = channelIds.slice(0);
-      const onMapRawChannel = (rawId) => {
+      const onMapRawChannel = (rawId: string|number) => {
         const id = serviceId.wrap(service, rawId);
         const pos = checkedChannelIds.indexOf(id);
         if (pos !== -1) {
@@ -265,7 +275,7 @@ class Checker {
       const skippedChannelIds = skippedRawChannelIds.map(onMapRawChannel);
       const removedChannelIds = removedRawChannelIds.map(onMapRawChannel);
 
-      rawStreams.forEach((rawStream) => {
+      rawStreams.forEach((rawStream: ServiceStream) => {
         const stream: Stream = Object.assign({}, rawStream, {
           id: serviceId.wrap(service, rawStream.id),
           channelId: serviceId.wrap(service, rawStream.channelId),
@@ -288,7 +298,7 @@ class Checker {
     });
   }
 
-  getExistsStreams(channelIds) {
+  getExistsStreams(channelIds: string[]) {
     return this.main.db.getStreamsByChannelIds(channelIds).then((existsDbStreams) => {
       const existsStreams: Stream[] = [];
       const existsStreamIds: string[] = [];
@@ -304,7 +314,7 @@ class Checker {
     });
   }
 
-  getChatIdStreamIdChanges(streamIdStream, newStreamIds: string[]) {
+  getChatIdStreamIdChanges(streamIdStream: Map<string, Stream>, newStreamIds: string[]) {
     const channelIdNewStreamIds: Map<string, string[]> = new Map();
     newStreamIds.forEach((id) => {
       const stream = streamIdStream.get(id);
@@ -325,7 +335,7 @@ class Checker {
         }
       });
 
-      const chatIdStreamIdChanges = [];
+      const chatIdStreamIdChanges: { chatId: string; streamId: string; }[] = [];
       for (const [channelId, chats] of channelIdChats.entries()) {
         const streamIds = channelIdNewStreamIds.get(channelId);
         if (streamIds) {
@@ -344,7 +354,7 @@ class Checker {
   }
 }
 
-function findSimilarStream(streams: Stream[], target: Stream) {
+function findSimilarStream(streams: Stream[], target: Stream): Stream|null {
   let result = null;
   streams.some((stream) => {
     if (

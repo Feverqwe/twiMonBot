@@ -22,7 +22,7 @@ interface VideosItemsSnippet {
   }[]
 }
 
-const VideosItemsSnippet:(any) => VideosItemsSnippet = struct(struct.partial({
+const VideosItemsSnippet:(any: any) => VideosItemsSnippet = struct(struct.partial({
   items: [struct.partial({
     snippet: struct.partial({
       channelId: 'string'
@@ -37,7 +37,7 @@ interface ChannelsItemsId {
   nextPageToken: string,
 }
 
-const ChannelsItemsId:(any) => ChannelsItemsId = struct(struct.partial({
+const ChannelsItemsId:(any: any) => ChannelsItemsId = struct(struct.partial({
   items: [struct.partial({
     id: 'string'
   })],
@@ -52,7 +52,7 @@ interface SearchItemsId {
   }[]
 }
 
-const SearchItemsId:(any) => SearchItemsId = struct(struct.partial({
+const SearchItemsId:(any: any) => SearchItemsId = struct(struct.partial({
   items: [struct.partial({
     id: struct.partial({
       channelId: 'string'
@@ -68,7 +68,7 @@ interface SearchItemsIdVideoId {
   }[]
 }
 
-const SearchItemsIdVideoId:(any) => SearchItemsIdVideoId = struct(struct.partial({
+const SearchItemsIdVideoId:(any: any) => SearchItemsIdVideoId = struct(struct.partial({
   items: [struct.partial({
     id: struct.partial({
       videoId: 'string'
@@ -85,7 +85,7 @@ interface SearchItemsSnippet {
   }[]
 }
 
-const SearchItemsSnippet:(any) => SearchItemsSnippet = struct(struct.partial({
+const SearchItemsSnippet:(any: any) => SearchItemsSnippet = struct(struct.partial({
   items: [struct.partial({
     snippet: struct.partial({
       channelId: 'string',
@@ -111,7 +111,7 @@ interface SearchVideoResponse {
   }[]
 }
 
-const SearchVideoResponse: (any) => SearchVideoResponse = struct(struct.partial({
+const SearchVideoResponse: (any: any) => SearchVideoResponse = struct(struct.partial({
   items: [struct.partial({
     id: struct.partial({
       videoId: 'string',
@@ -138,7 +138,7 @@ interface VideosResponse {
   nextPageToken?: string
 }
 
-const VideosResponse: (any) => VideosResponse = struct(struct.partial({
+const VideosResponse: (any: any) => VideosResponse = struct(struct.partial({
   items: struct.partial({
     id: 'string',
     liveStreamingDetails: struct.optional(struct.partial({
@@ -171,8 +171,8 @@ class Youtube implements ServiceInterface {
 
   getStreams(channelIds: string[]) {
     const resultStreams: ServiceStream[] = [];
-    const skippedChannelIds = [];
-    const removedChannelIds = [];
+    const skippedChannelIds: string[] = [];
+    const removedChannelIds: string[] = [];
     return promiseTry(() => {
       const idSnippet = new Map();
       return parallel(10, channelIds, (channelId) => {
@@ -272,7 +272,7 @@ class Youtube implements ServiceInterface {
   }
 
   getExistsChannelIds(ids: string[]) {
-    const resultChannelIds = [];
+    const resultChannelIds: string[] = [];
     return parallel(10, arrayByPart(ids, 50), (ids) => {
       return iterPages((pageToken?) => {
         return withRetry({count: 3, timeout: 250}, () => {
@@ -316,8 +316,8 @@ class Youtube implements ServiceInterface {
       }
       throw err;
     }).then((channelId) => {
-      return this.channelHasBroadcasts(channelId);
-    }).then((channelId) => {
+      return this.channelHasBroadcasts(channelId).then(() => channelId);
+    }).then((channelId: string) => {
       return gotLimited('https://www.googleapis.com/youtube/v3/search', {
         query: {
           part: 'snippet',
@@ -343,7 +343,7 @@ class Youtube implements ServiceInterface {
     });
   }
 
-  async getChannelIdByUrl(url) {
+  async getChannelIdByUrl(url: string) {
     let channelId = null;
     [
       /youtube\.com\/(?:#\/)?channel\/([\w\-]+)/i
@@ -366,7 +366,7 @@ class Youtube implements ServiceInterface {
     return channelId;
   }
 
-  async requestChannelIdByVideoUrl(url) {
+  async requestChannelIdByVideoUrl(url: string) {
     let videoId = null;
     [
       /youtu\.be\/([\w\-]+)/i,
@@ -403,7 +403,7 @@ class Youtube implements ServiceInterface {
     });
   }
 
-  async requestChannelIdByUserUrl(url) {
+  async requestChannelIdByUserUrl(url: string) {
     let username = null;
     [
       /youtube\.com\/(?:#\/)?user\/([\w\-]+)/i,
@@ -421,7 +421,7 @@ class Youtube implements ServiceInterface {
     }
 
     if (!/^[\w\-]+$/.test(username)) {
-      return new ErrorWithCode('Incorrect username', 'INCORRECT_USERNAME');
+      throw new ErrorWithCode('Incorrect username', 'INCORRECT_USERNAME');
     }
 
     return gotLimited('https://www.googleapis.com/youtube/v3/channels', {
@@ -443,7 +443,7 @@ class Youtube implements ServiceInterface {
     });
   }
 
-  async requestChannelIdByQuery(query) {
+  async requestChannelIdByQuery(query: string) {
     if (!query) {
       throw new ErrorWithCode('Query is empty', 'QUERY_IS_EMPTY')
     }
@@ -502,7 +502,7 @@ function getChannelUrl(channelId: string) {
   return 'https://youtube.com/channel/' + encodeURIComponent(channelId);
 }
 
-function isDailyLimitExceeded(err) {
+function isDailyLimitExceeded(err: any) {
   if (err.name === 'HTTPError' && err.statusCode === 403 && err.body && err.body.error && err.body.error.code === 403 && /Daily Limit Exceeded/.test(err.body.error.message)) {
     return true;
   }
@@ -511,7 +511,7 @@ function isDailyLimitExceeded(err) {
 
 function iterPages(callback: (pageToken?: string) => Promise<string|undefined>):Promise<void> {
   let limit = 100;
-  const getPage = (pageToken?: string) => {
+  const getPage = (pageToken?: string): Promise<void> => {
     return promiseTry(() => callback(pageToken)).then((nextPageToken?: string) => {
       if (nextPageToken) {
         if (--limit < 0) {

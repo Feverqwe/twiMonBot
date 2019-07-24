@@ -14,7 +14,7 @@ interface Stream {
   url: string
 }
 
-const Stream: (any) => Stream = struct(struct.partial({
+const Stream: (any: any) => Stream = struct(struct.partial({
   key: 'string',
   url: 'string',
 }));
@@ -144,11 +144,11 @@ class Goodgame implements ServiceInterface {
   }
 
   getExistsChannelIds(ids: string[]) {
-    const resultChannelIds = [];
+    const resultChannelIds: string[] = [];
     return parallel(10, ids, (channelId) => {
       return this.requestChannelById(channelId).then(() => {
         resultChannelIds.push(channelId);
-      }, (err) => {
+      }, (err: any) => {
         if (err.code === 'CHANNEL_BY_ID_IS_NOT_FOUND') {
           // pass
         } else {
@@ -183,7 +183,7 @@ class Goodgame implements ServiceInterface {
       const url = stream.url;
       const title = stream.key;
       return {id, title, url};
-    }, (err) => {
+    }, (err: any) => {
       if (err.statusCode === 404) {
         throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
       }

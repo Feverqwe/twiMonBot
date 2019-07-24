@@ -18,8 +18,8 @@ const everyTime = (ms: number|{ms: number, offset?: number}, callback: () => any
     _ms = ms;
   }
 
-  let offsetTimeoutId = null;
-  let intervalId = null;
+  let offsetTimeoutId: NodeJS.Timeout = null;
+  let intervalId: NodeJS.Timeout = null;
 
   offsetTimeoutId = setTimeout(() => {
     intervalId = setInterval(() => {

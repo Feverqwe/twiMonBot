@@ -5,11 +5,23 @@ import arrayDifferent from "./tools/arrayDifferent";
 import Main from "./main";
 import * as Sequelize from "sequelize";
 import parallel from "./tools/parallel";
+import {ServiceInterface} from "./checker";
 
 const debug = require('debug')('app:db');
 const {Op} = Sequelize;
 const ISOLATION_LEVELS = Sequelize.Transaction.ISOLATION_LEVELS;
 
+export interface Chat {
+  id: string,
+  channelId: string,
+  isHidePreview: boolean,
+  isMutedRecords: boolean,
+  isEnabledAutoClean: boolean,
+  isMuted: boolean,
+  sendTimeoutExpiresAt: Date,
+  parentChatId: string|null
+}
+export interface IChat extends Chat, Sequelize.Model {}
 class ChatModel extends Sequelize.Model {}
 
 export interface Channel {
@@ -23,6 +35,11 @@ export interface Channel {
 export interface IChannel extends Channel, Sequelize.Model {}
 class ChannelModel extends Sequelize.Model {}
 
+export interface ChatIdStreamId {
+  chatId: string,
+  streamId: string,
+}
+export interface IChatIdStreamId extends ChatIdStreamId, Sequelize.Model {}
 class ChatIdStreamIdModel extends Sequelize.Model {}
 
 export interface Stream {
@@ -56,7 +73,7 @@ class MessageModel extends Sequelize.Model {}
 class Db {
   main: Main;
   sequelize: Sequelize.Sequelize;
-  constructor(/**Main*/main) {
+  constructor(main: Main) {
     this.main = main;
     this.sequelize = new Sequelize.Sequelize(main.config.db.database, main.config.db.user, main.config.db.password, {
       host: main.config.db.host,
@@ -237,19 +254,19 @@ class Db {
     });
   }
 
-  ensureChat(id) {
+  ensureChat(id: string) {
     return ChatModel.findOrCreate({
       where: {id},
       //@ts-ignore
       include: [
         {model: ChatModel, as: 'channel'}
       ]
-    }).then(([model, isCreated]) => {
+    }).then(([model, isCreated]: [IChat, boolean]) => {
       return model;
     });
   }
 
-  createChatChannel(chatId, channelId) {
+  createChatChannel(chatId: string, channelId: string) {
     return this.sequelize.transaction({
       isolationLevel: ISOLATION_LEVELS.REPEATABLE_READ,
     }, async (transaction) => {
@@ -268,24 +285,24 @@ class Db {
     });
   }
 
-  changeChatId(id, newId) {
+  changeChatId(id: string, newId: string) {
     return ChatModel.update({id: newId}, {
       where: {id}
     });
   }
 
-  getChatIds(offset, limit) {
+  getChatIds(offset: number, limit: number) {
     return ChatModel.findAll({
       offset,
       limit,
       attributes: ['id']
-    }).then((chats) => {
+    }).then((chats: {id: string}[]) => {
       return chats.map(chat => chat.id);
     });
   }
 
-  getChatById(id) {
-    return ChatModel.findByPk(id).then((chat) => {
+  getChatById(id: string) {
+    return ChatModel.findByPk(id).then((chat: IChat|null) => {
       if (!chat) {
         throw new ErrorWithCode('Chat is not found', 'CHAT_IS_NOT_FOUND');
       }
@@ -293,13 +310,13 @@ class Db {
     });
   }
 
-  getChatsByIds(ids) {
+  getChatsByIds(ids: string[]) {
     return ChatModel.findAll({
       where: {id: ids},
     });
   }
 
-  setChatSendTimeoutExpiresAt(ids) {
+  setChatSendTimeoutExpiresAt(ids: string[]) {
     const date = new Date();
     date.setMinutes(date.getMinutes() + this.main.config.chatSendTimeoutMinutes);
     return ChatModel.update({sendTimeoutExpiresAt: date}, {
@@ -307,13 +324,13 @@ class Db {
     });
   }
 
-  deleteChatById(id) {
+  deleteChatById(id: string) {
     return ChatModel.destroy({
       where: {id}
     });
   }
 
-  deleteChatsByIds(ids) {
+  deleteChatsByIds(ids: string[]) {
     return ChatModel.destroy({
       where: {id: ids}
     });
@@ -328,13 +345,13 @@ class Db {
     });
   }
 
-  ensureChannel(service, rawChannel) {
+  ensureChannel(service: ServiceInterface, rawChannel: Channel) {
     const id = serviceId.wrap(service, rawChannel.id);
 
     return ChannelModel.findOrCreate({
       where: {id},
       defaults: Object.assign({}, rawChannel, {id, service: service.id})
-    }).then(([channel, isCreated]) => {
+    }).then(([channel, isCreated]: [IChannel, boolean]) => {
       return channel;
     });
   }
@@ -363,7 +380,7 @@ class Db {
     `, {type: Sequelize.QueryTypes.SELECT});
   }
 
-  getChannelsByChatId(chatId) {
+  getChannelsByChatId(chatId: string) {
     return ChatIdChannelIdModel.findAll({
       include: [
         {model: ChannelModel, required: true}
@@ -371,19 +388,19 @@ class Db {
       where: {chatId},
       attributes: [],
       order: ['createdAt'],
-    }).then((chatIdChannelIdList) => {
+    }).then((chatIdChannelIdList: {channel: IChannel}[]) => {
       return chatIdChannelIdList.map(chatIdChannelId => chatIdChannelId.channel);
     });
   }
 
-  getChannelsByIds(ids) {
+  getChannelsByIds(ids: string[]) {
     return ChannelModel.findAll({
       where: {id: ids}
     });
   }
 
-  getChannelById(id) {
-    return ChannelModel.findByPk(id).then((channel) => {
+  getChannelById(id: string) {
+    return ChannelModel.findByPk(id).then((channel: IChannel) => {
       if (!channel) {
         throw new ErrorWithCode('Channel is not found', 'CHANNEL_IS_NOT_FOUND');
       }
@@ -391,23 +408,23 @@ class Db {
     });
   }
 
-  getChannelCountByChatId(chatId) {
+  getChannelCountByChatId(chatId: string) {
     return ChatIdChannelIdModel.count({
       where: {chatId}
     });
   }
 
-  putChatIdChannelId(chatId, channelId) {
+  putChatIdChannelId(chatId: string, channelId: string) {
     return ChatIdChannelIdModel.upsert({chatId, channelId});
   }
 
-  deleteChatIdChannelId(chatId, channelId) {
+  deleteChatIdChannelId(chatId: string, channelId: string) {
     return ChatIdChannelIdModel.destroy({
       where: {chatId, channelId}
     });
   }
 
-  getServiceChannelsForSync(serviceId, limit): Promise<IChannel[]> {
+  getServiceChannelsForSync(serviceId: string, limit: number): Promise<IChannel[]> {
     const date = new Date();
     date.setMinutes(date.getMinutes() - this.main.config.checkChannelIfLastSyncLessThenMinutes);
     return ChannelModel.findAll({
@@ -420,17 +437,17 @@ class Db {
     });
   }
 
-  getChannelIdsByServiceId(service, offset, limit) {
+  getChannelIdsByServiceId(service: string, offset: number, limit: number) {
     return ChannelModel.findAll({
       where: {service},
       attributes: ['id'],
       offset, limit,
-    }).then((channels) => {
+    }).then((channels: {id: string}[]) => {
       return channels.map(channel => channel.id);
     });
   }
 
-  setChannelsSyncTimeoutExpiresAt(ids) {
+  setChannelsSyncTimeoutExpiresAt(ids: string[]) {
     const date = new Date();
     date.setMinutes(date.getMinutes() + this.main.config.channelSyncTimeoutMinutes);
     return ChannelModel.update({
@@ -440,7 +457,7 @@ class Db {
     });
   }
 
-  removeChannelByIds(ids) {
+  removeChannelByIds(ids: string[]) {
     return ChannelModel.destroy({where: {id: ids}});
   }
 
@@ -452,7 +469,7 @@ class Db {
     });
   }
 
-  getChatIdChannelIdByChannelIds(channelIds): Promise<{
+  getChatIdChannelIdByChannelIds(channelIds: string[]): Promise<{
     chatId: string,
     channelId: string,
     createdAt: Date,
@@ -516,16 +533,16 @@ class Db {
     });
   }
 
-  getStreamsByChannelIds(channelIds): Promise<IStream[]> {
+  getStreamsByChannelIds(channelIds: string[]): Promise<IStream[]> {
     return StreamModel.findAll({
       where: {channelId: channelIds}
     });
   }
 
-  getStreamById(id) {
+  getStreamById(id: string) {
     return StreamModel.findOne({
       where: {id}
-    }).then((stream) => {
+    }).then((stream: IStream) => {
       if (!stream) {
         throw new ErrorWithCode('Stream is not found', 'STREAM_IS_NOT_FOUND');
       }

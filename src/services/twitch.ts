@@ -19,7 +19,7 @@ interface Channels {
   }[]
 }
 
-const Channels:(any) => Channels = struct(struct.partial({
+const Channels:(any: any) => Channels = struct(struct.partial({
   channels: [struct.partial({
     _id: 'number',
     name: 'string',
@@ -46,7 +46,7 @@ interface Streams {
   }[]
 }
 
-const Streams: (any) => Streams = struct(struct.partial({
+const Streams: (any: any) => Streams = struct(struct.partial({
   streams: [struct.partial({
     _id: 'number',
     stream_type: 'string',
@@ -84,8 +84,8 @@ class Twitch implements ServiceInterface {
 
   getStreams(channelIds: number[]) {
     const resultStreams: ServiceStream[] = [];
-    const skippedChannelIds = [];
-    const removedChannelIds = [];
+    const skippedChannelIds: number[] = [];
+    const removedChannelIds: number[] = [];
     return parallel(10, arrayByPart(channelIds, 100), (channelIds) => {
       return withRetry({count: 3, timeout: 250}, () => {
         return got('https://api.twitch.tv/kraken/streams', {
@@ -104,7 +104,7 @@ class Twitch implements ServiceInterface {
         const streams = Streams(body).streams;
 
         streams.forEach((stream) => {
-          const previews = [];
+          const previews: string[] = [];
           ['template', 'large', 'medium'/*, 'small'*/].forEach((size) => {
             let url = stream.preview[size];
             if (url) {
@@ -137,11 +137,11 @@ class Twitch implements ServiceInterface {
   }
 
   getExistsChannelIds(ids: number[]) {
-    const resultChannelIds = [];
+    const resultChannelIds: number[] = [];
     return parallel(10, ids, (channelId) => {
       return this.requestChannelById(channelId).then(() => {
         resultChannelIds.push(channelId);
-      }, (err) => {
+      }, (err: any) => {
         if (err.code === 'CHANNEL_BY_ID_IS_NOT_FOUND') {
           // pass
         } else {
@@ -158,7 +158,7 @@ class Twitch implements ServiceInterface {
         'Accept': 'application/vnd.twitchtv.v5+json',
         'Client-ID': this.main.config.twitchToken
       },
-    }).catch((err) => {
+    }).catch((err: any) => {
       if (err.statusCode === 404) {
         throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
       }
@@ -167,17 +167,17 @@ class Twitch implements ServiceInterface {
   }
 
   findChannel(query: string) {
-    return this.getChannelNameByUrl(query).then((name) => {
+    return this.getChannelNameByUrl(query).then((name: string) => {
       return JSON.stringify(name);
-    }).catch((err) => {
+    }).catch((err: any) => {
       if (err.code === 'IS_NOT_CHANNEL_URL') {
         return query;
       } else {
         throw err;
       }
-    }).then((query) => {
+    }).then((query: string) => {
       return this.requestChannelByQuery(query);
-    }).then((channel) => {
+    }).then((channel: {_id: number, display_name: string, url: string}) => {
       const id = channel._id;
       const title = channel.display_name;
       const url = channel.url;
@@ -193,7 +193,7 @@ class Twitch implements ServiceInterface {
         'Client-ID': this.main.config.twitchToken
       },
       json: true,
-    }).then(({body}) => {
+    }).then(({body}: {body: object}) => {
       const channels = Channels(body).channels;
       if (!channels.length) {
         throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
@@ -202,7 +202,7 @@ class Twitch implements ServiceInterface {
     });
   }
 
-  getChannelNameByUrl(url: string) {
+  async getChannelNameByUrl(url: string) {
     let channelName = null;
     [
       /twitch\.tv\/([\w\-]+)/i
