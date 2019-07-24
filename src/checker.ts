@@ -220,7 +220,7 @@ class Checker {
           }
         });
 
-        const channelIdNewStreamIds = new Map();
+        const channelIdNewStreamIds: Map<string, string[]> = new Map();
         newStreamIds.forEach((id) => {
           const stream = streamIdStream.get(id);
           const channelStreamIds = ensureMap(channelIdNewStreamIds, stream.channelId, []);
@@ -258,7 +258,10 @@ class Checker {
           const channelsChanges = Object.values(channelIdsChanges);
 
           const migratedStreamsIdCouple = Array.from(migratedStreamFromIdToId.entries());
-          const syncStreams: Stream[] = [].concat(newStreamIds, migratedStreamsIds, updatedStreamIds, offlineStreamIds, timeoutStreamIds).map(id => streamIdStream.get(id));
+          const syncStreams: Stream[] = [
+            ...[].concat(newStreamIds, migratedStreamsIds, updatedStreamIds).map(id => streamIdStream.get(id)),
+            ...[].concat(offlineStreamIds, timeoutStreamIds).map((id) => existsStreamIdStream.get(id))
+          ];
 
           return this.main.db.putStreams(
             channelsChanges,
@@ -282,16 +285,26 @@ class Checker {
                 this.log.write(`[?] ${stream.channelId} ${stream.id}`);
               }
             });
-            timeoutStreamIds.forEach((id) => {
-              const stream = existsStreamIdStream.get(id);
-              this.log.write(`[timeout] ${stream.channelId} ${stream.id}`);
-            });
-            offlineStreamIds.forEach((id) => {
-              const stream = existsStreamIdStream.get(id);
-              this.log.write(`[offline] ${stream.channelId} ${stream.id}`);
-            });
-            removedStreamIds.forEach((id) => {
-              this.log.write(`[removed] ${id}`);
+            existsStreamIds.forEach((id) => {
+              if (updatedStreamIds.includes(id)) {
+                // pass
+              } else
+              if (migratedStreamFromIdToId.has(id)) {
+                // pass
+              } else {
+                const stream = existsStreamIdStream.get(id);
+                if (timeoutStreamIds.includes(id)) {
+                  this.log.write(`[timeout] ${stream.channelId} ${stream.id}`);
+                } else
+                if (offlineStreamIds.includes(id)) {
+                  this.log.write(`[offline] ${stream.channelId} ${stream.id}`);
+                } else
+                if (removedStreamIds.includes(id)) {
+                  this.log.write(`[removed] ${stream.channelId} ${stream.id}`);
+                } else {
+                  this.log.write(`[??] ${stream.channelId} ${stream.id}`);
+                }
+              }
             });
 
             // todo: fix me
