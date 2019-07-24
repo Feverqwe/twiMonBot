@@ -174,7 +174,6 @@ class Db {
       modelName: 'stream',
       tableName: 'streams',
       timestamps: true,
-      updatedAt: false,
       indexes: []
     });
     StreamModel.belongsTo(ChannelModel, {foreignKey: 'channelId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
