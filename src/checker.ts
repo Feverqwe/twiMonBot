@@ -82,7 +82,12 @@ class Checker {
       await Promise.all([
         this.getStreams(service, channelIds, rawChannelIds),
         this.getExistsStreams(channelIds)
-      ]).then(([{streams, checkedChannelIds, skippedChannelIds, removedChannelIds}, {existsStreams, existsStreamIds, existsStreamIdStream}]) => {
+      ]).then((results) => {
+        const [
+          {streams, checkedChannelIds, skippedChannelIds, removedChannelIds},
+          {existsStreams, existsStreamIds, existsStreamIdStream}
+        ] = results;
+
         const streamIds: string[] = [];
         const streamIdStream: Map<string, Stream> = new Map();
         const channelIdsChanges:{[s: string]: {[s: string]: any}} = {};
