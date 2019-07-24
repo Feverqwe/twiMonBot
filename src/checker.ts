@@ -217,41 +217,7 @@ class Checker {
           }
         });
 
-        const channelIdNewStreamIds: Map<string, string[]> = new Map();
-        newStreamIds.forEach((id) => {
-          const stream = streamIdStream.get(id);
-          const channelStreamIds = ensureMap(channelIdNewStreamIds, stream.channelId, []);
-          channelStreamIds.push(stream.id);
-        });
-        const newStreamChannelIds = Array.from(channelIdNewStreamIds.keys());
-
-        return this.main.db.getChatIdChannelIdByChannelIds(newStreamChannelIds).then((chatIdChannelIdList) => {
-          const channelIdChats: Map<string, {chatId: string, isMutedRecords: boolean}[]> = new Map();
-          chatIdChannelIdList.forEach((chatIdChannelId) => {
-            const chats = ensureMap(channelIdChats, chatIdChannelId.channelId, []);
-            if (!chatIdChannelId.chat.channelId || !chatIdChannelId.chat.isMuted) {
-              chats.push({chatId: chatIdChannelId.chat.id, isMutedRecords: chatIdChannelId.chat.isMutedRecords});
-            }
-            if (chatIdChannelId.chat.channelId) {
-              chats.push({chatId: chatIdChannelId.chat.channelId, isMutedRecords: chatIdChannelId.chat.isMutedRecords});
-            }
-          });
-
-          const chatIdStreamIdChanges = [];
-          for (const [channelId, chats] of channelIdChats.entries()) {
-            const streamIds = channelIdNewStreamIds.get(channelId);
-            if (streamIds) {
-              streamIds.forEach((streamId) => {
-                const stream = streamIdStream.get(streamId);
-                chats.forEach(({chatId, isMutedRecords}) => {
-                  if (!stream.isRecord || !isMutedRecords) {
-                    chatIdStreamIdChanges.push({chatId, streamId});
-                  }
-                });
-              });
-            }
-          }
-
+        return this.getChatIdStreamIdChanges(streamIdStream, newStreamIds).then((chatIdStreamIdChanges) => {
           const channelsChanges = Object.values(channelIdsChanges);
 
           const migratedStreamsIdCouple = Array.from(migratedStreamFromIdToId.entries());
@@ -321,6 +287,45 @@ class Checker {
     }
 
     this.serviceThread.delete(service);
+  }
+
+  getChatIdStreamIdChanges(streamIdStream, newStreamIds: string[]) {
+    const channelIdNewStreamIds: Map<string, string[]> = new Map();
+    newStreamIds.forEach((id) => {
+      const stream = streamIdStream.get(id);
+      const channelStreamIds = ensureMap(channelIdNewStreamIds, stream.channelId, []);
+      channelStreamIds.push(stream.id);
+    });
+    const newStreamChannelIds = Array.from(channelIdNewStreamIds.keys());
+
+    return this.main.db.getChatIdChannelIdByChannelIds(newStreamChannelIds).then((chatIdChannelIdList) => {
+      const channelIdChats: Map<string, { chatId: string, isMutedRecords: boolean }[]> = new Map();
+      chatIdChannelIdList.forEach((chatIdChannelId) => {
+        const chats = ensureMap(channelIdChats, chatIdChannelId.channelId, []);
+        if (!chatIdChannelId.chat.channelId || !chatIdChannelId.chat.isMuted) {
+          chats.push({chatId: chatIdChannelId.chat.id, isMutedRecords: chatIdChannelId.chat.isMutedRecords});
+        }
+        if (chatIdChannelId.chat.channelId) {
+          chats.push({chatId: chatIdChannelId.chat.channelId, isMutedRecords: chatIdChannelId.chat.isMutedRecords});
+        }
+      });
+
+      const chatIdStreamIdChanges = [];
+      for (const [channelId, chats] of channelIdChats.entries()) {
+        const streamIds = channelIdNewStreamIds.get(channelId);
+        if (streamIds) {
+          streamIds.forEach((streamId) => {
+            const stream = streamIdStream.get(streamId);
+            chats.forEach(({chatId, isMutedRecords}) => {
+              if (!stream.isRecord || !isMutedRecords) {
+                chatIdStreamIdChanges.push({chatId, streamId});
+              }
+            });
+          });
+        }
+      }
+      return chatIdStreamIdChanges;
+    });
   }
 }
 
