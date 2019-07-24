@@ -175,7 +175,6 @@ class Checker {
 
         return this.getChatIdStreamIdChanges(streamIdStream, newStreamIds).then((chatIdStreamIdChanges) => {
           const channelsChanges = Object.values(channelIdsChanges);
-
           const migratedStreamsIdCouple = Array.from(migratedStreamFromIdToId.entries());
           const syncStreams: Stream[] = [
             ...[].concat(newStreamIds, migratedStreamsIds, updatedStreamIds).map(id => streamIdStream.get(id)),
@@ -189,55 +188,55 @@ class Checker {
             syncStreams,
             removedStreamIds,
             chatIdStreamIdChanges,
-          ).then(() => {
-            streams.forEach((stream) => {
-              const id = stream.id;
-              if (newStreamIds.includes(id)) {
-                this.log.write(`[new] ${stream.channelId} ${stream.id}`);
-              } else
-              if (migratedStreamsIds.includes(id)) {
-                const fromId = migratedStreamToIdFromId.get(id);
-                this.log.write(`[${fromId} > ${id}] ${stream.channelId} ${stream.id}`);
-              } else
-              if (updatedStreamIds.includes(id)) {
-                // pass
-              } else {
-                this.log.write(`[?] ${stream.channelId} ${stream.id}`);
-              }
-            });
-            existsStreams.forEach((stream) => {
-              const id = stream.id;
-              if (updatedStreamIds.includes(id)) {
-                // pass
-              } else
-              if (migratedStreamFromIdToId.has(id)) {
-                // pass
-              } else
-              if (timeoutStreamIds.includes(id)) {
-                this.log.write(`[timeout] ${stream.channelId} ${stream.id}`);
-              } else
-              if (offlineStreamIds.includes(id)) {
-                this.log.write(`[offline] ${stream.channelId} ${stream.id}`);
-              } else
-              if (removedStreamIds.includes(id)) {
-                this.log.write(`[removed] ${stream.channelId} ${stream.id}`);
-              } else {
-                this.log.write(`[??] ${stream.channelId} ${stream.id}`);
-              }
-            });
-
-            // todo: fix me
-            // this.main.sender.checkThrottled();
-
-            return {
-              streams: streams.length,
-              new: newStreamIds.length,
-              migrated: migratedStreamsIds.length,
-              timeout: timeoutStreamIds.length,
-              offline: offlineStreamIds.length,
-              removed: removedStreamIds.length,
-            };
+          );
+        }).then(() => {
+          streams.forEach((stream) => {
+            const id = stream.id;
+            if (newStreamIds.includes(id)) {
+              this.log.write(`[new] ${stream.channelId} ${stream.id}`);
+            } else
+            if (migratedStreamsIds.includes(id)) {
+              const fromId = migratedStreamToIdFromId.get(id);
+              this.log.write(`[${fromId} > ${id}] ${stream.channelId} ${stream.id}`);
+            } else
+            if (updatedStreamIds.includes(id)) {
+              // pass
+            } else {
+              this.log.write(`[?] ${stream.channelId} ${stream.id}`);
+            }
           });
+          existsStreams.forEach((stream) => {
+            const id = stream.id;
+            if (updatedStreamIds.includes(id)) {
+              // pass
+            } else
+            if (migratedStreamFromIdToId.has(id)) {
+              // pass
+            } else
+            if (timeoutStreamIds.includes(id)) {
+              this.log.write(`[timeout] ${stream.channelId} ${stream.id}`);
+            } else
+            if (offlineStreamIds.includes(id)) {
+              this.log.write(`[offline] ${stream.channelId} ${stream.id}`);
+            } else
+            if (removedStreamIds.includes(id)) {
+              this.log.write(`[removed] ${stream.channelId} ${stream.id}`);
+            } else {
+              this.log.write(`[??] ${stream.channelId} ${stream.id}`);
+            }
+          });
+
+          // todo: fix me
+          // this.main.sender.checkThrottled();
+
+          return {
+            streams: streams.length,
+            new: newStreamIds.length,
+            migrated: migratedStreamsIds.length,
+            timeout: timeoutStreamIds.length,
+            offline: offlineStreamIds.length,
+            removed: removedStreamIds.length,
+          };
         });
       });
     }
