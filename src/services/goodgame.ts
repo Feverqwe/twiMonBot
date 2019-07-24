@@ -4,7 +4,7 @@ import Main from "../main";
 import parallel from "../tools/parallel";
 import arrayByPart from "../tools/arrayByPart";
 import withRetry from "../tools/withRetry";
-import {ServiceInterface, RawStream} from "../checker";
+import {ServiceInterface, ServiceStream} from "../checker";
 
 const got = require('got');
 const debug = require('debug')('app:Goodgame');
@@ -76,7 +76,7 @@ class Goodgame implements ServiceInterface {
   }
 
   getStreams(channelIds: string[]) {
-    const resultStreams:RawStream[] = [];
+    const resultStreams:ServiceStream[] = [];
     const skippedChannelIds:string[] = [];
     const removedChannelIds:string[] = [];
     return parallel(10, arrayByPart(channelIds, 25), (channelIds) => {

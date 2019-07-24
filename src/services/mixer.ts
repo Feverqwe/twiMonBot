@@ -1,5 +1,5 @@
 import Main from "../main";
-import {ServiceInterface, RawStream} from "../checker";
+import {ServiceInterface, ServiceStream} from "../checker";
 import ErrorWithCode from "../tools/errorWithCode";
 import {struct} from "superstruct";
 import parallel from "../tools/parallel";
@@ -63,7 +63,7 @@ class Mixer implements ServiceInterface {
   }
 
   getStreams(channelIds: string[]) {
-    const resultStreams: RawStream[] = [];
+    const resultStreams: ServiceStream[] = [];
     const skippedChannelIds = [];
     const removedChannelIds = [];
     return parallel(10, channelIds, (channelId) => {

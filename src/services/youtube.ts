@@ -1,4 +1,4 @@
-import {ServiceInterface, RawStream} from "../checker";
+import {ServiceInterface, ServiceStream} from "../checker";
 import Main from "../main";
 import RateLimit from "../tools/rateLimit";
 import parallel from "../tools/parallel";
@@ -170,7 +170,7 @@ class Youtube implements ServiceInterface {
   }
 
   getStreams(channelIds: string[]) {
-    const resultStreams: RawStream[] = [];
+    const resultStreams: ServiceStream[] = [];
     const skippedChannelIds = [];
     const removedChannelIds = [];
     return promiseTry(() => {

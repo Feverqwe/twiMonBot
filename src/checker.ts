@@ -8,7 +8,7 @@ import LogFile from "./logFile";
 
 const debug = require('debug')('app:Checker');
 
-export interface RawStream {
+export interface ServiceStream {
   id: string|number,
   url: string,
   title: string,
@@ -25,7 +25,7 @@ export interface ServiceInterface {
   name: string,
   batchSize: number,
   match(string): boolean,
-  getStreams(channelsIds: (string|number)[]): Promise<{streams: RawStream[], skippedChannelIds: (string|number)[], removedChannelIds: (string|number)[]}>,
+  getStreams(channelsIds: (string|number)[]): Promise<{streams: ServiceStream[], skippedChannelIds: (string|number)[], removedChannelIds: (string|number)[]}>,
   getExistsChannelIds(channelsIds: (string|number)[]): Promise<(string|number)[]>,
   findChannel(query: string): Promise<{id: string|number, title: string, url: string}>,
 }

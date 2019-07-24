@@ -4,7 +4,6 @@ import serviceId from "./tools/serviceId";
 import arrayDifferent from "./tools/arrayDifferent";
 import Main from "./main";
 import * as Sequelize from "sequelize";
-import {RawStream} from "./checker";
 import parallel from "./tools/parallel";
 
 const debug = require('debug')('app:db');

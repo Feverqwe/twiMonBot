@@ -1,4 +1,4 @@
-import {ServiceInterface, RawStream} from "../checker";
+import {ServiceInterface, ServiceStream} from "../checker";
 import Main from "../main";
 import parallel from "../tools/parallel";
 import ErrorWithCode from "../tools/errorWithCode";
@@ -83,7 +83,7 @@ class Twitch implements ServiceInterface {
   }
 
   getStreams(channelIds: number[]) {
-    const resultStreams: RawStream[] = [];
+    const resultStreams: ServiceStream[] = [];
     const skippedChannelIds = [];
     const removedChannelIds = [];
     return parallel(10, arrayByPart(channelIds, 100), (channelIds) => {
