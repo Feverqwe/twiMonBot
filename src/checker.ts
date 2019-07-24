@@ -105,7 +105,6 @@ class Checker {
             offlineFrom: null,
             isTimeout: false,
             timeoutFrom: null,
-            hasChanges: true,
           });
 
           if (!checkedChannelIds.includes(stream.channelId)) {
@@ -177,7 +176,6 @@ class Checker {
               if (!stream.isTimeout) {
                 stream.isTimeout = true;
                 stream.timeoutFrom = new Date();
-                stream.hasChanges = true;
               }
             }
             return;
@@ -205,7 +203,6 @@ class Checker {
           if (!stream.isOffline) {
             stream.isOffline = true;
             stream.offlineFrom = new Date();
-            stream.hasChanges = true;
           } else {
             const minOfflineDate = new Date();
             minOfflineDate.setMinutes(minOfflineDate.getMinutes() - this.main.config.removeStreamIfOfflineMoreThanMinutes);

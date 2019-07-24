@@ -40,7 +40,6 @@ export interface Stream {
   isOffline: boolean,
   timeoutFrom: Date|null,
   isTimeout: boolean,
-  hasChanges: boolean,
 }
 export interface IStream extends Stream, Sequelize.Model {}
 class StreamModel extends Sequelize.Model {}
@@ -170,7 +169,6 @@ class Db {
       offlineFrom: {type: Sequelize.DATE, allowNull: true},
       isTimeout: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
       timeoutFrom: {type: Sequelize.DATE, allowNull: true},
-      hasChanges: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
     }, {
       sequelize: this.sequelize,
       modelName: 'stream',
