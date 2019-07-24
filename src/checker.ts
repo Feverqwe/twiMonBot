@@ -258,7 +258,7 @@ class Checker {
           const channelsChanges = Object.values(channelIdsChanges);
 
           const migratedStreamsIdCouple = Array.from(migratedStreamFromIdToId.entries());
-          const syncStreams = [].concat(newStreamIds, migratedStreamsIds, updatedStreamIds, offlineStreamIds, timeoutStreamIds).map(id => streamIdStream.get(id));
+          const syncStreams: Stream[] = [].concat(newStreamIds, migratedStreamsIds, updatedStreamIds, offlineStreamIds, timeoutStreamIds).map(id => streamIdStream.get(id));
 
           return this.main.db.putStreams(
             channelsChanges,
