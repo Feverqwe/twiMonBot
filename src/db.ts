@@ -477,13 +477,13 @@ class Db {
       isolationLevel: ISOLATION_LEVELS.REPEATABLE_READ,
     }, async (transaction) => {
       await Promise.all([
-        await bulk(channelsChanges, (channelsChanges) => {
+        bulk(channelsChanges, (channelsChanges) => {
           return ChannelModel.bulkCreate(channelsChanges, {
             updateOnDuplicate: ['lastSyncAt', 'title'],
             transaction
           });
         }),
-        await parallel(50, migratedStreamsIdCouple, ([fromId, id]) => {
+        parallel(50, migratedStreamsIdCouple, ([fromId, id]) => {
           return StreamModel.update({id}, {
             where: {id: fromId},
             transaction
@@ -504,13 +504,13 @@ class Db {
       });
 
       await Promise.all([
-        await bulk(removedStreamIds, (removedStreamIds) => {
+        bulk(removedStreamIds, (removedStreamIds) => {
           return StreamModel.destroy({
             where: {id: removedStreamIds},
             transaction
           });
         }),
-        await bulk(removedChannelIds, (removedChannelIds) => {
+        bulk(removedChannelIds, (removedChannelIds) => {
           return ChannelModel.destroy({
             where: {id: removedChannelIds},
             transaction
