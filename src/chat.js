@@ -588,6 +588,9 @@ class Chat {
             break;
           }
           case 'isMutedRecords': {
+            if (optionsType === 'channelOptions') {
+              throw new ErrorWithCode('Option is not available for channel', 'UNAVAILABLE_CHANNEL_OPTION');
+            }
             changes.isMutedRecords = value === 'true';
             break;
           }
@@ -1010,18 +1013,6 @@ function getOptions(chat) {
       btnList.push([{
         text: 'Hide preview for channel',
         callback_data: '/channelOptions/isHidePreview/true'
-      }]);
-    }
-
-    if (chat.isMutedRecords) {
-      btnList.push([{
-        text: 'Unmute records for channel',
-        callback_data: '/channelOptions/isMutedRecords/false'
-      }]);
-    } else {
-      btnList.push([{
-        text: 'Mute records for channel',
-        callback_data: '/channelOptions/isMutedRecords/true'
       }]);
     }
 

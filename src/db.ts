@@ -5,6 +5,7 @@ import arrayDifferent from "./tools/arrayDifferent";
 import Main from "./main";
 import * as Sequelize from "sequelize";
 import {RawStream} from "./checker";
+import parallel from "./tools/parallel";
 
 const debug = require('debug')('app:db');
 const {Op} = Sequelize;
@@ -471,6 +472,54 @@ class Db {
     });
   }
 
+  putStreams(channelsChanges: object[], removedChannelIds: string[], migratedStreamsIdCouple: [string, string][], syncStreams: Stream[], removedStreamIds: string[], chatIdStreamIdChanges: object[]) {
+    return this.sequelize.transaction({
+      isolationLevel: ISOLATION_LEVELS.REPEATABLE_READ,
+    }, async (transaction) => {
+      await Promise.all([
+        await bulk(channelsChanges, (channelsChanges) => {
+          return ChannelModel.bulkCreate(channelsChanges, {
+            updateOnDuplicate: ['lastSyncAt', 'title'],
+            transaction
+          });
+        }),
+        await parallel(50, migratedStreamsIdCouple, ([fromId, id]) => {
+          return StreamModel.update({id}, {
+            where: {id: fromId},
+            transaction
+          });
+        })
+      ]);
+
+      await bulk(syncStreams, (syncStreams) => {
+        return StreamModel.bulkCreate(syncStreams, {
+          transaction
+        });
+      });
+
+      await bulk(chatIdStreamIdChanges, (chatIdStreamIdChanges) => {
+        return ChatIdStreamIdModel.bulkCreate(chatIdStreamIdChanges, {
+          transaction
+        });
+      });
+
+      await Promise.all([
+        await bulk(removedStreamIds, (removedStreamIds) => {
+          return StreamModel.destroy({
+            where: {id: removedStreamIds},
+            transaction
+          });
+        }),
+        await bulk(removedChannelIds, (removedChannelIds) => {
+          return ChannelModel.destroy({
+            where: {id: removedChannelIds},
+            transaction
+          });
+        })
+      ]);
+    });
+  }
+
   getStreamsByChannelIds(channelIds): Promise<IStream[]> {
     return StreamModel.findAll({
       where: {channelId: channelIds}
@@ -489,7 +538,7 @@ class Db {
   }
 }
 
-function bulk(results, callback) {
+function bulk<T, F>(results: T[], callback: (results: T[]) => F):Promise<F[]> {
   const resultsParts = arrayByPart(results, 100);
   return Promise.all(resultsParts.map(results => callback(results)));
 }
