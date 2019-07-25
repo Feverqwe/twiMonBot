@@ -18,7 +18,7 @@ class LogFile {
     });
   }
 
-  write(...args: any):void {
+  write(...args: any[]):void {
     args.unshift(`[${clfdate(new Date())}]`);
     try {
       this.stream.write(args.join(' ') + '\n');
