@@ -172,8 +172,10 @@ class ChatSender {
         }
 
         throw err;
-      }).then(() => {
-        return this.main.db.deleteChatIdStreamId(this.chat.id, stream.id);
+      }).then((message: TMessage) => {
+        return Promise.all([
+          this.main.db.deleteChatIdStreamId(this.chat.id, stream.id),
+        ]);
       });
     }).catch((err) => {
       if (err.code === 'STREAM_IS_NOT_FOUND') {
@@ -201,14 +203,14 @@ class ChatSender {
         t: 'event'
       });
       this.main.sender.log.write(`[${type}] ${this.chat.id} ${stream.channelId} ${stream.id}`);
+      return message;
     });
   }
 
-  sendStreamAsPhoto(stream: IStreamWithChannel) {
+  sendStreamAsPhoto(stream: IStreamWithChannel): Promise<TMessage> {
     if (stream.telegramPreviewFileId) {
-      return this.main.bot.sendPhotoQuote(this.chat.id, stream.telegramPreviewFileId, {
-        caption: getCaption(stream)
-      }).then((message: TMessage) => {
+      const caption = getCaption(stream);
+      return this.main.bot.sendPhotoQuote(this.chat.id, stream.telegramPreviewFileId, {caption}).then((message: TMessage) => {
         this.main.tracker.track(this.chat.id, {
           ec: 'bot',
           ea: 'sendPhoto',
@@ -223,7 +225,7 @@ class ChatSender {
     }
   }
 
-  requestAndSendPhoto(stream: IStreamWithChannel) {
+  requestAndSendPhoto(stream: IStreamWithChannel): Promise<TMessage> {
     let promise = videoWeakMap.get(stream);
 
     if (!promise) {
@@ -235,9 +237,9 @@ class ChatSender {
         if (err.code === 'ETELEGRAM' && /not enough rights to send photos/.test(err.response.body.description)) {
           throw err;
         }
-        return this.sendStreamAsText(stream, true).then((result: TMessage) => {
+        return this.sendStreamAsText(stream, true).then((message: TMessage) => {
           debug('ensureTelegramPreviewFileId %s error: %o', this.chat.id, err);
-          return result;
+          return message;
         });
       });
     } else {
@@ -255,7 +257,7 @@ class ChatSender {
     return promise;
   }
 
-  ensureTelegramPreviewFileId(stream: IStreamWithChannel) {
+  ensureTelegramPreviewFileId(stream: IStreamWithChannel): Promise<TMessage> {
     const previews = !Array.isArray(stream.previews) ? JSON.parse(stream.previews) : stream.previews;
     return getValidPreviewUrl(previews).then(({url, contentType}) => {
       const caption = getCaption(stream);
@@ -299,7 +301,7 @@ class ChatSender {
         throw new ErrorWithCode('File id if not found', 'FILE_ID_IS_NOT_FOUND');
       }
       stream.telegramPreviewFileId = fileId;
-      return stream.save();
+      return stream.save().then(() => message);
     });
   }
 }

@@ -46,7 +46,6 @@ export interface IChatIdStreamId extends ChatIdStreamId, Sequelize.Model {}
 class ChatIdStreamIdModel extends Sequelize.Model {}
 
 export interface Stream {
-  [s: string]: any,
   id: string,
   url: string,
   title: string,
@@ -84,7 +83,7 @@ export interface Message {
   type: string,
   text: string,
   hasChanges: boolean,
-  syncTimeoutExpiresAt: Date,
+  syncTimeoutExpiresAt?: Date,
   createdAt?: Date,
 }
 export interface IMessage extends Message, Sequelize.Model {}
@@ -616,6 +615,10 @@ class Db {
     return ChatIdStreamIdModel.destroy({
       where: {chatId, streamId}
     });
+  }
+
+  putMessage(message: Message) {
+
   }
 }
 
