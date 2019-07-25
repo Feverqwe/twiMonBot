@@ -254,7 +254,7 @@ class ChatSender {
   }
 
   requestAndSendPhoto(stream: IStreamWithChannel): Promise<SentMessage> {
-    let promise = videoWeakMap.get(stream);
+    let promise: Promise<SentMessage> = videoWeakMap.get(stream);
 
     if (!promise) {
       promise = this.ensureTelegramPreviewFileId(stream).then(...promiseFinally(() => {
