@@ -245,10 +245,18 @@ class Checker {
               // pass
             } else
             if (timeoutStreamIds.includes(id)) {
-              this.log.write(`[timeout] ${stream.channelId} ${stream.id}`);
+              if (changedStreamIds.includes(id)) {
+                this.log.write(`[timeout] ${stream.channelId} ${stream.id}`);
+              } else {
+                // pass
+              }
             } else
             if (offlineStreamIds.includes(id)) {
-              this.log.write(`[offline] ${stream.channelId} ${stream.id}`);
+              if (changedStreamIds.includes(id)) {
+                this.log.write(`[offline] ${stream.channelId} ${stream.id}`);
+              } else {
+                // pass
+              }
             } else
             if (removedStreamIds.includes(id)) {
               this.log.write(`[removed] ${stream.channelId} ${stream.id}`);
