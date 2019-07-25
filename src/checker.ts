@@ -2,7 +2,7 @@ import Main from "./main";
 import {everyMinutes} from "./tools/everyTime";
 import serviceId from "./tools/serviceId";
 import ensureMap from "./tools/ensureMap";
-import arrayDifferent from "./tools/arrayDifferent";
+import arrayDifference from "./tools/arrayDifference";
 import {Channel, IChannel, Stream} from "./db";
 import LogFile from "./logFile";
 
@@ -120,9 +120,9 @@ class Checker {
           streamIdStream.set(stream.id, stream);
         });
 
-        const offlineStreamIds = arrayDifferent(existsStreamIds, streamIds);
-        const newStreamIds = arrayDifferent(streamIds, existsStreamIds);
-        const updatedStreamIds = arrayDifferent(streamIds, newStreamIds);
+        const offlineStreamIds = arrayDifference(existsStreamIds, streamIds);
+        const newStreamIds = arrayDifference(streamIds, existsStreamIds);
+        const updatedStreamIds = arrayDifference(streamIds, newStreamIds);
 
         const migratedStreamFromIdToId = new Map();
         const migratedStreamToIdFromId = new Map();
@@ -163,7 +163,7 @@ class Checker {
 
           const channelStreamIds = channelIdStreamIds.get(stream.channelId);
           if (channelStreamIds) {
-            const channelNewStreams = arrayDifferent(channelStreamIds, updatedStreamIds).map(id => streamIdStream.get(id));
+            const channelNewStreams = arrayDifference(channelStreamIds, updatedStreamIds).map(id => streamIdStream.get(id));
             const similarStream = findSimilarStream(channelNewStreams, stream);
             if (similarStream) {
               const oPos = offlineStreamIds.indexOf(id);
