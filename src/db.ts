@@ -47,6 +47,7 @@ export interface IChatIdStreamId extends ChatIdStreamId, Sequelize.Model {}
 class ChatIdStreamIdModel extends Sequelize.Model {}
 
 export interface Stream {
+  [s: string]: any,
   id: string,
   url: string,
   title: string,
@@ -502,7 +503,7 @@ class Db {
     });
   }
 
-  putStreams(channelsChanges: object[], removedChannelIds: string[], migratedStreamsIdCouple: [string, string][], syncStreams: Stream[], removedStreamIds: string[], chatIdStreamIdChanges: object[]) {
+  putStreams(channelsChanges: object[], removedChannelIds: string[], migratedStreamsIdCouple: [string, string][], syncStreams: Stream[], changedStreamIds: string[], removedStreamIds: string[], chatIdStreamIdChanges: object[]) {
     return this.sequelize.transaction({
       isolationLevel: ISOLATION_LEVELS.REPEATABLE_READ,
     }, async (transaction) => {
@@ -527,11 +528,19 @@ class Db {
         });
       });
 
-      await bulk(chatIdStreamIdChanges, (chatIdStreamIdChanges) => {
-        return ChatIdStreamIdModel.bulkCreate(chatIdStreamIdChanges, {
-          transaction
-        });
-      });
+      await Promise.all([
+        bulk(chatIdStreamIdChanges, (chatIdStreamIdChanges) => {
+          return ChatIdStreamIdModel.bulkCreate(chatIdStreamIdChanges, {
+            transaction
+          });
+        }),
+        bulk(changedStreamIds, (changedStreamIds) => {
+          return MessageModel.update({hasChanges: true}, {
+            where: {streamId: changedStreamIds},
+            transaction
+          });
+        })
+      ]);
 
       await Promise.all([
         bulk(removedStreamIds, (removedStreamIds) => {

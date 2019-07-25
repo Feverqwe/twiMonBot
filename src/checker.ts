@@ -129,6 +129,20 @@ class Checker {
         const migratedStreamsIds: string[] = [];
         const timeoutStreamIds: string[] = [];
         const removedStreamIds: string[] = [];
+        const changedStreamIds: string[] = [];
+
+        updatedStreamIds.forEach((id) => {
+          const stream = streamIdStream.get(id);
+          const prevStream = existsStreamIdStream.get(id);
+
+          const hasChanges = ['url', 'title', 'game', 'isRecord'].some((field) => {
+            return stream[field] !== prevStream[field];
+          });
+          if (hasChanges) {
+            changedStreamIds.push(id);
+          }
+        });
+
         offlineStreamIds.slice(0).forEach((id) => {
           const stream = existsStreamIdStream.get(id);
 
@@ -141,6 +155,7 @@ class Checker {
               if (!stream.isTimeout) {
                 stream.isTimeout = true;
                 stream.timeoutFrom = new Date();
+                changedStreamIds.push(id);
               }
             }
             return;
@@ -160,6 +175,7 @@ class Checker {
                 migratedStreamFromIdToId.set(stream.id, similarStream.id);
                 migratedStreamToIdFromId.set(similarStream.id, stream.id);
                 migratedStreamsIds.push(similarStream.id);
+                changedStreamIds.push(similarStream.id);
               }
               return;
             }
@@ -168,6 +184,7 @@ class Checker {
           if (!stream.isOffline) {
             stream.isOffline = true;
             stream.offlineFrom = new Date();
+            changedStreamIds.push(id);
           } else {
             const minOfflineDate = new Date();
             minOfflineDate.setMinutes(minOfflineDate.getMinutes() - this.main.config.removeStreamIfOfflineMoreThanMinutes);
@@ -175,8 +192,8 @@ class Checker {
               const pos = offlineStreamIds.indexOf(id);
               if (pos !== -1) {
                 offlineStreamIds.splice(pos, 1);
-
                 removedStreamIds.push(id);
+                changedStreamIds.push(id);
               }
             }
           }
@@ -195,6 +212,7 @@ class Checker {
             removedChannelIds,
             migratedStreamsIdCouple,
             syncStreams,
+            changedStreamIds,
             removedStreamIds,
             chatIdStreamIdChanges,
           );
@@ -357,7 +375,7 @@ class Checker {
   }
 }
 
-function findSimilarStream(streams: Stream[], target: Stream): Stream|null {
+function findSimilarStream<T extends Stream>(streams: T[], target: T): T|null {
   let result = null;
   streams.some((stream) => {
     if (
