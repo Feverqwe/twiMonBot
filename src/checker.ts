@@ -263,6 +263,7 @@ class Checker {
           return {
             streams: streams.length,
             new: newStreamIds.length,
+            changed: changedStreamIds.length,
             migrated: migratedStreamsIds.length,
             timeout: timeoutStreamIds.length,
             offline: offlineStreamIds.length,
