@@ -120,6 +120,12 @@ interface TChatPhoto {
   big_file_id: string
 }
 
+interface SentMessage {
+  type: string,
+  text: string,
+  message: TMessage
+}
+
 class ChatSender {
   main: Main;
   chat: IChat;
@@ -151,7 +157,19 @@ class ChatSender {
         } else {
           return this.sendStreamAsPhoto(stream);
         }
-      }).catch((err) => {
+      }).then((sendMessage: SentMessage) => {
+        return Promise.all([
+          this.main.db.deleteChatIdStreamId(this.chat.id, stream.id),
+          this.main.db.putMessage({
+            id: sendMessage.message.message_id.toString(),
+            chatId: this.chat.id,
+            streamId: stream.id,
+            type: sendMessage.type,
+            text: sendMessage.text,
+            hasChanges: false,
+          }),
+        ]);
+      }, (err: any) => {
         if (err.code === 'ETELEGRAM') {
           const body = err.response.body;
 
@@ -172,10 +190,6 @@ class ChatSender {
         }
 
         throw err;
-      }).then((message: TMessage) => {
-        return Promise.all([
-          this.main.db.deleteChatIdStreamId(this.chat.id, stream.id),
-        ]);
       });
     }).catch((err) => {
       if (err.code === 'STREAM_IS_NOT_FOUND') {
@@ -186,8 +200,9 @@ class ChatSender {
     }).then(() => {});
   }
 
-  sendStreamAsText(stream: IStreamWithChannel, isFallback?: boolean): Promise<TMessage> {
-    return this.main.bot.sendMessage(this.chat.id, getDescription(stream), {
+  sendStreamAsText(stream: IStreamWithChannel, isFallback?: boolean): Promise<SentMessage> {
+    const text = getDescription(stream);
+    return this.main.bot.sendMessage(this.chat.id, text, {
       parse_mode: 'HTML'
     }).then((message: TMessage) => {
       let type = null;
@@ -196,18 +211,25 @@ class ChatSender {
       } else {
         type = 'send message';
       }
+
       this.main.tracker.track(this.chat.id, {
         ec: 'bot',
         ea: 'sendMsg',
         el: stream.channelId,
         t: 'event'
       });
+
       this.main.sender.log.write(`[${type}] ${this.chat.id} ${stream.channelId} ${stream.id}`);
-      return message;
+
+      return {
+        type: 'text',
+        text: text,
+        message
+      };
     });
   }
 
-  sendStreamAsPhoto(stream: IStreamWithChannel): Promise<TMessage> {
+  sendStreamAsPhoto(stream: IStreamWithChannel): Promise<SentMessage> {
     if (stream.telegramPreviewFileId) {
       const caption = getCaption(stream);
       return this.main.bot.sendPhotoQuote(this.chat.id, stream.telegramPreviewFileId, {caption}).then((message: TMessage) => {
@@ -217,15 +239,21 @@ class ChatSender {
           el: stream.channelId,
           t: 'event'
         });
+
         this.main.sender.log.write(`[send photo as id] ${this.chat.id} ${stream.channelId} ${stream.id}`);
-        return message;
+
+        return {
+          type: 'photo',
+          text: caption,
+          message
+        };
       });
     } else {
       return this.requestAndSendPhoto(stream);
     }
   }
 
-  requestAndSendPhoto(stream: IStreamWithChannel): Promise<TMessage> {
+  requestAndSendPhoto(stream: IStreamWithChannel): Promise<SentMessage> {
     let promise = videoWeakMap.get(stream);
 
     if (!promise) {
@@ -237,9 +265,10 @@ class ChatSender {
         if (err.code === 'ETELEGRAM' && /not enough rights to send photos/.test(err.response.body.description)) {
           throw err;
         }
-        return this.sendStreamAsText(stream, true).then((message: TMessage) => {
+
+        return this.sendStreamAsText(stream, true).then((sentMessage: SentMessage) => {
           debug('ensureTelegramPreviewFileId %s error: %o', this.chat.id, err);
-          return message;
+          return sentMessage;
         });
       });
     } else {
@@ -257,7 +286,7 @@ class ChatSender {
     return promise;
   }
 
-  ensureTelegramPreviewFileId(stream: IStreamWithChannel): Promise<TMessage> {
+  ensureTelegramPreviewFileId(stream: IStreamWithChannel): Promise<SentMessage> {
     const previews = !Array.isArray(stream.previews) ? JSON.parse(stream.previews) : stream.previews;
     return getValidPreviewUrl(previews).then(({url, contentType}) => {
       const caption = getCaption(stream);
@@ -294,14 +323,21 @@ class ChatSender {
         }
 
         throw err;
+      }).then((message: TMessage) => {
+        const fileId = getPhotoFileIdFromMessage(message);
+        if (!fileId) {
+          throw new ErrorWithCode('File id if not found', 'FILE_ID_IS_NOT_FOUND');
+        }
+        stream.telegramPreviewFileId = fileId;
+
+        return stream.save().then(() => {
+          return {
+            type: 'photo',
+            text: caption,
+            message
+          };
+        });
       });
-    }).then((message: TMessage) => {
-      const fileId = getPhotoFileIdFromMessage(message);
-      if (!fileId) {
-        throw new ErrorWithCode('File id if not found', 'FILE_ID_IS_NOT_FOUND');
-      }
-      stream.telegramPreviewFileId = fileId;
-      return stream.save().then(() => message);
     });
   }
 }

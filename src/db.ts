@@ -618,7 +618,7 @@ class Db {
   }
 
   putMessage(message: Message) {
-
+    return MessageModel.create(message);
   }
 }
 
