@@ -227,7 +227,11 @@ class Checker {
               this.log.write(`[${fromId} > ${id}] ${stream.channelId} ${stream.id}`);
             } else
             if (updatedStreamIds.includes(id)) {
-              // pass
+              if (changedStreamIds.includes(id)) {
+                this.log.write(`[changed] ${stream.channelId} ${stream.id}`);
+              } else {
+                // pass
+              }
             } else {
               this.log.write(`[?] ${stream.channelId} ${stream.id}`);
             }
