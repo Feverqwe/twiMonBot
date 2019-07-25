@@ -1,7 +1,6 @@
 import ErrorWithCode from "./tools/errorWithCode";
 import arrayByPart from "./tools/arrayByPart";
 import serviceId from "./tools/serviceId";
-import arrayDifference from "./tools/arrayDifference";
 import Main from "./main";
 import * as Sequelize from "sequelize";
 import parallel from "./tools/parallel";
@@ -65,6 +64,9 @@ export interface Stream {
   updatedAt?: Date,
 }
 export interface IStream extends Stream, Sequelize.Model {}
+export interface IStreamWithChannel extends IStream {
+  channel: IChannel
+}
 class StreamModel extends Sequelize.Model {}
 
 export interface ChatIdChannelId {
@@ -585,7 +587,7 @@ class Db {
     });
   }
 
-  getStreamWithChannelById(id: string): Promise<IStream & {channel: IChannel}> {
+  getStreamWithChannelById(id: string): Promise<IStreamWithChannel> {
     return StreamModel.findOne({
       where: {id},
       include: [

@@ -1,14 +1,124 @@
 import Main from "./main";
-import {IChat, IStream} from "./db";
+import {IChat, IStreamWithChannel} from "./db";
 import promiseTry from "./tools/promiseTry";
 import ErrorWithCode from "./tools/errorWithCode";
 import promiseFinally from "./tools/promiseFinally";
-import htmlSanitize from "./tools/htmlSanitize";
+import {getCaption, getDescription} from "./tools/streamToString";
 
 const debug = require('debug')('app:ChatSender');
 const got = require('got');
 
 const videoWeakMap = new WeakMap();
+
+interface TUser {
+  id: number,
+  is_bot: boolean,
+  first_name: string,
+  last_name?: string,
+  username?: string,
+  language_code?: string
+}
+
+interface TChat {
+  id: number,
+  type: string,
+  title?: string,
+  username?: string,
+  first_name?: string,
+  last_name?: string,
+  all_members_are_administrators?: true,
+  photo?: TChatPhoto,
+  description?: string,
+  invite_link?: string,
+  pinned_message?: TMessage,
+  sticker_set_name?: string,
+  can_set_sticker_set?: boolean
+}
+
+interface TMessage {
+  message_id: number,
+  from?: TUser // empty for messages sent to channels
+  date: number,
+  chat: TChat,
+  forward_from?: TUser,
+  forward_from_chat?: TChat,
+  forward_from_message_id?: number,
+  forward_signature?: string,
+  forward_sender_name?: string,
+  forward_date?: number,
+  reply_to_message?: TMessage,
+  edit_date?: number,
+  media_group_id?: string,
+  author_signature?: string,
+  text?: string,
+  entities?: TMessageEntity[],
+  caption_entities?: TMessageEntity[],
+  audio?: any,
+  document?: any,
+  animation?: any,
+  game?: any,
+  photo?: TPhotoSize[],
+  sticker?: any,
+  video?: any,
+  voice?: any,
+  video_note?: any,
+  caption?: string,
+  contact?: any,
+  location?: any,
+  venue?: any,
+  poll?: any,
+  new_chat_members?: TUser[],
+  left_chat_member?: TUser,
+  new_chat_title?: string,
+  new_chat_photo?: TPhotoSize[],
+  delete_chat_photo?: true,
+  group_chat_created?: true,
+  supergroup_chat_created?: true,
+  channel_chat_created?: true,
+  migrate_to_chat_id?: number,
+  migrate_from_chat_id?: number,
+  pinned_message?: TMessage,
+  invoice?: any,
+  successful_payment?: any,
+  connected_website?: string,
+  passport_data?: any,
+  reply_markup?: TInlineKeyboardMarkup,
+}
+
+interface TMessageEntity {
+  type: string,
+  offset: number,
+  length: number,
+  url?: string,
+  user?: TUser
+}
+
+interface TPhotoSize {
+  file_id: string,
+  width: number,
+  height: number,
+  file_size?: number
+}
+
+interface TInlineKeyboardMarkup {
+  inline_keyboard: TInlineKeyboardButton[][]
+}
+
+interface TInlineKeyboardButton {
+  text: string,
+  url?: string,
+  login_url?: any,
+  callback_data?: string,
+  switch_inline_query?: string,
+  switch_inline_query_current_chat?: string,
+  callback_game?: any,
+  pay?: boolean,
+}
+
+interface TChatPhoto {
+  small_file_id: string,
+  big_file_id: string
+}
 
 class ChatSender {
   main: Main;
@@ -74,10 +184,10 @@ class ChatSender {
     }).then(() => {});
   }
 
-  sendStreamAsText(stream: IStream, isFallback?: boolean) {
+  sendStreamAsText(stream: IStreamWithChannel, isFallback?: boolean): Promise<TMessage> {
     return this.main.bot.sendMessage(this.chat.id, getDescription(stream), {
       parse_mode: 'HTML'
-    }).then(() => {
+    }).then((message: TMessage) => {
       let type = null;
       if (isFallback) {
         type = 'send message as fallback';
@@ -94,11 +204,11 @@ class ChatSender {
     });
   }
 
-  sendStreamAsPhoto(stream: IStream) {
+  sendStreamAsPhoto(stream: IStreamWithChannel) {
     if (stream.telegramPreviewFileId) {
       return this.main.bot.sendPhotoQuote(this.chat.id, stream.telegramPreviewFileId, {
         caption: getCaption(stream)
-      }).then((result) => {
+      }).then((message: TMessage) => {
         this.main.tracker.track(this.chat.id, {
           ec: 'bot',
           ea: 'sendPhoto',
@@ -106,14 +216,14 @@ class ChatSender {
           t: 'event'
         });
         this.main.sender.log.write(`[send photo as id] ${this.chat.id} ${stream.channelId} ${stream.id}`);
-        return result;
+        return message;
       });
     } else {
       return this.requestAndSendPhoto(stream);
     }
   }
 
-  requestAndSendPhoto(stream: IStream) {
+  requestAndSendPhoto(stream: IStreamWithChannel) {
     let promise = videoWeakMap.get(stream);
 
     if (!promise) {
@@ -125,7 +235,7 @@ class ChatSender {
         if (err.code === 'ETELEGRAM' && /not enough rights to send photos/.test(err.response.body.description)) {
           throw err;
         }
-        return this.sendStreamAsText(stream, true).then((result) => {
+        return this.sendStreamAsText(stream, true).then((result: TMessage) => {
           debug('ensureTelegramPreviewFileId %s error: %o', this.chat.id, err);
           return result;
         });
@@ -145,11 +255,11 @@ class ChatSender {
     return promise;
   }
 
-  ensureTelegramPreviewFileId(stream: IStream) {
+  ensureTelegramPreviewFileId(stream: IStreamWithChannel) {
     const previews = !Array.isArray(stream.previews) ? JSON.parse(stream.previews) : stream.previews;
     return getValidPreviewUrl(previews).then(({url, contentType}) => {
       const caption = getCaption(stream);
-      return this.main.bot.sendPhoto(this.chat.id, url, {caption}).then((result) => {
+      return this.main.bot.sendPhoto(this.chat.id, url, {caption}).then((message: TMessage) => {
         this.main.sender.log.write(`[send photo as url] ${this.chat.id} ${stream.channelId} ${stream.id}`);
         this.main.tracker.track(this.chat.id, {
           ec: 'bot',
@@ -157,7 +267,7 @@ class ChatSender {
           el: stream.channelId,
           t: 'event'
         });
-        return result;
+        return message;
       }).catch((err: any) => {
         let isSendUrlError = sendUrlErrors.some(re => re.test(err.message));
         if (!isSendUrlError) {
@@ -169,7 +279,7 @@ class ChatSender {
             debug('Content-type is empty, set default content-type %s', url);
             contentType = 'image/jpeg';
           }
-          return this.main.bot.sendPhoto(this.chat.id, got.stream(url), {caption}, {contentType}).then((result) => {
+          return this.main.bot.sendPhoto(this.chat.id, got.stream(url), {caption}, {contentType}).then((message: TMessage) => {
             this.main.sender.log.write(`[send photo as file] ${this.chat.id} ${stream.channelId} ${stream.id}`);
             this.main.tracker.track(this.chat.id, {
               ec: 'bot',
@@ -177,14 +287,14 @@ class ChatSender {
               el: stream.channelId,
               t: 'event'
             });
-            return result;
+            return message;
           });
         }
 
         throw err;
       });
-    }).then((response) => {
-      const fileId = getPhotoFileIdFromMessage(response);
+    }).then((message: TMessage) => {
+      const fileId = getPhotoFileIdFromMessage(message);
       if (!fileId) {
         throw new ErrorWithCode('File id if not found', 'FILE_ID_IS_NOT_FOUND');
       }
@@ -212,9 +322,9 @@ const sendUrlErrors = [
   /wrong file identifier\/HTTP URL specified/
 ];
 
-function getPhotoFileIdFromMessage(response: {photo: {file_id: string, file_size: number}[]}): string|null {
+function getPhotoFileIdFromMessage(message: TMessage): string|null {
   let fileId = null;
-  response.photo.slice(0).sort((a, b) => {
+  message.photo.slice(0).sort((a, b) => {
     return a.file_size > b.file_size ? -1 : 1;
   }).some(item => fileId = item.file_id);
   return fileId;
@@ -237,36 +347,6 @@ async function getValidPreviewUrl(urls: string[]): Promise<{
   }
   debug('getValidPreviewUrl error %o', lastError);
   throw new ErrorWithCode(`Previews is invalid`, 'INVALID_PREVIEWS');
-}
-
-function getDescription(stream: IStream) {
-  const lines = [];
-
-  const firstLine = [
-    htmlSanitize(stream.title), '—', htmlSanitize(stream.channel.title)
-  ];
-
-  const secondLine = [stream.url];
-
-  lines.push(firstLine.join(' '));
-  lines.push(secondLine.join(' '));
-
-  return lines.join('\n');
-}
-
-function getCaption(stream: IStream) {
-  const lines = [];
-
-  const firstLine = [
-    stream.title, '—', stream.channel.title
-  ];
-
-  const secondLine = [stream.url];
-
-  lines.push(firstLine.join(' '));
-  lines.push(secondLine.join(' '));
-
-  return lines.join('\n');
 }
 
 function isBlockedError(err: any) {
