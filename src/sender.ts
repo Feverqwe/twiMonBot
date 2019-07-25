@@ -3,6 +3,7 @@ import LogFile from "./logFile";
 import {everyMinutes} from "./tools/everyTime";
 import getProvider from "./tools/getProvider";
 import ChatSender from "./chatSender";
+import arrayUniq from "./tools/arrayUniq";
 
 const debug = require('debug')('app:Sender');
 const throttle = require('lodash.throttle');
@@ -30,7 +31,11 @@ class Sender {
   }
 
   check = () => {
-    return this.main.db.getDistinctChatIdStreamIdChatIds().then((chatIds) => {
+    return Promise.all([
+      this.main.db.getDistinctChatIdStreamIdChatIds(),
+      this.main.db.getDistinctChangedMessagesChatIds(),
+    ]).then((results) => {
+      const chatIds = arrayUniq([].concat(...results));
       const newChatIds = chatIds.filter(chatId => !this.chatIdChatSender.has(chatId));
       return this.main.db.setChatSendTimeoutExpiresAt(newChatIds).then(() => {
         return this.main.db.getChatsByIds(newChatIds).then((chats) => {

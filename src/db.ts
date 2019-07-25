@@ -82,8 +82,7 @@ export interface Message {
   streamId: string,
   type: string,
   text: string,
-  hasChanges: boolean,
-  syncTimeoutExpiresAt?: Date,
+  hasChanges?: boolean,
   createdAt?: Date,
 }
 export interface IMessage extends Message, Sequelize.Model {}
@@ -242,22 +241,14 @@ class Db {
       type: {type: Sequelize.STRING(191), allowNull: false},
       text: {type: Sequelize.TEXT, allowNull: false},
       hasChanges: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
-      syncTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
     }, {
       sequelize: this.sequelize,
       modelName: 'message',
       tableName: 'messages',
       timestamps: true,
-      updatedAt: false,
-      indexes: [/*{
+      indexes: [{
         name: 'hasChanges_idx',
         fields: ['hasChanges']
-      }, {
-        name: 'syncTimeoutExpiresAt_idx',
-        fields: ['syncTimeoutExpiresAt']
-      }, */{
-        name: 'hasChanges_syncTimeoutExpiresAt_idx',
-        fields: ['hasChanges', 'syncTimeoutExpiresAt']
       }]
     });
     MessageModel.belongsTo(ChatModel, {foreignKey: 'chatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
@@ -619,6 +610,16 @@ class Db {
 
   putMessage(message: Message) {
     return MessageModel.create(message);
+  }
+
+  getDistinctChangedMessagesChatIds(): Promise<string[]> {
+    return this.sequelize.query(`
+      SELECT DISTINCT chatId FROM messages
+      INNER JOIN chats ON chatIdStreamId.chatId = chats.id
+      WHERE messages.hasChanges = 1 AND chats.sendTimeoutExpiresAt < "${new Date().toISOString()}"
+    `,  { type: Sequelize.QueryTypes.SELECT}).then((results: {chatId: string}[]) => {
+      return results.map(result => result.chatId);
+    });
   }
 }
 

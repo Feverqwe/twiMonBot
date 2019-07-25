@@ -166,7 +166,6 @@ class ChatSender {
             streamId: stream.id,
             type: sendMessage.type,
             text: sendMessage.text,
-            hasChanges: false,
           }),
         ]);
       }, (err: any) => {
