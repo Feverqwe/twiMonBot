@@ -28,7 +28,7 @@ export function getCaption(stream: IStreamWithChannel) {
 
   return joinString(...[
     joinString(joinString(getIcon(stream), stream.title, ' '), game, ' — '),
-    joinString(stream.url, '')
+    stream.url
   ], '\n');
 }
 
@@ -42,8 +42,8 @@ export function getString(stream: IStreamWithChannel) {
 
   return joinString(...[
     joinString(htmlSanitize('b', stream.channel.title), icon, stream.viewers && stream.viewers.toString(), ' '),
-    joinString(htmlSanitize(stream.title), htmlSanitize(game), ' — '),
-    joinString(stream.url, '')
+    htmlSanitize(joinString(stream.title, game, ' — ')),
+    htmlSanitize(stream.url)
   ], '\n');
 }
 
