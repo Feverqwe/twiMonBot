@@ -328,7 +328,7 @@ class Db {
     });
   }
 
-  getChatsByIds(ids: string[]) {
+  getChatsByIds(ids: string[]): Promise<IChat[]> {
     return ChatModel.findAll({
       where: {id: ids},
     });
@@ -565,6 +565,40 @@ class Db {
     });
   }
 
+  getDistinctChatIdStreamIdChatIds(): Promise<string[]> {
+    return this.sequelize.query(`
+      SELECT DISTINCT chatId FROM chatIdStreamId
+      INNER JOIN chats ON chatIdStreamId.chatId = chats.id
+      WHERE chats.sendTimeoutExpiresAt < "${new Date().toISOString()}"
+    `,  { type: Sequelize.QueryTypes.SELECT}).then((results: {chatId: string}[]) => {
+      return results.map(result => result.chatId);
+    });
+  }
+
+  getStreamIdsByChatId(chatId: string, limit = 10): Promise<string[]> {
+    return ChatIdStreamIdModel.findAll({
+      where: {chatId},
+      attributes: ['streamId'],
+      limit: limit,
+    }).then((results: {streamId: string}[]) => {
+      return results.map(chatIdStreamId => chatIdStreamId.streamId);
+    });
+  }
+
+  getStreamWithChannelById(id: string): Promise<IStream & {channel: IChannel}> {
+    return StreamModel.findOne({
+      where: {id},
+      include: [
+        {model: ChannelModel, required: true}
+      ]
+    }).then((stream: any) => {
+      if (!stream) {
+        throw new ErrorWithCode('Stream is not found', 'STREAM_IS_NOT_FOUND');
+      }
+      return stream;
+    });
+  }
+
   getStreamById(id: string) {
     return StreamModel.findOne({
       where: {id}
@@ -573,6 +607,12 @@ class Db {
         throw new ErrorWithCode('Stream is not found', 'STREAM_IS_NOT_FOUND');
       }
       return stream;
+    });
+  }
+
+  deleteChatIdStreamId(chatId: string, streamId: string) {
+    return ChatIdStreamIdModel.destroy({
+      where: {chatId, streamId}
     });
   }
 }

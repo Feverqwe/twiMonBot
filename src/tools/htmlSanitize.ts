@@ -1,12 +1,12 @@
-const sanitize = function (text) {
+const sanitize = function (text: string) {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 };
 
-const sanitizeAttr = function (text) {
+const sanitizeAttr = function (text: string) {
   return sanitize(text).replace(/"/g, '&quot;');
 };
 
-const htmlSanitize = function (type, text, url) {
+const htmlSanitize = function (type?: string, text?: string, url?: string) {
   if (!text) {
     text = type;
     type = '';

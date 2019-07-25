@@ -1,9 +1,9 @@
 import promiseFinally from "./promiseFinally";
 import promiseTry from "./promiseTry";
 
-const getProvider = (requestDataById, keepAlive = 0) => {
+const getProvider = <I, T, R>(requestDataById: (id: I) => Promise<T>, keepAlive = 0): (id: I, callback: (result: T) => R) => Promise<R> => {
   const idCacheMap = new Map();
-  const inflightCache = {};
+  const inflightCache: {[s: string]: Promise<T>} = {};
 
   return (id, callback) => {
     const key = `key-${id}`;

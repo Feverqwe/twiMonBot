@@ -265,8 +265,7 @@ class Checker {
             }
           });
 
-          // todo: fix me
-          // this.main.sender.checkThrottled();
+          this.main.sender.checkThrottled();
 
           return {
             streams: streams.length,

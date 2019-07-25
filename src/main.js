@@ -33,9 +33,10 @@ const config = {
   emitCheckChannelsEveryMinutes: 5,
   checkChannelIfLastSyncLessThenMinutes: 5,
   channelSyncTimeoutMinutes: 5,
-  emitCheckProxyEveryHours: 3,
   removeStreamIfOfflineMoreThanMinutes: 15,
+  emitSendMessagesEveryMinutes: 5,
   chatSendTimeoutMinutes: 5,
+  emitCheckProxyEveryHours: 3,
   db: {
     host: 'localhost',
     port: 3306,
