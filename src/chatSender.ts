@@ -1,5 +1,5 @@
 import Main from "./main";
-import {IChat, IStreamWithChannel} from "./db";
+import {IChat, IMessage, IStreamWithChannel} from "./db";
 import promiseTry from "./tools/promiseTry";
 import ErrorWithCode from "./tools/errorWithCode";
 import promiseFinally from "./tools/promiseFinally";
@@ -130,18 +130,51 @@ class ChatSender {
   main: Main;
   chat: IChat;
   private streamIds: string[]|null;
+  private messages: IMessage[]|null;
+  private modeQueue: string[];
   constructor(main: Main, chat: IChat) {
     this.main = main;
     this.chat = chat;
 
+    this.modeQueue = ['send', 'update'];
+
     this.streamIds = null;
+    this.messages = null;
   }
 
   getStreamIds() {
     return this.main.db.getStreamIdsByChatId(this.chat.id, 10);
   }
 
+  getMessages() {
+    return this.main.db.getMessagesByChatId(this.chat.id, 10);
+  }
+
   async next() {
+    const mode = this.modeQueue[0];
+    return promiseTry(() => {
+      switch (mode) {
+        case 'send': {
+          return this.send();
+        }
+        case 'update': {
+          return this.update();
+        }
+        default: {
+          throw new Error('Unknown mode');
+        }
+      }
+    }).then((isDone: boolean|any) => {
+      if (isDone) {
+        this.modeQueue.shift();
+      }
+      if (!this.modeQueue) {
+        return true;
+      }
+    });
+  }
+
+  async send() {
     if (!this.streamIds || !this.streamIds.length) {
       this.streamIds = await this.getStreamIds();
     }
@@ -168,27 +201,45 @@ class ChatSender {
             text: sendMessage.text,
           }),
         ]);
-      }, (err: any) => {
-        if (err.code === 'ETELEGRAM') {
-          const body = err.response.body;
-
-          const isBlocked = isBlockedError(err);
-          if (isBlocked) {
-            return this.main.db.deleteChatById(this.chat.id).then(() => {
-              this.main.chat.log.write(`[deleted] ${this.chat.id}, cause: (${body.error_code}) ${JSON.stringify(body.description)}`);
-              throw new ErrorWithCode(`Chat ${this.chat.id} is deleted`, 'CHAT_IS_DELETED');
-            });
-          } else
-          if (body.parameters && body.parameters.migrate_to_chat_id) {
-            const newChatId = body.parameters.migrate_to_chat_id;
-            return this.main.db.changeChatId(this.chat.id, newChatId).then(() => {
-              this.main.chat.log.write(`[migrate] ${this.chat.id} > ${newChatId}`);
-              throw new ErrorWithCode(`Chat ${this.chat.id} is migrated to ${newChatId}`, 'CHAT_IS_MIGRATED');
-            });
-          }
-        }
-
+      }, this.onSendMessageError);
+    }).catch((err) => {
+      if (err.code === 'STREAM_IS_NOT_FOUND') {
+        // pass
+      } else {
         throw err;
+      }
+    }).then(() => {});
+  }
+
+  async update() {
+    if (!this.messages || !this.messages.length) {
+      this.messages = await this.getMessages();
+    }
+
+    if (!this.messages.length) {
+      return true;
+    }
+
+    const message = this.messages.shift();
+
+    return this.main.sender.provideStream(message.streamId, (stream) => {
+      const text = getMessageText(message.type, stream);
+      if (message.text === text) return;
+      return this.updateMessage(message.type, message.chatId, message.id, text).catch((err: any) => {
+        if (err.code === 'ETELEGRAM' && /message is not modified/.test(err.response.body.description)) {
+          return; // pass
+        }
+        throw err;
+      }).then(() => {
+        return message.update({
+          text,
+          hasChanges: false
+        });
+      }, (err: any) => {
+        if (err.code === 'ETELEGRAM' && /message to edit not found/.test(err.response.body.description)) {
+          return this.main.db.deleteMessageById(message.id);
+        }
+        this.onSendMessageError(err);
       });
     }).catch((err) => {
       if (err.code === 'STREAM_IS_NOT_FOUND') {
@@ -198,6 +249,28 @@ class ChatSender {
       }
     }).then(() => {});
   }
+
+  onSendMessageError = (err: any) => {
+    if (err.code === 'ETELEGRAM') {
+      const body = err.response.body;
+
+      const isBlocked = isBlockedError(err);
+      if (isBlocked) {
+        return this.main.db.deleteChatById(this.chat.id).then(() => {
+          this.main.chat.log.write(`[deleted] ${this.chat.id}, cause: (${body.error_code}) ${JSON.stringify(body.description)}`);
+          throw new ErrorWithCode(`Chat ${this.chat.id} is deleted`, 'CHAT_IS_DELETED');
+        });
+      } else
+      if (body.parameters && body.parameters.migrate_to_chat_id) {
+        const newChatId = body.parameters.migrate_to_chat_id;
+        return this.main.db.changeChatId(this.chat.id, newChatId).then(() => {
+          this.main.chat.log.write(`[migrate] ${this.chat.id} > ${newChatId}`);
+          throw new ErrorWithCode(`Chat ${this.chat.id} is migrated to ${newChatId}`, 'CHAT_IS_MIGRATED');
+        });
+      }
+    }
+    throw err;
+  };
 
   sendStreamAsText(stream: IStreamWithChannel, isFallback?: boolean): Promise<SentMessage> {
     const text = getDescription(stream);
@@ -339,6 +412,32 @@ class ChatSender {
       });
     });
   }
+
+  updateMessage(type: string, chatId: string, messageId: string, text: string) {
+    switch (type) {
+      case 'text': {
+        return this.updateMessageText(chatId, messageId, text);
+      }
+      case 'photo': {
+        return this.updateMessageCaption(chatId, messageId, text);
+      }
+    }
+  }
+
+  updateMessageText(chatId: string, messageId: string, text: string) {
+    return this.main.bot.editMessageText(text, {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'HTML'
+    });
+  }
+
+  updateMessageCaption(chatId: string, messageId: string, caption: string) {
+    return this.main.bot.editMessageCaption(caption, {
+      chat_id: chatId,
+      message_id: messageId
+    });
+  }
 }
 
 const blockedErrors = [
@@ -398,6 +497,17 @@ function isBlockedError(err: any) {
     return isBlocked;
   }
   return false;
+}
+
+function getMessageText(type: string, stream: IStreamWithChannel) {
+  switch (type) {
+    case 'text': {
+      return getDescription(stream);
+    }
+    case 'photo': {
+      return getCaption(stream);
+    }
+  }
 }
 
 export default ChatSender;

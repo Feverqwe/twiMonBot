@@ -616,9 +616,26 @@ class Db {
     return this.sequelize.query(`
       SELECT DISTINCT chatId FROM messages
       INNER JOIN chats ON chatIdStreamId.chatId = chats.id
-      WHERE messages.hasChanges = 1 AND chats.sendTimeoutExpiresAt < "${new Date().toISOString()}"
-    `,  { type: Sequelize.QueryTypes.SELECT}).then((results: {chatId: string}[]) => {
+      WHERE messages.hasChanges = 1 AND messages.streamId IS NOT NULL AND chats.sendTimeoutExpiresAt < "${new Date().toISOString()}"
+    `, { type: Sequelize.QueryTypes.SELECT}).then((results: {chatId: string}[]) => {
       return results.map(result => result.chatId);
+    });
+  }
+
+  getMessagesByChatId(chatId: string, limit = 10): Promise<IMessage[]> {
+    return MessageModel.findAll({
+      where: {
+        chatId,
+        hasChanges: true,
+        streamId: {[Op.not]: null}
+      },
+      limit: limit,
+    });
+  }
+
+  deleteMessageById(id: string) {
+    return MessageModel.destroy({
+      where: {id}
     });
   }
 }
