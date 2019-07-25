@@ -36,10 +36,6 @@ export interface ServiceInterface {
   findChannel(query: string): Promise<{id: string|number, title: string, url: string}>,
 }
 
-interface StreamWithChannelTitle extends Stream {
-  channelTitle: string
-}
-
 class Checker {
   main: Main;
   log: LogFile;
@@ -108,7 +104,7 @@ class Checker {
           });
         });
 
-        streams.forEach((stream: StreamWithChannelTitle) => {
+        streams.forEach((stream: Stream & {channelTitle: string}) => {
           const channel = channelIdChannel.get(stream.channelId);
           const channelChanges = channelIdsChanges[channel.id];
 
