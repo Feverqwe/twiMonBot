@@ -30,14 +30,18 @@ export interface Channel {
   title: string,
   url: string,
   lastSyncAt: Date,
-  syncTimeoutExpiresAt: Date
+  syncTimeoutExpiresAt: Date,
+  createdAt?: Date,
+  updatedAt?: Date,
 }
 export interface IChannel extends Channel, Sequelize.Model {}
 class ChannelModel extends Sequelize.Model {}
 
 export interface ChatIdStreamId {
+  id?: null,
   chatId: string,
   streamId: string,
+  createdAt?: Date,
 }
 export interface IChatIdStreamId extends ChatIdStreamId, Sequelize.Model {}
 class ChatIdStreamIdModel extends Sequelize.Model {}
@@ -56,6 +60,8 @@ export interface Stream {
   isOffline: boolean,
   timeoutFrom: Date|null,
   isTimeout: boolean,
+  createdAt?: Date,
+  updatedAt?: Date,
 }
 export interface IStream extends Stream, Sequelize.Model {}
 class StreamModel extends Sequelize.Model {}
@@ -63,11 +69,22 @@ class StreamModel extends Sequelize.Model {}
 export interface ChatIdChannelId {
   chatId: string,
   channelId: string,
-  createdAt: Date,
+  createdAt?: Date,
 }
 export interface IChatIdChannelId extends ChatIdChannelId, Sequelize.Model {}
 class ChatIdChannelIdModel extends Sequelize.Model {}
 
+export interface Message {
+  id: string,
+  chatId: string,
+  streamId: string,
+  type: string,
+  text: string,
+  hasChanges: boolean,
+  syncTimeoutExpiresAt: Date,
+  createdAt?: Date,
+}
+export interface IMessage extends Message, Sequelize.Model {}
 class MessageModel extends Sequelize.Model {}
 
 class Db {
