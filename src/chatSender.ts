@@ -121,7 +121,7 @@ class ChatSender {
         videoWeakMap.delete(stream);
       }));
       videoWeakMap.set(stream, promise);
-      promise = promise.catch((err) => {
+      promise = promise.catch((err: any) => {
         if (err.code === 'ETELEGRAM' && /not enough rights to send photos/.test(err.response.body.description)) {
           throw err;
         }
@@ -133,7 +133,7 @@ class ChatSender {
     } else {
       promise = promise.then(() => {
         return this.sendStreamAsPhoto(stream);
-      }, (err) => {
+      }, (err: any) => {
         if (['INVALID_PREVIEWS', 'FILE_ID_IS_NOT_FOUND'].includes(err.code)) {
           return this.sendStreamAsText(stream, true);
         } else {
