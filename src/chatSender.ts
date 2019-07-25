@@ -239,7 +239,7 @@ class ChatSender {
         if (err.code === 'ETELEGRAM' && /message to edit not found/.test(err.response.body.description)) {
           return this.main.db.deleteMessageById(message.id);
         }
-        this.onSendMessageError(err);
+        return this.onSendMessageError(err);
       });
     }).catch((err) => {
       if (err.code === 'STREAM_IS_NOT_FOUND') {
