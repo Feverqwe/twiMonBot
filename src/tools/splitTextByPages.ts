@@ -1,7 +1,7 @@
-const splitTextByPages = (text) => {
+const splitTextByPages = (text: string) => {
   const maxLen = 4096;
 
-  const textByLines = (text) => {
+  const textByLines = (text: string) => {
     const lines = [];
     let line = '';
     for (let i = 0, char = '', len = text.length; i < len; i++) {
@@ -18,7 +18,7 @@ const splitTextByPages = (text) => {
     return lines;
   };
 
-  const linesByPage = (lines) => {
+  const linesByPage = (lines: string[]) => {
     const pages = [];
     let page = '';
     lines.forEach((line) => {
