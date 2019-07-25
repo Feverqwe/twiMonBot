@@ -59,7 +59,7 @@ function getIcon(stream: IStream, withOnline?: boolean) {
     icon = icons.record;
   } else
   if (withOnline) {
-    icon = icons.offline;
+    icon = icons.online;
   }
   return icon;
 }
