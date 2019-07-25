@@ -1,5 +1,5 @@
 function arrayUniq<T>(arr: T[]): T[] {
- return arr.filter((id, index, arr) => arr.indexOf(id) === index);
+ return [...new Set(arr)];
 }
 
 export default arrayUniq;
