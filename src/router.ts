@@ -1,6 +1,5 @@
 import ErrorWithCode from "./tools/errorWithCode";
 import Main from "./main";
-import {IChat} from "./db";
 
 const debug = require('debug')('app:router');
 const qs = require('querystring');

@@ -9,7 +9,7 @@ import ensureMap from "./tools/ensureMap";
 import arrayByPart from "./tools/arrayByPart";
 import promiseTry from "./tools/promiseTry";
 import Main from "./main";
-import {Channel, IChannel, IChat, IChatWithChannel} from "./db";
+import {Channel, IChannel, IChatWithChannel} from "./db";
 
 const debug = require('debug')('app:Chat');
 const jsonStringifyPretty = require("json-stringify-pretty-compact");
