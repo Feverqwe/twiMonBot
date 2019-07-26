@@ -111,7 +111,7 @@ class Chat {
   }
 
   menu() {
-    const sendMenu = (chatId: string, page: number) => {
+    const sendMenu = (chatId: number, page: number) => {
       const help = this.main.locale.getMessage('help');
       return this.main.bot.sendMessage(chatId, help, {
         disable_web_page_preview: true,

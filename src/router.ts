@@ -266,7 +266,7 @@ export class RouterReq {
     this._cache = {};
   }
 
-  get fromId() {
+  get fromId(): number {
     return this._useCache('fromId', () => {
       let from = null;
       if (this.message) {
@@ -279,14 +279,14 @@ export class RouterReq {
     });
   }
 
-  get chatId() {
+  get chatId(): number {
     return this._useCache('chatId', () => {
       const message = this._findMessage();
       return message && message.chat.id;
     });
   }
 
-  get messageId() {
+  get messageId(): number {
     return this._useCache('messageId', () => {
       const message = this._findMessage();
       return message && message.message_id;
@@ -334,7 +334,7 @@ export class RouterReq {
     });
   }
 
-  private _findMessage() {
+  private _findMessage(): TMessage {
     let message = null;
     if (this.message) {
       message = this.message;
