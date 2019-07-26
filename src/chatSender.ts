@@ -416,7 +416,7 @@ class ChatSender {
   ensureTelegramPreviewFileId(stream: IStreamWithChannel): Promise<SentMessage> {
     const service = this.main.getServiceById(stream.id);
     const previews = !Array.isArray(stream.previews) ? JSON.parse(stream.previews) : stream.previews;
-    return getValidPreviewUrl(previews, service).then(({url, contentType}) => {
+    return getValidPreviewUrl(previews, service).then(({url, contentType, agent}) => {
       const caption = getCaption(stream);
       return this.main.bot.sendPhoto(this.chat.id, url, {caption}).then((message: TMessage) => {
         this.main.sender.log.write(`[send photo as url] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`);
@@ -438,7 +438,7 @@ class ChatSender {
             debug('Content-type is empty, set default content-type %s', url);
             contentType = 'image/jpeg';
           }
-          return this.main.bot.sendPhoto(this.chat.id, got.stream(url), {caption}, {contentType}).then((message: TMessage) => {
+          return this.main.bot.sendPhoto(this.chat.id, got.stream(url, {agent}), {caption}, {contentType}).then((message: TMessage) => {
             this.main.sender.log.write(`[send photo as file] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`);
             this.main.tracker.track(this.chat.id, {
               ec: 'bot',
@@ -539,7 +539,7 @@ function getPhotoFileIdFromMessage(message: TMessage): string|null {
   return fileId;
 }
 
-async function getValidPreviewUrl(urls: string[], service: ServiceInterface): Promise<{ url: string; contentType: string }> {
+async function getValidPreviewUrl(urls: string[], service: ServiceInterface): Promise<{ url: string; contentType: string, agent: object }> {
   let lastError = null;
   for (let i = 0, len = urls.length; i < len; i++) {
     try {
@@ -550,7 +550,8 @@ async function getValidPreviewUrl(urls: string[], service: ServiceInterface): Pr
       return await gotFn(urls[i], {method: 'HEAD', timeout: 5 * 1000}).then((response: any) => {
         const url = response.url;
         const contentType = response.headers['content-type'];
-        return {url, contentType};
+        const agent = response.request.gotOptions.agent;
+        return {url, contentType, agent};
       });
     } catch (err) {
       lastError = err;
