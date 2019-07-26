@@ -62,11 +62,13 @@ class Goodgame implements ServiceInterface {
   id: string;
   name: string;
   batchSize: number;
+  withProxy: boolean;
   constructor(main: Main) {
     this.main = main;
     this.id = 'goodgame';
     this.name = 'Goodgame';
     this.batchSize = 25;
+    this.withProxy = true;
   }
 
   match(url: string) {
@@ -212,8 +214,8 @@ class Goodgame implements ServiceInterface {
   }
 
   gotWithProxy(url: string, options: object) {
-    return got(url, options).catch((err: ErrorWithCode) => {
-      if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT') {
+    return got(url, options).catch((err: any) => {
+      if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.name === 'TimeoutError') {
         if (this.main.proxy.hasOnline()) {
           return this.main.proxy.got(url, options);
         }

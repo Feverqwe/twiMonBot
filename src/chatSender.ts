@@ -4,6 +4,7 @@ import promiseTry from "./tools/promiseTry";
 import ErrorWithCode from "./tools/errorWithCode";
 import promiseFinally from "./tools/promiseFinally";
 import {getCaption, getDescription} from "./tools/streamToString";
+import {ServiceInterface} from "./checker";
 
 const debug = require('debug')('app:ChatSender');
 const got = require('got');
@@ -413,8 +414,9 @@ class ChatSender {
   }
 
   ensureTelegramPreviewFileId(stream: IStreamWithChannel): Promise<SentMessage> {
+    const service = this.main.getServiceById(stream.id);
     const previews = !Array.isArray(stream.previews) ? JSON.parse(stream.previews) : stream.previews;
-    return getValidPreviewUrl(previews).then(({url, contentType}) => {
+    return getValidPreviewUrl(previews, service).then(({url, contentType}) => {
       const caption = getCaption(stream);
       return this.main.bot.sendPhoto(this.chat.id, url, {caption}).then((message: TMessage) => {
         this.main.sender.log.write(`[send photo as url] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`);
@@ -537,13 +539,15 @@ function getPhotoFileIdFromMessage(message: TMessage): string|null {
   return fileId;
 }
 
-async function getValidPreviewUrl(urls: string[]): Promise<{
-  url: string, contentType: string
-}> {
+async function getValidPreviewUrl(urls: string[], service: ServiceInterface): Promise<{ url: string; contentType: string }> {
   let lastError = null;
   for (let i = 0, len = urls.length; i < len; i++) {
     try {
-      return await got.head(urls[i], {timeout: 5 * 1000}).then((response: any) => {
+      let gotFn = got;
+      if (service.withProxy) {
+        gotFn = service.gotWithProxy;
+      }
+      return await gotFn(urls[i], {method: 'HEAD', timeout: 5 * 1000}).then((response: any) => {
         const url = response.url;
         const contentType = response.headers['content-type'];
         return {url, contentType};

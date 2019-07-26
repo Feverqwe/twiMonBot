@@ -128,6 +128,14 @@ class Main extends Events {
 
     return bot;
   }
+
+  getServiceById(id) {
+    const result = this.services.find(service => service.id === id);
+    if (!result) {
+      throw new Error(`Service ${id} id not found`);
+    }
+    return result;
+  }
 }
 
 const main = new Main();
