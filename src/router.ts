@@ -22,8 +22,8 @@ interface RouterMethod {
 interface RouterRouteDetails {
   event?: string,
   type?: string,
-  fromId?: string|number,
-  chatId?: string|number,
+  fromId?: number,
+  chatId?: number,
 }
 
 interface WaitResponseDetails extends RouterRouteDetails {
@@ -194,8 +194,8 @@ class RouterRoute {
   dispatch: RouterMethodCallback;
   event: string;
   type: string;
-  fromId: string|number;
-  chatId: string|number;
+  fromId: number;
+  chatId: number;
   constructor(details: RouterRouteDetails, re: RegExp, callback: RouterMethodCallback) {
     this.re = re;
     this.event = details.event;
@@ -296,7 +296,7 @@ export class RouterReq {
 
   get query() {
     return this._useCache('query', () => {
-      let query = {};
+      let query: {[s: string]: any} = {};
       if (!this.callback_query) return Object.freeze(query);
 
       const text = this.callback_query.data;
@@ -346,7 +346,7 @@ export class RouterReq {
     return message;
   }
 
-  private _useCache(key: string, fn: () => any) {
+  private _useCache<T>(key: string, fn: () => T):T {
     let cache = this._cache[key];
     if (!cache) {
       cache = this._cache[key] = {};

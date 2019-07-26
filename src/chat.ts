@@ -218,7 +218,7 @@ class Chat {
 
   user() {
     const provideChat = (req: RouterReq & {chat: IChatWithChannel}, res: RouterRes, next: () => void) => {
-      return this.main.db.ensureChat(req.chatId).then((chat) => {
+      return this.main.db.ensureChat('' + req.chatId).then((chat) => {
         req.chat = chat;
         next();
       }, (err: any) => {
@@ -228,7 +228,7 @@ class Chat {
     };
 
     const provideChannels = (req: RouterReq & {channels: IChannel[]}, res: RouterRes, next: () => void) => {
-      return this.main.db.getChannelsByChatId(req.chatId).then((channels) => {
+      return this.main.db.getChannelsByChatId('' + req.chatId).then((channels) => {
         req.channels = channels;
         next();
       }, (err: any) => {
@@ -532,7 +532,7 @@ class Chat {
                   throw new ErrorWithCode('This chat type is not supported', 'INCORRECT_CHAT_TYPE');
                 }
                 const channelId = '@' + chat.username;
-                return this.main.db.createChatChannel(req.chatId, channelId).then(() => channelId);
+                return this.main.db.createChatChannel('' + req.chatId, channelId).then(() => channelId);
               });
             });
           });
