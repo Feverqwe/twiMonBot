@@ -261,10 +261,9 @@ class Chat {
       const query = req.params.query;
       let requestedData: string = null;
 
-      // @ts-ignore
       return promiseTry(() => {
         if (query) {
-          return {query: query.trim()};
+          return {query: query.trim(), messageId: undefined};
         }
 
         const messageText = this.main.locale.getMessage('enterChannelName');
@@ -493,10 +492,9 @@ class Chat {
       const channelId = req.params.channelId;
       let requestedData: string = null;
 
-      // @ts-ignore
       return promiseTry(() => {
         if (channelId) {
-          return {channelId: channelId.trim()};
+          return {channelId: channelId.trim(), messageId: undefined};
         }
 
         const messageText = this.main.locale.getMessage('telegramChannelEnter');
