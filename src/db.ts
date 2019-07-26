@@ -311,7 +311,7 @@ class Db {
     });
   }
 
-  getChatById(id: string) {
+  getChatById(id: string): Promise<IChat> {
     return ChatModel.findByPk(id).then((chat: IChat|null) => {
       if (!chat) {
         throw new ErrorWithCode('Chat is not found', 'CHAT_IS_NOT_FOUND');
@@ -366,7 +366,9 @@ class Db {
     });
   }
 
-  getChatIdChannelIdChatIdCount() {
+  getChatIdChannelIdChatIdCount(): Promise<{
+    chatCount: number, service: string
+  }[]> {
     return this.sequelize.query(`
       SELECT COUNT(DISTINCT(chatId)) as chatCount, channels.service as service FROM chatIdChannelId
       INNER JOIN channels ON channelId = channels.id
@@ -374,7 +376,9 @@ class Db {
     `, {type: Sequelize.QueryTypes.SELECT});
   }
 
-  getChatIdChannelIdChannelIdCount() {
+  getChatIdChannelIdChannelIdCount(): Promise<{
+    channelCount: number, service: string
+  }[]> {
     return this.sequelize.query(`
       SELECT COUNT(DISTINCT(channelId)) as channelCount, channels.service as service FROM chatIdChannelId
       INNER JOIN channels ON channelId = channels.id
@@ -382,7 +386,9 @@ class Db {
     `, {type: Sequelize.QueryTypes.SELECT});
   }
 
-  getChatIdChannelIdTop10() {
+  getChatIdChannelIdTop10(): Promise<{
+    channelId: string, chatCount: number, service: string, title: string
+  }[]> {
     return this.sequelize.query(`
       SELECT channelId, COUNT(chatId) as chatCount, channels.service as service, channels.title as title FROM chatIdChannelId
       INNER JOIN channels ON channelId = channels.id
@@ -390,7 +396,7 @@ class Db {
     `, {type: Sequelize.QueryTypes.SELECT});
   }
 
-  getChannelsByChatId(chatId: string) {
+  getChannelsByChatId(chatId: string): Promise<IChannel[]> {
     return ChatIdChannelIdModel.findAll({
       include: [
         {model: ChannelModel, required: true}
@@ -418,7 +424,7 @@ class Db {
     });
   }
 
-  getChannelCountByChatId(chatId: string) {
+  getChannelCountByChatId(chatId: string): Promise<number> {
     return ChatIdChannelIdModel.count({
       where: {chatId}
     });
@@ -591,7 +597,7 @@ class Db {
     });
   }
 
-  getStreamById(id: string) {
+  getStreamById(id: string): Promise<IStream> {
     return StreamModel.findOne({
       where: {id}
     }).then((stream: IStream) => {

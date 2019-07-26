@@ -5,121 +5,12 @@ import ErrorWithCode from "./tools/errorWithCode";
 import promiseFinally from "./tools/promiseFinally";
 import {getCaption, getDescription} from "./tools/streamToString";
 import {ServiceInterface} from "./checker";
+import {TMessage} from "./router";
 
 const debug = require('debug')('app:ChatSender');
 const got = require('got');
 
 const videoWeakMap = new WeakMap();
-
-interface TUser {
-  id: number,
-  is_bot: boolean,
-  first_name: string,
-  last_name?: string,
-  username?: string,
-  language_code?: string
-}
-
-interface TChat {
-  id: number,
-  type: string,
-  title?: string,
-  username?: string,
-  first_name?: string,
-  last_name?: string,
-  all_members_are_administrators?: true,
-  photo?: TChatPhoto,
-  description?: string,
-  invite_link?: string,
-  pinned_message?: TMessage,
-  sticker_set_name?: string,
-  can_set_sticker_set?: boolean
-}
-
-interface TMessage {
-  message_id: number,
-  from?: TUser // empty for messages sent to channels
-  date: number,
-  chat: TChat,
-  forward_from?: TUser,
-  forward_from_chat?: TChat,
-  forward_from_message_id?: number,
-  forward_signature?: string,
-  forward_sender_name?: string,
-  forward_date?: number,
-  reply_to_message?: TMessage,
-  edit_date?: number,
-  media_group_id?: string,
-  author_signature?: string,
-  text?: string,
-  entities?: TMessageEntity[],
-  caption_entities?: TMessageEntity[],
-  audio?: any,
-  document?: any,
-  animation?: any,
-  game?: any,
-  photo?: TPhotoSize[],
-  sticker?: any,
-  video?: any,
-  voice?: any,
-  video_note?: any,
-  caption?: string,
-  contact?: any,
-  location?: any,
-  venue?: any,
-  poll?: any,
-  new_chat_members?: TUser[],
-  left_chat_member?: TUser,
-  new_chat_title?: string,
-  new_chat_photo?: TPhotoSize[],
-  delete_chat_photo?: true,
-  group_chat_created?: true,
-  supergroup_chat_created?: true,
-  channel_chat_created?: true,
-  migrate_to_chat_id?: number,
-  migrate_from_chat_id?: number,
-  pinned_message?: TMessage,
-  invoice?: any,
-  successful_payment?: any,
-  connected_website?: string,
-  passport_data?: any,
-  reply_markup?: TInlineKeyboardMarkup,
-}
-
-interface TMessageEntity {
-  type: string,
-  offset: number,
-  length: number,
-  url?: string,
-  user?: TUser
-}
-
-interface TPhotoSize {
-  file_id: string,
-  width: number,
-  height: number,
-  file_size?: number
-}
-
-interface TInlineKeyboardMarkup {
-  inline_keyboard: TInlineKeyboardButton[][]
-}
-
-interface TInlineKeyboardButton {
-  text: string,
-  url?: string,
-  login_url?: any,
-  callback_data?: string,
-  switch_inline_query?: string,
-  switch_inline_query_current_chat?: string,
-  callback_game?: any,
-  pay?: boolean,
-}
-
-interface TChatPhoto {
-  small_file_id: string,
-  big_file_id: string
-}
 
 interface SentMessage {
   type: string,

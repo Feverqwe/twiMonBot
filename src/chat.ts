@@ -1,4 +1,4 @@
-import Router from "./router";
+import Router, {RouterReq, RouterRes, TCallbackQuery, TChat, TMessage} from "./router";
 import htmlSanitize from "./tools/htmlSanitize";
 import ErrorWithCode from "./tools/errorWithCode";
 import pageBtnList from "./tools/pageBtnList";
@@ -8,26 +8,30 @@ import LogFile from "./logFile";
 import ensureMap from "./tools/ensureMap";
 import arrayByPart from "./tools/arrayByPart";
 import promiseTry from "./tools/promiseTry";
+import Main from "./main";
+import {Channel, IChannel, IChat} from "./db";
 
 const debug = require('debug')('app:Chat');
 const jsonStringifyPretty = require("json-stringify-pretty-compact");
 const fs = require('fs');
 
 class Chat {
-  constructor(/**Main*/main) {
+  main: Main;
+  log: LogFile;
+  private router: Router;
+  constructor(/**Main*/main: Main) {
     this.main = main;
     this.log = new LogFile('chat');
 
     this.router = new Router(main);
 
-    /**@type {function(RegExp, ...function(RouterReq, RouterRes, function()))}*/
     this.router.textOrCallbackQuery = this.router.custom(['text', 'callback_query']);
 
-    this.main.bot.on('message', (message) => {
+    this.main.bot.on('message', (message: TMessage) => {
       this.router.handle('message', message);
     });
-    this.main.bot.on('callback_query', (message) => {
-      this.router.handle('callback_query', message);
+    this.main.bot.on('callback_query', (callbackQuery: TCallbackQuery) => {
+      this.router.handle('callback_query', null, callbackQuery);
     });
 
     this.base();
@@ -42,11 +46,11 @@ class Chat {
       if (targetChatId || sourceChatId) {
         return promiseTry(async () => {
           if (targetChatId) {
-            await this.main.db.changeChatId(req.chatId, targetChatId);
+            await this.main.db.changeChatId(req.chatId, '' + targetChatId);
             this.log.write(`[migrate msg] ${req.chatId} > ${targetChatId}`);
           }
           if (sourceChatId) {
-            await this.main.db.changeChatId(sourceChatId, req.chatId);
+            await this.main.db.changeChatId('' + sourceChatId, req.chatId);
             this.log.write(`[migrate msg] ${req.chatId} < ${sourceChatId}`);
           }
         }).then(next, (err) => {
@@ -92,14 +96,14 @@ class Chat {
     });
 
     this.router.text(/\/ping/, (req, res) => {
-      return this.main.bot.sendMessage(req.chatId, 'pong').catch((err) => {
+      return this.main.bot.sendMessage(req.chatId, 'pong').catch((err: any) => {
         debug('%j error %o', req.command, err);
       });
     });
   }
 
   menu() {
-    const sendMenu = (chatId, page) => {
+    const sendMenu = (chatId: string, page: number) => {
       const help = this.main.locale.getMessage('help');
       return this.main.bot.sendMessage(chatId, help, {
         disable_web_page_preview: true,
@@ -110,19 +114,19 @@ class Chat {
     };
 
     this.router.text(/\/(start|menu|help)/, (req, res) => {
-      return sendMenu(req.chatId, 0).catch((err) => {
+      return sendMenu(req.chatId, 0).catch((err: any) => {
         debug('%j error %o', req.command, err);
       });
     });
 
     this.router.callback_query(/\/menu(?:\/(?<page>\d+))?/, (req, res) => {
-      const page = parseInt(req.params.page || 0, 10);
+      const page = parseInt(req.params.page || '0', 10);
       return this.main.bot.editMessageReplyMarkup(JSON.stringify({
         inline_keyboard: getMenu(page)
       }), {
         chat_id: req.chatId,
         message_id: req.messageId
-      }).catch((err) => {
+      }).catch((err: any) => {
         if (/message to edit not found/.test(err.message)) {
           return sendMenu(req.chatId, page);
         } else
@@ -131,7 +135,7 @@ class Chat {
         } else {
           throw err;
         }
-      }).catch((err) => {
+      }).catch((err: any) => {
         debug('%j error %o', req.command, err);
       });
     });
@@ -144,13 +148,13 @@ class Chat {
       ]).then(([serviceChatCountList, serviceChannelCountList, serviceChannelChatCountList]) => {
         const lines = [];
 
-        const userCount = serviceChatCountList.reduce((sum, {chatCount}) => sum + chatCount, 0);
-        const channelCount = serviceChannelCountList.reduce((sum, {channelCount}) => sum + channelCount, 0);
+        const userCount = serviceChatCountList.reduce((sum: number, {chatCount}) => sum + chatCount, 0);
+        const channelCount = serviceChannelCountList.reduce((sum: number, {channelCount}) => sum + channelCount, 0);
 
-        lines.push(this.main.locale.getMessage('users').replace('{count}', userCount));
-        lines.push(this.main.locale.getMessage('channels').replace('{count}', channelCount));
+        lines.push(this.main.locale.getMessage('users').replace('{count}', '' + userCount));
+        lines.push(this.main.locale.getMessage('channels').replace('{count}', '' + channelCount));
 
-        const serviceIdTop10 = new Map();
+        const serviceIdTop10: Map<string, [string, number][]> = new Map();
         serviceChannelChatCountList.forEach(({title, service, chatCount}) => {
           const top10 = ensureMap(serviceIdTop10, service, []);
           top10.push([title, chatCount]);
@@ -161,7 +165,8 @@ class Chat {
         });
 
         serviceIdTop10.forEach((channels, serviceId) => {
-          const name = this.main[serviceId].name;
+          const service = this.main.getServiceById(serviceId);
+          const name = service.name;
           lines.push('');
           lines.push(`${name}:`);
 
@@ -178,7 +183,7 @@ class Chat {
       });
     });
 
-    let liveTime = null;
+    let liveTime: {endTime: string, message: string} = null;
     this.router.textOrCallbackQuery(/\/about/, (req, res) => {
       if (!liveTime) {
         try {
@@ -187,9 +192,7 @@ class Chat {
           debug('Read liveTime.json error! %o', err);
           liveTime = {
             endTime: '1970-01-01',
-            message: [
-              '{count}'
-            ]
+            message: '{count}'
           };
         }
         if (Array.isArray(liveTime.message)) {
@@ -200,40 +203,41 @@ class Chat {
       let count = '';
       const m = /(\d{4}).(\d{2}).(\d{2})/.exec(liveTime.endTime);
       if (m) {
+        // @ts-ignore
         const endTime = (new Date(m[1], m[2], m[3])).getTime();
-        count = Math.trunc((endTime - Date.now()) / 1000 / 60 / 60 / 24 / 30 * 10) / 10;
+        count = '' + Math.trunc((endTime - Date.now()) / 1000 / 60 / 60 / 24 / 30 * 10) / 10;
       }
 
       const message = liveTime.message.replace('{count}', count);
 
-      return this.main.bot.sendMessage(req.chatId, message).catch((err) => {
+      return this.main.bot.sendMessage(req.chatId, message).catch((err: any) => {
         debug('%j error %o', req.command, err);
       });
     });
   }
 
   user() {
-    const provideChat = (req, res, next) => {
-      return this.main.db.ensureChat(req.chatId).then((chat) => {
+    const provideChat = (req: RouterReq & {chat: IChat}, res: RouterRes, next: () => void) => {
+      return this.main.db.ensureChat(req.chatId).then((chat: IChat) => {
         req.chat = chat;
         next();
-      }, (err) => {
+      }, (err: any) => {
         debug('ensureChat error! %o', err);
         this.main.bot.sendMessage(req.chatId, 'Oops something went wrong...');
       });
     };
 
-    const provideChannels = (req, res, next) => {
+    const provideChannels = (req: RouterReq & {channels: IChannel[]}, res: RouterRes, next: () => void) => {
       return this.main.db.getChannelsByChatId(req.chatId).then((channels) => {
         req.channels = channels;
         next();
-      }, (err) => {
+      }, (err: any) => {
         debug('ensureChannels error! %o', err);
         this.main.bot.sendMessage(req.chatId, 'Oops something went wrong...');
       });
     };
 
-    const withChannels = (req, res, next) => {
+    const withChannels = (req: RouterReq & {channels: IChannel[]}, res: RouterRes, next: () => void) => {
       if (req.channels.length) {
         next();
       } else {
@@ -248,15 +252,16 @@ class Chat {
       return this.main.bot.editMessageText(cancelText, {
         chat_id: req.chatId,
         message_id: req.messageId
-      }).catch((err) => {
+      }).catch((err: any) => {
         debug('%j error %o', req.command, err);
       });
     });
 
     this.router.textOrCallbackQuery(/\/add(?:\s+(?<query>.+$))?/, provideChat, (req, res) => {
       const query = req.params.query;
-      let requestedData = null;
+      let requestedData: string = null;
 
+      // @ts-ignore
       return promiseTry(() => {
         if (query) {
           return {query: query.trim()};
@@ -274,7 +279,7 @@ class Chat {
           });
           return {query: req.message.text.trim(), messageId: msg.message_id};
         });
-      }).then(({query, messageId}) => {
+      }).then(({query, messageId}: {query: string, messageId?: number}) => {
         return promiseTry(() => {
           const service = this.main.services.find((service) => service.match(query));
           if (service) {
@@ -295,7 +300,7 @@ class Chat {
               callback_data: '/choose/cancel'
             }]
           ];
-          return requestChoose(req.chatId, req.fromId, messageId, messageText, cancelText, chooseKeyboard).then((req, msg) => {
+          return requestChoose(req.chatId, req.fromId, messageId, messageText, cancelText, chooseKeyboard).then(({req, msg}) => {
             const service = this.main.services.find(service => service.id === req.params.value);
             if (!service) {
               throw new ErrorWithCode('Service is not found', 'SERVICE_IS_NOT_FOUND');
@@ -308,13 +313,13 @@ class Chat {
               throw new ErrorWithCode('Channels limit exceeded', 'CHANNELS_LIMIT');
             }
             return service.findChannel(query);
-          }).then((rawChannel) => {
-            return this.main.db.ensureChannel(service, rawChannel).then((channel) => {
-              return this.main.db.putChatIdChannelId(req.chatId, channel.id).then((created) => {
+          }).then((rawChannel: Channel) => {
+            return this.main.db.ensureChannel(service, rawChannel).then((channel: IChannel) => {
+              return this.main.db.putChatIdChannelId(req.chatId, channel.id).then((created: boolean) => {
                 return {channel, created};
               });
             });
-          }).then(({channel, created}) => {
+          }).then(({channel, created}: {channel: IChannel, created: boolean}) => {
             let message = null;
             if (!created) {
               message = this.main.locale.getMessage('channelExists');
@@ -328,7 +333,7 @@ class Chat {
               disable_web_page_preview: true,
               parse_mode: 'HTML'
             });
-          }, async (err) => {
+          }, async (err: any) => {
             let isResolved = false;
             let message = null;
             if ([
@@ -355,7 +360,7 @@ class Chat {
             }
           });
         });
-      }).catch((err) => {
+      }).catch((err: any) => {
         if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT', 'RESPONSE_CANCEL'].includes(err.code)) {
           // pass
         } else {
@@ -371,7 +376,7 @@ class Chat {
           chat_id: req.chatId,
           message_id: req.messageId
         });
-      }).catch((err) => {
+      }).catch((err: any) => {
         debug('%j error %o', req.command, err);
       });
     });
@@ -387,7 +392,7 @@ class Chat {
             callback_data: '/cancel/clear'
           }]]
         })
-      }).catch((err) => {
+      }).catch((err: any) => {
         debug('%j error %o', req.command, err);
       });
     });
@@ -395,16 +400,16 @@ class Chat {
     this.router.callback_query(/\/delete\/(?<channelId>.+)/, (req, res) => {
       const channelId = req.params.channelId;
 
-      return this.main.db.getChannelById(channelId).then((channel) => {
-        return this.main.db.deleteChatIdChannelId(req.chatId, channelId).then((count) => {
+      return this.main.db.getChannelById(channelId).then((channel: IChannel) => {
+        return this.main.db.deleteChatIdChannelId(req.chatId, channelId).then((count: number) => {
           return {channel, deleted: !!count};
         });
-      }).then(({channel, deleted}) => {
+      }).then(({channel, deleted}: {channel: IChannel, deleted: boolean}) => {
         return this.main.bot.editMessageText(this.main.locale.getMessage('channelDeleted').replace('{channelName}', channel.title), {
           chat_id: req.chatId,
           message_id: req.messageId
         });
-      }, async (err) => {
+      }, async (err: any) => {
         let isResolved = false;
         let message = null;
         if (err.code === 'CHANNEL_IS_NOT_FOUND') {
@@ -420,13 +425,13 @@ class Chat {
         if (!isResolved) {
           throw err;
         }
-      }).catch((err) => {
+      }).catch((err: any) => {
         debug('%j error %o', req.command, err);
       });
     });
 
     this.router.textOrCallbackQuery(/\/delete/, provideChannels, withChannels, (req, res) => {
-      const channels = req.channels.map((channel) => {
+      const channels = req.channels.map((channel: IChannel) => {
         return [{
           text: channel.title,
           callback_data: `/delete/${channel.id}`
@@ -445,7 +450,7 @@ class Chat {
           }), {
             chat_id: req.chatId,
             message_id: req.messageId
-          }).catch((err) => {
+          }).catch((err: any) => {
             if (/message is not modified/.test(err.message)) {
               // pass
             } else {
@@ -473,7 +478,7 @@ class Chat {
         }), {
           chat_id: req.chatId,
           message_id: req.messageId
-        }).catch((err) => {
+        }).catch((err: any) => {
           if (/message is not modified/.test(err.message)) {
             return;
           }
@@ -486,8 +491,9 @@ class Chat {
 
     this.router.textOrCallbackQuery(/\/setChannel(?:\s+(?<channelId>.+))?/, provideChat, (req, res) => {
       const channelId = req.params.channelId;
-      let requestedData = null;
+      let requestedData: string = null;
 
+      // @ts-ignore
       return promiseTry(() => {
         if (channelId) {
           return {channelId: channelId.trim()};
@@ -505,7 +511,7 @@ class Chat {
           });
           return {channelId: req.message.text.trim(), messageId: msg.message_id};
         });
-      }).then(({channelId, messageId}) => {
+      }).then(({channelId, messageId}: {channelId: string, messageId?: number}) => {
         return promiseTry(() => {
           if (!/^@\w+$/.test(channelId)) {
             throw new ErrorWithCode('Incorrect channel name', 'INCORRECT_CHANNEL_NAME');
@@ -513,7 +519,7 @@ class Chat {
 
           return this.main.db.getChatById(channelId).then((chat) => {
             throw new ErrorWithCode('Channel already used', 'CHANNEL_ALREADY_USED');
-          }, (err) => {
+          }, (err: any) => {
             if (err.code === 'CHAT_IS_NOT_FOUND') {
               // pass
             } else {
@@ -521,7 +527,7 @@ class Chat {
             }
           }).then(() => {
             return this.main.bot.sendChatAction(channelId, 'typing').then(() => {
-              return this.main.bot.getChat(channelId).then((chat) => {
+              return this.main.bot.getChat(channelId).then((chat: TChat) => {
                 if (chat.type !== 'channel') {
                   throw new ErrorWithCode('This chat type is not supported', 'INCORRECT_CHAT_TYPE');
                 }
@@ -539,7 +545,7 @@ class Chat {
               }), {
                 chat_id: req.chatId,
                 message_id: req.messageId
-              }).catch((err) => {
+              }).catch((err: any) => {
                 if (/message is not modified/.test(err.message)) {
                   return;
                 }
@@ -569,7 +575,7 @@ class Chat {
             throw err;
           }
         });
-      }).catch((err) => {
+      }).catch((err: any) => {
         if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
           // pass
         } else {
@@ -581,7 +587,7 @@ class Chat {
     this.router.callback_query(/\/(?<optionsType>options|channelOptions)\/(?<key>[^\/]+)\/(?<value>.+)/, provideChat, (req, res) => {
       const {optionsType, key, value} = req.params;
       return promiseTry(() => {
-        const changes = {};
+        const changes: {[s: string]: any} = {};
         switch (key) {
           case 'isHidePreview': {
             changes.isHidePreview = value === 'true';
@@ -625,7 +631,7 @@ class Chat {
         }), {
           chat_id: req.chatId,
           message_id: req.messageId
-        }).catch((err) => {
+        }).catch((err: any) => {
           if (/message is not modified/.test(err.message)) {
             return;
           }
@@ -658,7 +664,7 @@ class Chat {
     });
 
     this.router.textOrCallbackQuery(/\/online/, provideChannels, withChannels, (req, res) => {
-      return this.main.db.getStreamsByChannelIds(req.channels.map(channel => channel.id)).then((streams) => {
+      return this.main.db.getStreamsByChannelIds(req.channels.map((channel: IChannel) => channel.id)).then((streams) => {
         // todo: fix me
       }).catch((err) => {
         debug('%j error %o', req.command, err);
@@ -669,15 +675,15 @@ class Chat {
       const {streamId} = req.params;
       return this.main.db.getStreamById(streamId).then((stream) => {
         // todo: fix me
-      }).catch((err) => {
+      }).catch((err: any) => {
         debug('%j error %o', req.command, err);
       });
     });
 
     this.router.textOrCallbackQuery(/\/list/, provideChannels, withChannels, (req, res) => {
-      const serviceIds = [];
-      const serviceIdChannels = {};
-      req.channels.forEach((channel) => {
+      const serviceIds: string[] = [];
+      const serviceIdChannels: {[s: string]: IChannel[]} = {};
+      req.channels.forEach((channel: IChannel) => {
         let serviceChannels = serviceIdChannels[channel.service];
         if (!serviceChannels) {
           serviceChannels = serviceIdChannels[channel.service] = [];
@@ -692,10 +698,11 @@ class Chat {
         return a === b ? 0 : a > b ? -1 : 1;
       });
 
-      const lines = [];
+      const lines: string[] = [];
       serviceIds.forEach((serviceId) => {
         const channelLines = [];
-        channelLines.push(htmlSanitize('b', this.main[serviceId].name + ':'));
+        const service = this.main.getServiceById(serviceId);
+        channelLines.push(htmlSanitize('b', service.name + ':'));
         serviceIdChannels[serviceId].forEach((channel) => {
           channelLines.push(htmlSanitize('a', channel.title, channel.url));
         });
@@ -744,8 +751,10 @@ class Chat {
       });
     });
 
-    const requestData = (chatId, fromId, messageText, cancelText) => {
-      const options = {};
+    const requestData = (chatId: number, fromId: number, messageText: string, cancelText: string): Promise<{
+      req: RouterReq, msg: TMessage
+    }> => {
+      const options: {[s: string]: any} = {};
       let msgText = messageText;
       if (chatId < 0) {
         msgText += this.main.locale.getMessage('groupNote');
@@ -754,7 +763,7 @@ class Chat {
         });
       }
 
-      return this.main.bot.sendMessage(chatId, msgText, options).then((msg) => {
+      return this.main.bot.sendMessage(chatId, msgText, options).then((msg: TMessage) => {
         return this.router.waitResponse({
           event: 'message',
           type: 'text',
@@ -772,7 +781,9 @@ class Chat {
       });
     };
 
-    const requestChoose = (chatId, fromId, messageId, messageText, cancelText, inline_keyboard) => {
+    const requestChoose = (chatId: number, fromId: number, messageId: number, messageText: string, cancelText: string, inline_keyboard: object): Promise<{
+      req: RouterReq, msg: TMessage
+    }> => {
       return editOrSendNewMessage(chatId, messageId, messageText, {
         reply_markup: JSON.stringify({inline_keyboard})
       }).then((msg) => {
@@ -784,7 +795,7 @@ class Chat {
           return this.main.bot.answerCallbackQuery(req.callback_query.id).then(async () => {
             if (req.params.value === 'cancel') {
               await editOrSendNewMessage(chatId, msg.message_id, cancelText);
-              throw new ErrorWithCode('RESPONSE_CANCEL');
+              throw new ErrorWithCode('Response cancel', 'RESPONSE_CANCEL');
             }
             return {req, msg};
           });
@@ -797,7 +808,7 @@ class Chat {
       });
     };
 
-    const editOrSendNewMessage = (chatId, messageId, text, form) => {
+    const editOrSendNewMessage = (chatId: number, messageId: number|undefined, text: string, form?: object) => {
       return promiseTry(() => {
         if (!messageId) {
           throw new ErrorWithCode('messageId is empty', 'MESSAGE_ID_IS_EMPTY');
@@ -821,7 +832,7 @@ class Chat {
   }
 
   admin() {
-    const isAdmin = (req, res, next) => {
+    const isAdmin = (req: RouterReq, res: RouterRes, next: () => void) => {
       const adminIds = this.main.config.adminIds || [];
       if (adminIds.includes(req.chatId)) {
         next();
@@ -847,6 +858,7 @@ class Chat {
           throw new ErrorWithCode('Method is not found', 'METHOD_IS_NOT_FOUND');
         }
         const {scope, endPoint} = resolvePath(this.main, command);
+        // @ts-ignore
         return scope[endPoint].call(scope);
       }).then((result) => {
         const resultStr = jsonStringifyPretty({result}, {
@@ -874,14 +886,14 @@ class Chat {
             return menu;
           }, [])
         })
-      }).catch((err) => {
+      }).catch((err: any) => {
         debug('%j error %o', req.command, err);
       });
     });
   }
 }
 
-function getMenu(page) {
+function getMenu(page: number) {
   let menu = null;
   if (page > 0) {
     menu = [
@@ -938,7 +950,7 @@ function getMenu(page) {
   return menu;
 }
 
-function getOptions(chat) {
+function getOptions(chat: IChat & {channel: IChat}) {
   const btnList = [];
 
   if (chat.isHidePreview) {
