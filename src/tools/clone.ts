@@ -1,4 +1,4 @@
-const clone = (data) => {
+const clone = (data: any) => {
   return JSON.parse(JSON.stringify({w: data})).w;
 };
 

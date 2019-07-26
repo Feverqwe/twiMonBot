@@ -47,6 +47,15 @@ export function getString(stream: IStreamWithChannel) {
   ], '\n');
 }
 
+export function getButtonText(stream: IStreamWithChannel) {
+  let game = stream.game;
+  if (stream.title.includes(game)) {
+    game = '';
+  }
+
+  return joinString(stream.title, game, ' — ');
+}
+
 function getIcon(stream: IStream, withOnline?: boolean) {
   let icon = null;
   if (stream.isTimeout) {

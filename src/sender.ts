@@ -2,8 +2,10 @@ import Main from "./main";
 import LogFile from "./logFile";
 import {everyMinutes} from "./tools/everyTime";
 import getProvider from "./tools/getProvider";
-import ChatSender from "./chatSender";
+import ChatSender, {isBlockedError} from "./chatSender";
 import arrayUniq from "./tools/arrayUniq";
+import parallel from "./tools/parallel";
+import getInProgress from "./tools/getInProgress";
 
 const debug = require('debug')('app:Sender');
 const throttle = require('lodash.throttle');
@@ -96,6 +98,47 @@ class Sender {
   provideStream = getProvider((id: string) => {
     return this.main.db.getStreamWithChannelById(id);
   }, 100);
+
+  checkChatsExistsInProgress = getInProgress();
+  checkChatsExists() {
+    return this.checkChatsExistsInProgress(async () => {
+      let offset = 0;
+      let limit = 100;
+      const result = {
+        chatCount: 0,
+        removedCount: 0,
+        errorCount: 0,
+      };
+      while (true) {
+        const chatIds = await this.main.db.getChatIds(offset, limit);
+        offset += limit;
+        if (!chatIds.length) break;
+
+        const blockedChatIds: string[] = [];
+
+        await parallel(10, chatIds, (chatId) => {
+          result.chatCount++;
+          return this.main.bot.sendChatAction(chatId, 'typing').catch((err: any) => {
+            const isBlocked = isBlockedError(err);
+            if (isBlocked) {
+              blockedChatIds.push(chatId);
+              const body = err.response.body;
+              this.main.chat.log.write(`[deleted] ${chatId}, cause: (${body.error_code}) ${JSON.stringify(body.description)}`);
+            } else {
+              debug('checkChatsExists sendChatAction typing to %s error, cause: %o', chatId, err);
+              result.errorCount++;
+            }
+          });
+        });
+
+        await this.main.db.deleteChatsByIds(blockedChatIds);
+
+        result.removedCount += blockedChatIds.length;
+        offset -= blockedChatIds.length;
+      }
+      return result;
+    });
+  }
 }
 
 export default Sender;

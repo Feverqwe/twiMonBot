@@ -11,6 +11,7 @@ import Goodgame from "./services/goodgame";
 import Mixer from "./services/mixer";
 import Twitch from "./services/twitch";
 import Youtube from "./services/youtube";
+import ErrorWithCode from "./tools/errorWithCode";
 
 process.env.NTBA_FIX_319 = true;
 process.env.NTBA_FIX_350 = true;
@@ -34,6 +35,7 @@ const config = {
   checkChannelIfLastSyncLessThenMinutes: 5,
   channelSyncTimeoutMinutes: 5,
   removeStreamIfOfflineMoreThanMinutes: 15,
+  emitCleanChatsAndChannelsEveryHours: 1,
   emitSendMessagesEveryMinutes: 5,
   chatSendTimeoutMinutes: 5,
   emitCheckProxyEveryHours: 3,
@@ -132,7 +134,7 @@ class Main extends Events {
   getServiceById(id) {
     const result = this.services.find(service => service.id === id);
     if (!result) {
-      throw new Error(`Service ${id} id not found`);
+      throw new ErrorWithCode(`Service ${id} id not found`, 'SERVICE_IS_NOT_FOUND');
     }
     return result;
   }

@@ -4,7 +4,7 @@ import serviceId from "./tools/serviceId";
 import Main from "./main";
 import * as Sequelize from "sequelize";
 import parallel from "./tools/parallel";
-import {ServiceInterface} from "./checker";
+import {ServiceChannel, ServiceInterface} from "./checker";
 
 const debug = require('debug')('app:db');
 const {Op} = Sequelize;
@@ -31,8 +31,8 @@ export interface Channel {
   service: string,
   title: string,
   url: string,
-  lastSyncAt: Date,
-  syncTimeoutExpiresAt: Date,
+  lastSyncAt?: Date,
+  syncTimeoutExpiresAt?: Date,
   createdAt?: Date,
   updatedAt?: Date,
 }
@@ -211,7 +211,10 @@ class Db {
       modelName: 'stream',
       tableName: 'streams',
       timestamps: true,
-      indexes: []
+      indexes: [{
+        name: 'createdAt_idx',
+        fields: ['createdAt']
+      }]
     });
     StreamModel.belongsTo(ChannelModel, {foreignKey: 'channelId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
 
@@ -304,7 +307,7 @@ class Db {
     });
   }
 
-  getChatIds(offset: number, limit: number) {
+  getChatIds(offset: number, limit: number): Promise<string[]> {
     return ChatModel.findAll({
       offset,
       limit,
@@ -349,7 +352,7 @@ class Db {
     });
   }
 
-  cleanChats() {
+  cleanChats(): Promise<number> {
     return ChatModel.destroy({
       where: {
         id: {[Op.notIn]: Sequelize.literal(`(SELECT DISTINCT chatId FROM chatIdChannelId)`)},
@@ -358,7 +361,7 @@ class Db {
     });
   }
 
-  ensureChannel(service: ServiceInterface, rawChannel: Channel) {
+  ensureChannel(service: ServiceInterface, rawChannel: ServiceChannel) {
     const id = serviceId.wrap(service, rawChannel.id);
 
     return ChannelModel.findOrCreate({
@@ -412,13 +415,13 @@ class Db {
     });
   }
 
-  getChannelsByIds(ids: string[]) {
+  getChannelsByIds(ids: string[]): Promise<IChannel[]> {
     return ChannelModel.findAll({
       where: {id: ids}
     });
   }
 
-  getChannelById(id: string) {
+  getChannelById(id: string): Promise<IChannel> {
     return ChannelModel.findByPk(id).then((channel: IChannel) => {
       if (!channel) {
         throw new ErrorWithCode('Channel is not found', 'CHANNEL_IS_NOT_FOUND');
@@ -437,7 +440,7 @@ class Db {
     return ChatIdChannelIdModel.upsert({chatId, channelId});
   }
 
-  deleteChatIdChannelId(chatId: string, channelId: string) {
+  deleteChatIdChannelId(chatId: string, channelId: string): Promise<number> {
     return ChatIdChannelIdModel.destroy({
       where: {chatId, channelId}
     });
@@ -456,7 +459,7 @@ class Db {
     });
   }
 
-  getChannelIdsByServiceId(service: string, offset: number, limit: number) {
+  getChannelIdsByServiceId(service: string, offset: number, limit: number): Promise<string[]> {
     return ChannelModel.findAll({
       where: {service},
       attributes: ['id'],
@@ -480,7 +483,7 @@ class Db {
     return ChannelModel.destroy({where: {id: ids}});
   }
 
-  cleanChannels() {
+  cleanChannels(): Promise<number> {
     return ChannelModel.destroy({
       where: {
         id: {[Op.notIn]: Sequelize.literal(`(SELECT DISTINCT channelId FROM chatIdChannelId)`)}
@@ -560,6 +563,16 @@ class Db {
     });
   }
 
+  getStreamsWithChannelByChannelIds(channelIds: string[]): Promise<IStreamWithChannel[]> {
+    return StreamModel.findAll({
+      where: {channelId: channelIds},
+      include: [
+        {model: ChannelModel, required: true}
+      ],
+      order: ['createdAt']
+    });
+  }
+
   getStreamsByChannelIds(channelIds: string[]): Promise<IStream[]> {
     return StreamModel.findAll({
       where: {channelId: channelIds}
@@ -600,9 +613,12 @@ class Db {
     });
   }
 
-  getStreamById(id: string): Promise<IStream> {
+  getStreamById(id: string): Promise<IStreamWithChannel> {
     return StreamModel.findOne({
-      where: {id}
+      where: {id},
+      include: [
+        {model: ChannelModel, required: true}
+      ]
     }).then((stream: IStream) => {
       if (!stream) {
         throw new ErrorWithCode('Stream is not found', 'STREAM_IS_NOT_FOUND');

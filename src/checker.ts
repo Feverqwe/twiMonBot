@@ -5,6 +5,8 @@ import ensureMap from "./tools/ensureMap";
 import arrayDifference from "./tools/arrayDifference";
 import {Channel, IChannel, Stream} from "./db";
 import LogFile from "./logFile";
+import getInProgress from "./tools/getInProgress";
+import parallel from "./tools/parallel";
 
 const debug = require('debug')('app:Checker');
 
@@ -18,6 +20,12 @@ export interface ServiceStream {
   viewers: number|null,
   channelId: string|number,
   channelTitle: string,
+}
+
+export interface ServiceChannel {
+  id: string|number,
+  url: string,
+  title: string,
 }
 
 interface ServiceGetStreamsResult {
@@ -35,7 +43,7 @@ export interface ServiceInterface {
   match(query: string): boolean,
   getStreams(channelsIds: (string|number)[]): Promise<ServiceGetStreamsResult>,
   getExistsChannelIds(channelsIds: (string|number)[]): Promise<(string|number)[]>,
-  findChannel(query: string): Promise<{id: string|number, title: string, url: string}>,
+  findChannel(query: string): Promise<ServiceChannel>,
 }
 
 class Checker {
@@ -48,6 +56,7 @@ class Checker {
 
   init() {
     this.startUpdateInterval();
+    this.startCleanInterval();
   }
 
   updateTimer: Function = null;
@@ -56,6 +65,16 @@ class Checker {
     this.updateTimer = everyMinutes(this.main.config.emitCheckChannelsEveryMinutes, () => {
       this.check().catch((err) => {
         debug('check error', err);
+      });
+    });
+  }
+
+  cleanTimer: Function = null;
+  startCleanInterval() {
+    this.cleanTimer && this.cleanTimer();
+    this.cleanTimer = everyMinutes(this.main.config.emitCleanChatsAndChannelsEveryHours * 60, () => {
+      this.clean().catch((err) => {
+        debug('clean error', err);
       });
     });
   }
@@ -385,6 +404,54 @@ class Checker {
         }
       }
       return chatIdStreamIdChanges;
+    });
+  }
+
+  checkChannelsExistsInProgress = getInProgress();
+  async checkChannelsExists() {
+    return this.checkChannelsExistsInProgress(() => {
+      return parallel(1, this.main.services, async (service) => {
+        const result = {
+          id: service.id,
+          channelCount: 0,
+          removedCount: 0,
+        };
+
+        let limit = 500;
+        let offset = 0;
+        while (true) {
+          const channelIds = await this.main.db.getChannelIdsByServiceId(service.id, offset, limit);
+          offset += limit;
+          if (!channelIds.length) break;
+          result.channelCount += channelIds.length;
+
+          // @ts-ignore
+          await service.getExistsChannelIds(channelIds.map(id => serviceId.unwrap(id))).then((existsRawChannelIds) => {
+            const existsChannelIds = existsRawChannelIds.map((id: string|number) => serviceId.wrap(service, id));
+
+            const removedChannelIds = arrayDifference(channelIds, existsChannelIds);
+            return this.main.db.removeChannelByIds(removedChannelIds).then(() => {
+              result.removedCount += removedChannelIds.length;
+              offset -= removedChannelIds.length;
+            });
+          });
+        }
+
+        return result;
+      });
+    });
+  }
+
+  cleanInProgress = getInProgress();
+  clean() {
+    return this.cleanInProgress(() => {
+      return this.main.db.cleanChats().then((chatsCount) => {
+        return this.main.db.cleanChannels().then((channelsCount) => {
+          return [chatsCount, channelsCount];
+        });
+      }).then(([removedChats, removedChannels]) => {
+        return {removedChats, removedChannels};
+      });
     });
   }
 }

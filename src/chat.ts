@@ -1,4 +1,4 @@
-import Router, {RouterReq, RouterRes, TCallbackQuery, TChat, TMessage} from "./router";
+import Router, {RouterReq, RouterRes, TCallbackQuery, TChat, TInlineKeyboardButton, TMessage} from "./router";
 import htmlSanitize from "./tools/htmlSanitize";
 import ErrorWithCode from "./tools/errorWithCode";
 import pageBtnList from "./tools/pageBtnList";
@@ -9,7 +9,9 @@ import ensureMap from "./tools/ensureMap";
 import arrayByPart from "./tools/arrayByPart";
 import promiseTry from "./tools/promiseTry";
 import Main from "./main";
-import {Channel, IChannel, IChatWithChannel} from "./db";
+import {IChannel, IChatWithChannel} from "./db";
+import {getButtonText, getString} from "./tools/streamToString";
+import ChatSender from "./chatSender";
 
 const debug = require('debug')('app:Chat');
 const jsonStringifyPretty = require("json-stringify-pretty-compact");
@@ -191,32 +193,27 @@ class Chat {
       });
     });
 
-    let liveTime: {endTime: string, message: string} = null;
+    let liveTime: string = null;
     this.router.textOrCallbackQuery(/\/about/, (req, res) => {
       if (!liveTime) {
         try {
-          liveTime = JSON.parse(fs.readFileSync('./liveTime.json', 'utf8'));
+          liveTime = JSON.parse(fs.readFileSync('./liveTime.json', 'utf8')).message;
         } catch (err) {
           debug('Read liveTime.json error! %o', err);
-          liveTime = {
-            endTime: '1970-01-01',
-            message: '{count}'
-          };
-        }
-        if (Array.isArray(liveTime.message)) {
-          liveTime.message = liveTime.message.join('\n');
+          liveTime = '';
         }
       }
 
-      let count = '';
-      const m = /(\d{4}).(\d{2}).(\d{2})/.exec(liveTime.endTime);
-      if (m) {
-        // @ts-ignore
-        const endTime = (new Date(m[1], m[2], m[3])).getTime();
-        count = '' + Math.trunc((endTime - Date.now()) / 1000 / 60 / 60 / 24 / 30 * 10) / 10;
-      }
-
-      const message = liveTime.message.replace('{count}', count);
+      const message = liveTime.replace(/\$remainFrom\(([^)]+)\)/, (str, date) => {
+        const m = /(\d{4}).(\d{2}).(\d{2})/.exec(date);
+        if (m) {
+          // @ts-ignore
+          const endTime = (new Date(m[1], m[2], m[3])).getTime();
+          const month =Math.trunc((endTime - Date.now()) / 1000 / 60 / 60 / 24 / 30 * 10) / 10;
+          return `${month} months`;
+        }
+        return str;
+      });
 
       return this.main.bot.sendMessage(req.chatId, message).catch((err: any) => {
         debug('%j error %o', req.command, err);
@@ -296,7 +293,7 @@ class Chat {
           const messageText = this.main.locale.getMessage('enterService');
           const cancelText = this.main.locale.getMessage('commandCanceled').replace('{command}', 'add');
           const chooseKeyboard = [
-            arrayByPart(this.main.services.map((service) => {
+            ...arrayByPart(this.main.services.map((service) => {
               return {
                 text: service.name,
                 callback_data: '/choose/' + service.id
@@ -308,10 +305,7 @@ class Chat {
             }]
           ];
           return requestChoose(req.chatId, req.fromId, messageId, messageText, cancelText, chooseKeyboard).then(({req, msg}) => {
-            const service = this.main.services.find(service => service.id === req.params.value);
-            if (!service) {
-              throw new ErrorWithCode('Service is not found', 'SERVICE_IS_NOT_FOUND');
-            }
+            const service = this.main.getServiceById(req.params.value);
             return {service, messageId: msg.message_id};
           });
         }).then(({service, messageId}) => {
@@ -320,8 +314,8 @@ class Chat {
               throw new ErrorWithCode('Channels limit exceeded', 'CHANNELS_LIMIT');
             }
             return service.findChannel(query);
-          }).then((rawChannel: Channel) => {
-            return this.main.db.ensureChannel(service, rawChannel).then((channel: IChannel) => {
+          }).then((serviceChannel) => {
+            return this.main.db.ensureChannel(service, serviceChannel).then((channel: IChannel) => {
               return this.main.db.putChatIdChannelId(req.chatId, channel.id).then((created: boolean) => {
                 return {channel, created};
               });
@@ -407,11 +401,11 @@ class Chat {
     this.router.callback_query(/\/delete\/(?<channelId>.+)/, (req, res) => {
       const channelId = req.params.channelId;
 
-      return this.main.db.getChannelById(channelId).then((channel: IChannel) => {
-        return this.main.db.deleteChatIdChannelId(req.chatId, channelId).then((count: number) => {
+      return this.main.db.getChannelById(channelId).then((channel) => {
+        return this.main.db.deleteChatIdChannelId(req.chatId, channelId).then((count) => {
           return {channel, deleted: !!count};
         });
-      }).then(({channel, deleted}: {channel: IChannel, deleted: boolean}) => {
+      }).then(({channel, deleted}) => {
         return this.main.bot.editMessageText(this.main.locale.getMessage('channelDeleted').replace('{channelName}', channel.title), {
           chat_id: req.chatId,
           message_id: req.messageId
@@ -670,17 +664,63 @@ class Chat {
     });
 
     this.router.textOrCallbackQuery(/\/online/, provideChannels, withChannels, (req: RouterReqWithChannels, res) => {
-      return this.main.db.getStreamsByChannelIds(req.channels.map(channel => channel.id)).then((streams) => {
-        // todo: fix me
+      const channelIds = req.channels.map(channel => channel.id);
+      return this.main.db.getStreamsWithChannelByChannelIds(channelIds).then((streams) => {
+        let message: string = null;
+        if (!streams.length){
+          message = this.main.locale.getMessage('offline');
+        } else {
+          message = streams.map(stream => getString(stream)).join('\n\n');
+        }
+
+        const buttons = streams.map((stream) => {
+          return [{
+            text: getButtonText(stream),
+            callback_data: `/watch/${stream.id}`
+          }];
+        });
+
+        const buttonsPage = pageBtnList(req.query, buttons, '/online');
+
+        buttonsPage.unshift([{
+          text: this.main.locale.getMessage('refresh'),
+          callback_data: '/online'
+        }]);
+
+        const options = {
+          disable_web_page_preview: true,
+          parse_mode: 'HTML',
+          reply_markup: JSON.stringify({
+            inline_keyboard: buttonsPage
+          })
+        };
+
+        return promiseTry(() => {
+          if (req.callback_query && !req.query.rel) {
+            return this.main.bot.editMessageText(message, Object.assign(options, {
+              chat_id: req.chatId,
+              message_id: req.messageId,
+            }));
+          } else {
+            return this.main.bot.sendMessage(req.chatId, message, options);
+          }
+        });
       }).catch((err) => {
         debug('%j error %o', req.command, err);
       });
     });
 
-    this.router.callback_query(/\/watch\/(?<streamId>.+)/, (req, res) => {
+    this.router.callback_query(/\/watch\/(?<streamId>.+)/, provideChat, (req: RouterReqWithChat, res) => {
       const {streamId} = req.params;
-      return this.main.db.getStreamById(streamId).then((stream) => {
-        // todo: fix me
+      return this.main.db.getStreamWithChannelById(streamId).then((stream) => {
+        const chatSender = new ChatSender(this.main, req.chat);
+        return chatSender.sendStream(stream);
+      }, (err) => {
+        if (err.code === 'STREAM_IS_NOT_FOUND') {
+          const message = this.main.locale.getMessage('streamIsNotFound');
+          return this.main.bot.sendMessage(req.chatId, message);
+        }
+        throw err;
       }).catch((err: any) => {
         debug('%j error %o', req.command, err);
       });
@@ -688,19 +728,18 @@ class Chat {
 
     this.router.textOrCallbackQuery(/\/list/, provideChannels, withChannels, (req: RouterReqWithChannels, res) => {
       const serviceIds: string[] = [];
-      const serviceIdChannels: {[s: string]: IChannel[]} = {};
+      const serviceIdChannels: Map<string, IChannel[]> = new Map();
       req.channels.forEach((channel: IChannel) => {
-        let serviceChannels = serviceIdChannels[channel.service];
-        if (!serviceChannels) {
-          serviceChannels = serviceIdChannels[channel.service] = [];
+        if (!serviceIdChannels.has(channel.service)) {
           serviceIds.push(channel.service);
         }
+        const serviceChannels = ensureMap(serviceIdChannels, channel.service, []);
         serviceChannels.push(channel);
       });
 
       serviceIds.sort((aa, bb) => {
-        const a = serviceIdChannels[aa].length;
-        const b = serviceIdChannels[bb].length;
+        const a = serviceIdChannels.get(aa).length;
+        const b = serviceIdChannels.get(bb).length;
         return a === b ? 0 : a > b ? -1 : 1;
       });
 
@@ -709,7 +748,7 @@ class Chat {
         const channelLines = [];
         const service = this.main.getServiceById(serviceId);
         channelLines.push(htmlSanitize('b', service.name + ':'));
-        serviceIdChannels[serviceId].forEach((channel) => {
+        serviceIdChannels.get(serviceId).forEach((channel) => {
           channelLines.push(htmlSanitize('a', channel.title, channel.url));
         });
         lines.push(channelLines.join('\n'));
@@ -787,7 +826,7 @@ class Chat {
       });
     };
 
-    const requestChoose = (chatId: number, fromId: number, messageId: number, messageText: string, cancelText: string, inline_keyboard: object): Promise<{
+    const requestChoose = (chatId: number, fromId: number, messageId: number, messageText: string, cancelText: string, inline_keyboard: TInlineKeyboardButton[][]): Promise<{
       req: RouterReq, msg: TMessage
     }> => {
       return editOrSendNewMessage(chatId, messageId, messageText, {
@@ -851,10 +890,8 @@ class Chat {
       {name: 'Check chats exists', method: 'sender.checkChatsExists'},
       {name: 'Check channels exists', method: 'checker.checkChannelsExists'},
       {name: 'Check channels', method: 'checker.check'},
-      {name: 'Clean channels & videos', method: 'checker.clean'},
+      {name: 'Clean channels & channels', method: 'checker.clean'},
       {name: 'Sender check', method: 'sender.check'},
-      {name: 'Update pubsub', method: 'ytPubSub.updateSubscribes'},
-      {name: 'Clean pubsub', method: 'ytPubSub.clean'},
     ];
 
     this.router.callback_query(/\/admin\/(?<command>.+)/, isAdmin, (req, res) => {

@@ -86,24 +86,7 @@ class ChatSender {
     }
 
     return this.main.sender.provideStream(this.streamIds.shift(), (stream) => {
-      return promiseTry(() => {
-        if (this.chat.isHidePreview || !stream.previews.length) {
-          return this.sendStreamAsText(stream);
-        } else {
-          return this.sendStreamAsPhoto(stream);
-        }
-      }).then((sendMessage: SentMessage) => {
-        return Promise.all([
-          this.main.db.deleteChatIdStreamId(this.chat.id, stream.id),
-          this.main.db.putMessage({
-            id: sendMessage.message.message_id.toString(),
-            chatId: this.chat.id,
-            streamId: stream.id,
-            type: sendMessage.type,
-            text: sendMessage.text,
-          }),
-        ]);
-      }, this.onSendMessageError);
+      return this.sendStream(stream);
     }).catch((err) => {
       if (err.code === 'STREAM_IS_NOT_FOUND') {
         // pass
@@ -217,6 +200,27 @@ class ChatSender {
     }
     throw err;
   };
+
+  sendStream(stream: IStreamWithChannel) {
+    return promiseTry(() => {
+      if (this.chat.isHidePreview || !stream.previews.length) {
+        return this.sendStreamAsText(stream);
+      } else {
+        return this.sendStreamAsPhoto(stream);
+      }
+    }).then((sendMessage: SentMessage) => {
+      return Promise.all([
+        this.main.db.deleteChatIdStreamId(this.chat.id, stream.id),
+        this.main.db.putMessage({
+          id: sendMessage.message.message_id.toString(),
+          chatId: this.chat.id,
+          streamId: stream.id,
+          type: sendMessage.type,
+          text: sendMessage.text,
+        }),
+      ]);
+    }, this.onSendMessageError);
+  }
 
   sendStreamAsText(stream: IStreamWithChannel, isFallback?: boolean): Promise<SentMessage> {
     const text = getDescription(stream);
@@ -452,7 +456,7 @@ async function getValidPreviewUrl(urls: string[], service: ServiceInterface): Pr
   throw new ErrorWithCode(`Previews is invalid`, 'INVALID_PREVIEWS');
 }
 
-function isBlockedError(err: any) {
+export function isBlockedError(err: any) {
   if (err.code === 'ETELEGRAM') {
     const body = err.response.body;
 

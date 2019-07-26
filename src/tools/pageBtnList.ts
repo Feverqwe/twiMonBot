@@ -1,14 +1,10 @@
-/**
- * @param {Object} query
- * @param {Array} btnList
- * @param {string} command
- * @param {Array|Object} middleBtn
- * @return {Array}
- */
-const pageBtnList = (query, btnList, command, middleBtn) => {
+import {TInlineKeyboardButton} from "../router";
+
+const pageBtnList = (query: {[s: string]: any}, btnList: TInlineKeyboardButton[][], command: string, _middleBtn?: TInlineKeyboardButton|TInlineKeyboardButton[]) => {
   const page = parseInt(query.page) || 0;
-  if (middleBtn && !Array.isArray(middleBtn)) {
-    middleBtn = [middleBtn];
+  let middleBtns: TInlineKeyboardButton[]|null = _middleBtn as TInlineKeyboardButton[];
+  if (middleBtns && !Array.isArray(middleBtns)) {
+    middleBtns = [middleBtns];
   }
   const maxItemCount = 10;
   const offset = page * maxItemCount;
@@ -23,8 +19,8 @@ const pageBtnList = (query, btnList, command, middleBtn) => {
         callback_data: command + '?page=' + (page - 1)
       });
     }
-    if (middleBtn) {
-      pageControls.push(...middleBtn);
+    if (middleBtns) {
+      pageControls.push(...middleBtns);
     }
     if (countItem - offsetEnd > 0) {
       pageControls.push({
@@ -34,8 +30,8 @@ const pageBtnList = (query, btnList, command, middleBtn) => {
     }
     pageList.push(pageControls);
   } else
-  if (middleBtn) {
-    pageList.push(middleBtn);
+  if (middleBtns) {
+    pageList.push(middleBtns);
   }
   return pageList;
 };
