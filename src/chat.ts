@@ -15,6 +15,14 @@ const debug = require('debug')('app:Chat');
 const jsonStringifyPretty = require("json-stringify-pretty-compact");
 const fs = require('fs');
 
+interface RouterReqWithChat extends RouterReq {
+  chat: IChatWithChannel;
+}
+
+interface RouterReqWithChannels extends RouterReq {
+  channels: IChannel[];
+}
+
 class Chat {
   main: Main;
   log: LogFile;
@@ -217,7 +225,7 @@ class Chat {
   }
 
   user() {
-    const provideChat = (req: RouterReq & {chat: IChatWithChannel}, res: RouterRes, next: () => void) => {
+    const provideChat = (req: RouterReqWithChat, res: RouterRes, next: () => void) => {
       return this.main.db.ensureChat('' + req.chatId).then((chat) => {
         req.chat = chat;
         next();
@@ -227,7 +235,7 @@ class Chat {
       });
     };
 
-    const provideChannels = (req: RouterReq & {channels: IChannel[]}, res: RouterRes, next: () => void) => {
+    const provideChannels = (req: RouterReqWithChannels, res: RouterRes, next: () => void) => {
       return this.main.db.getChannelsByChatId('' + req.chatId).then((channels) => {
         req.channels = channels;
         next();
@@ -237,7 +245,7 @@ class Chat {
       });
     };
 
-    const withChannels = (req: RouterReq & {channels: IChannel[]}, res: RouterRes, next: () => void) => {
+    const withChannels = (req: RouterReqWithChannels, res: RouterRes, next: () => void) => {
       if (req.channels.length) {
         next();
       } else {
@@ -429,7 +437,7 @@ class Chat {
       });
     });
 
-    this.router.textOrCallbackQuery(/\/delete/, provideChannels, withChannels, (req: RouterReq & {channels: IChannel[]}, res) => {
+    this.router.textOrCallbackQuery(/\/delete/, provideChannels, withChannels, (req: RouterReqWithChannels, res) => {
       const channels = req.channels.map((channel) => {
         return [{
           text: channel.title,
@@ -468,7 +476,7 @@ class Chat {
       });
     });
 
-    this.router.callback_query(/\/deleteChannel/, provideChat, (req: RouterReq & {chat: IChatWithChannel}, res) => {
+    this.router.callback_query(/\/deleteChannel/, provideChat, (req: RouterReqWithChat, res) => {
       return promiseTry(() => {
         return this.main.db.deleteChatById(req.chat.channelId);
       }).then(() => {
@@ -488,7 +496,7 @@ class Chat {
       });
     });
 
-    this.router.textOrCallbackQuery(/\/setChannel(?:\s+(?<channelId>.+))?/, provideChat, (req: RouterReq & {chat: IChatWithChannel}, res) => {
+    this.router.textOrCallbackQuery(/\/setChannel(?:\s+(?<channelId>.+))?/, provideChat, (req: RouterReqWithChat, res) => {
       const channelId = req.params.channelId;
       let requestedData: string = null;
 
@@ -582,7 +590,7 @@ class Chat {
       });
     });
 
-    this.router.callback_query(/\/(?<optionsType>options|channelOptions)\/(?<key>[^\/]+)\/(?<value>.+)/, provideChat, (req: RouterReq & {chat: IChatWithChannel}, res) => {
+    this.router.callback_query(/\/(?<optionsType>options|channelOptions)\/(?<key>[^\/]+)\/(?<value>.+)/, provideChat, (req: RouterReqWithChat, res) => {
       const {optionsType, key, value} = req.params;
       return promiseTry(() => {
         const changes: {[s: string]: any} = {};
@@ -640,7 +648,7 @@ class Chat {
       });
     });
 
-    this.router.textOrCallbackQuery(/\/options/, provideChat, (req: RouterReq & {chat: IChatWithChannel}, res) => {
+    this.router.textOrCallbackQuery(/\/options/, provideChat, (req: RouterReqWithChat, res) => {
       return promiseTry(() => {
         if (req.callback_query && !req.query.rel) {
           return this.main.bot.editMessageReplyMarkup(JSON.stringify({
@@ -661,7 +669,7 @@ class Chat {
       });
     });
 
-    this.router.textOrCallbackQuery(/\/online/, provideChannels, withChannels, (req: RouterReq & {channels: IChannel[]}, res) => {
+    this.router.textOrCallbackQuery(/\/online/, provideChannels, withChannels, (req: RouterReqWithChannels, res) => {
       return this.main.db.getStreamsByChannelIds(req.channels.map(channel => channel.id)).then((streams) => {
         // todo: fix me
       }).catch((err) => {
@@ -678,7 +686,7 @@ class Chat {
       });
     });
 
-    this.router.textOrCallbackQuery(/\/list/, provideChannels, withChannels, (req: RouterReq & {channels: IChannel[]}, res) => {
+    this.router.textOrCallbackQuery(/\/list/, provideChannels, withChannels, (req: RouterReqWithChannels, res) => {
       const serviceIds: string[] = [];
       const serviceIdChannels: {[s: string]: IChannel[]} = {};
       req.channels.forEach((channel: IChannel) => {
