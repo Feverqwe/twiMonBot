@@ -890,7 +890,7 @@ class Chat {
       {name: 'Check chats exists', method: 'sender.checkChatsExists'},
       {name: 'Check channels exists', method: 'checker.checkChannelsExists'},
       {name: 'Check channels', method: 'checker.check'},
-      {name: 'Clean channels & channels', method: 'checker.clean'},
+      {name: 'Clean chats & channels', method: 'checker.clean'},
       {name: 'Sender check', method: 'sender.check'},
     ];
 
