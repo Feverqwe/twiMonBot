@@ -21,6 +21,9 @@ export interface Chat {
   parentChatId: string|null
 }
 export interface IChat extends Chat, Sequelize.Model {}
+export interface IChatWithChannel extends IChat {
+  channel: IChat|null
+}
 class ChatModel extends Sequelize.Model {}
 
 export interface Channel {
@@ -264,7 +267,7 @@ class Db {
     });
   }
 
-  ensureChat(id: string) {
+  ensureChat(id: string): Promise<IChatWithChannel> {
     return ChatModel.findOrCreate({
       where: {id},
       //@ts-ignore
