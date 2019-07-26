@@ -33,7 +33,7 @@ class Sender {
   check = () => {
     return Promise.all([
       this.main.db.getDistinctChatIdStreamIdChatIds(),
-      this.main.db.getDistinctChangedMessagesChatIds(),
+      this.main.db.getDistinctMessagesChatIds(),
     ]).then((results) => {
       const chatIds = arrayUniq([].concat(...results));
       const newChatIds = chatIds.filter(chatId => !this.chatIdChatSender.has(chatId));

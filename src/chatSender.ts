@@ -1,5 +1,5 @@
 import Main from "./main";
-import {IChat, IMessage, IStreamWithChannel} from "./db";
+import {IChat, IMessage, IStream, IStreamWithChannel} from "./db";
 import promiseTry from "./tools/promiseTry";
 import ErrorWithCode from "./tools/errorWithCode";
 import promiseFinally from "./tools/promiseFinally";
@@ -131,12 +131,14 @@ class ChatSender {
   chat: IChat;
   private streamIds: string[]|null;
   private messages: IMessage[]|null;
-  private modeQueue: string[];
+  private methods: string[];
+  private methodIndex: number;
   constructor(main: Main, chat: IChat) {
     this.main = main;
     this.chat = chat;
 
-    this.modeQueue = ['send', 'update'];
+    this.methodIndex = 0;
+    this.methods = ['send', 'update', 'delete'];
 
     this.streamIds = null;
     this.messages = null;
@@ -150,25 +152,33 @@ class ChatSender {
     return this.main.db.getMessagesByChatId(this.chat.id, 10);
   }
 
+  getDeleteMessages() {
+    return this.main.db.getMessagesForDeleteByChatId(this.chat.id, 1);
+  }
+
   async next() {
-    const mode = this.modeQueue[0];
+    const method = this.methods[this.methodIndex];
     return promiseTry(() => {
-      switch (mode) {
+      switch (method) {
         case 'send': {
           return this.send();
         }
         case 'update': {
           return this.update();
         }
+        case 'delete': {
+          return this.delete();
+        }
         default: {
-          throw new Error('Unknown mode');
+          return true;
         }
       }
-    }).then((isDone: boolean|any) => {
+    }).then((isDone: boolean|void) => {
       if (isDone) {
-        this.modeQueue.shift();
+        this.methodIndex++;
       }
-      if (!this.modeQueue) {
+      if (this.methods.length === this.methodIndex) {
+        this.methodIndex = 0;
         return true;
       }
     });
@@ -223,9 +233,15 @@ class ChatSender {
     const message = this.messages.shift();
 
     return this.main.sender.provideStream(message.streamId, (stream) => {
-      const text = getMessageText(message.type, stream);
+      let text: string = null;
+      if (message.type === 'text') {
+        text = getDescription(stream);
+      } else {
+        text = getCaption(stream);
+      }
       if (message.text === text) return;
-      return this.updateMessage(message.type, message.chatId, message.id, text).catch((err: any) => {
+
+      return this.updateStreamMessage(message.type, message.chatId, message.id, stream, text).catch((err: any) => {
         if (err.code === 'ETELEGRAM' && /message is not modified/.test(err.response.body.description)) {
           return; // pass
         }
@@ -248,6 +264,44 @@ class ChatSender {
         throw err;
       }
     }).then(() => {});
+  }
+
+  async delete() {
+    const messages = await this.getDeleteMessages();
+
+    if (!messages.length) {
+      return true;
+    }
+
+    const message = this.messages.shift();
+
+    const minDeleteTime = new Date();
+    minDeleteTime.setHours(minDeleteTime.getHours() - 48);
+
+    return promiseTry(() => {
+      if (this.chat.isEnabledAutoClean && message.createdAt.getTime() > minDeleteTime.getTime()) {
+        return this.deleteStreamMessage(message.chatId, message.id);
+      }
+    }).catch((err) => {
+      if (err.code === 'ETELEGRAM') {
+        const body = err.response.body;
+
+        const isSkipError = [
+          /message to delete not found/,
+          /message can't be deleted/,
+          /group chat was upgraded/,
+        ].some(re => re.test(body.description));
+
+        if (!isSkipError) {
+          throw err;
+        } else {
+          // pass
+        }
+      }
+      throw err;
+    }).then(() => {
+      return this.main.db.deleteMessageById(message.id);
+    }, this.onSendMessageError).then(() => {});
   }
 
   onSendMessageError = (err: any) => {
@@ -291,7 +345,7 @@ class ChatSender {
         t: 'event'
       });
 
-      this.main.sender.log.write(`[${type}] ${this.chat.id} ${stream.channelId} ${stream.id}`);
+      this.main.sender.log.write(`[${type}] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`);
 
       return {
         type: 'text',
@@ -312,7 +366,7 @@ class ChatSender {
           t: 'event'
         });
 
-        this.main.sender.log.write(`[send photo as id] ${this.chat.id} ${stream.channelId} ${stream.id}`);
+        this.main.sender.log.write(`[send photo as id] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`);
 
         return {
           type: 'photo',
@@ -363,7 +417,7 @@ class ChatSender {
     return getValidPreviewUrl(previews).then(({url, contentType}) => {
       const caption = getCaption(stream);
       return this.main.bot.sendPhoto(this.chat.id, url, {caption}).then((message: TMessage) => {
-        this.main.sender.log.write(`[send photo as url] ${this.chat.id} ${stream.channelId} ${stream.id}`);
+        this.main.sender.log.write(`[send photo as url] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`);
         this.main.tracker.track(this.chat.id, {
           ec: 'bot',
           ea: 'sendPhoto',
@@ -383,7 +437,7 @@ class ChatSender {
             contentType = 'image/jpeg';
           }
           return this.main.bot.sendPhoto(this.chat.id, got.stream(url), {caption}, {contentType}).then((message: TMessage) => {
-            this.main.sender.log.write(`[send photo as file] ${this.chat.id} ${stream.channelId} ${stream.id}`);
+            this.main.sender.log.write(`[send photo as file] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`);
             this.main.tracker.track(this.chat.id, {
               ec: 'bot',
               ea: 'sendPhoto',
@@ -413,29 +467,46 @@ class ChatSender {
     });
   }
 
-  updateMessage(type: string, chatId: string, messageId: string, text: string) {
+  updateStreamMessage(type: string, chatId: string, messageId: string, stream: IStream, text: string) {
     switch (type) {
       case 'text': {
-        return this.updateMessageText(chatId, messageId, text);
+        return this.main.bot.editMessageText(text, {
+          chat_id: chatId,
+          message_id: messageId,
+          parse_mode: 'HTML'
+        }).then((isSuccess: boolean) => {
+          this.main.sender.log.write(`[update text] ${chatId} ${messageId} ${isSuccess}`);
+          this.main.tracker.track(chatId, {
+            ec: 'bot',
+            ea: 'updateText',
+            el: stream.channelId,
+            t: 'event'
+          });
+          return isSuccess;
+        });
       }
       case 'photo': {
-        return this.updateMessageCaption(chatId, messageId, text);
+        return this.main.bot.editMessageCaption(text, {
+          chat_id: chatId,
+          message_id: messageId
+        }).then((isSuccess: boolean) => {
+          this.main.sender.log.write(`[update caption] ${chatId} ${messageId} ${isSuccess}`);
+          this.main.tracker.track(chatId, {
+            ec: 'bot',
+            ea: 'updatePhoto',
+            el: stream.channelId,
+            t: 'event'
+          });
+          return isSuccess;
+        });
       }
     }
   }
 
-  updateMessageText(chatId: string, messageId: string, text: string) {
-    return this.main.bot.editMessageText(text, {
-      chat_id: chatId,
-      message_id: messageId,
-      parse_mode: 'HTML'
-    });
-  }
-
-  updateMessageCaption(chatId: string, messageId: string, caption: string) {
-    return this.main.bot.editMessageCaption(caption, {
-      chat_id: chatId,
-      message_id: messageId
+  deleteStreamMessage(chatId: string, messageId: string) {
+    return this.main.bot.deleteMessage(chatId, messageId).then((isSuccess: boolean) => {
+      this.main.sender.log.write(`[delete] ${chatId} ${messageId} ${isSuccess}`);
+      return isSuccess;
     });
   }
 }
@@ -497,17 +568,6 @@ function isBlockedError(err: any) {
     return isBlocked;
   }
   return false;
-}
-
-function getMessageText(type: string, stream: IStreamWithChannel) {
-  switch (type) {
-    case 'text': {
-      return getDescription(stream);
-    }
-    case 'photo': {
-      return getCaption(stream);
-    }
-  }
 }
 
 export default ChatSender;

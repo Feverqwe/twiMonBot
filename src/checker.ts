@@ -194,7 +194,6 @@ class Checker {
               if (pos !== -1) {
                 offlineStreamIds.splice(pos, 1);
                 removedStreamIds.push(id);
-                changedStreamIds.push(id);
               }
             }
           }

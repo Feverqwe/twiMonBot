@@ -506,7 +506,7 @@ class Db {
             transaction
           });
         }),
-        parallel(50, migratedStreamsIdCouple, ([fromId, id]) => {
+        parallel(10, migratedStreamsIdCouple, ([fromId, id]) => {
           return StreamModel.update({id}, {
             where: {id: fromId},
             transaction
@@ -612,11 +612,15 @@ class Db {
     return MessageModel.create(message);
   }
 
-  getDistinctChangedMessagesChatIds(): Promise<string[]> {
+  getDistinctMessagesChatIds(): Promise<string[]> {
+    const deletedBeforeDate = getDeletedBeforeDate();
     return this.sequelize.query(`
       SELECT DISTINCT chatId FROM messages
       INNER JOIN chats ON chatIdStreamId.chatId = chats.id
-      WHERE messages.hasChanges = 1 AND messages.streamId IS NOT NULL AND chats.sendTimeoutExpiresAt < "${new Date().toISOString()}"
+      WHERE (
+        (messages.hasChanges = 1 AND messages.streamId IS NOT NULL) OR 
+        (messages.streamId IS NULL AND messages.createdAt < "${deletedBeforeDate.toISOString()}")
+      ) AND chats.sendTimeoutExpiresAt < "${new Date().toISOString()}"
     `, { type: Sequelize.QueryTypes.SELECT}).then((results: {chatId: string}[]) => {
       return results.map(result => result.chatId);
     });
@@ -633,6 +637,18 @@ class Db {
     });
   }
 
+  getMessagesForDeleteByChatId(chatId: string, limit = 1): Promise<IMessage[]> {
+    const deletedBeforeDate = getDeletedBeforeDate();
+    return MessageModel.findAll({
+      where: {
+        chatId,
+        streamId: null,
+        createdAt: {[Op.lt]: deletedBeforeDate}
+      },
+      limit: limit,
+    });
+  }
+
   deleteMessageById(id: string) {
     return MessageModel.destroy({
       where: {id}
@@ -643,6 +659,12 @@ class Db {
 function bulk<T, F>(results: T[], callback: (results: T[]) => F):Promise<F[]> {
   const resultsParts = arrayByPart(results, 100);
   return Promise.all(resultsParts.map(results => callback(results)));
+}
+
+function getDeletedBeforeDate() {
+  const deletedBeforeDate = new Date();
+  deletedBeforeDate.setHours(deletedBeforeDate.getHours() - 24);
+  return deletedBeforeDate;
 }
 
 export default Db;
