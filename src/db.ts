@@ -122,7 +122,7 @@ class Db {
       id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
       channelId: {type: Sequelize.STRING(191), allowNull: true},
       isHidePreview: {type: Sequelize.BOOLEAN, defaultValue: false},
-      isMutedRecords: {type: Sequelize.BOOLEAN, defaultValue: false},
+      isMutedRecords: {type: Sequelize.BOOLEAN, defaultValue: true},
       isEnabledAutoClean: {type: Sequelize.BOOLEAN, defaultValue: true},
       isMuted: {type: Sequelize.BOOLEAN, defaultValue: false},
       sendTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
@@ -156,15 +156,12 @@ class Db {
       modelName: 'channel',
       tableName: 'channels',
       timestamps: true,
-      indexes: [/*{
+      indexes: [{
         name: 'syncTimeoutExpiresAt_idx',
         fields: ['syncTimeoutExpiresAt']
       }, {
         name: 'lastSyncAt_idx',
         fields: ['lastSyncAt']
-      }, */{
-        name: 'syncTimeoutExpiresAt_lastSyncAt_idx',
-        fields: ['syncTimeoutExpiresAt', 'lastSyncAt']
       }]
     });
 
@@ -677,6 +674,159 @@ class Db {
   deleteMessageById(id: string) {
     return MessageModel.destroy({
       where: {id}
+    });
+  }
+
+  migrate() {
+    const qi = this.sequelize.getQueryInterface();
+    return Promise.resolve().then(async () => {
+      const oldChats = await this.sequelize.query("SELECT * FROM chats", { type: Sequelize.QueryTypes.SELECT});
+      const oldChannels = await this.sequelize.query("SELECT * FROM channels", { type: Sequelize.QueryTypes.SELECT});
+      const oldStreams = await this.sequelize.query("SELECT * FROM streams", { type: Sequelize.QueryTypes.SELECT});
+      const oldMessages = await this.sequelize.query("SELECT * FROM liveMessages", { type: Sequelize.QueryTypes.SELECT});
+      const oldChatIdChannelIdList = await this.sequelize.query("SELECT * FROM chatIdChannelId", { type: Sequelize.QueryTypes.SELECT});
+      const oldChatIdStreamIdList = await this.sequelize.query("SELECT * FROM chatIdStreamId", { type: Sequelize.QueryTypes.SELECT});
+
+      await qi.dropTable('chatIdStreamId');
+      await qi.dropTable('chatIdChannelId');
+      await qi.dropTable('streams');
+      await qi.dropTable('channels');
+      await qi.dropTable('chats');
+
+      await this.sequelize.sync();
+
+      const chats = [];
+      for (const oldChat of oldChats) {
+        let options: {[s: string]: any} = {};
+        try {
+          options = JSON.parse(oldChat.optoins);
+        } catch (err) {
+          // pass
+        }
+
+        if (!oldChat.channelId) {
+          chats.push({
+            id: oldChat.id,
+            isHidePreview: !!options.hidePreview,
+            isMutedRecords: !options.unMuteRecords,
+            isEnabledAutoClean: options.autoClean !== false,
+            isMuted: !!options.mute,
+            createdAt: getCreatedAt(oldChat.insertTime)
+          });
+        } else {
+          await ChatModel.create({
+            id: oldChat.id,
+            isHidePreview: !!options.hidePreview,
+            isMutedRecords: !options.unMuteRecords,
+            isEnabledAutoClean: options.autoClean !== false,
+            isMuted: !!options.mute,
+            createdAt: getCreatedAt(oldChat.insertTime)
+          });
+
+          await ChatModel.create({
+            id: oldChat.channelId,
+            isHidePreview: !!options.hidePreview,
+            isEnabledAutoClean: options.autoClean !== false,
+            parentChatId: oldChat.id,
+            createdAt: getCreatedAt(oldChat.insertTime)
+          });
+
+          await ChatModel.upsert({
+            id: oldChat.id,
+            channelId: oldChat.channelId,
+          });
+        }
+      }
+      await bulk(chats, (chats) => {
+        return ChatModel.bulkCreate(chats);
+      });
+
+      const channels = [];
+      for (const oldChannel of oldChannels) {
+        channels.push({
+          id: oldChannel.id,
+          service: oldChannel.service,
+          title: oldChannel.title,
+          url: oldChannel.url,
+        });
+      }
+      await bulk(channels, (channels) => {
+        return ChannelModel.bulkCreate(channels);
+      });
+
+      const chatIdChannelIdList = [];
+      for (const oldChatIdChannelId of oldChatIdChannelIdList) {
+        chatIdChannelIdList.push({
+          chatId: oldChatIdChannelId.chatId,
+          channelId: oldChatIdChannelId.channelId,
+          createdAt: getCreatedAt(oldChatIdChannelId.insertTime)
+        });
+      }
+      await bulk(chatIdChannelIdList, (chatIdChannelIdList) => {
+        return ChatIdChannelIdModel.bulkCreate(chatIdChannelIdList);
+      });
+
+      const streams = [];
+      for (const oldStream of oldStreams) {
+        const data = JSON.parse(oldStream.data);
+
+        streams.push({
+          id: oldStream.id,
+          url: data.channel.url,
+          title: data.channel.name,
+          previews: data.preview,
+          viewers: data.viewers,
+          channelId: oldStream.channelId,
+          telegramPreviewFileId: oldStream.imageFileId || null,
+          isTimeout: (oldStream.isOffline || oldStream.isTimeout) && true,
+          timeoutFrom: new Date(),
+        });
+      }
+      await bulk(streams, (videos) => {
+        return StreamModel.bulkCreate(videos);
+      });
+
+      const chatIdStreamIdList = [];
+      for (const oldChatIdStreamId of oldChatIdStreamIdList) {
+        chatIdStreamIdList.push({
+          chatId: oldChatIdStreamId.chatId,
+          streamId: oldChatIdStreamId.streamId,
+        });
+      }
+      await bulk(chatIdStreamIdList, (chatIdStreamIdList) => {
+        return ChatIdStreamIdModel.bulkCreate(chatIdStreamIdList);
+      });
+
+      const messages = [];
+      for (const oldMessage of oldMessages) {
+        messages.push({
+          id: oldMessage.id,
+          chatId: oldMessage.chatId,
+          streamId: oldMessage.streamId,
+          type: oldMessage.type === 'streamPhoto' ? 'photo' : 'text',
+          text: '',
+          hasChanges: true,
+        });
+      }
+      await bulk(messages, (messages) => {
+        return MessageModel.bulkCreate(messages);
+      });
+
+      debug('Migrate complete!');
+      process.exit(0);
+
+      function getCreatedAt(time: number) {
+        let createdAt = null;
+        try {
+          createdAt = new Date(time);
+          if (!createdAt.getTime()) {
+            throw new Error('Incorrect time');
+          }
+        } catch (err) {
+          createdAt = new Date();
+        }
+        return createdAt;
+      }
     });
   }
 }
