@@ -699,6 +699,8 @@ class Db {
 
       await qi.dropTable('chatIdStreamId');
       await qi.dropTable('chatIdChannelId');
+      await qi.dropTable('botMessages');
+      await qi.dropTable('liveMessages');
       await qi.dropTable('streams');
       await qi.dropTable('channels');
       await qi.dropTable('chats');
