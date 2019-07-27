@@ -375,7 +375,7 @@ class ChatSender {
           message_id: messageId,
           parse_mode: 'HTML'
         }).then((message: TMessage|boolean) => {
-          this.main.sender.log.write(`[update text] ${chatId} ${messageId} ${!!message}`);
+          this.main.sender.log.write(`[update text] ${chatId} ${messageId} ${stream.channelId} ${stream.id}`);
           this.main.tracker.track(chatId, {
             ec: 'bot',
             ea: 'updateText',
@@ -390,7 +390,7 @@ class ChatSender {
           chat_id: chatId,
           message_id: messageId
         }).then((message: TMessage|boolean) => {
-          this.main.sender.log.write(`[update caption] ${chatId} ${messageId} ${!!message}`);
+          this.main.sender.log.write(`[update caption] ${chatId} ${messageId} ${stream.channelId} ${stream.id}`);
           this.main.tracker.track(chatId, {
             ec: 'bot',
             ea: 'updatePhoto',
@@ -405,7 +405,7 @@ class ChatSender {
 
   deleteStreamMessage(chatId: string, messageId: string) {
     return this.main.bot.deleteMessage(chatId, messageId).then((isSuccess: boolean) => {
-      this.main.sender.log.write(`[delete] ${chatId} ${messageId} ${isSuccess}`);
+      this.main.sender.log.write(`[delete] ${chatId} ${messageId}`);
       return isSuccess;
     });
   }
