@@ -355,7 +355,9 @@ class Chat {
               'CHANNEL_BY_ID_IS_NOT_FOUND', 'CHANNEL_BROADCASTS_IS_NOT_FOUND'
             ].includes(err.code)) {
               isResolved = true;
-              message = this.main.locale.getMessage('channelIsNotFound').replace('{channelName}', query);
+              message = this.main.locale.getMessage('channelIsNotFound')
+                .replace('{channelName}', query)
+                .replace('{serviceName}', service.name);
             } else
             if (err.code === 'CHANNELS_LIMIT') {
               isResolved = true;
@@ -416,7 +418,11 @@ class Chat {
           return {channel, deleted: !!count};
         });
       }).then(({channel, deleted}) => {
-        return this.main.bot.editMessageText(this.main.locale.getMessage('channelDeleted').replace('{channelName}', channel.title), {
+        const service = this.main.getServiceById(channel.service);
+        return this.main.bot.editMessageText(this.main.locale.getMessage('channelDeleted')
+          .replace('{channelName}', channel.title)
+          .replace('{serviceName}', service.name)
+          , {
           chat_id: req.chatId,
           message_id: req.messageId
         });
