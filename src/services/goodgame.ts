@@ -81,7 +81,7 @@ class Goodgame implements ServiceInterface {
     const resultStreams:ServiceStream[] = [];
     const skippedChannelIds:string[] = [];
     const removedChannelIds:string[] = [];
-    return parallel(2, arrayByPart(channelIds, 25), (channelIds) => {
+    return parallel(10, arrayByPart(channelIds, 25), (channelIds) => {
       return withRetry({count: 3, timeout: 250}, () => {
         return this.gotWithProxy('https://api2.goodgame.ru/v2/streams', {
           query: {

@@ -66,7 +66,7 @@ class Mixer implements ServiceInterface {
     const resultStreams: ServiceStream[] = [];
     const skippedChannelIds: string[] = [];
     const removedChannelIds: string[] = [];
-    return parallel(2, channelIds, (channelId) => {
+    return parallel(10, channelIds, (channelId) => {
       return withRetry({count: 3, timeout: 250}, () => {
         return got('https://mixer.com/api/v1/channels/' + encodeURIComponent(channelId), {
           headers: {
