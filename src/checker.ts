@@ -260,7 +260,7 @@ class Checker {
             } else
             if (updatedStreamIds.includes(id)) {
               if (changedStreamIds.includes(id)) {
-                this.log.write(`[changed] ${stream.channelId} ${stream.id}`);
+                this.log.write(`[online] ${stream.channelId} ${stream.id}`);
               } else {
                 // pass
               }
