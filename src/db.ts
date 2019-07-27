@@ -157,11 +157,14 @@ class Db {
       tableName: 'channels',
       timestamps: true,
       indexes: [{
+        name: 'service_idx',
+        fields: ['service']
+      }, {
         name: 'syncTimeoutExpiresAt_idx',
         fields: ['syncTimeoutExpiresAt']
       }, {
-        name: 'lastSyncAt_idx',
-        fields: ['lastSyncAt']
+        name: 'service_syncTimeoutExpiresAt_lastSyncAt_idx',
+        fields: ['service', 'syncTimeoutExpiresAt', 'lastSyncAt']
       }]
     });
 
@@ -175,15 +178,18 @@ class Db {
       timestamps: true,
       updatedAt: false,
       indexes: [{
+        name: 'chatId_channelId_UNIQUE',
+        unique: true,
+        fields: ['chatId', 'channelId']
+      }, {
         name: 'chatId_idx',
         fields: ['chatId']
       }, {
         name: 'channelId_idx',
         fields: ['channelId']
       }, {
-        name: 'chatId_channelId_UNIQUE',
-        unique: true,
-        fields: ['chatId', 'channelId']
+        name: 'createdAt_idx',
+        fields: ['createdAt']
       }]
     });
     ChatIdChannelIdModel.belongsTo(ChatModel, {foreignKey: 'chatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
@@ -250,8 +256,11 @@ class Db {
       tableName: 'messages',
       timestamps: true,
       indexes: [{
-        name: 'hasChanges_idx',
-        fields: ['hasChanges']
+        name: 'chatId_hasChanges_streamId_idx',
+        fields: ['chatId', 'hasChanges', 'streamId']
+      }, {
+        name: 'chatId_hasChanges_createdAt_idx',
+        fields: ['chatId', 'hasChanges', 'createdAt']
       }]
     });
     MessageModel.belongsTo(ChatModel, {foreignKey: 'chatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
@@ -684,6 +693,7 @@ class Db {
       const oldChannels = await this.sequelize.query("SELECT * FROM channels", { type: Sequelize.QueryTypes.SELECT});
       const oldStreams = await this.sequelize.query("SELECT * FROM streams", { type: Sequelize.QueryTypes.SELECT});
       const oldMessages = await this.sequelize.query("SELECT * FROM liveMessages", { type: Sequelize.QueryTypes.SELECT});
+      const oldBotMessages = await this.sequelize.query("SELECT * FROM botMessages", { type: Sequelize.QueryTypes.SELECT});
       const oldChatIdChannelIdList = await this.sequelize.query("SELECT * FROM chatIdChannelId", { type: Sequelize.QueryTypes.SELECT});
       const oldChatIdStreamIdList = await this.sequelize.query("SELECT * FROM chatIdStreamId", { type: Sequelize.QueryTypes.SELECT});
 
@@ -797,8 +807,17 @@ class Db {
         return ChatIdStreamIdModel.bulkCreate(chatIdStreamIdList);
       });
 
+      const messageIdMessage = new Map();
+      for (const oldBotMessage of oldBotMessages) {
+        messageIdMessage.set(oldBotMessage.msgId, {
+          createdAt: getCreatedAt(oldBotMessage.insertTime)
+        });
+      }
+
       const messages = [];
       for (const oldMessage of oldMessages) {
+        const botMessage = messageIdMessage.get(oldMessage.id);
+        const createdAt = botMessage && botMessage.createdAt || null;
         messages.push({
           id: oldMessage.id,
           chatId: oldMessage.chatId,
@@ -806,6 +825,7 @@ class Db {
           type: oldMessage.type === 'streamPhoto' ? 'photo' : 'text',
           text: '',
           hasChanges: true,
+          createdAt: createdAt,
         });
       }
       await bulk(messages, (messages) => {
