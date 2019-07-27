@@ -391,33 +391,38 @@ class Db {
     });
   }
 
-  getChatIdChannelIdChatIdCount(): Promise<{
-    chatCount: number, service: string
-  }[]> {
+  getChatIdChannelIdChatIdCount(): Promise<number> {
     return this.sequelize.query(`
-      SELECT COUNT(DISTINCT(chatId)) as chatCount, channels.service as service FROM chatIdChannelId
-      INNER JOIN channels ON channelId = channels.id
-      GROUP BY channels.service
-    `, {type: Sequelize.QueryTypes.SELECT});
+      SELECT COUNT(DISTINCT(chatId)) as chatCount FROM chatIdChannelId
+    `, {type: Sequelize.QueryTypes.SELECT}).then((results: {chatCount: number}[]) => {
+      const result = results[0];
+      if (!result) {
+        return 0;
+      }
+      return result.chatCount;
+    });
   }
 
-  getChatIdChannelIdChannelIdCount(): Promise<{
-    channelCount: number, service: string
-  }[]> {
+  getChatIdChannelIdChannelIdCount(): Promise<number> {
     return this.sequelize.query(`
-      SELECT COUNT(DISTINCT(channelId)) as channelCount, channels.service as service FROM chatIdChannelId
-      INNER JOIN channels ON channelId = channels.id
-      GROUP BY channels.service
-    `, {type: Sequelize.QueryTypes.SELECT});
+      SELECT COUNT(DISTINCT(channelId)) as channelCount FROM chatIdChannelId
+    `, {type: Sequelize.QueryTypes.SELECT}).then((results: {channelCount: number}[]) => {
+      const result = results[0];
+      if (!result) {
+        return 0;
+      }
+      return result.channelCount;
+    });
   }
 
-  getChatIdChannelIdTop10(): Promise<{
-    channelId: string, chatCount: number, service: string, title: string
+  getChatIdChannelIdTop10ByServiceId(serviceId: string): Promise<{
+    channelId: string, service: string, chatCount: number, title: string
   }[]> {
     return this.sequelize.query(`
       SELECT channelId, COUNT(chatId) as chatCount, channels.service as service, channels.title as title FROM chatIdChannelId
       INNER JOIN channels ON channelId = channels.id
-      GROUP BY channelId, channels.service ORDER BY COUNT(chatId) DESC LIMIT 10
+      WHERE channels.service = "${serviceId}"
+      GROUP BY channelId ORDER BY COUNT(chatId) DESC LIMIT 10
     `, {type: Sequelize.QueryTypes.SELECT});
   }
 

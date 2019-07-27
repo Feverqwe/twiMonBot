@@ -155,35 +155,31 @@ class Chat {
       return Promise.all([
         this.main.db.getChatIdChannelIdChatIdCount(),
         this.main.db.getChatIdChannelIdChannelIdCount(),
-        this.main.db.getChatIdChannelIdTop10(),
-      ]).then(([serviceChatCountList, serviceChannelCountList, serviceChannelChatCountList]) => {
+        Promise.all(this.main.services.map((service) => {
+          return this.main.db.getChatIdChannelIdTop10ByServiceId(service.id);
+        })),
+      ]).then(([chatCount, channelCount, serviceTopChannelsList]) => {
         const lines = [];
 
-        const userCount = serviceChatCountList.reduce((sum, {chatCount}) => sum + chatCount, 0);
-        const channelCount = serviceChannelCountList.reduce((sum, {channelCount}) => sum + channelCount, 0);
-
-        lines.push(this.main.locale.getMessage('users').replace('{count}', '' + userCount));
+        lines.push(this.main.locale.getMessage('users').replace('{count}', '' + chatCount));
         lines.push(this.main.locale.getMessage('channels').replace('{count}', '' + channelCount));
 
-        const serviceIdTop10: Map<string, [string, number][]> = new Map();
-        serviceChannelChatCountList.forEach(({title, service, chatCount}) => {
-          const top10 = ensureMap(serviceIdTop10, service, []);
-          top10.push([title, chatCount]);
+        serviceTopChannelsList.sort((aa, bb) => {
+          const a = aa.length;
+          const b = bb.length;
+          return a === b ? 0 : a > b ? -1 : 1;
         });
 
-        serviceIdTop10.forEach((top10) => {
-          top10.sort(([,a], [,b]) => a === b ? 0 : a > b ? -1 : 1);
-        });
-
-        serviceIdTop10.forEach((channels, serviceId) => {
-          const service = this.main.getServiceById(serviceId);
-          const name = service.name;
-          lines.push('');
-          lines.push(`${name}:`);
-
-          channels.forEach(([title, chatCount], index) => {
-            lines.push((index + 1) + '. ' + title);
-          });
+        serviceTopChannelsList.forEach((serviceTopChannels) => {
+          if (serviceTopChannels.length) {
+            const service = this.main.getServiceById(serviceTopChannels[0].service);
+            const name = service.name;
+            lines.push('');
+            lines.push(`${name}:`);
+            serviceTopChannels.forEach(({title, chatCount}, index) => {
+              lines.push((index + 1) + '. ' + title);
+            });
+          }
         });
 
         return this.main.bot.sendMessage(req.chatId, lines.join('\n'), {
