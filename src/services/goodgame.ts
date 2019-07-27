@@ -215,7 +215,7 @@ class Goodgame implements ServiceInterface {
     return channelId;
   }
 
-  gotWithProxy(url: string, options: object) {
+  gotWithProxy = (url: string, options: object)  => {
     return got(url, options).catch((err: any) => {
       if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.name === 'TimeoutError') {
         if (this.main.proxy.hasOnline()) {
@@ -224,7 +224,7 @@ class Goodgame implements ServiceInterface {
       }
       throw err;
     });
-  }
+  };
 }
 
 export default Goodgame;
