@@ -60,10 +60,12 @@ class Proxy {
       this.online.push(agent);
     });
 
-    const intervalMinutes = this.main.config.emitCheckProxyEveryHours * 60;
-    intervalMinutes && everyMinutes(intervalMinutes, () => {
-      if (intervalMinutes * 60 > getNow() - this.lastTimeUsed) {
-        this.check();
+    const intervalHours = this.main.config.emitCheckProxyEveryHours;
+    intervalHours && everyMinutes(intervalHours * 60, () => {
+      if (intervalHours * 60 * 60 > getNow() - this.lastTimeUsed) {
+        this.check().catch((err) => {
+          debug('check error', err);
+        });
       }
     });
 
