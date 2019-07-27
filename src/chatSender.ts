@@ -114,13 +114,16 @@ class ChatSender {
       } else {
         text = getCaption(stream);
       }
-      if (message.text === text) return;
 
-      return this.updateStreamMessage(message.type, message.chatId, message.id, stream, text).catch((err: any) => {
-        if (err.code === 'ETELEGRAM' && /message is not modified/.test(err.response.body.description)) {
-          return; // pass
-        }
-        throw err;
+      return promiseTry(() => {
+        if (message.text === text) return;
+
+        return this.updateStreamMessage(message.type, message.chatId, message.id, stream, text).catch((err: any) => {
+          if (err.code === 'ETELEGRAM' && /message is not modified/.test(err.response.body.description)) {
+            return; // pass
+          }
+          throw err;
+        });
       }).then(() => {
         return message.update({
           text,
