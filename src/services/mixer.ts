@@ -38,9 +38,9 @@ const ExtendedChannel:(any: any) => ExtendedChannel = struct(struct.partial({
   name: 'string',
   online: 'boolean',
   viewersCurrent: 'number',
-  type: struct.optional(struct.partial({
+  type: struct.optional(struct.union([struct.partial({
     name: 'string'
-  })),
+  }), null])),
   createdAt: 'string'
 }));
 
