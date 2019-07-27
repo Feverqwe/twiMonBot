@@ -80,11 +80,16 @@ class Checker {
   }
 
   check = async () => {
+    let newThreadCount = 0;
     this.main.services.forEach((service) => {
       if (!this.serviceThread.has(service)) {
         this.serviceThread.set(service, this.runThread(service));
+        newThreadCount++;
       }
     });
+    return {
+      newThreadCount
+    };
   };
 
   serviceThread = new Map();

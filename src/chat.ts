@@ -713,7 +713,12 @@ class Chat {
             return this.main.bot.editMessageText(message, Object.assign(options, {
               chat_id: req.chatId,
               message_id: req.messageId,
-            }));
+            })).catch((err: any) => {
+              if (err.code === 'ETELEGRAM' && /message is not modified/.test(err.response.body.description)) {
+                return; // pass
+              }
+              throw err;
+            });
           } else {
             return this.main.bot.sendMessage(req.chatId, message, options);
           }
