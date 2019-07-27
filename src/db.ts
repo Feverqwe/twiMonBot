@@ -481,7 +481,7 @@ class Db {
 
   getServiceChannelsForSync(serviceId: string, limit: number): Promise<IChannel[]> {
     const date = new Date();
-    date.setMinutes(date.getMinutes() - this.main.config.checkChannelIfLastSyncLessThenMinutes);
+    date.setSeconds(date.getSeconds() - this.main.config.checkChannelIfLastSyncLessThenMinutes * 60);
     return ChannelModel.findAll({
       where: {
         service: serviceId,
