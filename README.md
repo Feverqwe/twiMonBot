@@ -8,4 +8,4 @@ Run
 ---
 Use node-twiMon_example as the service for init.d or enter in console:
 
-    node index.js
+    node dist/main.js

@@ -1,17 +1,8 @@
-/home/user/twiMonBot/log/app.log {
-        rotate 14
-        weekly
-        copytruncate
-        compress
-        missingok
-        notifempty
-}
-
-/home/user/twiMonBot/log/error.log {
-        rotate 14
-        weekly
-        copytruncate
-        compress
-        missingok
-        notifempty
+/home/user/twiMonBot/log/*.log {
+     rotate 64
+     daily
+     copytruncate
+     compress
+     missingok
+     notifempty
 }
