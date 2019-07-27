@@ -151,7 +151,7 @@ class ChatSender {
       return true;
     }
 
-    const message = this.messages.shift();
+    const message = messages.shift();
 
     const minDeleteTime = new Date();
     minDeleteTime.setHours(minDeleteTime.getHours() - 48);
