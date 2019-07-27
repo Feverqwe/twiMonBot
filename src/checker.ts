@@ -156,10 +156,16 @@ class Checker {
           const stream = streamIdStream.get(id);
           const prevStream = existsStreamIdStream.get(id);
 
-          const hasChanges = ['title', 'game'].some((field) => {
-            // @ts-ignore
-            return stream[field] !== prevStream[field];
-          });
+          let hasChanges = false;
+          if (prevStream.isOffline || prevStream.isTimeout) {
+            hasChanges = true;
+          }
+          if (!hasChanges) {
+            hasChanges = ['title', 'game'].some((field) => {
+              // @ts-ignore
+              return stream[field] !== prevStream[field];
+            });
+          }
           if (hasChanges) {
             changedStreamIds.push(id);
           }

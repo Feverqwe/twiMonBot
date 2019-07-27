@@ -86,7 +86,7 @@ class Router {
       commands.push('');
     }
     commands.forEach((command) => {
-      const req = new RouterReq(event, message);
+      const req = new RouterReq(event, message || callbackQuery);
       const res = new RouterRes(this.main.bot, req);
       let index = 0;
       const next = () => {

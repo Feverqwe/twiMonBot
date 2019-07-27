@@ -201,7 +201,7 @@ class Chat {
           liveTime = JSON.parse(fs.readFileSync('./liveTime.json', 'utf8')).message;
         } catch (err) {
           debug('Read liveTime.json error! %o', err);
-          liveTime = '';
+          liveTime = 'Here is nothing yet...';
         }
       }
 

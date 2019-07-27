@@ -537,6 +537,11 @@ class Db {
 
       await bulk(syncStreams, (syncStreams) => {
         return StreamModel.bulkCreate(syncStreams, {
+          updateOnDuplicate: [
+            'url', 'title', 'game', 'isRecord', 'previews',
+            'viewers', 'channelId', 'telegramPreviewFileId',
+            'isOffline', 'offlineFrom', 'isTimeout', 'timeoutFrom'
+          ],
           transaction
         });
       });
@@ -650,7 +655,7 @@ class Db {
     const deletedBeforeDate = getDeletedBeforeDate();
     return this.sequelize.query(`
       SELECT DISTINCT chatId FROM messages
-      INNER JOIN chats ON chatIdStreamId.chatId = chats.id
+      INNER JOIN chats ON messages.chatId = chats.id
       WHERE (
         (messages.hasChanges = 1 AND messages.streamId IS NOT NULL) OR 
         (messages.streamId IS NULL AND messages.createdAt < "${deletedBeforeDate.toISOString()}")

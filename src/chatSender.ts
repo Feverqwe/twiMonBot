@@ -309,7 +309,7 @@ class ChatSender {
   }
 
   ensureTelegramPreviewFileId(stream: IStreamWithChannel): Promise<SentMessage> {
-    const service = this.main.getServiceById(stream.id);
+    const service = this.main.getServiceById(stream.channel.service);
     const previews = !Array.isArray(stream.previews) ? JSON.parse(stream.previews) : stream.previews;
     return getValidPreviewUrl(previews, service).then(({url, contentType, agent}) => {
       const caption = getCaption(stream);
