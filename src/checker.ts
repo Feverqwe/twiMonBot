@@ -256,7 +256,7 @@ class Checker {
             } else
             if (migratedStreamsIds.includes(id)) {
               const fromId = migratedStreamToIdFromId.get(id);
-              this.log.write(`[${fromId} > ${id}] ${stream.channelId} ${stream.id}`);
+              this.log.write(`[migrate ${fromId} > ${id}] ${stream.channelId} ${stream.id}`);
             } else
             if (updatedStreamIds.includes(id)) {
               if (changedStreamIds.includes(id)) {
