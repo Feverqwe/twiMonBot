@@ -821,7 +821,7 @@ class Db {
       const messages = [];
       for (const oldMessage of oldMessages) {
         const botMessage = messageIdMessage.get(oldMessage.id);
-        const createdAt = botMessage && botMessage.createdAt || null;
+        const createdAt = botMessage && botMessage.createdAt || new Date();
         messages.push({
           id: oldMessage.id,
           chatId: oldMessage.chatId,
