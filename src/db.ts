@@ -43,12 +43,14 @@ export interface IChannel extends Channel, Sequelize.Model {}
 class ChannelModel extends Sequelize.Model {}
 
 export interface ChatIdStreamId {
-  id?: null,
+  id?: number,
   chatId: string,
   streamId: string,
   createdAt?: Date,
 }
-export interface IChatIdStreamId extends ChatIdStreamId, Sequelize.Model {}
+export interface IChatIdStreamId extends ChatIdStreamId, Sequelize.Model {
+  id: number
+}
 class ChatIdStreamIdModel extends Sequelize.Model {}
 
 export interface Stream {
@@ -92,7 +94,9 @@ export interface Message {
   hasChanges?: boolean,
   createdAt?: Date,
 }
-export interface IMessage extends Message, Sequelize.Model {}
+export interface IMessage extends Message, Sequelize.Model {
+  _id: number,
+}
 class MessageModel extends Sequelize.Model {}
 
 class Db {
