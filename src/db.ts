@@ -168,6 +168,9 @@ class Db {
         name: 'service_idx',
         fields: ['service']
       }, {
+        name: 'lastSyncAt_idx',
+        fields: ['lastSyncAt']
+      }, {
         name: 'syncTimeoutExpiresAt_idx',
         fields: ['syncTimeoutExpiresAt']
       }, {
@@ -246,6 +249,9 @@ class Db {
       }, {
         name: 'chatId_idx',
         fields: ['chatId']
+      }, {
+        name: 'createdAt_idx',
+        fields: ['createdAt']
       }]
     });
     ChatIdStreamIdModel.belongsTo(ChatModel, {foreignKey: 'chatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
@@ -268,6 +274,9 @@ class Db {
         name: 'id_chatId_UNIQUE',
         unique: true,
         fields: ['id', 'chatId']
+      }, {
+        name: 'createdAt_idx',
+        fields: ['createdAt']
       }, {
         name: 'chatId_hasChanges_streamId_idx',
         fields: ['chatId', 'hasChanges', 'streamId']
@@ -479,7 +488,8 @@ class Db {
         syncTimeoutExpiresAt: {[Op.lt]: new Date()},
         lastSyncAt: {[Op.lt]: date},
       },
-      limit: limit
+      order: ['lastSyncAt'],
+      limit: limit,
     });
   }
 
@@ -622,6 +632,7 @@ class Db {
     return ChatIdStreamIdModel.findAll({
       where: {chatId},
       attributes: ['streamId'],
+      order: ['createdAt'],
       limit: limit,
     }).then((results: {streamId: string}[]) => {
       return results.map(chatIdStreamId => chatIdStreamId.streamId);
@@ -687,6 +698,7 @@ class Db {
         hasChanges: true,
         streamId: {[Op.not]: null}
       },
+      order: ['createdAt'],
       limit: limit,
     });
   }
@@ -699,6 +711,7 @@ class Db {
         streamId: null,
         createdAt: {[Op.lt]: deletedBeforeDate}
       },
+      order: ['createdAt'],
       limit: limit,
     });
   }
