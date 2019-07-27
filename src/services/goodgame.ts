@@ -93,6 +93,7 @@ class Goodgame implements ServiceInterface {
             'Accept': 'application/vnd.goodgame.v2+json'
           },
           json: true,
+          timeout: 5 * 1000,
         });
       }).then(({body}) => {
         const streams = (Streams(body) as Streams)._embedded.streams;
@@ -179,6 +180,7 @@ class Goodgame implements ServiceInterface {
         'Accept': 'application/vnd.goodgame.v2+json'
       },
       json: true,
+      timeout: 5 * 1000,
     }).then(({body}: {body: object}) => {
       const stream = Stream(body);
       const id = stream.key.toLowerCase();
