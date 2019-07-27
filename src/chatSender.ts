@@ -374,30 +374,30 @@ class ChatSender {
           chat_id: chatId,
           message_id: messageId,
           parse_mode: 'HTML'
-        }).then((isSuccess: boolean) => {
-          this.main.sender.log.write(`[update text] ${chatId} ${messageId} ${isSuccess}`);
+        }).then((message: TMessage|boolean) => {
+          this.main.sender.log.write(`[update text] ${chatId} ${messageId} ${!!message}`);
           this.main.tracker.track(chatId, {
             ec: 'bot',
             ea: 'updateText',
             el: stream.channelId,
             t: 'event'
           });
-          return isSuccess;
+          return message;
         });
       }
       case 'photo': {
         return this.main.bot.editMessageCaption(text, {
           chat_id: chatId,
           message_id: messageId
-        }).then((isSuccess: boolean) => {
-          this.main.sender.log.write(`[update caption] ${chatId} ${messageId} ${isSuccess}`);
+        }).then((message: TMessage|boolean) => {
+          this.main.sender.log.write(`[update caption] ${chatId} ${messageId} ${!!message}`);
           this.main.tracker.track(chatId, {
             ec: 'bot',
             ea: 'updatePhoto',
             el: stream.channelId,
             t: 'event'
           });
-          return isSuccess;
+          return message;
         });
       }
     }
