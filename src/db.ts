@@ -6,6 +6,7 @@ import parallel from "./tools/parallel";
 import {ServiceChannel, ServiceInterface} from "./checker";
 // @ts-ignore
 import * as Sequelize from "sequelize";
+import {getCaption, getDescription} from "./tools/streamToString";
 
 const Sequelize = require('sequelize');
 const debug = require('debug')('app:db');
@@ -694,7 +695,7 @@ class Db {
       const oldChats = await this.sequelize.query("SELECT * FROM chats", { type: Sequelize.QueryTypes.SELECT});
       const oldChannels = await this.sequelize.query("SELECT * FROM channels", { type: Sequelize.QueryTypes.SELECT});
       const oldStreams = await this.sequelize.query("SELECT * FROM streams", { type: Sequelize.QueryTypes.SELECT});
-      const oldMessages = await this.sequelize.query("SELECT * FROM liveMessages", { type: Sequelize.QueryTypes.SELECT});
+      const oldLiveMessages = await this.sequelize.query("SELECT * FROM liveMessages", { type: Sequelize.QueryTypes.SELECT});
       const oldBotMessages = await this.sequelize.query("SELECT * FROM botMessages", { type: Sequelize.QueryTypes.SELECT});
       const oldChatIdChannelIdList = await this.sequelize.query("SELECT * FROM chatIdChannelId", { type: Sequelize.QueryTypes.SELECT});
       const oldChatIdStreamIdList = await this.sequelize.query("SELECT * FROM chatIdStreamId", { type: Sequelize.QueryTypes.SELECT});
@@ -755,14 +756,23 @@ class Db {
         return ChatModel.bulkCreate(chats);
       });
 
+      const channelIdChannel = new Map();
       const channels = [];
       for (const oldChannel of oldChannels) {
-        channels.push({
+        if (!this.main.getServiceById(oldChannel.service)) {
+          debug('Service skip', oldChannel.service);
+          continue;
+        }
+
+        const channel = {
           id: oldChannel.id,
           service: oldChannel.service,
           title: oldChannel.title,
           url: oldChannel.url,
-        });
+        };
+
+        channelIdChannel.set(oldChannel.id, channel);
+        channels.push(channel);
       }
       await bulk(channels, (channels) => {
         return ChannelModel.bulkCreate(channels);
@@ -770,6 +780,8 @@ class Db {
 
       const chatIdChannelIdList = [];
       for (const oldChatIdChannelId of oldChatIdChannelIdList) {
+        if (!channelIdChannel.has(oldChatIdChannelId.channelId)) continue;
+
         chatIdChannelIdList.push({
           chatId: oldChatIdChannelId.chatId,
           channelId: oldChatIdChannelId.channelId,
@@ -780,23 +792,31 @@ class Db {
         return ChatIdChannelIdModel.bulkCreate(chatIdChannelIdList);
       });
 
+      const streamIdStream = new Map();
       const streams = [];
       for (const oldStream of oldStreams) {
+        if (!channelIdChannel.has(oldStream.channelId)) continue;
+
         const data = JSON.parse(oldStream.data);
 
-        streams.push({
+        const stream = {
           id: oldStream.id,
           url: data.channel.url,
-          title: data.channel.name,
-          game: data.game,
+          title: data.channel.status,
+          game: data.game ? data.game : null,
           isRecord: data.isRecord,
           previews: data.preview,
           viewers: data.viewers < 0 ? null : data.viewers,
           channelId: oldStream.channelId,
           telegramPreviewFileId: oldStream.imageFileId || null,
-          isTimeout: (oldStream.isOffline || oldStream.isTimeout) && true,
-          timeoutFrom: new Date(),
-        });
+          isOffline: oldStream.isOffline,
+          offlineFrom: oldStream.isOffline ? new Date() : null,
+          isTimeout: oldStream.isTimeout,
+          timeoutFrom: oldStream.isTimeout ? new Date() : null,
+        };
+
+        streamIdStream.set(stream.id, stream);
+        streams.push(stream);
       }
       await bulk(streams, (videos) => {
         return StreamModel.bulkCreate(videos);
@@ -815,25 +835,52 @@ class Db {
 
       const messageIdMessage = new Map();
       for (const oldBotMessage of oldBotMessages) {
+        if (oldBotMessage.streamId !== null) continue;
+
         messageIdMessage.set(oldBotMessage.msgId, {
-          createdAt: getCreatedAt(oldBotMessage.insertTime)
+          id: oldBotMessage.msgId,
+          chatId: oldBotMessage.msgChatId,
+          streamId: null,
+          type: 'photo',
+          text: '',
+          hasChanges: false,
+          createdAt: getCreatedAt(oldBotMessage.insertTime * 1000),
         });
       }
 
       const messages = [];
-      for (const oldMessage of oldMessages) {
+      for (const oldMessage of oldLiveMessages) {
         const botMessage = messageIdMessage.get(oldMessage.id);
-        const createdAt = botMessage && botMessage.createdAt || new Date();
-        messages.push({
+        messageIdMessage.delete(oldMessage.id);
+
+        let createdAt = botMessage && botMessage.createdAt;
+        if (!createdAt || createdAt.getTime() < new Date('1990-01-01').getTime()) {
+          createdAt = new Date();
+        }
+
+        const message = {
           id: oldMessage.id,
-          chatId: oldMessage.chatId,
+          chatId: oldMessage.chat_id,
           streamId: oldMessage.streamId,
           type: oldMessage.type === 'streamPhoto' ? 'photo' : 'text',
           text: '',
-          hasChanges: true,
+          hasChanges: false,
           createdAt: createdAt,
-        });
+        };
+
+        const stream = streamIdStream.get(message.streamId);
+        const channel = channelIdChannel.get(stream.channelId);
+        const streamWithChannel = Object.assign({}, stream, {channel});
+
+        if (message.type === 'text') {
+          message.text = getDescription(streamWithChannel);
+        } else {
+          message.text = getCaption(streamWithChannel);
+        }
+
+        messages.push(message);
       }
+      messages.push(...Array.from(messageIdMessage.values()));
       await bulk(messages, (messages) => {
         return MessageModel.bulkCreate(messages);
       });

@@ -69,15 +69,15 @@ class Main extends Events {
     this.locale = new Locale();
     this.db = new Db(this);
 
-    if (process.argv.includes('--migrate')) {
-      return this.db.migrate();
-    }
-
     this.twitch = new Twitch(this);
     this.youtube = new Youtube(this);
     this.mixer = new Mixer(this);
     this.goodgame = new Goodgame(this);
     this.services = [this.twitch, this.youtube, this.mixer, this.goodgame];
+
+    if (process.argv.includes('--migrate')) {
+      return this.db.migrate();
+    }
 
     this.tracker = new Tracker(this);
     this.sender = new Sender(this);
