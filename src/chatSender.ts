@@ -131,7 +131,7 @@ class ChatSender {
         });
       }, (err: any) => {
         if (err.code === 'ETELEGRAM' && /message to edit not found/.test(err.response.body.description)) {
-          return this.main.db.deleteMessageById(message.id);
+          return this.main.db.deleteMessageById(message._id);
         }
         return this.onSendMessageError(err);
       });
@@ -178,7 +178,7 @@ class ChatSender {
       }
       throw err;
     }).then(() => {
-      return this.main.db.deleteMessageById(message.id);
+      return this.main.db.deleteMessageById(message._id);
     }, this.onSendMessageError).then(() => {});
   }
 

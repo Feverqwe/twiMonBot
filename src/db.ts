@@ -83,6 +83,7 @@ export interface IChatIdChannelId extends ChatIdChannelId, Sequelize.Model {}
 class ChatIdChannelIdModel extends Sequelize.Model {}
 
 export interface Message {
+  _id?: number,
   id: string,
   chatId: string,
   streamId: string,
@@ -247,7 +248,8 @@ class Db {
     ChatIdStreamIdModel.belongsTo(StreamModel, {foreignKey: 'streamId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
 
     MessageModel.init({
-      id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
+      _id: {type: Sequelize.INTEGER, allowNull: false, primaryKey: true, autoIncrement: true},
+      id: {type: Sequelize.STRING(191), allowNull: false},
       chatId: {type: Sequelize.STRING(191), allowNull: false},
       streamId: {type: Sequelize.STRING(191), allowNull: true},
       type: {type: Sequelize.STRING(191), allowNull: false},
@@ -259,6 +261,10 @@ class Db {
       tableName: 'messages',
       timestamps: true,
       indexes: [{
+        name: 'id_chatId_UNIQUE',
+        unique: true,
+        fields: ['id', 'chatId']
+      }, {
         name: 'chatId_hasChanges_streamId_idx',
         fields: ['chatId', 'hasChanges', 'streamId']
       }, {
@@ -688,9 +694,9 @@ class Db {
     });
   }
 
-  deleteMessageById(id: string) {
+  deleteMessageById(_id: number) {
     return MessageModel.destroy({
-      where: {id}
+      where: {_id}
     });
   }
 
