@@ -1,12 +1,16 @@
 {
   "token": "",
-  "interval": 5,
-  "timeout": 900,
   "gaId": "",
   "ytToken": "",
   "twitchToken": "",
-  "checkOnRun": false,
-  "botName": "twiMonBot",
+  "emitCheckChannelsEveryMinutes": 1,
+  "checkChannelIfLastSyncLessThenMinutes": 5,
+  "channelSyncTimeoutMinutes": 1,
+  "removeStreamIfOfflineMoreThanMinutes": 15,
+  "emitCleanChatsAndChannelsEveryHours": 1,
+  "emitSendMessagesEveryMinutes": 5,
+  "chatSendTimeoutMinutes": 1,
+  "emitCheckProxyEveryHours": 3,
   "db": {
     "host": "localhost",
     "port": 3306,
@@ -15,7 +19,11 @@
     "password": ""
   },
   "adminIds": [],
-  "proxyCheckOnRun": true,
-  "proxyCheckInterval": 10800,
-  "proxyList": null
+  "proxy": {
+    "checkOnRun": true,
+    "testUrls": [
+      "https://ya.ru"
+    ],
+    "list": []
+  }
 }
