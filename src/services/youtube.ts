@@ -175,7 +175,7 @@ class Youtube implements ServiceInterface {
     const removedChannelIds: string[] = [];
     return promiseTry(() => {
       const idSnippet = new Map();
-      return parallel(10, channelIds, (channelId) => {
+      return parallel(2, channelIds, (channelId) => {
         return withRetry({count: 3, timeout: 250}, () => {
           return gotLimited('https://www.googleapis.com/youtube/v3/search', {
             query: {
@@ -203,7 +203,7 @@ class Youtube implements ServiceInterface {
       }).then(() => idSnippet);
     }).then((idSnippet) => {
       const results:{id: string, viewers: number|null, snippet: SearchVideoResponseSnippet}[] = [];
-      return parallel(10, arrayByPart(Array.from(idSnippet.keys()), 50), (videoIds) => {
+      return parallel(2, arrayByPart(Array.from(idSnippet.keys()), 50), (videoIds) => {
         return iterPages((pageToken?) => {
           return withRetry({count: 3, timeout: 250}, () => {
             return gotLimited('https://www.googleapis.com/youtube/v3/videos', {

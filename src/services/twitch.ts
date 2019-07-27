@@ -86,7 +86,7 @@ class Twitch implements ServiceInterface {
     const resultStreams: ServiceStream[] = [];
     const skippedChannelIds: number[] = [];
     const removedChannelIds: number[] = [];
-    return parallel(10, arrayByPart(channelIds, 100), (channelIds) => {
+    return parallel(2, arrayByPart(channelIds, 100), (channelIds) => {
       return withRetry({count: 3, timeout: 250}, () => {
         return got('https://api.twitch.tv/kraken/streams', {
           query: {
