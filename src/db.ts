@@ -2,10 +2,10 @@ import ErrorWithCode from "./tools/errorWithCode";
 import arrayByPart from "./tools/arrayByPart";
 import serviceId from "./tools/serviceId";
 import Main from "./main";
-import * as Sequelize from "sequelize";
 import parallel from "./tools/parallel";
 import {ServiceChannel, ServiceInterface} from "./checker";
 
+const Sequelize = require('sequelize');
 const debug = require('debug')('app:db');
 const {Op} = Sequelize;
 const ISOLATION_LEVELS = Sequelize.Transaction.ISOLATION_LEVELS;
