@@ -4,8 +4,9 @@
   "scripts": {
     "clean": "del-cli ./dist",
     "build": "npm run clean && rollup -c ./rollup.config.js",
-    "watch": "npm run build -- -w -m inline",
+    "watch": "npm run build -- -w",
     "start": "node ./dist/main.js",
+    "migrate": "node ./dist/main.js --migrate",
     "testProxies": "node ./dist/testProxies.js",
     "postinstall": "npm run build"
   },

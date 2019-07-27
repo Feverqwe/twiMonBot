@@ -4,6 +4,8 @@ import serviceId from "./tools/serviceId";
 import Main from "./main";
 import parallel from "./tools/parallel";
 import {ServiceChannel, ServiceInterface} from "./checker";
+// @ts-ignore
+import * as Sequelize from "sequelize";
 
 const Sequelize = require('sequelize');
 const debug = require('debug')('app:db');
@@ -202,7 +204,7 @@ class Db {
       game: {type: Sequelize.STRING(191), allowNull: true},
       isRecord: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
       previews: {type: Sequelize.JSON, allowNull: false},
-      viewers: {type: Sequelize.NUMBER, allowNull: true},
+      viewers: {type: Sequelize.INTEGER, allowNull: true},
       channelId: {type: Sequelize.STRING(191), allowNull: false},
       telegramPreviewFileId: {type: Sequelize.TEXT, allowNull: true},
       isOffline: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
