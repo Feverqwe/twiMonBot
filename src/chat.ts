@@ -155,14 +155,16 @@ class Chat {
       return Promise.all([
         this.main.db.getChatIdChannelIdChatIdCount(),
         this.main.db.getChatIdChannelIdChannelIdCount(),
+        this.main.db.getOnlineStreamCount(),
         Promise.all(this.main.services.map((service) => {
           return this.main.db.getChatIdChannelIdTop10ByServiceId(service.id);
         })),
-      ]).then(([chatCount, channelCount, serviceTopChannelsList]) => {
+      ]).then(([chatCount, channelCount, onlineCount, serviceTopChannelsList]) => {
         const lines = [];
 
         lines.push(this.main.locale.getMessage('users').replace('{count}', '' + chatCount));
         lines.push(this.main.locale.getMessage('channels').replace('{count}', '' + channelCount));
+        lines.push(this.main.locale.getMessage('online').replace('{count}', '' + onlineCount));
 
         serviceTopChannelsList.sort((aa, bb) => {
           const a = aa.length;

@@ -618,6 +618,12 @@ class Db {
     });
   }
 
+  getOnlineStreamCount() {
+    return StreamModel.count({
+      where: {isOffline: false}
+    });
+  }
+
   getDistinctChatIdStreamIdChatIds(): Promise<string[]> {
     return this.sequelize.query(`
       SELECT DISTINCT chatId FROM chatIdStreamId
