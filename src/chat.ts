@@ -12,6 +12,7 @@ import Main from "./main";
 import {IChannel, IChatWithChannel} from "./db";
 import {getButtonText, getString} from "./tools/streamToString";
 import ChatSender from "./chatSender";
+import parallel from "./tools/parallel";
 
 const debug = require('debug')('app:Chat');
 const jsonStringifyPretty = require("json-stringify-pretty-compact");
@@ -333,6 +334,15 @@ class Chat {
             return editOrSendNewMessage(req.chatId, messageId, message, {
               disable_web_page_preview: true,
               parse_mode: 'HTML'
+            }).then(() => {
+              return this.main.db.getStreamsWithChannelByChannelIds([channel.id]).then((streams) => {
+                const chatSender = new ChatSender(this.main, req.chat);
+                return parallel(1, streams, (stream) => {
+                  if (!stream.isOffline && !stream.isTimeout) {
+                    return chatSender.sendStream(stream);
+                  }
+                });
+              });
             });
           }, async (err: any) => {
             let isResolved = false;
@@ -673,11 +683,14 @@ class Chat {
           message = streams.map(stream => getString(stream)).join('\n\n');
         }
 
-        const buttons = streams.map((stream) => {
-          return [{
-            text: getButtonText(stream),
-            callback_data: `/watch/${stream.id}`
-          }];
+        const buttons: TInlineKeyboardButton[][] = [];
+        streams.forEach((stream) => {
+          if (!stream.isOffline && !stream.isTimeout) {
+            buttons.push([{
+              text: getButtonText(stream),
+              callback_data: `/watch/${stream.id}`
+            }]);
+          }
         });
 
         const buttonsPage = pageBtnList(req.query, buttons, '/online');
