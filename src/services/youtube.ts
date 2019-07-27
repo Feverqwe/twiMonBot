@@ -139,14 +139,14 @@ interface VideosResponse {
 }
 
 const VideosResponse: (any: any) => VideosResponse = struct(struct.partial({
-  items: struct.partial({
+  items: [struct.partial({
     id: 'string',
     liveStreamingDetails: struct.optional(struct.partial({
       actualStartTime: 'string?',
       actualEndTime: 'string?',
       concurrentViewers: 'string?',
     })),
-  }),
+  })],
   nextPageToken: 'string?'
 }));
 
