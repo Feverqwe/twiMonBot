@@ -12,13 +12,23 @@ const debug = require('debug')('app:Goodgame');
 interface Stream {
   id: number,
   key: string,
-  url: string
+  url: string,
+  channel: {
+    id: number,
+    key: string,
+    url: string,
+  },
 }
 
 const Stream: (any: any) => Stream = struct(struct.partial({
   id: 'number',
   key: 'string',
   url: 'string',
+  channel: struct.partial({
+    id: 'number',
+    key: 'string',
+    url: 'string',
+  }),
 }));
 
 interface Streams {
@@ -29,6 +39,8 @@ interface Streams {
       id: number,
       viewers: string,
       channel: {
+        id: number,
+        key: string,
         title: string,
         url: string,
         thumb: string,
@@ -48,6 +60,8 @@ const Streams = struct(struct.partial({
       id: 'number',
       viewers: 'string',
       channel: struct.partial({
+        id: 'number',
+        key: 'string',
         title: 'string',
         url: 'string',
         thumb: 'string',
@@ -102,8 +116,6 @@ class Goodgame implements ServiceInterface {
         streams.forEach((stream) => {
           if (stream.status !== 'Live') return;
 
-          const channelId = stream.id;
-
           let gameTitle = null;
           stream.channel.games.some((game) => {
             if (game.title) {
@@ -134,8 +146,8 @@ class Goodgame implements ServiceInterface {
             isRecord: false,
             previews: previews,
             viewers: viewers,
-            channelId: channelId,
-            channelTitle: stream.key,
+            channelId: stream.channel.id,
+            channelTitle: stream.channel.key,
           });
         });
       }).catch((err) => {
@@ -183,9 +195,9 @@ class Goodgame implements ServiceInterface {
       json: true,
     }).then(({body}: {body: object}) => {
       const stream = Stream(body);
-      const id = stream.id;
-      const url = stream.url;
-      const title = stream.key;
+      const id = stream.channel.id;
+      const url = stream.channel.url;
+      const title = stream.channel.key;
       return {id, title, url};
     }, (err: any) => {
       if (err.statusCode === 404) {
