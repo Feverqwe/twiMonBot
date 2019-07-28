@@ -10,7 +10,7 @@ languages.en = {
   help: 'Hi! I will notify you about the beginning of the broadcasts on Twitch, Youtube, GoodGame and Mixer!',
   offline: 'All channels in offline',
   emptyServiceList: `You don't have channels in watchlist, yet.`,
-  enterChannelName: 'Enter the channel URL or name (example: guit88man):',
+  enterChannelName: 'Enter the channel URL or name (example: moonmoon_ow):',
   enterService: 'Enter a live streaming video platform',
   channelExists: 'This channel has been added!',
   channelAdded: 'Success! The channel {channelName} ({serviceName}) has been added!',
