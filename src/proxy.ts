@@ -91,9 +91,8 @@ class Proxy {
             if (isProxyError(err) || err.name === 'TimeoutError') {
               throw err;
             }
-            if (err.name !== 'HTTPError') {
-              debug(`Check: Proxy ${agentToString(agent)} error: %o`, err);
-            }
+            debug(`Check: Proxy ${agentToString(agent)} error: %o`, err);
+            throw err;
           }).then((res: any) => {
             const latency = Date.now() - startTime;
             return {res, latency};
