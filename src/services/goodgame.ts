@@ -214,7 +214,7 @@ class Goodgame implements ServiceInterface {
   }
 
   gotWithProxy = (url: string, options: object)  => {
-    return got(url, {timeout: 5 * 1000, options}).catch((err: any) => {
+    return got(url, {timeout: 5 * 1000, ...options}).catch((err: any) => {
       if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.name === 'TimeoutError') {
         if (this.main.proxy.hasOnline()) {
           return this.main.proxy.got(url, options);
