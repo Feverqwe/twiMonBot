@@ -57,11 +57,11 @@ class Chat {
       if (targetChatId || sourceChatId) {
         return promiseTry(async () => {
           if (targetChatId) {
-            await this.main.db.changeChatId(req.chatId, '' + targetChatId);
+            await this.main.db.changeChatId('' + req.chatId, '' + targetChatId);
             this.log.write(`[migrate msg] ${req.chatId} > ${targetChatId}`);
           }
           if (sourceChatId) {
-            await this.main.db.changeChatId('' + sourceChatId, req.chatId);
+            await this.main.db.changeChatId('' + sourceChatId, '' + req.chatId);
             this.log.write(`[migrate msg] ${req.chatId} < ${sourceChatId}`);
           }
         }).then(next, (err) => {
@@ -308,14 +308,14 @@ class Chat {
             return {service, messageId: msg.message_id};
           });
         }).then(({service, messageId}) => {
-          return this.main.db.getChannelCountByChatId(req.chatId).then((count) => {
+          return this.main.db.getChannelCountByChatId('' + req.chatId).then((count) => {
             if (count >= 100) {
               throw new ErrorWithCode('Channels limit exceeded', 'CHANNELS_LIMIT');
             }
             return service.findChannel(query);
           }).then((serviceChannel) => {
             return this.main.db.ensureChannel(service, serviceChannel).then((channel: IChannel) => {
-              return this.main.db.putChatIdChannelId(req.chatId, channel.id).then((created: boolean) => {
+              return this.main.db.putChatIdChannelId('' + req.chatId, channel.id).then((created: boolean) => {
                 return {channel, created};
               });
             });
@@ -381,7 +381,7 @@ class Chat {
     });
 
     this.router.callback_query(/\/clear\/confirmed/, (req, res) => {
-      return this.main.db.deleteChatById(req.chatId).then(() => {
+      return this.main.db.deleteChatById('' + req.chatId).then(() => {
         this.log.write(`[deleted] ${req.chatId}, cause: /clear`);
         return this.main.bot.editMessageText(this.main.locale.getMessage('cleared'), {
           chat_id: req.chatId,
@@ -412,7 +412,7 @@ class Chat {
       const channelId = req.params.channelId;
 
       return this.main.db.getChannelById(channelId).then((channel) => {
-        return this.main.db.deleteChatIdChannelId(req.chatId, channelId).then((count) => {
+        return this.main.db.deleteChatIdChannelId('' + req.chatId, channelId).then((count) => {
           return {channel, deleted: !!count};
         });
       }).then(({channel, deleted}) => {
