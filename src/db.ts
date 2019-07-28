@@ -37,7 +37,6 @@ export interface Channel {
   lastSyncAt?: Date,
   syncTimeoutExpiresAt?: Date,
   createdAt?: Date,
-  updatedAt?: Date,
 }
 export interface IChannel extends Channel, Sequelize.Model {}
 class ChannelModel extends Sequelize.Model {}
@@ -164,6 +163,7 @@ class Db {
       modelName: 'channel',
       tableName: 'channels',
       timestamps: true,
+      updatedAt: false,
       indexes: [{
         name: 'service_idx',
         fields: ['service']
