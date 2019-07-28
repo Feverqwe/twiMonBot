@@ -448,7 +448,7 @@ async function getValidPreviewUrl(urls: string[], service: ServiceInterface): Pr
       }
       return await gotFn(urls[i], {method: 'HEAD', timeout: 5 * 1000}).catch((err: any) => {
         if (err.statusCode === 405) { // fix for mixer
-          return gotFn(urls[i], {headers: {Range: `bytes=0-1`}});
+          return gotFn(urls[i], {headers: {Range: `bytes=0-1`}, timeout: 5 * 1000});
         }
         throw err;
       }).then((response: any) => {
