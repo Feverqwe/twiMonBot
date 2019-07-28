@@ -225,28 +225,6 @@ class Goodgame implements ServiceInterface {
       throw err;
     });
   };
-
-  getChannelIdNewIdList(ids: (string|number)[]) {
-    const channelIdsChanges: [string, number][] = [];
-    return parallel(10, ids, (channelId) => {
-      return this.gotWithProxy('https://api2.goodgame.ru/v2/streams/' + encodeURIComponent(channelId), {
-        headers: {
-          'Accept': 'application/vnd.goodgame.v2+json'
-        },
-        json: true,
-      }).then(({body}: {body: object}) => {
-        const stream = Stream(body);
-        const _id = stream.id;
-        const id = stream.key.toLowerCase();
-        channelIdsChanges.push([id, _id]);
-      }, (err: any) => {
-        if (err.statusCode === 404) {
-          // pass
-        }
-        throw err;
-      });
-    }).then(() => channelIdsChanges);
-  }
 }
 
 export default Goodgame;

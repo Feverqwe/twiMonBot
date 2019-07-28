@@ -914,7 +914,6 @@ class Chat {
       {name: 'Check channels', method: 'checker.check'},
       {name: 'Clean chats & channels', method: 'checker.clean'},
       {name: 'Sender check', method: 'sender.check'},
-      {name: 'moveGgChannels', method: 'checker.moveGgChannels'},
     ];
 
     this.router.callback_query(/\/admin\/(?<command>.+)/, isAdmin, (req, res) => {
