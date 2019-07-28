@@ -620,7 +620,10 @@ class Db {
 
   getOnlineStreamCount() {
     return StreamModel.count({
-      where: {isOffline: false}
+      where: {
+        isOffline: false,
+        isRecord: false
+      }
     });
   }
 
