@@ -156,6 +156,7 @@ class Checker {
         const timeoutStreamIds: string[] = [];
         const removedStreamIds: string[] = [];
         const changedStreamIds: string[] = [];
+        const changedStreamIdChangeType = new Map();
 
         updatedStreamIds.forEach((id) => {
           const stream = streamIdStream.get(id);
@@ -164,12 +165,16 @@ class Checker {
           let hasChanges = false;
           if (prevStream.isOffline || prevStream.isTimeout) {
             hasChanges = true;
+            changedStreamIdChangeType.set(id, 'online');
           }
           if (!hasChanges) {
             hasChanges = ['title', 'game'].some((field) => {
               // @ts-ignore
               return stream[field] !== prevStream[field];
             });
+            if (hasChanges) {
+              changedStreamIdChangeType.set(id, 'changed');
+            }
           }
           if (hasChanges) {
             changedStreamIds.push(id);
@@ -260,7 +265,8 @@ class Checker {
             } else
             if (updatedStreamIds.includes(id)) {
               if (changedStreamIds.includes(id)) {
-                this.log.write(`[online] ${stream.channelId} ${stream.id}`);
+                const type = changedStreamIdChangeType.get(id);
+                this.log.write(`[${type}] ${stream.channelId} ${stream.id}`);
               } else {
                 // pass
               }
