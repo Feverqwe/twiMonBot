@@ -228,6 +228,9 @@ class Db {
       indexes: [{
         name: 'createdAt_idx',
         fields: ['createdAt']
+      }, {
+        name: 'isOffline_isRecord_idx',
+        fields: ['isOffline', 'isRecord']
       }]
     });
     StreamModel.belongsTo(ChannelModel, {foreignKey: 'channelId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
