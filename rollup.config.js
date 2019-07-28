@@ -2,7 +2,7 @@ import babel from 'rollup-plugin-babel';
 import typescript from 'rollup-plugin-typescript';
 
 export default {
-  input: ['./src/main.js', './src/testProxies.js'],
+  input: ['./src/main.ts', './src/testProxies.js'],
   output: {
     dir: './dist',
     format: 'cjs'

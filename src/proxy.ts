@@ -104,7 +104,7 @@ class Proxy {
           }, 0) / results.length;
           agent._latency = latency;
           this.moveToOnline(agent);
-        }, (err) => {
+        }, (err: any) => {
           agent._latency = Infinity;
           this.moveToOffline(agent);
         });
