@@ -170,13 +170,14 @@ class ChatSender {
           /group chat was upgraded/,
         ].some(re => re.test(body.description));
 
-        if (!isSkipError) {
-          throw err;
-        } else {
+        if (isSkipError) {
           // pass
+        } else {
+          throw err;
         }
+      } else {
+        throw err;
       }
-      throw err;
     }).then(() => {
       return this.main.db.deleteMessageById(message._id);
     }, this.onSendMessageError).then(() => {});
