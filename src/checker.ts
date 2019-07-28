@@ -197,6 +197,11 @@ class Checker {
               }
             }
             return;
+          } else 
+          if (stream.isTimeout) {
+            stream.isTimeout = false;
+            stream.timeoutFrom = null;
+            changedStreamIds.push(id);
           }
 
           const channelStreamIds = channelIdStreamIds.get(stream.channelId);
