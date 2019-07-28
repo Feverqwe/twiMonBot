@@ -27,7 +27,7 @@ const Channels:(any: any) => Channel[] = struct([struct.partial({
 })]);
 
 interface ExtendedChannel extends Channel {
-  type?: {
+  type?: null|{
     name: string
   }
 }
