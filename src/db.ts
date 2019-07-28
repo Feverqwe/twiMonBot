@@ -505,7 +505,7 @@ class Db {
 
   setChannelsSyncTimeoutExpiresAt(ids: string[]) {
     const date = new Date();
-    date.setMinutes(date.getMinutes() + this.main.config.channelSyncTimeoutMinutes);
+    date.setSeconds(date.getSeconds() + this.main.config.channelSyncTimeoutMinutes * 60);
     return ChannelModel.update({
       syncTimeoutExpiresAt: date
     }, {
