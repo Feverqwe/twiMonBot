@@ -93,7 +93,6 @@ class Goodgame implements ServiceInterface {
             'Accept': 'application/vnd.goodgame.v2+json'
           },
           json: true,
-          timeout: 5 * 1000,
         });
       }).then(({body}) => {
         const streams = (Streams(body) as Streams)._embedded.streams;
@@ -180,7 +179,6 @@ class Goodgame implements ServiceInterface {
         'Accept': 'application/vnd.goodgame.v2+json'
       },
       json: true,
-      timeout: 5 * 1000,
     }).then(({body}: {body: object}) => {
       const stream = Stream(body);
       const id = stream.key.toLowerCase();
@@ -216,7 +214,7 @@ class Goodgame implements ServiceInterface {
   }
 
   gotWithProxy = (url: string, options: object)  => {
-    return got(url, options).catch((err: any) => {
+    return got(url, {timeout: 5 * 1000, options}).catch((err: any) => {
       if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.name === 'TimeoutError') {
         if (this.main.proxy.hasOnline()) {
           return this.main.proxy.got(url, options);
