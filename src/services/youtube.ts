@@ -250,7 +250,7 @@ class Youtube implements ServiceInterface {
       results.forEach(({id, snippet, viewers}) => {
         if (snippet.liveBroadcastContent !== 'live') return;
 
-        const previews = ['maxresdefault_live', 'sddefault_live', 'hqdefault_live', 'mqdefault_live', 'default_live'].map(function (quality) {
+        const previews = ['maxresdefault_live', 'sddefault_live', 'hqdefault_live', 'mqdefault_live', 'default_live'].map((quality) => {
           return `https://i.ytimg.com/vi/${id}/${quality}.jpg`;
         });
 
