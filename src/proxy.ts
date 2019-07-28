@@ -86,7 +86,7 @@ class Proxy {
           const startTime = Date.now();
           return got(url, {
             agent,
-            timeout: 5 * 1000,
+            timeout: 10 * 1000,
             ...options
           }).catch((err: any) => {
             if (isProxyError(err) || err.name === 'TimeoutError') {
