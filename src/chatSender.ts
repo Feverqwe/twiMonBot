@@ -196,7 +196,7 @@ class ChatSender {
       } else
       if (body.parameters && body.parameters.migrate_to_chat_id) {
         const newChatId = body.parameters.migrate_to_chat_id;
-        return this.main.db.changeChatId(this.chat.id, newChatId).then(() => {
+        return this.main.db.changeChatId(this.chat.id, '' + newChatId).then(() => {
           this.main.chat.log.write(`[migrate] ${this.chat.id} > ${newChatId}`);
           throw new ErrorWithCode(`Chat ${this.chat.id} is migrated to ${newChatId}`, 'CHAT_IS_MIGRATED');
         });
