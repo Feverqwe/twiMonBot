@@ -29,6 +29,7 @@ const Channels:(any: any) => Channels = struct(struct.partial({
 }));
 
 interface Streams {
+  _total: number,
   streams: {
     _id: number,
     stream_type: string,
@@ -47,6 +48,7 @@ interface Streams {
 }
 
 const Streams: (any: any) => Streams = struct(struct.partial({
+  _total: 'number',
   streams: [struct.partial({
     _id: 'number',
     stream_type: 'string',
@@ -101,7 +103,11 @@ class Twitch implements ServiceInterface {
           json: true,
         });
       }).then(({body}) => {
-        const streams = Streams(body).streams;
+        const result = Streams(body);
+        if (result._total > 100) {
+          debug('result is more than limit', result._total);
+        }
+        const streams = result.streams;
 
         streams.forEach((stream) => {
           const previews: string[] = [];
