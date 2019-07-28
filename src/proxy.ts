@@ -92,7 +92,7 @@ class Proxy {
               throw err;
             }
             if (err.name !== 'HTTPError') {
-              this.log.write(`Check: Proxy ${agentToString(agent)} error:`, err);
+              debug(`Check: Proxy ${agentToString(agent)} error:`, err);
             }
           }).then((res: any) => {
             const latency = Date.now() - startTime;
@@ -130,7 +130,7 @@ class Proxy {
     const agent = this.getAgent();
     return got(url, {...options, agent}).catch((err: any) => {
       if (err.name !== 'HTTPError') {
-        this.log.write(`got: Proxy ${agentToString(agent)} error: %o`, err);
+        debug(`got: Proxy ${agentToString(agent)} error: %o`, err);
       }
       if (isProxyError(err)) {
         this.moveToOffline(agent);
