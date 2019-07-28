@@ -75,10 +75,6 @@ class Main extends Events {
     this.goodgame = new Goodgame(this);
     this.services = [this.twitch, this.youtube, this.mixer, this.goodgame];
 
-    if (process.argv.includes('--migrate')) {
-      return this.db.migrate();
-    }
-
     this.tracker = new Tracker(this);
     this.sender = new Sender(this);
     this.checker = new Checker(this);
