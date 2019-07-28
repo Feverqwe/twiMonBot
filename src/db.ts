@@ -403,6 +403,12 @@ class Db {
     });
   }
 
+  changeChannelId(id: string, newId: string) {
+    return ChannelModel.update({id: newId}, {
+      where: {id}
+    });
+  }
+
   getChatIdChannelIdChatIdCount(): Promise<number> {
     return this.sequelize.query(`
       SELECT COUNT(DISTINCT(chatId)) as chatCount FROM chatIdChannelId

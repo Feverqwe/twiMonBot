@@ -197,7 +197,7 @@ class Checker {
               }
             }
             return;
-          } else 
+          } else
           if (stream.isTimeout) {
             stream.isTimeout = false;
             stream.timeoutFrom = null;
@@ -475,6 +475,21 @@ class Checker {
         return {removedChats, removedChannels};
       });
     });
+  }
+
+  async moveGgChannels() {
+    let count = 0;
+    const service = this.main.goodgame;
+    const channelIds = await this.main.db.getChannelIdsByServiceId(service.id, 0, 1000);
+    const rawChannelIds = channelIds.map(id => serviceId.unwrap(id));
+    const channelIdNewIdList = await service.getChannelIdNewIdList(rawChannelIds);
+    for (const [rawId, newRawId] of channelIdNewIdList) {
+      const id = serviceId.wrap(service, rawId);
+      const newId = serviceId.wrap(service, newRawId);
+      await this.main.db.changeChannelId(id, newId);
+      count++;
+    }
+    return count;
   }
 }
 

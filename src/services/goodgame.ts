@@ -10,11 +10,13 @@ const got = require('got');
 const debug = require('debug')('app:Goodgame');
 
 interface Stream {
+  id: number,
   key: string,
   url: string
 }
 
 const Stream: (any: any) => Stream = struct(struct.partial({
+  id: 'number',
   key: 'string',
   url: 'string',
 }));
@@ -77,10 +79,10 @@ class Goodgame implements ServiceInterface {
     ].some(re => re.test(url));
   }
 
-  getStreams(channelIds: string[]) {
+  getStreams(channelIds: number[]) {
     const resultStreams:ServiceStream[] = [];
-    const skippedChannelIds:string[] = [];
-    const removedChannelIds:string[] = [];
+    const skippedChannelIds:number[] = [];
+    const removedChannelIds:number[] = [];
     return parallel(10, arrayByPart(channelIds, 25), (channelIds) => {
       return withRetry({count: 3, timeout: 250}, () => {
         return this.gotWithProxy('https://api2.goodgame.ru/v2/streams', {
@@ -100,7 +102,7 @@ class Goodgame implements ServiceInterface {
         streams.forEach((stream) => {
           if (stream.status !== 'Live') return;
 
-          const channelId = stream.key.toLowerCase();
+          const channelId = stream.id;
 
           let gameTitle = null;
           stream.channel.games.some((game) => {
@@ -145,8 +147,8 @@ class Goodgame implements ServiceInterface {
     });
   }
 
-  getExistsChannelIds(ids: string[]) {
-    const resultChannelIds: string[] = [];
+  getExistsChannelIds(ids: number[]) {
+    const resultChannelIds: number[] = [];
     return parallel(10, ids, (channelId) => {
       return this.requestChannelById(channelId).then(() => {
         resultChannelIds.push(channelId);
@@ -173,7 +175,7 @@ class Goodgame implements ServiceInterface {
     });
   }
 
-  requestChannelById(channelId: string) {
+  requestChannelById(channelId: string|number) {
     return this.gotWithProxy('https://api2.goodgame.ru/v2/streams/' + encodeURIComponent(channelId), {
       headers: {
         'Accept': 'application/vnd.goodgame.v2+json'
@@ -181,7 +183,7 @@ class Goodgame implements ServiceInterface {
       json: true,
     }).then(({body}: {body: object}) => {
       const stream = Stream(body);
-      const id = stream.key.toLowerCase();
+      const id = stream.id;
       const url = stream.url;
       const title = stream.key;
       return {id, title, url};
@@ -223,6 +225,28 @@ class Goodgame implements ServiceInterface {
       throw err;
     });
   };
+
+  getChannelIdNewIdList(ids: (string|number)[]) {
+    const channelIdsChanges: [string, number][] = [];
+    return parallel(10, ids, (channelId) => {
+      return this.gotWithProxy('https://api2.goodgame.ru/v2/streams/' + encodeURIComponent(channelId), {
+        headers: {
+          'Accept': 'application/vnd.goodgame.v2+json'
+        },
+        json: true,
+      }).then(({body}: {body: object}) => {
+        const stream = Stream(body);
+        const _id = stream.id;
+        const id = stream.key.toLowerCase();
+        channelIdsChanges.push([id, _id]);
+      }, (err: any) => {
+        if (err.statusCode === 404) {
+          // pass
+        }
+        throw err;
+      });
+    }).then(() => channelIdsChanges);
+  }
 }
 
 export default Goodgame;
