@@ -92,7 +92,7 @@ class Proxy {
               throw err;
             }
             if (err.name !== 'HTTPError') {
-              debug(`Check: Proxy ${agentToString(agent)} error:`, err);
+              debug(`Check: Proxy ${agentToString(agent)} error: %o`, err);
             }
           }).then((res: any) => {
             const latency = Date.now() - startTime;
