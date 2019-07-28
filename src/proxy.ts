@@ -4,6 +4,7 @@ import getNow from "./tools/getNow";
 import getInProgress from "./tools/getInProgress";
 import parallel from "./tools/parallel";
 import Main from "./main";
+import inlineInspect from "./tools/inlineInspect";
 
 const debug = require('debug')('app:proxyList');
 const tunnel = require('tunnel');
@@ -91,7 +92,7 @@ class Proxy {
             if (isProxyError(err) || err.name === 'TimeoutError') {
               throw err;
             }
-            debug(`Check: Proxy ${agentToString(agent)} error: %o`, err);
+            this.log.write(`Check: Proxy ${agentToString(agent)} error: ${inlineInspect(err)}`);
             throw err;
           }).then((res: any) => {
             const latency = Date.now() - startTime;
