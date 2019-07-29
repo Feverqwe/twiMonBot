@@ -43,6 +43,7 @@ export interface Config {
   emitSendMessagesEveryMinutes: number;
   chatSendTimeoutAfterErrorMinutes: number;
   emitCheckProxyEveryHours: number;
+  defaultChannelName: string;
   db: {
     host: string;
     port: number;
@@ -72,6 +73,7 @@ const config: Config = {
   emitSendMessagesEveryMinutes: 5,
   chatSendTimeoutAfterErrorMinutes: 1,
   emitCheckProxyEveryHours: 3,
+  defaultChannelName: 'bobross',
   db: {
     host: 'localhost',
     port: 3306,
