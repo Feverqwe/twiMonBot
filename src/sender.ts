@@ -39,18 +39,16 @@ class Sender {
     ]).then((results) => {
       const chatIds = arrayUniq([].concat(...results));
       const newChatIds = chatIds.filter(chatId => !this.chatIdChatSender.has(chatId));
-      return this.main.db.setChatSendTimeoutExpiresAt(newChatIds).then(() => {
-        return this.main.db.getChatsByIds(newChatIds).then((chats) => {
-          chats.forEach((chat) => {
-            const chatSender = new ChatSender(this.main, chat);
-            this.chatIdChatSender.set(chat.id, chatSender);
-            this.suspended.push(chatSender);
-          });
-
-          this.fillThreads();
-
-          return {addedCount: chats.length};
+      return this.main.db.getChatsByIds(newChatIds).then((chats) => {
+        chats.forEach((chat) => {
+          const chatSender = new ChatSender(this.main, chat);
+          this.chatIdChatSender.set(chat.id, chatSender);
+          this.suspended.push(chatSender);
         });
+
+        this.fillThreads();
+
+        return {addedCount: chats.length};
       });
     });
   };
@@ -78,8 +76,9 @@ class Sender {
     const chatSender = suspended.shift();
     threads.push(chatSender);
 
-    return chatSender.next().catch((err: any) => {
+    return chatSender.next().catch(async (err: any) => {
       debug('chatSender %s stopped, cause: %o', chatSender.chat.id, err);
+      await this.main.db.setChatSendTimeoutExpiresAt([chatSender.chat.id]);
       return true;
     }).then((isDone?: boolean|void) => {
       const pos = threads.indexOf(chatSender);
