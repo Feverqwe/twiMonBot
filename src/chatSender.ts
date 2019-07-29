@@ -26,7 +26,6 @@ class ChatSender {
   private messages: IMessage[]|null;
   private methods: string[];
   private methodIndex: number;
-  private hasChanges: boolean;
   constructor(main: Main, chat: IChat) {
     this.main = main;
     this.chat = chat;
@@ -36,7 +35,6 @@ class ChatSender {
 
     this.streamIds = null;
     this.messages = null;
-    this.hasChanges = false;
   }
 
   getStreamIds() {
@@ -71,16 +69,10 @@ class ChatSender {
     }).then((isDone: boolean|void) => {
       if (isDone) {
         this.methodIndex++;
-      } else {
-        this.hasChanges = true;
       }
       if (this.methods.length === this.methodIndex) {
         this.methodIndex = 0;
-        if (this.hasChanges) {
-          this.hasChanges = false;
-        } else {
-          return true;
-        }
+        return true;
       }
     });
   }
