@@ -5,6 +5,7 @@ import parallel from "../tools/parallel";
 import arrayByPart from "../tools/arrayByPart";
 import withRetry from "../tools/withRetry";
 import {ServiceInterface, ServiceStream} from "../checker";
+import promiseTry from "../tools/promiseTry";
 
 const got = require('got');
 const debug = require('debug')('app:Goodgame');
@@ -227,9 +228,24 @@ class Goodgame implements ServiceInterface {
     return channelId;
   }
 
+  lastDirectConnectTryAt: number = null;
   gotWithProxy = (url: string, options: object)  => {
-    return got(url, {timeout: 5 * 1000, ...options}).catch((err: any) => {
-      if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.name === 'TimeoutError') {
+    return promiseTry(() => {
+      const tryDate = new Date();
+      tryDate.setHours(tryDate.getHours() - 3);
+      if (!this.lastDirectConnectTryAt || this.lastDirectConnectTryAt < tryDate.getTime()) {
+        this.lastDirectConnectTryAt = Date.now();
+        return got(url, {timeout: 5 * 1000, ...options}).then((result: any) => {
+          this.lastDirectConnectTryAt = null;
+          return result;
+        });
+      } else {
+        throw new ErrorWithCode('Direct connect is not available', 'DIRECT_CONNECT_IS_NOT_AVAILABLE');
+      }
+    }).catch((err) => {
+      if (err.name === 'TimeoutError' ||
+        ['DIRECT_CONNECT_IS_NOT_AVAILABLE', 'ECONNRESET', 'ETIMEDOUT'].includes(err.code)
+      ) {
         if (this.main.proxy.hasOnline()) {
           return this.main.proxy.got(url, options);
         }
