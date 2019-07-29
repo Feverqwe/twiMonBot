@@ -68,9 +68,9 @@ class ChatSender {
       if (!isDone) return;
       this.methodIndex++;
       if (this.methods.length === this.methodIndex) {
+        this.methodIndex = 0;
         if (startIndex !== 0) {
           startIndex = 0;
-          this.methodIndex = 0;
         } else {
           return true;
         }
