@@ -66,12 +66,26 @@ class ChatSender {
           return true;
         }
       }
-    }).then((isDone: boolean|void) => {
+    }).then(async (isDone: boolean|void) => {
       if (isDone) {
         this.methodIndex++;
       }
+
       if (this.methods.length === this.methodIndex) {
         this.methodIndex = 0;
+
+        this.streamIds = await this.getStreamIds();
+        if (this.streamIds.length) {
+          this.methodIndex = 0;
+          return this.send();
+        }
+
+        this.messages = await this.getMessages();
+        if (this.messages.length) {
+          this.methodIndex = 1;
+          return this.update();
+        }
+
         return true;
       }
     });
