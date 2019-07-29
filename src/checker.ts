@@ -164,8 +164,12 @@ class Checker {
 
           let hasChanges = false;
           if (prevStream.isOffline || prevStream.isTimeout) {
+            if (prevStream.isOffline) {
+              changedStreamIdChangeType.set(id, 'offline > online');
+            } else {
+              changedStreamIdChangeType.set(id, 'timeout > online');
+            }
             hasChanges = true;
-            changedStreamIdChangeType.set(id, 'online');
           }
           if (!hasChanges) {
             hasChanges = ['title', 'game'].some((field) => {
