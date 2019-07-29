@@ -41,7 +41,7 @@ export interface Config {
   removeStreamIfOfflineMoreThanMinutes: number;
   emitCleanChatsAndChannelsEveryHours: number;
   emitSendMessagesEveryMinutes: number;
-  chatSendTimeoutMinutes: number;
+  chatSendTimeoutAfterErrorMinutes: number;
   emitCheckProxyEveryHours: number;
   db: {
     host: string;
@@ -70,7 +70,7 @@ const config: Config = {
   removeStreamIfOfflineMoreThanMinutes: 15,
   emitCleanChatsAndChannelsEveryHours: 1,
   emitSendMessagesEveryMinutes: 5,
-  chatSendTimeoutMinutes: 1,
+  chatSendTimeoutAfterErrorMinutes: 1,
   emitCheckProxyEveryHours: 3,
   db: {
     host: 'localhost',

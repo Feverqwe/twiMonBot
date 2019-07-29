@@ -365,7 +365,7 @@ class Db {
 
   setChatSendTimeoutExpiresAt(ids: string[]) {
     const date = new Date();
-    date.setSeconds(date.getSeconds() + this.main.config.chatSendTimeoutMinutes * 60);
+    date.setSeconds(date.getSeconds() + this.main.config.chatSendTimeoutAfterErrorMinutes * 60);
     return ChatModel.update({sendTimeoutExpiresAt: date}, {
       where: {id: ids}
     });

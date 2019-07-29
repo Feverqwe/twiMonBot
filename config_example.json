@@ -9,7 +9,7 @@
   "removeStreamIfOfflineMoreThanMinutes": 15,
   "emitCleanChatsAndChannelsEveryHours": 1,
   "emitSendMessagesEveryMinutes": 5,
-  "chatSendTimeoutMinutes": 1,
+  "chatSendTimeoutAfterErrorMinutes": 1,
   "emitCheckProxyEveryHours": 3,
   "db": {
     "host": "localhost",
