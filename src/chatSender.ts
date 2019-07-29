@@ -50,45 +50,32 @@ class ChatSender {
   }
 
   async next() {
-    const method = this.methods[this.methodIndex];
-    return promiseTry(() => {
-      switch (method) {
-        case 'send': {
-          return this.send();
+    let startIndex = this.methodIndex;
+    while (true) {
+      const isDone = await promiseTry(() => {
+        switch (this.methods[this.methodIndex]) {
+          case 'send': {
+            return this.send();
+          }
+          case 'update': {
+            return this.update();
+          }
+          case 'delete': {
+            return this.delete();
+          }
         }
-        case 'update': {
-          return this.update();
-        }
-        case 'delete': {
-          return this.delete();
-        }
-        default: {
+      });
+      if (!isDone) return;
+      this.methodIndex++;
+      if (this.methods.length === this.methodIndex) {
+        if (startIndex !== 0) {
+          startIndex = 0;
+          this.methodIndex = 0;
+        } else {
           return true;
         }
       }
-    }).then(async (isDone: boolean|void) => {
-      if (isDone) {
-        this.methodIndex++;
-      }
-
-      if (this.methods.length === this.methodIndex) {
-        this.methodIndex = 0;
-
-        this.streamIds = await this.getStreamIds();
-        if (this.streamIds.length) {
-          this.methodIndex = 0;
-          return this.send();
-        }
-
-        this.messages = await this.getMessages();
-        if (this.messages.length) {
-          this.methodIndex = 1;
-          return this.update();
-        }
-
-        return true;
-      }
-    });
+    }
   }
 
   async send() {
