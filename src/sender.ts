@@ -41,6 +41,7 @@ class Sender {
       const newChatIds = chatIds.filter(chatId => !this.chatIdChatSender.has(chatId));
       return this.main.db.getChatsByIds(newChatIds).then((chats) => {
         chats.forEach((chat) => {
+          if (this.chatIdChatSender.has(chat.id)) return;
           const chatSender = new ChatSender(this.main, chat);
           this.chatIdChatSender.set(chat.id, chatSender);
           this.suspended.push(chatSender);
