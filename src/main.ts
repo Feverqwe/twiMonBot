@@ -73,7 +73,7 @@ const config: Config = {
   emitSendMessagesEveryMinutes: 5,
   chatSendTimeoutAfterErrorMinutes: 1,
   emitCheckProxyEveryHours: 3,
-  defaultChannelName: 'bobross',
+  defaultChannelName: 'BobRoss',
   db: {
     host: 'localhost',
     port: 3306,
