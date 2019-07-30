@@ -50,9 +50,12 @@ class ChatSender {
   }
 
   async next() {
+    let skipFromIndex: number = null;
     let startIndex = this.methodIndex;
     while (true) {
       const isDone = await promiseTry(() => {
+        if (skipFromIndex !== null && this.methodIndex >= skipFromIndex) return true;
+
         switch (this.methods[this.methodIndex]) {
           case 'send': {
             return this.send();
@@ -70,6 +73,7 @@ class ChatSender {
       if (this.methods.length === this.methodIndex) {
         this.methodIndex = 0;
         if (startIndex !== 0) {
+          skipFromIndex = startIndex;
           startIndex = 0;
         } else {
           return true;
