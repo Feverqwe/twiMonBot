@@ -11,7 +11,7 @@ const debug = require('debug')('app:ChatSender');
 const got = require('got');
 const request = require('request');
 
-const videoWeakMap = new WeakMap();
+const streamWeakMap = new WeakMap();
 
 interface SentMessage {
   type: string,
@@ -286,13 +286,13 @@ class ChatSender {
   }
 
   requestAndSendPhoto(stream: IStreamWithChannel): Promise<SentMessage> {
-    let promise: Promise<SentMessage> = videoWeakMap.get(stream);
+    let promise: Promise<SentMessage> = streamWeakMap.get(stream);
 
     if (!promise) {
       promise = this.ensureTelegramPreviewFileId(stream).then(...promiseFinally(() => {
-        videoWeakMap.delete(stream);
+        streamWeakMap.delete(stream);
       }));
-      videoWeakMap.set(stream, promise);
+      streamWeakMap.set(stream, promise);
       promise = promise.catch((err: any) => {
         if (err.code === 'ETELEGRAM' && /not enough rights to send photos/.test(err.response.body.description)) {
           throw err;
