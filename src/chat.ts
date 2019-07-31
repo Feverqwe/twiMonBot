@@ -264,6 +264,7 @@ class Chat {
     this.router.textOrCallbackQuery(/\/add(?:\s+(?<query>.+$))?/, provideChat, (req, res) => {
       const query = req.params.query;
       let requestedData: string = null;
+      let requestedService: string = null;
 
       return promiseTry(() => {
         if (query) {
@@ -304,6 +305,7 @@ class Chat {
             }]
           ];
           return requestChoose(req.chatId, req.fromId, messageId, messageText, cancelText, chooseKeyboard).then(({req, msg}) => {
+            requestedService = req.params.value;
             const service = this.main.getServiceById(req.params.value);
             return {service, messageId: msg.message_id};
           });
@@ -375,7 +377,7 @@ class Chat {
         if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT', 'RESPONSE_CANCEL'].includes(err.code)) {
           // pass
         } else {
-          debug('%j %j error %o', req.command, requestedData, err);
+          debug('%j %j %j error %o', req.command, requestedData, requestedService, err);
         }
       });
     });
