@@ -190,6 +190,9 @@ class YtPubSub {
   syncFeedsInProgress = getInProgress();
   syncFeeds() {
     return this.syncFeedsInProgress(async () => {
+      let streamCount = 0;
+      let otherCount = 0;
+
       while (true) {
         const feeds = await this.main.db.getChangedFeedsWithoutOther(50);
         if (!feeds.length) break;
@@ -217,13 +220,13 @@ class YtPubSub {
         });
         const otherIds: string[] = arrayDifference(feedIds, streamIds);
 
-        await this.main.db.updateFeeds(Object.values(streamIdChanges), otherIds).then(() => {
-          return {
-            streamCount: streamIds.length,
-            otherCount: otherIds.length,
-          };
-        });
+        streamCount += streamIds.length;
+        otherCount += otherIds.length;
+
+        await this.main.db.updateFeeds(Object.values(streamIdChanges), otherIds);
       }
+
+      return {streamCount, otherCount};
     });
   }
 }
