@@ -296,10 +296,7 @@ class Youtube implements ServiceInterface {
 
             const {actualStartTime, actualEndTime} = item.liveStreamingDetails;
             if (actualStartTime && !actualEndTime) {
-              const startDate = new Date(actualStartTime);
-              if (startDate.getTime() < Date.now()) {
-                onlineIds.push(item.id);
-              }
+              onlineIds.push(item.id);
             }
           });
 
