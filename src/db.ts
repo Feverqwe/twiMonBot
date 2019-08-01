@@ -852,7 +852,7 @@ class Db {
     }, async (transaction) => {
       return Promise.all([
         bulk(feedsChanges, (feedsChanges) => {
-          return ChannelModel.bulkCreate(feedsChanges, {
+          return YtPubSubFeedModel.bulkCreate(feedsChanges, {
             updateOnDuplicate: ['isStream', 'actualStartAt', 'actualEndAt', 'hasChanges'],
             transaction
           });
