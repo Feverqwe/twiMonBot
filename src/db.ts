@@ -323,9 +323,6 @@ class Db {
       tableName: 'ytPubSubFeeds',
       timestamps: true,
       indexes: [{
-        name: 'type_idx',
-        fields: ['type']
-      }, {
         name: 'actualStartAt_idx',
         fields: ['actualStartAt']
       }, {
