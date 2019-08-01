@@ -867,7 +867,7 @@ class Db {
 
   cleanYtPubSub(): Promise<number> {
     const date = new Date();
-    date.setDate(date.getDate() - this.main.config.cleanPubSubFeedIfEndedOlderThanHours);
+    date.setHours(date.getHours() - this.main.config.cleanPubSubFeedIfEndedOlderThanHours);
     return YtPubSubFeedModel.destroy({
       where: {
         actualEndAt: {[Op.lt]: date},
