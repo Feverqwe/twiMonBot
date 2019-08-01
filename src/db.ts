@@ -102,7 +102,7 @@ class MessageModel extends Sequelize.Model {}
 export interface YtPubSubFeed {
   id: string,
   channelId: string,
-  type?: 'stream' | 'other',
+  isStream?: boolean,
   actualStartAt?: Date,
   actualEndAt?: Date,
   hasChanges?: boolean,
@@ -312,7 +312,7 @@ class Db {
     YtPubSubFeedModel.init({
       id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
       channelId: {type: Sequelize.STRING(191), allowNull: false},
-      type: {type: Sequelize.STRING(191), allowNull: false, defaultValue: ''},
+      isStream: {type: Sequelize.BOOLEAN, allowNull: true},
       actualStartAt: {type: Sequelize.DATE, allowNull: true},
       actualEndAt: {type: Sequelize.DATE, allowNull: true},
       hasChanges: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
@@ -828,7 +828,10 @@ class Db {
   getChangedFeedsWithoutOther(limit = 50): Promise<IYtPubSubFeed[]> {
     return YtPubSubFeedModel.findAll({
       where: {
-        type: {[Op.ne]: 'other'},
+        [Op.or]: [
+          {isStream: null},
+          {isStream: true},
+        ],
         hasChanges: true,
         syncTimeoutExpiresAt: {[Op.lt]: new Date()},
       },
@@ -853,11 +856,11 @@ class Db {
       return Promise.all([
         bulk(feedsChanges, (feedsChanges) => {
           return ChannelModel.bulkCreate(feedsChanges, {
-            updateOnDuplicate: ['type', 'actualStartAt', 'actualEndAt', 'hasChanges'],
+            updateOnDuplicate: ['isStream', 'actualStartAt', 'actualEndAt', 'hasChanges'],
             transaction
           });
         }),
-        YtPubSubFeedModel.update({type: 'other', hasChanges: false}, {
+        YtPubSubFeedModel.update({isStream: false, hasChanges: false}, {
           where: {id: otherIds},
           transaction
         }),
