@@ -11,8 +11,8 @@ import Goodgame from "./services/goodgame";
 import Mixer from "./services/mixer";
 import Twitch from "./services/twitch";
 import Youtube from "./services/youtube";
-import ErrorWithCode from "./tools/errorWithCode";
 import {TUser} from "./router";
+import YtPubSub from "./ytPubSub";
 
 // @ts-ignore
 process.env.NTBA_FIX_319 = true;
@@ -38,11 +38,18 @@ export interface Config {
   emitCheckChannelsEveryMinutes: number;
   checkChannelIfLastSyncLessThenMinutes: number;
   channelSyncTimeoutMinutes: number;
-  removeStreamIfOfflineMoreThanMinutes: number;
-  emitCleanChatsAndChannelsEveryHours: number;
   emitSendMessagesEveryMinutes: number;
   chatSendTimeoutAfterErrorMinutes: number;
+  emitCleanChatsAndChannelsEveryHours: number;
+  removeStreamIfOfflineMoreThanMinutes: number;
   emitCheckProxyEveryHours: number;
+  emitUpdateChannelPubSubSubscribeEveryMinutes: number,
+  updateChannelPubSubSubscribeIfExpiresLessThenMinutes: number,
+  channelPubSubSubscribeTimeoutMinutes: number,
+  emitFeedSyncEveryMinutes: number,
+  feedSyncTimeoutMinutes: number,
+  emitCleanPubSubFeedEveryHours: number,
+  cleanPubSubFeedIfPushOlderThanDays: number,
   defaultChannelName: string;
   db: {
     host: string;
@@ -50,6 +57,13 @@ export interface Config {
     database: string;
     user: string
     password: string;
+  },
+  push: {
+    host: string,
+    port: number,
+    secret: string,
+    callbackUrl: string,
+    leaseSeconds: number
   },
   adminIds: number[];
   botProxy: null;
@@ -65,14 +79,21 @@ const config: Config = {
   gaId: '',
   ytToken: '',
   twitchToken: '',
-  emitCheckChannelsEveryMinutes: 1,
-  checkChannelIfLastSyncLessThenMinutes: 5,
-  channelSyncTimeoutMinutes: 1,
+  emitCheckChannelsEveryMinutes: 5,
+  checkChannelIfLastSyncLessThenMinutes: 2.5,
+  channelSyncTimeoutMinutes: 2.5,
   removeStreamIfOfflineMoreThanMinutes: 15,
   emitCleanChatsAndChannelsEveryHours: 1,
   emitSendMessagesEveryMinutes: 5,
   chatSendTimeoutAfterErrorMinutes: 1,
-  emitCheckProxyEveryHours: 3,
+  emitCheckProxyEveryHours: 1,
+  emitUpdateChannelPubSubSubscribeEveryMinutes: 5,
+  updateChannelPubSubSubscribeIfExpiresLessThenMinutes: 15,
+  channelPubSubSubscribeTimeoutMinutes: 3,
+  emitFeedSyncEveryMinutes: 5,
+  feedSyncTimeoutMinutes: 2.5,
+  emitCleanPubSubFeedEveryHours: 1,
+  cleanPubSubFeedIfPushOlderThanDays: 14,
   defaultChannelName: 'BobRoss',
   db: {
     host: 'localhost',
@@ -80,6 +101,13 @@ const config: Config = {
     database: 'ytWatchBot',
     user: '',
     password: ''
+  },
+  push: {
+    host: 'localhost',
+    port: 80,
+    secret: '',
+    callbackUrl: '',
+    leaseSeconds: 86400
   },
   adminIds: [],
   botProxy: null,
@@ -101,6 +129,7 @@ class Main extends Events {
   mixer: Mixer;
   goodgame: Goodgame;
   services: ServiceInterface[];
+  serviceIdService: Map<string, ServiceInterface>;
   tracker: Tracker;
   sender: Sender;
   checker: Checker;
@@ -108,6 +137,7 @@ class Main extends Events {
   bot: typeof TelegramBot;
   chat: Chat;
   botName: string;
+  ytPubSub: YtPubSub;
   constructor() {
     super();
 
@@ -124,17 +154,23 @@ class Main extends Events {
     this.mixer = new Mixer(this);
     this.goodgame = new Goodgame(this);
     this.services = [this.twitch, this.youtube, this.mixer, this.goodgame];
+    this.serviceIdService = this.services.reduce((map, service) => {
+      map.set(service.id, service);
+      return map;
+    }, new Map());
 
     this.tracker = new Tracker(this);
     this.sender = new Sender(this);
     this.checker = new Checker(this);
     this.proxy = new Proxy(this);
+    this.ytPubSub = new YtPubSub(this);
 
     this.bot = this.initBot();
     this.chat = new Chat(this);
 
     return this.db.init().then(() => {
       return Promise.all([
+        this.ytPubSub.init(),
         this.checker.init(),
         this.sender.init(),
         this.bot.getMe().then((user: TUser) => {
@@ -178,11 +214,7 @@ class Main extends Events {
   }
 
   getServiceById(id: string) {
-    const result = this.services.find(service => service.id === id);
-    if (!result) {
-      throw new ErrorWithCode(`Service ${id} id not found`, 'SERVICE_IS_NOT_FOUND');
-    }
-    return result;
+    return this.serviceIdService.get(id);
   }
 }
 

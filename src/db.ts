@@ -6,7 +6,6 @@ import parallel from "./tools/parallel";
 import {ServiceChannel, ServiceInterface} from "./checker";
 // @ts-ignore
 import * as Sequelize from "sequelize";
-import {getCaption, getDescription} from "./tools/streamToString";
 
 const Sequelize = require('sequelize');
 const debug = require('debug')('app:db');
@@ -36,6 +35,8 @@ export interface Channel {
   url: string,
   lastSyncAt?: Date,
   syncTimeoutExpiresAt?: Date,
+  subscriptionExpiresAt?: Date,
+  subscriptionTimeoutExpiresAt?: Date,
   createdAt?: Date,
 }
 export interface IChannel extends Channel, Sequelize.Model {}
@@ -98,6 +99,18 @@ export interface IMessage extends Message, Sequelize.Model {
 }
 class MessageModel extends Sequelize.Model {}
 
+export interface YtPubSubFeed {
+  id: string,
+  channelId: string,
+  type?: 'stream' | 'other',
+  isOnline?: boolean,
+  hasChanges?: boolean,
+  syncTimeoutExpiresAt?: Date,
+  publishedAt: Date,
+}
+export interface IYtPubSubFeed extends YtPubSubFeed, Sequelize.Model {}
+class YtPubSubFeedModel extends Sequelize.Model {}
+
 class Db {
   main: Main;
   sequelize: Sequelize.Sequelize;
@@ -158,6 +171,8 @@ class Db {
       url: {type: Sequelize.TEXT, allowNull: false},
       lastSyncAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
       syncTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
+      subscriptionExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
+      subscriptionTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
     }, {
       sequelize: this.sequelize,
       modelName: 'channel',
@@ -176,6 +191,9 @@ class Db {
       }, {
         name: 'service_syncTimeoutExpiresAt_lastSyncAt_idx',
         fields: ['service', 'syncTimeoutExpiresAt', 'lastSyncAt']
+      }, {
+        name: 'subscriptionExpiresAt_subscriptionTimeoutExpiresAt_idx',
+        fields: ['subscriptionExpiresAt', 'subscriptionTimeoutExpiresAt']
       }]
     });
 
@@ -290,6 +308,37 @@ class Db {
     });
     MessageModel.belongsTo(ChatModel, {foreignKey: 'chatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
     MessageModel.belongsTo(StreamModel, {foreignKey: 'streamId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'SET NULL'});
+
+    YtPubSubFeedModel.init({
+      id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
+      channelId: {type: Sequelize.STRING(191), allowNull: false},
+      type: {type: Sequelize.STRING(191), allowNull: false, defaultValue: ''},
+      isOnline: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
+      hasChanges: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
+      syncTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
+      publishedAt: {type: Sequelize.DATE, allowNull: false},
+    }, {
+      sequelize: this.sequelize,
+      modelName: 'ytPubSubFeed',
+      tableName: 'ytPubSubFeeds',
+      timestamps: true,
+      indexes: [{
+        name: 'type_idx',
+        fields: ['type']
+      }, {
+        name: 'isOnline_idx',
+        fields: ['isOnline']
+      }, {
+        name: 'hasChanges_idx',
+        fields: ['hasChanges']
+      }, {
+        name: 'syncTimeoutExpiresAt_idx',
+        fields: ['syncTimeoutExpiresAt']
+      },  {
+        name: 'publishedAt_idx',
+        fields: ['publishedAt']
+      }]
+    });
   }
 
   /**
@@ -737,6 +786,95 @@ class Db {
   deleteMessageById(_id: number) {
     return MessageModel.destroy({
       where: {_id}
+    });
+  }
+
+  getChannelIdsWithExpiresSubscription(limit: number): Promise<string[]> {
+    const date = new Date();
+    date.setMinutes(date.getMinutes() + this.main.config.updateChannelPubSubSubscribeIfExpiresLessThenMinutes);
+    return ChannelModel.findAll({
+      where: {
+        service: this.main.youtube.id,
+        subscriptionExpiresAt: {[Op.lt]: date},
+        subscriptionTimeoutExpiresAt: {[Op.lt]: new Date()}
+      },
+      limit: limit,
+      attributes: ['id']
+    }).then((results: {id: string}[]) => {
+      return results.map(item => item.id);
+    });
+  }
+
+  setChannelsSubscriptionTimeoutExpiresAt(ids: string[]): Promise<[number]> {
+    const date = new Date();
+    date.setMinutes(date.getMinutes() + this.main.config.channelPubSubSubscribeTimeoutMinutes);
+    return ChannelModel.update({subscriptionTimeoutExpiresAt: date}, {
+      where: {id: ids}
+    });
+  }
+
+  setChannelsSubscriptionExpiresAt(ids: string[], expiresAt: Date): Promise<[number]> {
+    return ChannelModel.update({subscriptionExpiresAt: expiresAt}, {
+      where: {id: ids}
+    });
+  }
+
+  putFeeds(feeds: YtPubSubFeed[]) {
+    return YtPubSubFeedModel.bulkCreate(feeds, {
+      updateOnDuplicate: ['hasChanges']
+    });
+  }
+
+  getChangedFeedsWithoutOther(limit = 50): Promise<IYtPubSubFeed[]> {
+    return YtPubSubFeedModel.findAll({
+      where: {
+        type: {[Op.ne]: 'other'},
+        hasChanges: true,
+        syncTimeoutExpiresAt: {[Op.lt]: new Date()},
+      },
+      limit: limit
+    });
+  }
+
+  setFeedsSyncTimeoutExpiresAt(ids: string[]): Promise<void> {
+    const date = new Date();
+    date.setSeconds(date.getSeconds() + this.main.config.feedSyncTimeoutMinutes * 60);
+    return YtPubSubFeedModel.update({
+      syncTimeoutExpiresAt: date
+    }, {
+      where: {id: ids}
+    });
+  }
+
+  updateFeeds(onlineIds: string[], offlineIds: string[], otherIds: string[]) {
+    return this.sequelize.transaction({
+      isolationLevel: ISOLATION_LEVELS.REPEATABLE_READ,
+    }, async (transaction) => {
+      return Promise.all([
+        YtPubSubFeedModel.update({type: 'stream', isOnline: true, hasChanges: false}, {
+          where: {id: onlineIds},
+          transaction
+        }),
+        YtPubSubFeedModel.update({type: 'stream', isOnline: false, hasChanges: false}, {
+          where: {id: offlineIds},
+          transaction
+        }),
+        YtPubSubFeedModel.update({type: 'other', isOnline: false, hasChanges: false}, {
+          where: {id: otherIds},
+          transaction
+        }),
+      ]);
+    });
+  }
+
+  cleanYtPubSub(): Promise<number> {
+    const date = new Date();
+    date.setDate(date.getDate() - this.main.config.cleanPubSubFeedIfPushOlderThanDays);
+    return YtPubSubFeedModel.destroy({
+      where: {
+        publishedAt: {[Op.lt]: date},
+        isOnline: false
+      }
     });
   }
 }

@@ -271,6 +271,46 @@ class Youtube implements ServiceInterface {
     });
   }
 
+  getStreamsByIds(ids: string[]) {
+    const streamIds: string[] = [];
+    const onlineIds: string[] = [];
+    return parallel(10, arrayByPart(ids, 50), (videoIds) => {
+      return iterPages((pageToken?) => {
+        return withRetry({count: 3, timeout: 250}, () => {
+          return gotLimited('https://www.googleapis.com/youtube/v3/videos', {
+            query: {
+              part: 'liveStreamingDetails',
+              id: videoIds.join(','),
+              pageToken: pageToken,
+              fields: 'items(id,liveStreamingDetails),nextPageToken',
+              key: this.main.config.ytToken
+            },
+            json: true,
+          });
+        }, isDailyLimitExceeded).then(({body}) => {
+          const videosResponse = VideosResponse(body);
+
+          videosResponse.items.forEach((item) => {
+            if (!item.liveStreamingDetails) return;
+            streamIds.push(item.id);
+
+            const {actualStartTime, actualEndTime} = item.liveStreamingDetails;
+            if (actualStartTime && !actualEndTime) {
+              const startDate = new Date(actualStartTime);
+              if (startDate.getTime() < Date.now()) {
+                onlineIds.push(item.id);
+              }
+            }
+          });
+
+          return videosResponse.nextPageToken;
+        });
+      });
+    }).then(() => {
+      return {streamIds, onlineIds};
+    });
+  }
+
   getExistsChannelIds(ids: string[]) {
     const resultChannelIds: string[] = [];
     return parallel(10, arrayByPart(ids, 50), (ids) => {

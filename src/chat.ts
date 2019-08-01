@@ -916,6 +916,9 @@ class Chat {
       {name: 'Check channels', method: 'checker.check'},
       {name: 'Clean chats & channels', method: 'checker.clean'},
       {name: 'Sender check', method: 'sender.check'},
+      {name: 'Update pubsub subscriptions', method: 'ytPubSub.updateSubscribes'},
+      {name: 'Update sync pubsub feeds', method: 'ytPubSub.syncFeeds'},
+      {name: 'Clean pubsub feeds', method: 'ytPubSub.clean'},
     ];
 
     this.router.callback_query(/\/admin\/(?<command>.+)/, isAdmin, (req, res) => {
