@@ -217,7 +217,12 @@ class YtPubSub {
         });
         const otherIds: string[] = arrayDifference(feedIds, streamIds);
 
-        return this.main.db.updateFeeds(Object.values(streamIdChanges), otherIds);
+        await this.main.db.updateFeeds(Object.values(streamIdChanges), otherIds).then(() => {
+          return {
+            streamCount: streamIds.length,
+            otherCount: otherIds.length,
+          };
+        });
       }
     });
   }
