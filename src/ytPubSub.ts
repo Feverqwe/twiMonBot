@@ -207,7 +207,8 @@ class YtPubSub {
         const streamIds: string[] = [];
         streams.forEach(({id, actualStartAt, actualEndAt}) => {
           streamIds.push(id);
-          streamIdChanges[id] = Object.assign({}, feedIdFeed.get({plane: true}), {
+          const feed = feedIdFeed.get(id);
+          streamIdChanges[id] = Object.assign({}, feed.get({plane: true}), {
             isStream: true,
             actualStartAt,
             actualEndAt,
