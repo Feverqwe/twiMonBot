@@ -271,9 +271,8 @@ class Youtube implements ServiceInterface {
     });
   }
 
-  getStreamsByIds(ids: string[]) {
-    const streamIds: string[] = [];
-    const onlineIds: string[] = [];
+  getStreamsInfoByIds(ids: string[]) {
+    const results: {id: string, actualStartAt: Date|null, actualEndAt: Date|null}[] = [];
     return parallel(10, arrayByPart(ids, 50), (videoIds) => {
       return iterPages((pageToken?) => {
         return withRetry({count: 3, timeout: 250}, () => {
@@ -292,20 +291,26 @@ class Youtube implements ServiceInterface {
 
           videosResponse.items.forEach((item) => {
             if (!item.liveStreamingDetails) return;
-            streamIds.push(item.id);
-
             const {actualStartTime, actualEndTime} = item.liveStreamingDetails;
-            if (actualStartTime && !actualEndTime) {
-              onlineIds.push(item.id);
+            let actualStartAt = null;
+            if (actualStartTime) {
+              actualStartAt = new Date(actualStartTime);
             }
+            let actualEndAt = null;
+            if (actualEndTime) {
+              actualEndAt = new Date(actualEndTime);
+            }
+            results.push({
+              id: item.id,
+              actualStartAt,
+              actualEndAt
+            });
           });
 
           return videosResponse.nextPageToken;
         });
       });
-    }).then(() => {
-      return {streamIds, onlineIds};
-    });
+    }).then(() => results);
   }
 
   getExistsChannelIds(ids: string[]) {

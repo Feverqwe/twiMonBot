@@ -49,7 +49,7 @@ export interface Config {
   emitFeedSyncEveryMinutes: number,
   feedSyncTimeoutMinutes: number,
   emitCleanPubSubFeedEveryHours: number,
-  cleanPubSubFeedIfPushOlderThanDays: number,
+  cleanPubSubFeedIfEndedOlderThanHours: number,
   defaultChannelName: string;
   db: {
     host: string;
@@ -93,7 +93,7 @@ const config: Config = {
   emitFeedSyncEveryMinutes: 5,
   feedSyncTimeoutMinutes: 2.5,
   emitCleanPubSubFeedEveryHours: 1,
-  cleanPubSubFeedIfPushOlderThanDays: 14,
+  cleanPubSubFeedIfEndedOlderThanHours: 1,
   defaultChannelName: 'BobRoss',
   db: {
     host: 'localhost',

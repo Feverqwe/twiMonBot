@@ -7,6 +7,7 @@ import ErrorWithCode from "./tools/errorWithCode";
 import LogFile from "./logFile";
 import arrayDifference from "./tools/arrayDifference";
 import getInProgress from "./tools/getInProgress";
+import {YtPubSubFeed} from "./db";
 
 const debug = require('debug')('app:YtPubSub');
 const {XmlDocument} = require("xmldoc");
@@ -19,10 +20,8 @@ class YtPubSub {
   main: Main;
   private hubUrl: string;
   private pubsub: PubSubHubbub;
-  private log: LogFile;
   constructor(main: Main) {
     this.main = main;
-    this.log = new LogFile('feeds');
     this.hubUrl = 'https://pubsubhubbub.appspot.com/subscribe';
   }
 
@@ -151,7 +150,7 @@ class YtPubSub {
   feeds: Feed[] = [];
   emitFeedsChanges = () => {
     const minPubDate = new Date();
-    minPubDate.setDate(minPubDate.getDate() - this.main.config.cleanPubSubFeedIfPushOlderThanDays);
+    minPubDate.setDate(minPubDate.getDate() - 30);
 
     return oneLimit(async () => {
       while (this.feeds.length) {
@@ -173,9 +172,9 @@ class YtPubSub {
 
   handleFeed(data: PubSubFeed) {
     try {
-      this.log.write('data', JSON.stringify({
+      /*this.log.write('data', JSON.stringify({
         feed: data.feed.toString()
-      }));
+      }));*/
       const feed = parseData(data.feed.toString());
       this.feeds.push(feed);
       this.emitFeedsChangesThrottled();
@@ -203,11 +202,21 @@ class YtPubSub {
 
         await this.main.db.setFeedsSyncTimeoutExpiresAt(feedIds);
 
-        const {streamIds, onlineIds} = await this.main.youtube.getStreamsByIds(feedIds);
+        const streams = await this.main.youtube.getStreamsInfoByIds(feedIds);
+        const streamIdChanges: {[s: string]: YtPubSubFeed} = {};
+        const streamIds: string[] = [];
+        streams.forEach(({id, actualStartAt, actualEndAt}) => {
+          streamIds.push(id);
+          streamIdChanges[id] = Object.assign({}, feedIdFeed.get({plane: true}), {
+            type: 'stream',
+            actualStartAt,
+            actualEndAt,
+            hasChanges: false
+          });
+        });
         const otherIds: string[] = arrayDifference(feedIds, streamIds);
-        const offlineIds: string[] = arrayDifference(streamIds, onlineIds);
 
-        return this.main.db.updateFeeds(onlineIds, offlineIds, otherIds);
+        return this.main.db.updateFeeds(Object.values(streamIdChanges), otherIds);
       }
     });
   }

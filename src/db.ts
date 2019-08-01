@@ -103,10 +103,10 @@ export interface YtPubSubFeed {
   id: string,
   channelId: string,
   type?: 'stream' | 'other',
-  isOnline?: boolean,
+  actualStartAt?: Date,
+  actualEndAt?: Date,
   hasChanges?: boolean,
   syncTimeoutExpiresAt?: Date,
-  publishedAt: Date,
 }
 export interface IYtPubSubFeed extends YtPubSubFeed, Sequelize.Model {}
 class YtPubSubFeedModel extends Sequelize.Model {}
@@ -313,10 +313,10 @@ class Db {
       id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
       channelId: {type: Sequelize.STRING(191), allowNull: false},
       type: {type: Sequelize.STRING(191), allowNull: false, defaultValue: ''},
-      isOnline: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
+      actualStartAt: {type: Sequelize.DATE, allowNull: true},
+      actualEndAt: {type: Sequelize.DATE, allowNull: true},
       hasChanges: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
       syncTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
-      publishedAt: {type: Sequelize.DATE, allowNull: false},
     }, {
       sequelize: this.sequelize,
       modelName: 'ytPubSubFeed',
@@ -326,17 +326,17 @@ class Db {
         name: 'type_idx',
         fields: ['type']
       }, {
-        name: 'isOnline_idx',
-        fields: ['isOnline']
+        name: 'actualStartAt_idx',
+        fields: ['actualStartAt']
+      }, {
+        name: 'actualEndAt_idx',
+        fields: ['actualEndAt']
       }, {
         name: 'hasChanges_idx',
         fields: ['hasChanges']
       }, {
         name: 'syncTimeoutExpiresAt_idx',
         fields: ['syncTimeoutExpiresAt']
-      },  {
-        name: 'publishedAt_idx',
-        fields: ['publishedAt']
       }]
     });
   }
@@ -846,20 +846,18 @@ class Db {
     });
   }
 
-  updateFeeds(onlineIds: string[], offlineIds: string[], otherIds: string[]) {
+  updateFeeds(feedsChanges: YtPubSubFeed[], otherIds: string[]) {
     return this.sequelize.transaction({
       isolationLevel: ISOLATION_LEVELS.REPEATABLE_READ,
     }, async (transaction) => {
       return Promise.all([
-        YtPubSubFeedModel.update({type: 'stream', isOnline: true, hasChanges: false}, {
-          where: {id: onlineIds},
-          transaction
+        bulk(feedsChanges, (feedsChanges) => {
+          return ChannelModel.bulkCreate(feedsChanges, {
+            updateOnDuplicate: ['type', 'actualStartAt', 'actualEndAt', 'hasChanges'],
+            transaction
+          });
         }),
-        YtPubSubFeedModel.update({type: 'stream', isOnline: false, hasChanges: false}, {
-          where: {id: offlineIds},
-          transaction
-        }),
-        YtPubSubFeedModel.update({type: 'other', isOnline: false, hasChanges: false}, {
+        YtPubSubFeedModel.update({type: 'other', hasChanges: false}, {
           where: {id: otherIds},
           transaction
         }),
@@ -869,11 +867,10 @@ class Db {
 
   cleanYtPubSub(): Promise<number> {
     const date = new Date();
-    date.setDate(date.getDate() - this.main.config.cleanPubSubFeedIfPushOlderThanDays);
+    date.setDate(date.getDate() - this.main.config.cleanPubSubFeedIfEndedOlderThanHours);
     return YtPubSubFeedModel.destroy({
       where: {
-        publishedAt: {[Op.lt]: date},
-        isOnline: false
+        actualEndAt: {[Op.lt]: date},
       }
     });
   }
