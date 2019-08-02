@@ -323,6 +323,9 @@ class Db {
       tableName: 'ytPubSubFeeds',
       timestamps: true,
       indexes: [{
+        name: 'isStream_idx',
+        fields: ['isStream']
+      }, {
         name: 'actualStartAt_idx',
         fields: ['actualStartAt']
       }, {
@@ -334,6 +337,9 @@ class Db {
       }, {
         name: 'syncTimeoutExpiresAt_idx',
         fields: ['syncTimeoutExpiresAt']
+      }, {
+        name: 'createdAt_idx',
+        fields: ['createdAt']
       }]
     });
   }
@@ -868,9 +874,14 @@ class Db {
   cleanYtPubSub(): Promise<number> {
     const date = new Date();
     date.setHours(date.getHours() - this.main.config.cleanPubSubFeedIfEndedOlderThanHours);
+    const minCreatedAtDate = new Date();
+    minCreatedAtDate.setHours(minCreatedAtDate.getHours() - 24);
     return YtPubSubFeedModel.destroy({
       where: {
-        actualEndAt: {[Op.lt]: date},
+        [Op.or]: [
+          {isStream: true, actualEndAt: {[Op.lt]: date}},
+          {isStream: false, createdAt: {[Op.lt]: minCreatedAtDate}},
+        ],
       }
     });
   }
