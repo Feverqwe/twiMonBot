@@ -89,7 +89,7 @@ const config: Config = {
   emitCheckProxyEveryHours: 1,
   emitUpdateChannelPubSubSubscribeEveryMinutes: 5,
   updateChannelPubSubSubscribeIfExpiresLessThenMinutes: 15,
-  channelPubSubSubscribeTimeoutMinutes: 3,
+  channelPubSubSubscribeTimeoutMinutes: 2.5,
   checkPubSubChannelIfLastSyncLessThenMinutes: 10,
   feedSyncTimeoutMinutes: 2.5,
   emitCleanPubSubFeedEveryHours: 1,

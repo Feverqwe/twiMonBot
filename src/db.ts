@@ -895,7 +895,7 @@ class Db {
     });
   }
 
-  getChannelIdsWithExpiresSubscription(limit: number): Promise<string[]> {
+  getYtPubSubChannelIdsWithExpiresSubscription(limit: number): Promise<string[]> {
     const date = new Date();
     date.setMinutes(date.getMinutes() + this.main.config.updateChannelPubSubSubscribeIfExpiresLessThenMinutes);
     return YtPubSubChannelModel.findAll({
@@ -910,7 +910,7 @@ class Db {
     });
   }
 
-  setChannelsSubscriptionTimeoutExpiresAt(ids: string[]): Promise<[number]> {
+  setYtPubSubChannelsSubscriptionTimeoutExpiresAt(ids: string[]): Promise<[number]> {
     const date = new Date();
     date.setSeconds(date.getSeconds() + this.main.config.channelPubSubSubscribeTimeoutMinutes * 60);
     return YtPubSubChannelModel.update({subscriptionTimeoutExpiresAt: date}, {
@@ -918,8 +918,14 @@ class Db {
     });
   }
 
-  setChannelsSubscriptionExpiresAt(ids: string[], expiresAt: Date): Promise<[number]> {
+  setYtPubSubChannelsSubscriptionExpiresAt(ids: string[], expiresAt: Date): Promise<[number]> {
     return YtPubSubChannelModel.update({subscriptionExpiresAt: expiresAt}, {
+      where: {id: ids}
+    });
+  }
+
+  setYtPubSubChannelsLastSyncAt(ids: string[], syncAt: Date): Promise<[number]> {
+    return YtPubSubChannelModel.update({lastSyncAt: syncAt}, {
       where: {id: ids}
     });
   }

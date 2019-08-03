@@ -59,19 +59,18 @@ class YtPubSub {
       let subscribeCount = 0;
       let errorCount = 0;
       while (true) {
-        const channelIds = await this.main.db.getChannelIdsWithExpiresSubscription(50);
+        const channelIds = await this.main.db.getYtPubSubChannelIdsWithExpiresSubscription(50);
         if (!channelIds.length) {
           break;
         }
 
-        await this.main.db.setChannelsSubscriptionTimeoutExpiresAt(channelIds).then(() => {
+        await this.main.db.setYtPubSubChannelsSubscriptionTimeoutExpiresAt(channelIds).then(() => {
           const expiresAt = new Date();
           expiresAt.setSeconds(expiresAt.getSeconds() + this.main.config.push.leaseSeconds);
 
           const subscribedChannelIds: string[] = [];
           return parallel(10, channelIds, (id) => {
-            const rawId = serviceId.unwrap(id) as string;
-            return this.subscribe(rawId).then(() => {
+            return this.subscribe(id).then(() => {
               subscribedChannelIds.push(id);
               subscribeCount++;
             }, (err: any) => {
@@ -79,7 +78,7 @@ class YtPubSub {
               errorCount++;
             });
           }).then(() => {
-            return this.main.db.setChannelsSubscriptionExpiresAt(subscribedChannelIds, expiresAt);
+            return this.main.db.setYtPubSubChannelsSubscriptionExpiresAt(subscribedChannelIds, expiresAt);
           });
         });
       }
@@ -206,6 +205,7 @@ class YtPubSub {
           channelIds.push(channel.id);
         });
 
+        const syncAt = new Date();
         await this.main.db.setYtPubSubChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
           const newFeeds: YtPubSubFeed[] = [];
           return parallel(10, channelIds, (channelId) => {
@@ -215,8 +215,11 @@ class YtPubSub {
               debug(`getStreams for channel (%s) skip, cause: %o`, channelId, err);
               skippedChannelIds.push(channelId);
             });
-          }).then(async () => {
-            return this.main.db.putFeeds(newFeeds);
+          }).then(() => {
+            return Promise.all([
+              this.main.db.putFeeds(newFeeds),
+              this.main.db.setYtPubSubChannelsLastSyncAt(channelIds, syncAt)
+            ]);
           });
         });
       }
