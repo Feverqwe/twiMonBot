@@ -6,6 +6,7 @@ import serviceId from "./tools/serviceId";
 import ErrorWithCode from "./tools/errorWithCode";
 import arrayDifference from "./tools/arrayDifference";
 import {YtPubSubChannel, YtPubSubFeed} from "./db";
+import LogFile from "./logFile";
 
 const debug = require('debug')('app:YtPubSub');
 const {XmlDocument} = require("xmldoc");
@@ -18,8 +19,10 @@ class YtPubSub {
   main: Main;
   private hubUrl: string;
   private pubsub: PubSubHubbub;
+  private log: LogFile;
   constructor(main: Main) {
     this.main = main;
+    this.log = new LogFile('ytPubSub');
     this.hubUrl = 'https://pubsubhubbub.appspot.com/subscribe';
   }
 
@@ -153,10 +156,19 @@ class YtPubSub {
           }
         });
 
-        await this.main.db.getExistsYtPubSubChannelIds(channelIds).then((existsChannelIds) => {
-          return this.main.db.putFeeds(feeds.filter((feed) => {
-            return existsChannelIds.includes(feed.channelId);
-          }));
+        await Promise.all([
+          this.main.db.getExistsYtPubSubChannelIds(channelIds),
+          this.main.db.getFeedIdsByChannelIds(channelIds),
+        ]).then(([existsChannelIds, existsFeedIds]) => {
+          feeds = feeds.filter((feed) => existsChannelIds.includes(feed.channelId));
+
+          return this.main.db.putFeeds(feeds).then(() => {
+            feeds.forEach((feed) => {
+              if (!existsFeedIds.includes(feed.id)) {
+                this.log.write('[insert]', feed.channelId, feed.id);
+              }
+            });
+          });
         });
       }
     });
@@ -206,20 +218,29 @@ class YtPubSub {
         });
 
         const syncAt = new Date();
-        await this.main.db.setYtPubSubChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
-          const newFeeds: YtPubSubFeed[] = [];
+        await Promise.all([
+          this.main.db.getFeedIdsByChannelIds(channelIds),
+          this.main.db.setYtPubSubChannelsSyncTimeoutExpiresAt(channelIds),
+        ]).then(([existsFeedIds]) => {
+          const feeds: YtPubSubFeed[] = [];
           return parallel(10, channelIds, (channelId) => {
-            return this.requestFeedsByChannelId(channelId).then((feeds) => {
-              newFeeds.push(...feeds);
+            return this.requestFeedsByChannelId(channelId).then((channelFeeds) => {
+              feeds.push(...channelFeeds);
             }, (err) => {
               debug(`getStreams for channel (%s) skip, cause: %o`, channelId, err);
               skippedChannelIds.push(channelId);
             });
           }).then(() => {
             return Promise.all([
-              this.main.db.putFeeds(newFeeds),
+              this.main.db.putFeeds(feeds),
               this.main.db.setYtPubSubChannelsLastSyncAt(channelIds, syncAt)
             ]);
+          }).then(() => {
+            feeds.forEach((feed) => {
+              if (!existsFeedIds.includes(feed.id)) {
+                this.log.write('[insert full]', feed.channelId, feed.id);
+              }
+            });
           });
         });
       }
@@ -253,6 +274,9 @@ class YtPubSub {
 
           notStreamIds.forEach((id) => {
             const feed = feedIdFeed.get(id);
+            if (feed.isStream) {
+              this.log.write('[video]', feed.channelId, feed.id);
+            }
             feed.isStream = false;
             feedIdChanges[feed.id] = feed;
           });

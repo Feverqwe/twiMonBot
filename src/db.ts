@@ -951,6 +951,15 @@ class Db {
     });
   }
 
+  getFeedIdsByChannelIds(channelIds: string[]): Promise<string[]> {
+    return YtPubSubFeedModel.findAll({
+      where: {channelId: channelIds},
+      attributes: ['id']
+    }).then((results: {id: string}[]) => {
+      return results.map(result => result.id);
+    });
+  }
+
   getStreamFeedsByChannelIds(channelIds: string[]): Promise<IYtPubSubFeed[]> {
     return YtPubSubFeedModel.findAll({
       where: {
