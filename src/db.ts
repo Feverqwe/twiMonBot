@@ -343,7 +343,7 @@ class Db {
       isStream: {type: Sequelize.BOOLEAN, allowNull: true},
       actualStartAt: {type: Sequelize.DATE, allowNull: true},
       actualEndAt: {type: Sequelize.DATE, allowNull: true},
-      viewers: {type: Sequelize.NUMBER, allowNull: true},
+      viewers: {type: Sequelize.INTEGER, allowNull: true},
       syncTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
     }, {
       sequelize: this.sequelize,
