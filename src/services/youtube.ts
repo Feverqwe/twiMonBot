@@ -108,7 +108,8 @@ interface SearchVideoResponse {
       videoId: string,
     },
     snippet: SearchVideoResponseSnippet
-  }[]
+  }[],
+  nextPageToken?: string
 }
 
 const SearchVideoResponse: (any: any) => SearchVideoResponse = struct(struct.partial({
@@ -123,7 +124,8 @@ const SearchVideoResponse: (any: any) => SearchVideoResponse = struct(struct.par
       channelTitle: 'string',
       channelId: 'string',
     }),
-  })]
+  })],
+  nextPageToken: 'string?'
 }));
 
 interface VideosResponse {
@@ -202,29 +204,33 @@ class Youtube implements ServiceInterface {
 
   getStreamIdSnippetByChannelId(channelId: string) {
     const idSnippet: Map<string, SearchVideoResponseSnippet> = new Map();
-    return withRetry({count: 3, timeout: 250}, () => {
-      return gotLimited('https://www.googleapis.com/youtube/v3/search', {
-        query: {
-          part: 'snippet',
-          channelId: channelId,
-          eventType: 'live',
-          maxResults: 5,
-          order: 'date',
-          safeSearch: 'none',
-          type: 'video',
-          fields: 'items(id/videoId,snippet)',
-          key: this.main.config.ytToken,
-        },
-        json: true
-      });
-    }, isDailyLimitExceeded).then(({body}) => {
-      const result = SearchVideoResponse(body);
-      result.items.forEach((item) => {
-        idSnippet.set(item.id.videoId, item.snippet);
-      });
+    return iterPages((pageToken?) => {
+      return withRetry({count: 3, timeout: 250}, () => {
+        return gotLimited('https://www.googleapis.com/youtube/v3/search', {
+          query: {
+            part: 'snippet',
+            channelId: channelId,
+            pageToken: pageToken,
+            eventType: 'live',
+            maxResults: 50,
+            order: 'date',
+            safeSearch: 'none',
+            type: 'video',
+            fields: 'items(id/videoId,snippet),nextPageToken',
+            key: this.main.config.ytToken,
+          },
+          json: true
+        });
+      }, isDailyLimitExceeded).then(({body}) => {
+        const result = SearchVideoResponse(body);
 
-      return idSnippet;
-    });
+        result.items.forEach((item) => {
+          idSnippet.set(item.id.videoId, item.snippet);
+        });
+
+        return result.nextPageToken;
+      });
+    }).then(() => idSnippet);
   }
 
   getStreamIdLiveDetaildByIds(ids: string[]) {
