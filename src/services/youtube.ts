@@ -202,23 +202,32 @@ class Youtube implements ServiceInterface {
     });
   }
 
-  getStreamIdSnippetByChannelId(channelId: string, eventType = 'live') {
+  getStreamIdSnippetByChannelId(channelId: string, isUpcoming = false) {
     const idSnippet: Map<string, SearchVideoResponseSnippet> = new Map();
     return iterPages((pageToken?) => {
       return withRetry({count: 3, timeout: 250}, () => {
+        const query = {
+          part: 'snippet',
+          channelId: channelId,
+          pageToken: pageToken,
+          eventType: 'live',
+          maxResults: 50,
+          order: 'date',
+          safeSearch: 'none',
+          type: 'video',
+          fields: 'items(id/videoId,snippet),nextPageToken',
+          key: this.main.config.ytToken,
+        };
+
+        if (isUpcoming) {
+          query.eventType = 'upcoming';
+          const now = new Date();
+          // @ts-ignore
+          query.publishedAfter = now.toISOString();
+        }
+
         return gotLimited('https://www.googleapis.com/youtube/v3/search', {
-          query: {
-            part: 'snippet',
-            channelId: channelId,
-            pageToken: pageToken,
-            eventType,
-            maxResults: 50,
-            order: 'date',
-            safeSearch: 'none',
-            type: 'video',
-            fields: 'items(id/videoId,snippet),nextPageToken',
-            key: this.main.config.ytToken,
-          },
+          query,
           json: true
         });
       }, isDailyLimitExceeded).then(({body}) => {

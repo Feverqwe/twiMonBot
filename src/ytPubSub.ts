@@ -295,8 +295,8 @@ class YtPubSub {
   requestFeedsByChannelId(channelId: string, isUpcomingChecked: boolean): Promise<YtPubSubFeed[]> {
     const feeds: YtPubSubFeed[] = [];
     return Promise.all([
-      !isUpcomingChecked && this.main.youtube.getStreamIdSnippetByChannelId(channelId, 'upcoming'),
-      this.main.youtube.getStreamIdSnippetByChannelId(channelId, 'live')
+      !isUpcomingChecked && this.main.youtube.getStreamIdSnippetByChannelId(channelId, true),
+      this.main.youtube.getStreamIdSnippetByChannelId(channelId)
     ]).then((results) => {
       results.forEach((streamIdSnippet) => {
         if (!streamIdSnippet) return;
