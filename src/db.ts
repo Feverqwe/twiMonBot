@@ -117,6 +117,7 @@ class MessageModel extends Sequelize.Model {}
 export interface YtPubSubChannel {
   id: string,
   channelId: string,
+  isUpcomingChecked?: boolean,
   lastSyncAt?: Date,
   syncTimeoutExpiresAt?: Date,
   subscriptionExpiresAt?: Date,
@@ -343,6 +344,7 @@ class Db {
     YtPubSubChannelModel.init({
       id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
       channelId: {type: Sequelize.STRING(191), allowNull: false},
+      isUpcomingChecked: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
       lastSyncAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
       syncTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
       subscriptionExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
@@ -925,7 +927,7 @@ class Db {
   }
 
   setYtPubSubChannelsLastSyncAt(ids: string[], syncAt: Date): Promise<[number]> {
-    return YtPubSubChannelModel.update({lastSyncAt: syncAt}, {
+    return YtPubSubChannelModel.update({lastSyncAt: syncAt, isUpcomingChecked: true}, {
       where: {id: ids}
     });
   }

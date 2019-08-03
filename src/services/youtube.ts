@@ -202,7 +202,7 @@ class Youtube implements ServiceInterface {
     });
   }
 
-  getStreamIdSnippetByChannelId(channelId: string) {
+  getStreamIdSnippetByChannelId(channelId: string, eventType = 'live') {
     const idSnippet: Map<string, SearchVideoResponseSnippet> = new Map();
     return iterPages((pageToken?) => {
       return withRetry({count: 3, timeout: 250}, () => {
@@ -211,7 +211,7 @@ class Youtube implements ServiceInterface {
             part: 'snippet',
             channelId: channelId,
             pageToken: pageToken,
-            eventType: 'live',
+            eventType,
             maxResults: 50,
             order: 'date',
             safeSearch: 'none',

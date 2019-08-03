@@ -5,7 +5,7 @@ import parallel from "./tools/parallel";
 import serviceId from "./tools/serviceId";
 import ErrorWithCode from "./tools/errorWithCode";
 import arrayDifference from "./tools/arrayDifference";
-import {YtPubSubChannel, YtPubSubFeed} from "./db";
+import {IYtPubSubChannel, YtPubSubChannel, YtPubSubFeed} from "./db";
 import LogFile from "./logFile";
 
 const debug = require('debug')('app:YtPubSub');
@@ -212,10 +212,11 @@ class YtPubSub {
         const channels = await this.main.db.getYtPubSubChannelsForSync();
         if (!channels.length) break;
 
-        const channelIds: string[] = [];
+        const channelIdChannel: Map<string, IYtPubSubChannel> = new Map();
         channels.forEach((channel) => {
-          channelIds.push(channel.id);
+          channelIdChannel.set(channel.id, channel);
         });
+        const channelIds = Array.from(channelIdChannel.keys());
 
         const syncAt = new Date();
         await Promise.all([
@@ -224,7 +225,8 @@ class YtPubSub {
         ]).then(([existsFeedIds]) => {
           const feeds: YtPubSubFeed[] = [];
           return parallel(10, channelIds, (channelId) => {
-            return this.requestFeedsByChannelId(channelId).then((channelFeeds) => {
+            const channel = channelIdChannel.get(channelId);
+            return this.requestFeedsByChannelId(channelId, channel.isUpcomingChecked).then((channelFeeds) => {
               feeds.push(...channelFeeds);
             }, (err) => {
               debug(`getStreams for channel (%s) skip, cause: %o`, channelId, err);
@@ -290,15 +292,21 @@ class YtPubSub {
     });
   }
 
-  requestFeedsByChannelId(channelId: string): Promise<YtPubSubFeed[]> {
+  requestFeedsByChannelId(channelId: string, isUpcomingChecked: boolean): Promise<YtPubSubFeed[]> {
     const feeds: YtPubSubFeed[] = [];
-    return this.main.youtube.getStreamIdSnippetByChannelId(channelId).then((streamIdSnippet) => {
-      streamIdSnippet.forEach((snippet, id) => {
-        feeds.push({
-          id,
-          title: snippet.title,
-          channelId: snippet.channelId,
-          channelTitle: snippet.channelTitle
+    return Promise.all([
+      !isUpcomingChecked && this.main.youtube.getStreamIdSnippetByChannelId(channelId, 'upcoming'),
+      this.main.youtube.getStreamIdSnippetByChannelId(channelId, 'live')
+    ]).then((results) => {
+      results.forEach((streamIdSnippet) => {
+        if (!streamIdSnippet) return;
+        streamIdSnippet.forEach((snippet, id) => {
+          feeds.push({
+            id,
+            title: snippet.title,
+            channelId: snippet.channelId,
+            channelTitle: snippet.channelTitle
+          });
         });
       });
     }).then(() => feeds);
