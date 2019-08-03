@@ -10,6 +10,7 @@ import LogFile from "./logFile";
 
 const debug = require('debug')('app:YtPubSub');
 const {XmlDocument} = require("xmldoc");
+const XmlEntities = require('html-entities/lib/xml-entities');
 const qs = require('querystring');
 const promiseLimit = require('promise-limit');
 const oneLimit = promiseLimit(1);
@@ -352,7 +353,7 @@ function parseData(xml: string): Feed {
         node = getChildNode(node, 'name');
       }
       if (node) {
-        data[field] = node.val;
+        data[field] = XmlEntities.decode(node.val);
         return true;
       }
     });
@@ -371,6 +372,10 @@ function parseData(xml: string): Feed {
     debug('parseData error, cause: Some data is not found %j', document.toString({compressed: true}));
     throw err;
   }
+}
+
+function decodeHtmlString() {
+
 }
 
 function getTopicUrl(channelId: string) {
