@@ -1002,13 +1002,21 @@ class Db {
   cleanYtPubSub(): Promise<number> {
     const minCreatedAtDate = new Date();
     minCreatedAtDate.setHours(minCreatedAtDate.getHours() - 24);
+    const minStreamCreatedAtDate = new Date();
+    minStreamCreatedAtDate.setDate(minCreatedAtDate.getDate() - 7);
     return YtPubSubFeedModel.destroy({
       where: {
-        [Op.or]: [
-          {isStream: true, actualEndAt: {[Op.lt]: minCreatedAtDate}},
-          {isStream: false},
-        ],
-        createdAt: {[Op.lt]: minCreatedAtDate},
+        [Op.or]: [{
+          isStream: true,
+          [Op.or]: [{
+            actualEndAt: {[Op.lt]: minCreatedAtDate}
+          }, {
+            actualEndAt: null, createdAt: {[Op.lt]: minStreamCreatedAtDate}
+          }]
+        }, {
+          isStream: false,
+          createdAt: {[Op.lt]: minCreatedAtDate}
+        }]
       }
     });
   }
