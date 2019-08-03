@@ -935,7 +935,7 @@ class Db {
       where: {
         [Op.or]: [
           {isStream: null},
-          {isStream: true},
+          {isStream: true, actualEndAt: null},
         ],
         syncTimeoutExpiresAt: {[Op.lt]: new Date()},
       },
