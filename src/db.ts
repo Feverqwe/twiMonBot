@@ -20,9 +20,14 @@ export interface Chat {
   isEnabledAutoClean: boolean,
   isMuted: boolean,
   sendTimeoutExpiresAt: Date,
-  parentChatId: string|null
+  parentChatId: string|null,
+  createdAt?: Date,
+  updatedAt?: Date,
 }
-export interface IChat extends Chat, Sequelize.Model {}
+export interface IChat extends Chat, Sequelize.Model {
+  createdAt: Date,
+  updatedAt: Date,
+}
 export interface IChatWithChannel extends IChat {
   channel: IChat|null
 }
@@ -39,7 +44,9 @@ export interface Channel {
   subscriptionTimeoutExpiresAt?: Date,
   createdAt?: Date,
 }
-export interface IChannel extends Channel, Sequelize.Model {}
+export interface IChannel extends Channel, Sequelize.Model {
+  createdAt: Date
+}
 class ChannelModel extends Sequelize.Model {}
 
 export interface ChatIdStreamId {
@@ -49,7 +56,8 @@ export interface ChatIdStreamId {
   createdAt?: Date,
 }
 export interface IChatIdStreamId extends ChatIdStreamId, Sequelize.Model {
-  id: number
+  id: number,
+  createdAt: Date,
 }
 class ChatIdStreamIdModel extends Sequelize.Model {}
 
@@ -70,9 +78,12 @@ export interface Stream {
   createdAt?: Date,
   updatedAt?: Date,
 }
-export interface IStream extends Stream, Sequelize.Model {}
+export interface IStream extends Stream, Sequelize.Model {
+  createdAt: Date,
+  updatedAt: Date,
+}
 export interface IStreamWithChannel extends IStream {
-  channel: IChannel
+  channel: IChannel,
 }
 class StreamModel extends Sequelize.Model {}
 
@@ -81,7 +92,9 @@ export interface ChatIdChannelId {
   channelId: string,
   createdAt?: Date,
 }
-export interface IChatIdChannelId extends ChatIdChannelId, Sequelize.Model {}
+export interface IChatIdChannelId extends ChatIdChannelId, Sequelize.Model {
+  createdAt: Date,
+}
 class ChatIdChannelIdModel extends Sequelize.Model {}
 
 export interface Message {
@@ -93,9 +106,12 @@ export interface Message {
   text: string,
   hasChanges?: boolean,
   createdAt?: Date,
+  updatedAt?: Date,
 }
 export interface IMessage extends Message, Sequelize.Model {
   _id: number,
+  createdAt: Date,
+  updatedAt: Date,
 }
 class MessageModel extends Sequelize.Model {}
 
