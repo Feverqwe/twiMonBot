@@ -116,15 +116,24 @@ export interface IMessage extends Message, Sequelize.Model {
 class MessageModel extends Sequelize.Model {}
 
 export interface YtPubSubFeed {
+  _id?: number,
   id: string,
+  title: string,
   channelId: string,
+  channelTitle: string,
   isStream?: boolean,
   actualStartAt?: Date,
   actualEndAt?: Date,
-  hasChanges?: boolean,
+  viewers?: number,
   syncTimeoutExpiresAt?: Date,
+  createdAt?: Date,
+  updatedAt?: Date,
 }
-export interface IYtPubSubFeed extends YtPubSubFeed, Sequelize.Model {}
+export interface IYtPubSubFeed extends YtPubSubFeed, Sequelize.Model {
+  _id: number,
+  createdAt: Date,
+  updatedAt: Date,
+}
 class YtPubSubFeedModel extends Sequelize.Model {}
 
 class Db {
@@ -326,12 +335,15 @@ class Db {
     MessageModel.belongsTo(StreamModel, {foreignKey: 'streamId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'SET NULL'});
 
     YtPubSubFeedModel.init({
-      id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
+      _id: {type: Sequelize.INTEGER, allowNull: false, primaryKey: true, autoIncrement: true},
+      id: {type: Sequelize.STRING(191), allowNull: false},
+      title: {type: Sequelize.STRING(191), allowNull: false},
       channelId: {type: Sequelize.STRING(191), allowNull: false},
+      channelTitle: {type: Sequelize.STRING(191), allowNull: false},
       isStream: {type: Sequelize.BOOLEAN, allowNull: true},
       actualStartAt: {type: Sequelize.DATE, allowNull: true},
       actualEndAt: {type: Sequelize.DATE, allowNull: true},
-      hasChanges: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
+      viewers: {type: Sequelize.NUMBER, allowNull: true},
       syncTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
     }, {
       sequelize: this.sequelize,
@@ -339,6 +351,13 @@ class Db {
       tableName: 'ytPubSubFeeds',
       timestamps: true,
       indexes: [{
+        name: 'id_channelId_UNIQUE',
+        unique: true,
+        fields: ['id', 'channelId']
+      }, {
+        name: 'channelId_idx',
+        fields: ['channelId']
+      }, {
         name: 'isStream_idx',
         fields: ['isStream']
       }, {
@@ -347,9 +366,6 @@ class Db {
       }, {
         name: 'actualEndAt_idx',
         fields: ['actualEndAt']
-      }, {
-        name: 'hasChanges_idx',
-        fields: ['hasChanges']
       }, {
         name: 'syncTimeoutExpiresAt_idx',
         fields: ['syncTimeoutExpiresAt']
@@ -840,7 +856,7 @@ class Db {
 
   putFeeds(feeds: YtPubSubFeed[]) {
     return YtPubSubFeedModel.bulkCreate(feeds, {
-      updateOnDuplicate: ['hasChanges']
+      updateOnDuplicate: ['title', 'channelTitle']
     });
   }
 
@@ -888,14 +904,12 @@ class Db {
   }
 
   cleanYtPubSub(): Promise<number> {
-    const date = new Date();
-    date.setHours(date.getHours() - this.main.config.cleanPubSubFeedIfEndedOlderThanHours);
     const minCreatedAtDate = new Date();
     minCreatedAtDate.setHours(minCreatedAtDate.getHours() - 24);
     return YtPubSubFeedModel.destroy({
       where: {
         [Op.or]: [
-          {isStream: true, actualEndAt: {[Op.lt]: date}},
+          {isStream: true, actualEndAt: {[Op.lt]: minCreatedAtDate}},
           {isStream: false, createdAt: {[Op.lt]: minCreatedAtDate}},
         ],
       }

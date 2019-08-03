@@ -31,19 +31,8 @@ class YtPubSub {
     return new Promise((resolve, reject) => {
       this.initListener((err) => err ? reject(err) : resolve());
     }).then(() => {
-      this.startSyncFeedsInterval();
       this.startUpdateInterval();
       this.startCleanInterval();
-    });
-  }
-
-  syncFeedsTimer: () => void = null;
-  startSyncFeedsInterval() {
-    this.syncFeedsTimer && this.syncFeedsTimer();
-    this.syncFeedsTimer = everyMinutes(this.main.config.emitFeedSyncEveryMinutes, () => {
-      this.syncFeeds().catch((err: any) => {
-        debug('syncFeeds error', err);
-      });
     });
   }
 
@@ -241,9 +230,10 @@ interface PubSubFeed {
 
 interface Feed {
   id: string,
+  title: string,
   channelId: string,
+  channelTitle: string,
   publishedAt: Date,
-  hasChanges: boolean,
 }
 
 function parseData(xml: string): Feed {
@@ -263,8 +253,11 @@ function parseData(xml: string): Feed {
     }
 
     const data: {[s: string]: string} = {};
-    const success = ['yt:videoId', 'yt:channelId', 'published'].every((field) => {
-      const node = getChildNode(entry, field);
+    const success = ['yt:videoId', 'yt:channelId', 'title', 'author', 'published'].every((field) => {
+      let node = getChildNode(entry, field);
+      if (node && field === 'author') {
+        node = getChildNode(node, 'name');
+      }
       if (node) {
         data[field] = node.val;
         return true;
@@ -276,9 +269,10 @@ function parseData(xml: string): Feed {
 
     return {
       id: data['yt:videoId'],
+      title: data.title,
       channelId: data['yt:channelId'],
-      publishedAt: new Date(data.published),
-      hasChanges: true
+      channelTitle: data.author,
+      publishedAt: new Date(data.published)
     };
   } catch (err) {
     debug('parseData error, cause: Some data is not found %j', document.toString({compressed: true}));
