@@ -40,8 +40,6 @@ export interface Channel {
   url: string,
   lastSyncAt?: Date,
   syncTimeoutExpiresAt?: Date,
-  subscriptionExpiresAt?: Date,
-  subscriptionTimeoutExpiresAt?: Date,
   createdAt?: Date,
 }
 export interface IChannel extends Channel, Sequelize.Model {
@@ -114,6 +112,19 @@ export interface IMessage extends Message, Sequelize.Model {
   updatedAt: Date,
 }
 class MessageModel extends Sequelize.Model {}
+
+export interface YtPubSubChannel {
+  id: string,
+  lastSyncAt?: Date,
+  syncTimeoutExpiresAt?: Date,
+  subscriptionExpiresAt?: Date,
+  subscriptionTimeoutExpiresAt?: Date,
+  createdAt?: Date,
+}
+export interface IYtPubSubChannel extends YtPubSubChannel, Sequelize.Model {
+  createdAt: Date
+}
+class YtPubSubChannelModel extends Sequelize.Model {}
 
 export interface YtPubSubFeed {
   _id?: number,
@@ -196,8 +207,6 @@ class Db {
       url: {type: Sequelize.TEXT, allowNull: false},
       lastSyncAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
       syncTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
-      subscriptionExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
-      subscriptionTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
     }, {
       sequelize: this.sequelize,
       modelName: 'channel',
@@ -216,9 +225,6 @@ class Db {
       }, {
         name: 'service_syncTimeoutExpiresAt_lastSyncAt_idx',
         fields: ['service', 'syncTimeoutExpiresAt', 'lastSyncAt']
-      }, {
-        name: 'subscriptionExpiresAt_subscriptionTimeoutExpiresAt_idx',
-        fields: ['subscriptionExpiresAt', 'subscriptionTimeoutExpiresAt']
       }]
     });
 
@@ -333,6 +339,30 @@ class Db {
     });
     MessageModel.belongsTo(ChatModel, {foreignKey: 'chatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
     MessageModel.belongsTo(StreamModel, {foreignKey: 'streamId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'SET NULL'});
+
+    YtPubSubChannelModel.init({
+      id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
+      lastSyncAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
+      syncTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
+      subscriptionExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
+      subscriptionTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
+    }, {
+      sequelize: this.sequelize,
+      modelName: 'ytPubSubChannel',
+      tableName: 'ytPubSubChannels',
+      timestamps: true,
+      updatedAt: false,
+      indexes: [{
+        name: 'lastSyncAt_idx',
+        fields: ['lastSyncAt']
+      }, {
+        name: 'syncTimeoutExpiresAt_idx',
+        fields: ['syncTimeoutExpiresAt']
+      }, {
+        name: 'subscriptionExpiresAt_subscriptionTimeoutExpiresAt_idx',
+        fields: ['subscriptionExpiresAt', 'subscriptionTimeoutExpiresAt']
+      }]
+    });
 
     YtPubSubFeedModel.init({
       _id: {type: Sequelize.INTEGER, allowNull: false, primaryKey: true, autoIncrement: true},
@@ -827,9 +857,8 @@ class Db {
   getChannelIdsWithExpiresSubscription(limit: number): Promise<string[]> {
     const date = new Date();
     date.setMinutes(date.getMinutes() + this.main.config.updateChannelPubSubSubscribeIfExpiresLessThenMinutes);
-    return ChannelModel.findAll({
+    return YtPubSubChannelModel.findAll({
       where: {
-        service: this.main.youtube.id,
         subscriptionExpiresAt: {[Op.lt]: date},
         subscriptionTimeoutExpiresAt: {[Op.lt]: new Date()}
       },
@@ -843,13 +872,13 @@ class Db {
   setChannelsSubscriptionTimeoutExpiresAt(ids: string[]): Promise<[number]> {
     const date = new Date();
     date.setMinutes(date.getMinutes() + this.main.config.channelPubSubSubscribeTimeoutMinutes);
-    return ChannelModel.update({subscriptionTimeoutExpiresAt: date}, {
+    return YtPubSubChannelModel.update({subscriptionTimeoutExpiresAt: date}, {
       where: {id: ids}
     });
   }
 
   setChannelsSubscriptionExpiresAt(ids: string[], expiresAt: Date): Promise<[number]> {
-    return ChannelModel.update({subscriptionExpiresAt: expiresAt}, {
+    return YtPubSubChannelModel.update({subscriptionExpiresAt: expiresAt}, {
       where: {id: ids}
     });
   }
@@ -860,7 +889,7 @@ class Db {
     });
   }
 
-  getChangedFeedsWithoutOther(limit = 50): Promise<IYtPubSubFeed[]> {
+  /*getChangedFeedsWithoutOther(limit = 50): Promise<IYtPubSubFeed[]> {
     return YtPubSubFeedModel.findAll({
       where: {
         [Op.or]: [
@@ -901,7 +930,7 @@ class Db {
         }),
       ]);
     });
-  }
+  }*/
 
   cleanYtPubSub(): Promise<number> {
     const minCreatedAtDate = new Date();

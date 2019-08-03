@@ -182,7 +182,7 @@ class YtPubSub {
       let streamCount = 0;
       let otherCount = 0;
 
-      while (true) {
+      /*while (true) {
         const feeds = await this.main.db.getChangedFeedsWithoutOther(50);
         if (!feeds.length) break;
 
@@ -213,7 +213,7 @@ class YtPubSub {
         otherCount += otherIds.length;
 
         await this.main.db.updateFeeds(Object.values(streamIdChanges), otherIds);
-      }
+      }*/
 
       return {streamCount, otherCount};
     });
