@@ -1004,8 +1004,9 @@ class Db {
       where: {
         [Op.or]: [
           {isStream: true, actualEndAt: {[Op.lt]: minCreatedAtDate}},
-          {isStream: false, createdAt: {[Op.lt]: minCreatedAtDate}},
+          {isStream: false},
         ],
+        createdAt: {[Op.lt]: minCreatedAtDate},
       }
     });
   }
