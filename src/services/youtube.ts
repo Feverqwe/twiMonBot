@@ -221,9 +221,10 @@ class Youtube implements ServiceInterface {
 
         if (isUpcoming) {
           query.eventType = 'upcoming';
-          const now = new Date();
+          const minDate = new Date();
+          minDate.setDate(minDate.getDate() - 7);
           // @ts-ignore
-          query.publishedAfter = now.toISOString();
+          query.publishedAfter = minDate.toISOString();
         }
 
         return gotLimited('https://www.googleapis.com/youtube/v3/search', {
