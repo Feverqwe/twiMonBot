@@ -173,83 +173,9 @@ class Youtube implements ServiceInterface {
     const resultStreams: ServiceStream[] = [];
     const skippedChannelIds: string[] = [];
     const removedChannelIds: string[] = [];
-    return promiseTry(() => {
-      const idSnippet = new Map();
-      return parallel(10, channelIds, (channelId) => {
-        return withRetry({count: 3, timeout: 250}, () => {
-          return gotLimited('https://www.googleapis.com/youtube/v3/search', {
-            query: {
-              part: 'snippet',
-              channelId: channelId,
-              eventType: 'live',
-              maxResults: 5,
-              order: 'date',
-              safeSearch: 'none',
-              type: 'video',
-              fields: 'items(id/videoId,snippet)',
-              key: this.main.config.ytToken,
-            },
-            json: true
-          });
-        }, isDailyLimitExceeded).then(({body}) => {
-          const result = SearchVideoResponse(body);
-          result.items.forEach((item) => {
-            idSnippet.set(item.id.videoId, item.snippet);
-          });
-        }).catch((err) => {
-          debug(`getStreams for channel (%s) skip, cause: %o`, channelId, err);
-          skippedChannelIds.push(channelId);
-        });
-      }).then(() => idSnippet);
-    }).then((idSnippet) => {
-      const results:{id: string, viewers: number|null, snippet: SearchVideoResponseSnippet}[] = [];
-      return parallel(10, arrayByPart(Array.from(idSnippet.keys()), 50), (videoIds) => {
-        return iterPages((pageToken?) => {
-          return withRetry({count: 3, timeout: 250}, () => {
-            return gotLimited('https://www.googleapis.com/youtube/v3/videos', {
-              query: {
-                part: 'liveStreamingDetails',
-                id: videoIds.join(','),
-                pageToken: pageToken,
-                fields: 'items(id,liveStreamingDetails),nextPageToken',
-                key: this.main.config.ytToken
-              },
-              json: true,
-            });
-          }, isDailyLimitExceeded).then(({body}) => {
-            const videosResponse = VideosResponse(body);
-
-            videosResponse.items.forEach((item) => {
-              if (!item.liveStreamingDetails) return;
-
-              const snippet = idSnippet.get(item.id);
-              if (!snippet) {
-                debug('Skip video %s, cause: snippet is not found', item.id);
-                return;
-              }
-
-              const {actualStartTime, actualEndTime, concurrentViewers} = item.liveStreamingDetails;
-              if (actualStartTime && !actualEndTime) {
-                let viewers = parseInt(concurrentViewers, 10);
-                if (!isFinite(viewers)) {
-                  viewers = null;
-                }
-                results.push({
-                  id: item.id,
-                  viewers: viewers,
-                  snippet: snippet
-                });
-              }
-            });
-
-            return videosResponse.nextPageToken;
-          });
-        });
-      }).then(() => results);
-    }).then((results) => {
-      results.forEach(({id, snippet, viewers}) => {
-        if (snippet.liveBroadcastContent !== 'live') return;
-
+    return this.main.ytPubSub.getStreams(channelIds).then(({skippedChannelIds: _skippedChannelIds, streams}) => {
+      skippedChannelIds.push(..._skippedChannelIds);
+      streams.forEach(({id, title, viewers, channelId, channelTitle}) => {
         const previews = ['maxresdefault_live', 'sddefault_live', 'hqdefault_live', 'mqdefault_live', 'default_live'].map((quality) => {
           return `https://i.ytimg.com/vi/${id}/${quality}.jpg`;
         });
@@ -259,20 +185,50 @@ class Youtube implements ServiceInterface {
           game: null,
           isRecord: false,
           previews: previews,
-          title: snippet.title,
+          title: title,
           url: getVideoUrl(id),
           viewers: viewers,
-          channelId: snippet.channelId,
-          channelTitle: snippet.channelTitle,
+          channelId: channelId,
+          channelTitle: channelTitle,
         });
       });
+    }, (err) => {
+      debug('getStreams error cause: %o', err);
+      skippedChannelIds.push(...channelIds);
     }).then(() => {
       return {streams: resultStreams, skippedChannelIds, removedChannelIds};
     });
   }
 
-  getStreamsInfoByIds(ids: string[]) {
-    const results: {id: string, actualStartAt: Date|null, actualEndAt: Date|null}[] = [];
+  getStreamIdSnippetByChannelId(channelId: string) {
+    const idSnippet: Map<string, SearchVideoResponseSnippet> = new Map();
+    return withRetry({count: 3, timeout: 250}, () => {
+      return gotLimited('https://www.googleapis.com/youtube/v3/search', {
+        query: {
+          part: 'snippet',
+          channelId: channelId,
+          eventType: 'live',
+          maxResults: 5,
+          order: 'date',
+          safeSearch: 'none',
+          type: 'video',
+          fields: 'items(id/videoId,snippet)',
+          key: this.main.config.ytToken,
+        },
+        json: true
+      });
+    }, isDailyLimitExceeded).then(({body}) => {
+      const result = SearchVideoResponse(body);
+      result.items.forEach((item) => {
+        idSnippet.set(item.id.videoId, item.snippet);
+      });
+
+      return idSnippet;
+    });
+  }
+
+  getStreamIdLiveDetaildByIds(ids: string[]) {
+    const idStreamInfo: Map<string, {actualStartAt: Date|null, actualEndAt: Date|null, viewers: number|null}> = new Map();
     return parallel(10, arrayByPart(ids, 50), (videoIds) => {
       return iterPages((pageToken?) => {
         return withRetry({count: 3, timeout: 250}, () => {
@@ -291,7 +247,7 @@ class Youtube implements ServiceInterface {
 
           videosResponse.items.forEach((item) => {
             if (!item.liveStreamingDetails) return;
-            const {actualStartTime, actualEndTime} = item.liveStreamingDetails;
+            const {actualStartTime, actualEndTime, concurrentViewers} = item.liveStreamingDetails;
             let actualStartAt = null;
             if (actualStartTime) {
               actualStartAt = new Date(actualStartTime);
@@ -300,17 +256,21 @@ class Youtube implements ServiceInterface {
             if (actualEndTime) {
               actualEndAt = new Date(actualEndTime);
             }
-            results.push({
-              id: item.id,
+            let viewers = parseInt(concurrentViewers, 10);
+            if (!isFinite(viewers)) {
+              viewers = null;
+            }
+            idStreamInfo.set(item.id, {
               actualStartAt,
-              actualEndAt
+              actualEndAt,
+              viewers
             });
           });
 
           return videosResponse.nextPageToken;
         });
       });
-    }).then(() => results);
+    }).then(() => idStreamInfo);
   }
 
   getExistsChannelIds(ids: string[]) {
