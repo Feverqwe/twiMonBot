@@ -23,9 +23,11 @@ class YtPubSub {
   private hubUrl: string;
   private pubsub: PubSubHubbub;
   private log: LogFile;
+  private feedLog: LogFile;
   constructor(main: Main) {
     this.main = main;
     this.log = new LogFile('ytPubSub');
+    this.feedLog = new LogFile('feeds');
     this.hubUrl = 'https://pubsubhubbub.appspot.com/subscribe';
   }
 
@@ -184,9 +186,9 @@ class YtPubSub {
 
   handleFeed(data: PubSubFeed) {
     try {
-      /*this.log.write('data', JSON.stringify({
+      this.feedLog.write('data', JSON.stringify({
         feed: data.feed.toString()
-      }));*/
+      }));
       const feed = parseData(data.feed.toString());
       this.feeds.push(feed);
       this.emitFeedsChangesThrottled();
