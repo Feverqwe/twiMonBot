@@ -2,7 +2,7 @@ import {IStream, IStreamWithChannel} from "../db";
 import htmlSanitize from "./htmlSanitize";
 
 const icons = {
-  timeout: '⏲',
+  timeout: '⏳',
   offline: '🏁',
   online: '🎈',
   record: '📽️',
