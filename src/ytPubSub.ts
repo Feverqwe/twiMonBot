@@ -16,6 +16,8 @@ const promiseLimit = require('promise-limit');
 const oneLimit = promiseLimit(1);
 const throttle = require('lodash.throttle');
 
+const xmlEntities = new XmlEntities();
+
 class YtPubSub {
   main: Main;
   private hubUrl: string;
@@ -278,7 +280,7 @@ class YtPubSub {
           notStreamIds.forEach((id) => {
             const feed = feedIdFeed.get(id);
             if (feed.isStream) {
-              this.log.write('[video]', feed.channelId, feed.id);
+              this.log.write('[not found]', feed.channelId, feed.id);
             }
             feed.isStream = false;
             feedIdChanges[feed.id] = feed;
@@ -353,7 +355,7 @@ function parseData(xml: string): Feed {
         node = getChildNode(node, 'name');
       }
       if (node) {
-        data[field] = XmlEntities.decode(node.val);
+        data[field] = xmlEntities.decode(node.val);
         return true;
       }
     });

@@ -195,7 +195,7 @@ class Youtube implements ServiceInterface {
         });
       });
     }, (err) => {
-      debug('getStreams error cause: %o', err);
+      debug(`getStreams for channels (%j) skip, cause: %o`, channelIds, err);
       skippedChannelIds.push(...channelIds);
     }).then(() => {
       return {streams: resultStreams, skippedChannelIds, removedChannelIds};
