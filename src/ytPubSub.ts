@@ -378,10 +378,6 @@ function parseData(xml: string): Feed {
   }
 }
 
-function decodeHtmlString() {
-
-}
-
 function getTopicUrl(channelId: string) {
   return 'https://www.youtube.com/xml/feeds/videos.xml' + '?' + qs.stringify({
     channel_id: channelId
