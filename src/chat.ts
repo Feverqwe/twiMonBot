@@ -449,8 +449,9 @@ class Chat {
 
     this.router.textOrCallbackQuery(/\/delete/, provideChannels, withChannels, (req: RouterReqWithChannels, res) => {
       const channels = req.channels.map((channel) => {
+        const service = this.main.getServiceById(channel.service);
         return [{
-          text: channel.title,
+          text: `${channel.title} (${service.name})`,
           callback_data: `/delete/${channel.id}`
         }];
       });
