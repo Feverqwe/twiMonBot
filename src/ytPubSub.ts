@@ -144,21 +144,15 @@ class YtPubSub {
 
   feeds: Feed[] = [];
   emitFeedsChanges = () => {
-    const minPubDate = new Date();
-    minPubDate.setDate(minPubDate.getDate() - 7);
-
     return oneLimit(async () => {
       while (this.feeds.length) {
         let feeds = this.feeds.splice(0);
 
         const feedIds: string[] = [];
         const channelIds: string[] = [];
-        feeds = feeds.filter((feed) => {
-          if (feed.publishedAt.getTime() > minPubDate.getTime()) {
-            channelIds.push(feed.channelId);
-            feedIds.push(feed.id);
-            return true;
-          }
+        feeds.forEach((feed) => {
+          channelIds.push(feed.channelId);
+          feedIds.push(feed.id);
         });
 
         await Promise.all([
@@ -185,8 +179,14 @@ class YtPubSub {
   handleFeed(data: PubSubFeed) {
     try {
       const feed = parseData(data.feed.toString());
-      this.feeds.push(feed);
-      this.emitFeedsChangesThrottled();
+
+      const minPubDate = new Date();
+      minPubDate.setDate(minPubDate.getDate() - 7);
+
+      if (feed.publishedAt.getTime() > minPubDate.getTime()) {
+        this.feeds.push(feed);
+        this.emitFeedsChangesThrottled();
+      }
     } catch (err) {
       if (err.code === 'ENTRY_IS_DELETED') {
         // pass
