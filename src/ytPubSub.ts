@@ -151,17 +151,19 @@ class YtPubSub {
       while (this.feeds.length) {
         let feeds = this.feeds.splice(0);
 
+        const feedIds: string[] = [];
         const channelIds: string[] = [];
         feeds = feeds.filter((feed) => {
           if (feed.publishedAt.getTime() > minPubDate.getTime()) {
             channelIds.push(feed.channelId);
+            feedIds.push(feed.id);
             return true;
           }
         });
 
         await Promise.all([
           this.main.db.getExistsYtPubSubChannelIds(channelIds),
-          this.main.db.getFeedIdsByChannelIds(channelIds),
+          this.main.db.getExistsFeedIds(feedIds),
         ]).then(([existsChannelIds, existsFeedIds]) => {
           feeds = feeds.filter((feed) => existsChannelIds.includes(feed.channelId));
 
@@ -222,10 +224,7 @@ class YtPubSub {
         const channelIds = Array.from(channelIdChannel.keys());
 
         const syncAt = new Date();
-        await Promise.all([
-          this.main.db.getFeedIdsByChannelIds(channelIds),
-          this.main.db.setYtPubSubChannelsSyncTimeoutExpiresAt(channelIds),
-        ]).then(([existsFeedIds]) => {
+        await this.main.db.setYtPubSubChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
           const feeds: YtPubSubFeed[] = [];
           return parallel(10, channelIds, (channelId) => {
             const channel = channelIdChannel.get(channelId);
@@ -235,12 +234,15 @@ class YtPubSub {
               debug(`getStreams for channel (%s) skip, cause: %o`, channelId, err);
               skippedChannelIds.push(channelId);
             });
-          }).then(() => {
-            return Promise.all([
+          }).then(async () => {
+            const feedIds = feeds.map(feed => feed.id);
+            const existsFeedIds = await this.main.db.getExistsFeedIds(feedIds);
+
+            await Promise.all([
               this.main.db.putFeeds(feeds),
               this.main.db.setYtPubSubChannelsLastSyncAt(channelIds, syncAt)
             ]);
-          }).then(() => {
+
             feeds.forEach((feed) => {
               if (!existsFeedIds.includes(feed.id)) {
                 this.log.write('[insert full]', feed.channelId, feed.id);

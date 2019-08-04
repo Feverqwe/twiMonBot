@@ -953,9 +953,9 @@ class Db {
     });
   }
 
-  getFeedIdsByChannelIds(channelIds: string[]): Promise<string[]> {
+  getExistsFeedIds(ids: string[]): Promise<string[]> {
     return YtPubSubFeedModel.findAll({
-      where: {channelId: channelIds},
+      where: {id: ids},
       attributes: ['id']
     }).then((results: {id: string}[]) => {
       return results.map(result => result.id);
