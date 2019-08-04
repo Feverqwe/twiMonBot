@@ -147,7 +147,7 @@ class YtPubSub {
   feeds: Feed[] = [];
   emitFeedsChanges = () => {
     const minPubDate = new Date();
-    minPubDate.setDate(minPubDate.getDate() - 30);
+    minPubDate.setDate(minPubDate.getDate() - 7);
 
     return oneLimit(async () => {
       while (this.feeds.length) {
