@@ -175,8 +175,7 @@ class Youtube implements ServiceInterface {
     const resultStreams: ServiceStream[] = [];
     const skippedChannelIds: string[] = [];
     const removedChannelIds: string[] = [];
-    return this.main.ytPubSub.getStreams(channelIds).then(({skippedChannelIds: _skippedChannelIds, streams}) => {
-      skippedChannelIds.push(..._skippedChannelIds);
+    return this.main.ytPubSub.getStreams(channelIds, skippedChannelIds).then((streams) => {
       streams.forEach(({id, title, viewers, channelId, channelTitle}) => {
         const previews = ['maxresdefault_live', 'sddefault_live', 'hqdefault_live', 'mqdefault_live', 'default_live'].map((quality) => {
           return `https://i.ytimg.com/vi/${id}/${quality}.jpg`;

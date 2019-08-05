@@ -874,11 +874,12 @@ class Db {
     });
   }
 
-  getYtPubSubChannelsForSync(limit = 50): Promise<IYtPubSubChannel[]> {
+  getYtPubSubChannelsForSync(channelIds: string[], limit = 10): Promise<IYtPubSubChannel[]> {
     const date = new Date();
     date.setMinutes(date.getMinutes() - this.main.config.checkPubSubChannelIfLastSyncLessThenMinutes);
     return YtPubSubChannelModel.findAll({
       where: {
+        id: channelIds,
         syncTimeoutExpiresAt: {[Op.lt]: new Date()},
         lastSyncAt: {[Op.lt]: date},
       },
@@ -897,7 +898,7 @@ class Db {
     });
   }
 
-  getYtPubSubChannelIdsWithExpiresSubscription(limit: number): Promise<string[]> {
+  getYtPubSubChannelIdsWithExpiresSubscription(limit = 10): Promise<string[]> {
     const date = new Date();
     date.setMinutes(date.getMinutes() + this.main.config.updateChannelPubSubSubscribeIfExpiresLessThenMinutes);
     return YtPubSubChannelModel.findAll({
@@ -932,9 +933,10 @@ class Db {
     });
   }
 
-  getFeedsForSync(limit = 50): Promise<IYtPubSubFeed[]> {
+  getFeedsForSync(channelIds: string[], limit = 50): Promise<IYtPubSubFeed[]> {
     return YtPubSubFeedModel.findAll({
       where: {
+        channelId: channelIds,
         [Op.or]: [
           {
             isStream: null

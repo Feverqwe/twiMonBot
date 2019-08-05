@@ -67,10 +67,8 @@ class YtPubSub {
       let subscribeCount = 0;
       let errorCount = 0;
       while (true) {
-        const channelIds = await this.main.db.getYtPubSubChannelIdsWithExpiresSubscription(50);
-        if (!channelIds.length) {
-          break;
-        }
+        const channelIds = await this.main.db.getYtPubSubChannelIdsWithExpiresSubscription();
+        if (!channelIds.length) break;
 
         await this.main.db.setYtPubSubChannelsSubscriptionTimeoutExpiresAt(channelIds).then(() => {
           const expiresAt = new Date();
@@ -201,8 +199,7 @@ class YtPubSub {
     }
   }
 
-  async getStreams(channelIds: string[]) {
-    const skippedChannelIds: string[] = [];
+  async getStreams(channelIds: string[], skippedChannelIds: string[]) {
     return this.main.db.getNotExistsYtPubSubChannelIds(channelIds).then((newChannelIds) => {
       if (!newChannelIds.length) return;
       const newChannels: YtPubSubChannel[] = newChannelIds.map((id) => {
@@ -214,89 +211,96 @@ class YtPubSub {
       return this.main.db.ensureYtPubSubChannels(newChannels).then(() => {
         return this.updateSubscribes();
       });
-    }).then(async () => {
-      while (true) {
-        const channels = await this.main.db.getYtPubSubChannelsForSync();
-        if (!channels.length) break;
-
-        const channelIdChannel: Map<string, IYtPubSubChannel> = new Map();
-        channels.forEach((channel) => {
-          channelIdChannel.set(channel.id, channel);
-        });
-        const channelIds = Array.from(channelIdChannel.keys());
-
-        const syncAt = new Date();
-        await this.main.db.setYtPubSubChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
-          const feeds: YtPubSubFeed[] = [];
-          return parallel(10, channelIds, (channelId) => {
-            const channel = channelIdChannel.get(channelId);
-            return this.requestFeedsByChannelId(channelId, channel.isUpcomingChecked).then((channelFeeds) => {
-              feeds.push(...channelFeeds);
-            }, (err) => {
-              debug(`getStreams for channel (%s) skip, cause: %o`, channelId, err);
-              skippedChannelIds.push(channelId);
-            });
-          }).then(async () => {
-            const feedIds = feeds.map(feed => feed.id);
-            const existsFeedIds = await this.main.db.getExistsFeedIds(feedIds);
-
-            await Promise.all([
-              this.main.db.putFeeds(feeds),
-              this.main.db.setYtPubSubChannelsLastSyncAt(channelIds, syncAt)
-            ]);
-
-            feeds.forEach((feed) => {
-              if (!existsFeedIds.includes(feed.id)) {
-                this.log.write('[insert full]', feed.channelId, feed.id);
-              }
-            });
-          });
-        });
-      }
-    }).then(async () => {
-      const feedIdChanges: {[s: string]: YtPubSubFeed} = {};
-      while (true) {
-        const feeds = await this.main.db.getFeedsForSync();
-        if (!feeds.length) break;
-
-        const feedIdFeed: Map<string, YtPubSubFeed> = new Map();
-        feeds.forEach((feed) => {
-          feedIdFeed.set(feed.id, feed.get({plain: true}) as YtPubSubFeed);
-        });
-        const feedIds = Array.from(feedIdFeed.keys());
-
-        await this.main.db.setFeedsSyncTimeoutExpiresAt(feedIds).then(() => {
-          return this.main.youtube.getStreamIdLiveDetaildByIds(feedIds);
-        }).then((idStreamLiveDetails) => {
-          const notStreamIds = arrayDifference(feedIds, Array.from(idStreamLiveDetails.keys()));
-
-          idStreamLiveDetails.forEach((info, id) => {
-            const feed = feedIdFeed.get(id);
-            if (!feed) {
-              debug('Skip info %s, cause: feed is not found', id);
-              return;
-            }
-            feed.isStream = true;
-            Object.assign(feed, info);
-            feedIdChanges[feed.id] = feed;
-          });
-
-          notStreamIds.forEach((id) => {
-            const feed = feedIdFeed.get(id);
-            if (feed.isStream) {
-              this.log.write('[not found]', feed.channelId, feed.id);
-            }
-            feed.isStream = false;
-            feedIdChanges[feed.id] = feed;
-          });
-        });
-      }
-      return this.main.db.updateFeeds(Object.values(feedIdChanges));
+    }).then(() => {
+      return this.syncChannels(channelIds, skippedChannelIds);
+    }).then(() => {
+      return this.syncStreams(channelIds);
     }).then(() => {
       return this.main.db.getStreamFeedsByChannelIds(channelIds);
-    }).then((streams) => {
-      return {streams, skippedChannelIds};
     });
+  }
+
+  async syncChannels(_channelIds: string[], skippedChannelIds: string[]) {
+    while (true) {
+      const channels = await this.main.db.getYtPubSubChannelsForSync(_channelIds);
+      if (!channels.length) break;
+
+      const channelIdChannel: Map<string, IYtPubSubChannel> = new Map();
+      channels.forEach((channel) => {
+        channelIdChannel.set(channel.id, channel);
+      });
+      const channelIds = Array.from(channelIdChannel.keys());
+
+      const syncAt = new Date();
+      await this.main.db.setYtPubSubChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
+        const feeds: YtPubSubFeed[] = [];
+        return parallel(10, channelIds, (channelId) => {
+          const channel = channelIdChannel.get(channelId);
+          return this.requestFeedsByChannelId(channelId, channel.isUpcomingChecked).then((channelFeeds) => {
+            feeds.push(...channelFeeds);
+          }, (err) => {
+            debug(`getStreams for channel (%s) skip, cause: %o`, channelId, err);
+            skippedChannelIds.push(channelId);
+          });
+        }).then(async () => {
+          const feedIds = feeds.map(feed => feed.id);
+          const existsFeedIds = await this.main.db.getExistsFeedIds(feedIds);
+
+          await Promise.all([
+            this.main.db.putFeeds(feeds),
+            this.main.db.setYtPubSubChannelsLastSyncAt(channelIds, syncAt)
+          ]);
+
+          feeds.forEach((feed) => {
+            if (!existsFeedIds.includes(feed.id)) {
+              this.log.write('[insert full]', feed.channelId, feed.id);
+            }
+          });
+        });
+      });
+    }
+  }
+
+  async syncStreams(channelIds: string[]) {
+    while (true) {
+      const feeds = await this.main.db.getFeedsForSync(channelIds);
+      if (!feeds.length) break;
+
+      const feedIdFeed: Map<string, YtPubSubFeed> = new Map();
+      feeds.forEach((feed) => {
+        feedIdFeed.set(feed.id, feed.get({plain: true}) as YtPubSubFeed);
+      });
+      const feedIds = Array.from(feedIdFeed.keys());
+
+      await this.main.db.setFeedsSyncTimeoutExpiresAt(feedIds).then(() => {
+        return this.main.youtube.getStreamIdLiveDetaildByIds(feedIds);
+      }).then((idStreamLiveDetails) => {
+        const feedIdChanges: {[s: string]: YtPubSubFeed} = {};
+        const notStreamIds = arrayDifference(feedIds, Array.from(idStreamLiveDetails.keys()));
+
+        idStreamLiveDetails.forEach((info, id) => {
+          const feed = feedIdFeed.get(id);
+          if (!feed) {
+            debug('Skip info %s, cause: feed is not found', id);
+            return;
+          }
+          feed.isStream = true;
+          Object.assign(feed, info);
+          feedIdChanges[feed.id] = feed;
+        });
+
+        notStreamIds.forEach((id) => {
+          const feed = feedIdFeed.get(id);
+          if (feed.isStream) {
+            this.log.write('[not found]', feed.channelId, feed.id);
+          }
+          feed.isStream = false;
+          feedIdChanges[feed.id] = feed;
+        });
+
+        return this.main.db.updateFeeds(Object.values(feedIdChanges));
+      });
+    }
   }
 
   requestFeedsByChannelId(channelId: string, isUpcomingChecked: boolean): Promise<YtPubSubFeed[]> {
