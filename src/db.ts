@@ -906,7 +906,7 @@ class Db {
     });
   }
 
-  getYtPubSubChannelIdsWithExpiresSubscription(limit = 10): Promise<string[]> {
+  getYtPubSubChannelIdsWithExpiresSubscription(limit = 50): Promise<string[]> {
     const date = new Date();
     date.setMinutes(date.getMinutes() + this.main.config.updateChannelPubSubSubscribeIfExpiresLessThenMinutes);
     return YtPubSubChannelModel.findAll({

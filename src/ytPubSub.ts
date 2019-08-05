@@ -223,7 +223,7 @@ class YtPubSub {
 
   async syncChannels(channelIds: string[], skippedChannelIds: string[]) {
     const channelIdsForSync = await this.main.db.getYtPubSubChannelIdsForSync(channelIds);
-    return parallel(1, arrayByPart(channelIdsForSync, 10), async (channelIdsForSync) => {
+    return parallel(1, arrayByPart(channelIdsForSync, 50), async (channelIdsForSync) => {
       const channels = await this.main.db.getYtPubSubChannelsByIds(channelIdsForSync);
 
       const channelIdChannel: Map<string, IYtPubSubChannel> = new Map();
