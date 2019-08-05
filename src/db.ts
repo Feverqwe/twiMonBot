@@ -933,18 +933,14 @@ class Db {
   }
 
   getFeedsForSync(limit = 50): Promise<IYtPubSubFeed[]> {
-    const minEndTime = new Date();
-    minEndTime.setHours(minEndTime.getHours() - 1);
     return YtPubSubFeedModel.findAll({
       where: {
         [Op.or]: [
-          {isStream: null},
           {
+            isStream: null
+          }, {
             isStream: true,
-            [Op.or]: [
-              {actualEndAt: null},
-              {actualEndAt: {[Op.gt]: minEndTime}},
-            ]
+            actualEndAt: null,
           },
         ],
         syncTimeoutExpiresAt: {[Op.lt]: new Date()},
