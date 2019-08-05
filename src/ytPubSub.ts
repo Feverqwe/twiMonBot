@@ -264,7 +264,7 @@ class YtPubSub {
 
   async syncStreams(channelIds: string[]) {
     const feedIdsForSync = await this.main.db.getFeedIdsForSync(channelIds);
-    return parallel(1, arrayByPart(feedIdsForSync, 50), async (feedIdsForSync) => {
+    return parallel(10, arrayByPart(feedIdsForSync, 50), async (feedIdsForSync) => {
       const feeds = await this.main.db.getFeedsByIds(feedIdsForSync);
 
       const feedIdFeed: Map<string, YtPubSubFeed> = new Map();
