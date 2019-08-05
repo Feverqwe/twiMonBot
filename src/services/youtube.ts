@@ -10,9 +10,11 @@ import promiseTry from "../tools/promiseTry";
 
 const got = require('got');
 const debug = require('debug')('app:Youtube');
+const XmlEntities = require('html-entities/lib/xml-entities');
 
 const limit = new RateLimit(1000);
 const gotLimited = limit.wrap(got);
+const xmlEntities = new XmlEntities();
 
 interface VideosItemsSnippet {
   items: {
@@ -235,6 +237,8 @@ class Youtube implements ServiceInterface {
 
         result.items.forEach((item) => {
           idSnippet.set(item.id.videoId, item.snippet);
+          // api bug for /search, quote in title is escaped
+          item.snippet.title = xmlEntities.decode(item.snippet.title);
         });
 
         return result.nextPageToken;

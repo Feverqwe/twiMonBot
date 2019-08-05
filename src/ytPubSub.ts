@@ -11,13 +11,10 @@ import arrayByPart from "./tools/arrayByPart";
 
 const debug = require('debug')('app:YtPubSub');
 const {XmlDocument} = require("xmldoc");
-const XmlEntities = require('html-entities/lib/xml-entities');
 const qs = require('querystring');
 const promiseLimit = require('promise-limit');
 const oneLimit = promiseLimit(1);
 const throttle = require('lodash.throttle');
-
-const xmlEntities = new XmlEntities();
 
 class YtPubSub {
   main: Main;
@@ -364,7 +361,7 @@ function parseData(xml: string): Feed {
         node = getChildNode(node, 'name');
       }
       if (node) {
-        data[field] = xmlEntities.decode(node.val);
+        data[field] = node.val;
         return true;
       }
     });
