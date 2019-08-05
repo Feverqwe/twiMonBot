@@ -233,7 +233,7 @@ class YtPubSub {
       const channelIds = Array.from(channelIdChannel.keys());
 
       const syncAt = new Date();
-      await this.main.db.setYtPubSubChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
+      return this.main.db.setYtPubSubChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
         const feeds: YtPubSubFeed[] = [];
         return parallel(10, channelIds, (channelId) => {
           const channel = channelIdChannel.get(channelId);
