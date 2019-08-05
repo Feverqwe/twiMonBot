@@ -874,7 +874,7 @@ class Db {
     });
   }
 
-  getYtPubSubChannelsForSync(channelIds: string[], limit = 10): Promise<IYtPubSubChannel[]> {
+  getYtPubSubChannelIdsForSync(channelIds: string[]): Promise<string[]> {
     const date = new Date();
     date.setMinutes(date.getMinutes() - this.main.config.checkPubSubChannelIfLastSyncLessThenMinutes);
     return YtPubSubChannelModel.findAll({
@@ -884,7 +884,15 @@ class Db {
         lastSyncAt: {[Op.lt]: date},
       },
       order: ['lastSyncAt'],
-      limit: limit,
+      attributes: ['id'],
+    }).then((results: {id: string}[]) => {
+      return results.map(({id}) => id);
+    });
+  }
+
+  getYtPubSubChannelsByIds(ids: string[]): Promise<IYtPubSubChannel[]> {
+    return YtPubSubChannelModel.findAll({
+      where: {id: ids}
     });
   }
 
@@ -933,7 +941,7 @@ class Db {
     });
   }
 
-  getFeedsForSync(channelIds: string[], limit = 50): Promise<IYtPubSubFeed[]> {
+  getFeedIdsForSync(channelIds: string[]): Promise<string[]> {
     return YtPubSubFeedModel.findAll({
       where: {
         channelId: channelIds,
@@ -947,7 +955,15 @@ class Db {
         ],
         syncTimeoutExpiresAt: {[Op.lt]: new Date()},
       },
-      limit: limit
+      attributes: ['id'],
+    }).then((results: {id: string}[]) => {
+      return results.map(({id}) => id);
+    });
+  }
+
+  getFeedsByIds(ids: string[]): Promise<IYtPubSubFeed[]> {
+    return YtPubSubFeedModel.findAll({
+      where: {id: ids}
     });
   }
 

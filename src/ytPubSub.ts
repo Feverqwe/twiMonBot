@@ -7,6 +7,7 @@ import ErrorWithCode from "./tools/errorWithCode";
 import arrayDifference from "./tools/arrayDifference";
 import {IYtPubSubChannel, YtPubSubChannel, YtPubSubFeed} from "./db";
 import LogFile from "./logFile";
+import arrayByPart from "./tools/arrayByPart";
 
 const debug = require('debug')('app:YtPubSub');
 const {XmlDocument} = require("xmldoc");
@@ -220,10 +221,10 @@ class YtPubSub {
     });
   }
 
-  async syncChannels(_channelIds: string[], skippedChannelIds: string[]) {
-    while (true) {
-      const channels = await this.main.db.getYtPubSubChannelsForSync(_channelIds);
-      if (!channels.length) break;
+  async syncChannels(channelIds: string[], skippedChannelIds: string[]) {
+    const channelIdsForSync = await this.main.db.getYtPubSubChannelIdsForSync(channelIds);
+    return parallel(1, arrayByPart(channelIdsForSync, 10), async (channelIdsForSync) => {
+      const channels = await this.main.db.getYtPubSubChannelsByIds(channelIdsForSync);
 
       const channelIdChannel: Map<string, IYtPubSubChannel> = new Map();
       channels.forEach((channel) => {
@@ -258,13 +259,13 @@ class YtPubSub {
           });
         });
       });
-    }
+    });
   }
 
   async syncStreams(channelIds: string[]) {
-    while (true) {
-      const feeds = await this.main.db.getFeedsForSync(channelIds);
-      if (!feeds.length) break;
+    const feedIdsForSync = await this.main.db.getFeedIdsForSync(channelIds);
+    return parallel(1, arrayByPart(feedIdsForSync, 50), async (feedIdsForSync) => {
+      const feeds = await this.main.db.getFeedsByIds(feedIdsForSync);
 
       const feedIdFeed: Map<string, YtPubSubFeed> = new Map();
       feeds.forEach((feed) => {
@@ -272,7 +273,7 @@ class YtPubSub {
       });
       const feedIds = Array.from(feedIdFeed.keys());
 
-      await this.main.db.setFeedsSyncTimeoutExpiresAt(feedIds).then(() => {
+      return this.main.db.setFeedsSyncTimeoutExpiresAt(feedIds).then(() => {
         return this.main.youtube.getStreamIdLiveDetaildByIds(feedIds);
       }).then((idStreamLiveDetails) => {
         const feedIdChanges: {[s: string]: YtPubSubFeed} = {};
@@ -300,7 +301,7 @@ class YtPubSub {
 
         return this.main.db.updateFeeds(Object.values(feedIdChanges));
       });
-    }
+    });
   }
 
   requestFeedsByChannelId(channelId: string, isUpcomingChecked: boolean): Promise<YtPubSubFeed[]> {
