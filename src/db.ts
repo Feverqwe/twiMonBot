@@ -947,11 +947,6 @@ class Db {
   }
 
   getFeedIdsForSync(channelIds: string[]): Promise<string[]> {
-    const minStreamScheduledStartAtDate = new Date();
-    minStreamScheduledStartAtDate.setHours(minStreamScheduledStartAtDate.getHours() - 6);
-    const maxStreamScheduledStartAtDate = new Date();
-    maxStreamScheduledStartAtDate.setHours(maxStreamScheduledStartAtDate.getHours() + 6);
-
     return YtPubSubFeedModel.findAll({
       where: {
         channelId: channelIds,
@@ -959,20 +954,7 @@ class Db {
           isStream: null
         }, {
           isStream: true,
-          actualEndAt: null,
-          [Op.or]: [{
-            actualStartAt: {[Op.not]: null}
-          }, {
-            actualStartAt: null,
-            [Op.or]: [{
-              scheduledStartAt: {
-                [Op.gt]: minStreamScheduledStartAtDate,
-                [Op.lt]: maxStreamScheduledStartAtDate,
-              }
-            }, {
-              scheduledStartAt: null
-            }]
-          }]
+          actualEndAt: null
         }],
         syncTimeoutExpiresAt: {[Op.lt]: new Date()},
       },
