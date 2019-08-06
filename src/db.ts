@@ -955,29 +955,25 @@ class Db {
     return YtPubSubFeedModel.findAll({
       where: {
         channelId: channelIds,
-        [Op.or]: [
-          {
-            isStream: null
+        [Op.or]: [{
+          isStream: null
+        }, {
+          isStream: true,
+          actualEndAt: null,
+          [Op.or]: [{
+            actualStartAt: {[Op.not]: null}
           }, {
-            isStream: true,
-            actualEndAt: null,
-            [Op.or]: [
-              {
-                actualStartAt: {[Op.not]: null}
-              }, {
-                actualStartAt: null,
-                [Op.or]: [{
-                  scheduledStartAt: null
-                }, {
-                  scheduledStartAt: {
-                    [Op.gt]: minStreamScheduledStartAtDate,
-                    [Op.lt]: maxStreamScheduledStartAtDate,
-                  }
-                }]
+            actualStartAt: null,
+            [Op.or]: [{
+              scheduledStartAt: {
+                [Op.gt]: minStreamScheduledStartAtDate,
+                [Op.lt]: maxStreamScheduledStartAtDate,
               }
-            ]
-          },
-        ],
+            }, {
+              scheduledStartAt: null
+            }]
+          }]
+        }],
         syncTimeoutExpiresAt: {[Op.lt]: new Date()},
       },
       attributes: ['id'],
