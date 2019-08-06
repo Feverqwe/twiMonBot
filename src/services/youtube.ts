@@ -134,6 +134,7 @@ interface VideosResponse {
   items: {
     id: string,
     liveStreamingDetails?: {
+      scheduledStartTime?: string,
       actualStartTime?: string,
       actualEndTime?: string,
       concurrentViewers?: string,
@@ -146,6 +147,7 @@ const VideosResponse: (any: any) => VideosResponse = struct(struct.partial({
   items: [struct.partial({
     id: 'string',
     liveStreamingDetails: struct.optional(struct.partial({
+      scheduledStartTime: 'string?',
       actualStartTime: 'string?',
       actualEndTime: 'string?',
       concurrentViewers: 'string?',
@@ -247,7 +249,7 @@ class Youtube implements ServiceInterface {
   }
 
   getStreamIdLiveDetaildByIds(ids: string[]) {
-    const idStreamInfo: Map<string, {actualStartAt: Date|null, actualEndAt: Date|null, viewers: number|null}> = new Map();
+    const idStreamInfo: Map<string, {scheduledStartAt: Date|null, actualStartAt: Date|null, actualEndAt: Date|null, viewers: number|null}> = new Map();
     return parallel(10, arrayByPart(ids, 50), (videoIds) => {
       return iterPages((pageToken?) => {
         return withRetry({count: 3, timeout: 250}, () => {
@@ -266,7 +268,11 @@ class Youtube implements ServiceInterface {
 
           videosResponse.items.forEach((item) => {
             if (!item.liveStreamingDetails) return;
-            const {actualStartTime, actualEndTime, concurrentViewers} = item.liveStreamingDetails;
+            const {scheduledStartTime, actualStartTime, actualEndTime, concurrentViewers} = item.liveStreamingDetails;
+            let scheduledStartAt = null;
+            if (scheduledStartTime) {
+              scheduledStartAt = new Date(scheduledStartTime);
+            }
             let actualStartAt = null;
             if (actualStartTime) {
               actualStartAt = new Date(actualStartTime);
@@ -280,6 +286,7 @@ class Youtube implements ServiceInterface {
               viewers = null;
             }
             idStreamInfo.set(item.id, {
+              scheduledStartAt,
               actualStartAt,
               actualEndAt,
               viewers

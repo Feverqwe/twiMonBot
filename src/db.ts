@@ -135,6 +135,7 @@ export interface YtPubSubFeed {
   channelId: string,
   channelTitle: string,
   isStream?: boolean,
+  scheduledStartAt?: Date,
   actualStartAt?: Date,
   actualEndAt?: Date,
   viewers?: number,
@@ -374,6 +375,7 @@ class Db {
       channelId: {type: Sequelize.STRING(191), allowNull: false},
       channelTitle: {type: Sequelize.STRING(191), allowNull: false},
       isStream: {type: Sequelize.BOOLEAN, allowNull: true},
+      scheduledStartAt: {type: Sequelize.DATE, allowNull: true},
       actualStartAt: {type: Sequelize.DATE, allowNull: true},
       actualEndAt: {type: Sequelize.DATE, allowNull: true},
       viewers: {type: Sequelize.INTEGER, allowNull: true},
@@ -386,6 +388,9 @@ class Db {
       indexes: [{
         name: 'isStream_idx',
         fields: ['isStream']
+      }, {
+        name: 'scheduledStartAt_idx',
+        fields: ['scheduledStartAt']
       }, {
         name: 'actualStartAt_idx',
         fields: ['actualStartAt']
@@ -1008,7 +1013,7 @@ class Db {
   updateFeeds(feeds: YtPubSubFeed[]) {
     return bulk(feeds, (feeds) => {
       return YtPubSubFeedModel.bulkCreate(feeds, {
-        updateOnDuplicate: ['isStream', 'actualStartAt', 'actualEndAt', 'viewers']
+        updateOnDuplicate: ['isStream', 'scheduledStartAt', 'actualStartAt', 'actualEndAt', 'viewers']
       });
     });
   }
