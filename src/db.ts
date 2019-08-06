@@ -947,6 +947,11 @@ class Db {
   }
 
   getFeedIdsForSync(channelIds: string[]): Promise<string[]> {
+    const minStreamScheduledStartAtDate = new Date();
+    minStreamScheduledStartAtDate.setHours(minStreamScheduledStartAtDate.getHours() - 1);
+    const maxStreamScheduledStartAtDate = new Date();
+    maxStreamScheduledStartAtDate.setHours(maxStreamScheduledStartAtDate.getHours() + 5);
+
     return YtPubSubFeedModel.findAll({
       where: {
         channelId: channelIds,
@@ -956,6 +961,21 @@ class Db {
           }, {
             isStream: true,
             actualEndAt: null,
+            [Op.or]: [
+              {
+                actualStartAt: {[Op.not]: null}
+              }, {
+                actualStartAt: null,
+                [Op.or]: [{
+                  scheduledStartAt: null
+                }, {
+                  scheduledStartAt: {
+                    [Op.gt]: minStreamScheduledStartAtDate,
+                    [Op.lt]: maxStreamScheduledStartAtDate,
+                  }
+                }]
+              }
+            ]
           },
         ],
         syncTimeoutExpiresAt: {[Op.lt]: new Date()},
@@ -1020,17 +1040,27 @@ class Db {
 
   cleanYtPubSub(): Promise<number> {
     const minCreatedAtDate = new Date();
-    minCreatedAtDate.setHours(minCreatedAtDate.getHours() - 24);
+    minCreatedAtDate.setDate(minCreatedAtDate.getDate() - 1);
+    const minStreamEndAtDate = new Date();
+    minStreamEndAtDate.setDate(minStreamEndAtDate.getDate() - 1);
+    const minStreamScheduledStartAtDate = new Date();
+    minStreamScheduledStartAtDate.setDate(minStreamScheduledStartAtDate.getDate() - 1);
     const minStreamCreatedAtDate = new Date();
-    minStreamCreatedAtDate.setDate(minCreatedAtDate.getDate() - 7);
+    minStreamCreatedAtDate.setDate(minStreamCreatedAtDate.getDate() - 7);
     return YtPubSubFeedModel.destroy({
       where: {
         [Op.or]: [{
           isStream: true,
           [Op.or]: [{
-            actualEndAt: {[Op.lt]: minCreatedAtDate}
+            actualEndAt: {[Op.lt]: minStreamEndAtDate}
           }, {
-            actualEndAt: null, createdAt: {[Op.lt]: minStreamCreatedAtDate}
+            actualEndAt: null,
+            [Op.or]: [{
+              scheduledStartAt: {[Op.lt]: minStreamScheduledStartAtDate},
+            }, {
+              scheduledStartAt: null,
+              createdAt: {[Op.lt]: minStreamCreatedAtDate}
+            }]
           }]
         }, {
           isStream: false,
