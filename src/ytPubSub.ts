@@ -241,6 +241,7 @@ class YtPubSub {
 
           await Promise.all([
             this.main.db.putFeeds(feeds),
+            this.main.db.setActualStartAtByFeedIds(feedIds),
             this.main.db.setYtPubSubChannelsLastSyncAt(channelIds, syncAt)
           ]);
 

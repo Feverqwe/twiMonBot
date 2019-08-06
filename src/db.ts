@@ -1026,6 +1026,17 @@ class Db {
     });
   }
 
+  setActualStartAtByFeedIds(ids: string[]) {
+    return YtPubSubFeedModel.update({
+      actualStartAt: new Date(),
+    }, {
+      where: {
+        id: ids,
+        actualStartAt: null
+      }
+    });
+  }
+
   updateFeeds(feeds: YtPubSubFeed[]) {
     return bulk(feeds, (feeds) => {
       return YtPubSubFeedModel.bulkCreate(feeds, {
