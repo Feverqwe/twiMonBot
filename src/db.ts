@@ -948,9 +948,9 @@ class Db {
 
   getFeedIdsForSync(channelIds: string[]): Promise<string[]> {
     const minStreamScheduledStartAtDate = new Date();
-    minStreamScheduledStartAtDate.setHours(minStreamScheduledStartAtDate.getHours() - 1);
+    minStreamScheduledStartAtDate.setHours(minStreamScheduledStartAtDate.getHours() - 6);
     const maxStreamScheduledStartAtDate = new Date();
-    maxStreamScheduledStartAtDate.setHours(maxStreamScheduledStartAtDate.getHours() + 5);
+    maxStreamScheduledStartAtDate.setHours(maxStreamScheduledStartAtDate.getHours() + 6);
 
     return YtPubSubFeedModel.findAll({
       where: {
