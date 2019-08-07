@@ -6,6 +6,7 @@ import arrayByPart from "../tools/arrayByPart";
 import withRetry from "../tools/withRetry";
 import {ServiceInterface, ServiceStream} from "../checker";
 import promiseTry from "../tools/promiseTry";
+import noCacheUrl from "../tools/noCacheUrl";
 
 const got = require('got');
 const debug = require('debug')('app:Goodgame');
@@ -131,7 +132,7 @@ class Goodgame implements ServiceInterface {
             thumb = 'https:' + thumb;
           }
           if (thumb) {
-            previews.push(thumb);
+            previews.push(noCacheUrl(thumb));
           }
 
           let viewers = parseInt(stream.viewers, 10);

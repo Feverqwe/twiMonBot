@@ -4,6 +4,7 @@ import ErrorWithCode from "../tools/errorWithCode";
 import {struct} from "superstruct";
 import parallel from "../tools/parallel";
 import withRetry from "../tools/withRetry";
+import noCacheUrl from "../tools/noCacheUrl";
 
 const got = require('got');
 const debug = require('debug')('app:Mixer');
@@ -89,7 +90,7 @@ class Mixer implements ServiceInterface {
         }
 
         const previews = [
-          `https://thumbs.mixer.com/channel/${encodeURIComponent('' + channel.id)}.big.jpg`
+          noCacheUrl(`https://thumbs.mixer.com/channel/${encodeURIComponent('' + channel.id)}.big.jpg`)
         ];
 
         resultStreams.push({
