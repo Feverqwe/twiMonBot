@@ -251,7 +251,7 @@ class Checker {
           const migratedStreamsIdCouple = Array.from(migratedStreamFromIdToId.entries());
           const syncStreams: Stream[] = [
             ...[].concat(newStreamIds, migratedStreamsIds, updatedStreamIds).map(id => setStreamUpdatedAt(streamIdStream.get(id), syncAt)),
-            ...[].concat(offlineStreamIds, timeoutStreamIds).map((id) => setStreamUpdatedAt(existsStreamIdStream.get(id), syncAt))
+            ...[].concat(offlineStreamIds, timeoutStreamIds).map((id) => existsStreamIdStream.get(id))
           ];
 
           return this.main.db.putStreams(
