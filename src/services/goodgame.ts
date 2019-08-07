@@ -81,12 +81,14 @@ class Goodgame implements ServiceInterface {
   name: string;
   batchSize: number;
   withProxy: boolean;
+  noCachePreview: boolean;
   constructor(main: Main) {
     this.main = main;
     this.id = 'goodgame';
     this.name = 'Goodgame';
     this.batchSize = 25;
     this.withProxy = true;
+    this.noCachePreview = true;
   }
 
   match(url: string) {

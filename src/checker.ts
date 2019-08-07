@@ -39,6 +39,7 @@ export interface ServiceInterface {
   name: string,
   batchSize: number,
   withProxy?: boolean,
+  noCachePreview?: boolean,
   gotWithProxy?: (url: string, options: object) => Promise<any>,
   match(query: string): boolean,
   getStreams(channelsIds: (string|number)[]): Promise<ServiceGetStreamsResult>,

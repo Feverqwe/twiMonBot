@@ -71,11 +71,13 @@ class Twitch implements ServiceInterface {
   id: string;
   name: string;
   batchSize: number;
+  noCachePreview: boolean;
   constructor(main: Main) {
     this.main = main;
     this.id = 'twitch';
     this.name = 'Twitch';
     this.batchSize = 100;
+    this.noCachePreview = true;
   }
 
   match(url: string) {

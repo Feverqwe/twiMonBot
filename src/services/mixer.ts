@@ -50,11 +50,13 @@ class Mixer implements ServiceInterface {
   id: string;
   name: string;
   batchSize: number;
+  noCachePreview: boolean;
   constructor(main: Main) {
     this.main = main;
     this.id = 'mixer';
     this.name = 'Mixer';
     this.batchSize = 50;
+    this.noCachePreview = true;
   }
 
   match(url: string) {

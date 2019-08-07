@@ -6,6 +6,7 @@ import promiseFinally from "./tools/promiseFinally";
 import {getCaption, getDescription} from "./tools/streamToString";
 import {ServiceInterface} from "./checker";
 import {TMessage} from "./router";
+import appendQueryParam from "./tools/appendQueryParam";
 
 const debug = require('debug')('app:ChatSender');
 const got = require('got');
@@ -321,7 +322,11 @@ class ChatSender {
   ensureTelegramPreviewFileId(stream: IStreamWithChannel): Promise<SentMessage> {
     const service = this.main.getServiceById(stream.channel.service);
     const previews = !Array.isArray(stream.previews) ? JSON.parse(stream.previews) : stream.previews;
-    return getValidPreviewUrl(previews, service).then(({url, contentType, agent}) => {
+    return getValidPreviewUrl(previews, service).then(({url: _url, contentType, agent}) => {
+      let url = _url;
+      if (service.noCachePreview) {
+        url = appendQueryParam(url, '_', stream.updatedAt.getTime());
+      }
       const caption = getCaption(stream);
       return this.main.bot.sendPhoto(this.chat.id, url, {caption}).then((message: TMessage) => {
         this.main.sender.log.write(`[send photo as url] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`);
