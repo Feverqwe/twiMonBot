@@ -250,8 +250,8 @@ class Checker {
           const channelsChanges = Object.values(channelIdsChanges);
           const migratedStreamsIdCouple = Array.from(migratedStreamFromIdToId.entries());
           const syncStreams: Stream[] = [
-            ...[].concat(newStreamIds, migratedStreamsIds, updatedStreamIds).map(id => streamIdStream.get(id)),
-            ...[].concat(offlineStreamIds, timeoutStreamIds).map((id) => existsStreamIdStream.get(id))
+            ...[].concat(newStreamIds, migratedStreamsIds, updatedStreamIds).map(id => setStreamUpdatedAt(streamIdStream.get(id), syncAt)),
+            ...[].concat(offlineStreamIds, timeoutStreamIds).map((id) => setStreamUpdatedAt(existsStreamIdStream.get(id), syncAt))
           ];
 
           return this.main.db.putStreams(
@@ -496,6 +496,11 @@ function findSimilarStream<T extends Stream>(streams: T[], target: T): T|null {
     }
   });
   return result;
+}
+
+function setStreamUpdatedAt(stream: Stream, date: Date):Stream {
+  stream.updatedAt = date;
+  return stream;
 }
 
 export default Checker;
