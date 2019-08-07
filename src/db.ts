@@ -690,7 +690,7 @@ class Db {
           updateOnDuplicate: [
             'url', 'title', 'game', 'isRecord', 'previews',
             'viewers', 'channelId', 'telegramPreviewFileId',
-            'isOffline', 'offlineFrom', 'isTimeout', 'timeoutFrom'
+            'isOffline', 'offlineFrom', 'isTimeout', 'timeoutFrom', 'updatedAt'
           ],
           transaction
         });
