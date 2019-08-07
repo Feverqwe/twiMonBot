@@ -92,7 +92,7 @@ class Mixer implements ServiceInterface {
         }
 
         const previews = [
-          noCacheUrl(`https://thumbs.mixer.com/channel/${encodeURIComponent('' + channel.id)}.big.jpg`)
+          `https://thumbs.mixer.com/channel/${encodeURIComponent('' + channel.id)}.big.jpg`
         ];
 
         resultStreams.push({

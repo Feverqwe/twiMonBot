@@ -119,7 +119,7 @@ class Twitch implements ServiceInterface {
               if (size === 'template') {
                 url = url.replace('{width}', '1280').replace('{height}', '720')
               }
-              previews.push(noCacheUrl(url));
+              previews.push(url);
             }
           });
 

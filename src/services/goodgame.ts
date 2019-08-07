@@ -134,7 +134,7 @@ class Goodgame implements ServiceInterface {
             thumb = 'https:' + thumb;
           }
           if (thumb) {
-            previews.push(noCacheUrl(thumb));
+            previews.push(thumb);
           }
 
           let viewers = parseInt(stream.viewers, 10);
