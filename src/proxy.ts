@@ -82,7 +82,7 @@ class Proxy {
       const agents = [].concat(this.online, this.offline);
       return parallel(8, agents, (agent) => {
         isVerbose && debug('check', agentToString(agent));
-        return parallel(1, this.testRequests, ({url, options, skipStatusCodes = []}) => {
+        return parallel(1, this.testRequests, ({url, options, skipStatusCodes}) => {
           const startTime = Date.now();
           return got(url, {
             agent,
@@ -92,7 +92,7 @@ class Proxy {
             if (isProxyError(err) || err.name === 'TimeoutError') {
               throw err;
             }
-            if (skipStatusCodes && skipStatusCodes.includes(err.response && err.statusCode)) {
+            if (skipStatusCodes && skipStatusCodes.includes(err.response && err.response.statusCode)) {
               return;
             }
             this.log.write(`Check: Proxy ${agentToString(agent)} error: ${inlineInspect(err)}`);
