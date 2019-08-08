@@ -23,7 +23,7 @@ class Proxy {
   log: LogFile;
   online: Agent[];
   offline: Agent[];
-  testRequests: {url: string, options?: object}[];
+  testRequests: {url: string, options?: object, skipStatusCodes?: number[]}[];
   lastTimeUsed: number;
   constructor(main: Main) {
     this.main = main;
@@ -82,7 +82,7 @@ class Proxy {
       const agents = [].concat(this.online, this.offline);
       return parallel(8, agents, (agent) => {
         isVerbose && debug('check', agentToString(agent));
-        return parallel(1, this.testRequests, ({url, options}) => {
+        return parallel(1, this.testRequests, ({url, options, skipStatusCodes = []}) => {
           const startTime = Date.now();
           return got(url, {
             agent,
@@ -91,6 +91,9 @@ class Proxy {
           }).catch((err: any) => {
             if (isProxyError(err) || err.name === 'TimeoutError') {
               throw err;
+            }
+            if (skipStatusCodes && skipStatusCodes.includes(err.response && err.statusCode)) {
+              return;
             }
             this.log.write(`Check: Proxy ${agentToString(agent)} error: ${inlineInspect(err)}`);
             throw err;
