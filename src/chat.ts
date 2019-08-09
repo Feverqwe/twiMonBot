@@ -75,7 +75,7 @@ class Chat {
       }
     });
 
-    this.router.textOrCallbackQuery(/(.+)/, (req, res, next) => {
+    this.router.textOrCallbackQuery((req, res, next) => {
       if (['group', 'supergroup'].includes(req.chatType)) {
         return promiseTry(() => {
           const adminIds = this.chatIdAdminIdsCache.get(req.chatId);

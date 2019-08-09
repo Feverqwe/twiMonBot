@@ -15,7 +15,7 @@ interface RouterMethodCallback {
 }
 
 interface RouterMethod {
-  (re: RegExp, ...callbacks: RouterMethodCallback[]): void
+  (re: RegExp|RouterMethodCallback, ...callbacks: RouterMethodCallback[]): void
 }
 
 interface RouterRouteDetails {
