@@ -75,6 +75,10 @@ class Chat {
       }
     });
 
+    this.router.callback_query((req, res, next) => {
+      return this.main.bot.answerCallbackQuery(req.callback_query.id).then(next);
+    });
+
     this.router.textOrCallbackQuery((req, res, next) => {
       if (['group', 'supergroup'].includes(req.chatType)) {
         return promiseTry(() => {
@@ -124,10 +128,6 @@ class Chat {
           t: 'event',
         });
       }
-    });
-
-    this.router.callback_query((req, res, next) => {
-      return this.main.bot.answerCallbackQuery(req.callback_query.id).then(next);
     });
 
     this.router.text(/\/ping/, (req, res) => {
