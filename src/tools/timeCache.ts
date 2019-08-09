@@ -1,6 +1,6 @@
 const QuickLRU = require('quick-lru');
 
-class TimeCache extends QuickLRU {
+class TimeCache<KeyType extends unknown, ValueType extends unknown> extends QuickLRU {
   private ttl: number;
   constructor(options: typeof QuickLRU.Options) {
     super(options);
@@ -16,7 +16,7 @@ class TimeCache extends QuickLRU {
     return result && result.data;
   }
 
-  set(key: KeyType, value: any) {
+  set(key: KeyType, value: ValueType) {
     return super.set(key, {
       data: value,
       expiresAt: Date.now() + this.ttl

@@ -31,11 +31,11 @@ class Chat {
   main: Main;
   log: LogFile;
   private router: Router;
-  private chatIdAdminIdsCache: TimeCache;
+  private chatIdAdminIdsCache: TimeCache<number, number[]>;
   constructor(/**Main*/main: Main) {
     this.main = main;
     this.log = new LogFile('chat');
-    this.chatIdAdminIdsCache = new TimeCache({maxSize: 100, ttl: 5 * 60 * 1000});
+    this.chatIdAdminIdsCache = new TimeCache<number, number[]>({maxSize: 100, ttl: 5 * 60 * 1000});
 
     this.router = new Router(main);
 
