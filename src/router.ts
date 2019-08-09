@@ -80,13 +80,13 @@ class Router {
     return this._botNameRe;
   }
 
-  handle = (event: string, message: TMessage, callbackQuery?: TCallbackQuery) => {
-    const commands = getCommands(event, message, callbackQuery, this.botNameRe);
+  handle = (event: string, data: TMessage|TCallbackQuery) => {
+    const commands = getCommands(event, data, this.botNameRe);
     if (!commands.length) {
       commands.push('');
     }
     commands.forEach((command) => {
-      const req = new RouterReq(event, message || callbackQuery);
+      const req = new RouterReq(event, data);
       const res = new RouterRes(this.main.bot, req);
       let index = 0;
       const next = () => {
@@ -256,13 +256,24 @@ export class RouterReq {
   message?: TMessage;
   callback_query?: TCallbackQuery;
 
-  constructor(event: string, message: object) {
+  constructor(event: string, data: TMessage|TCallbackQuery) {
     this.commands = null;
     this.command = null;
     this.params = null;
     this.event = event;
-    // @ts-ignore
-    this[event] = message;
+    switch (event) {
+      case 'message': {
+        this.message = data as TMessage;
+        break;
+      }
+      case 'callback_query': {
+        this.callback_query = data as TCallbackQuery;
+        break;
+      }
+      default: {
+        throw new Error(`Unknown case ${event}`);
+      }
+    }
     this._cache = {};
   }
 
@@ -283,6 +294,13 @@ export class RouterReq {
     return this._useCache('chatId', () => {
       const message = this._findMessage();
       return message && message.chat.id;
+    });
+  }
+
+  get chatType(): string {
+    return this._useCache('chatType', () => {
+      const message = this._findMessage();
+      return message && message.chat.type;
     });
   }
 
@@ -375,35 +393,43 @@ function prepareArgs(re?: RegExp|RouterMethodCallback, ...callbacks: RouterMetho
   }
 }
 
-function getCommands(event: string, message: TMessage, callbackQuery: TCallbackQuery, botNameRe: RegExp): string[] {
+function getCommands(event: string, data: TMessage|TCallbackQuery, botNameRe: RegExp): string[] {
   const commands = [];
-  if (event === 'message' && message.text && message.entities) {
-    const text = message.text;
-    const entities = message.entities.slice(0).reverse();
-    let end = text.length;
-    entities.forEach((entity) => {
-      if (entity.type === 'bot_command') {
-        let botName = null;
-        let command = text.substr(entity.offset, entity.length);
-        const m = /([^@]+)(?:@(.+))?/.exec(command);
-        if (m) {
-          command = m[1];
-          botName = m[2];
-        }
-        const start = entity.offset + entity.length;
-        const args = text.substr(start, end - start);
-        if (args) {
-          command += args;
-        }
-        if (!botName || botNameRe.test(botName)) {
-          commands.unshift(command);
-        }
-        end = entity.offset;
+  switch (event) {
+    case 'message': {
+      const message = data as TMessage;
+      if (message.text && message.entities) {
+        const text = message.text;
+        const entities = message.entities.slice(0).reverse();
+        let end = text.length;
+        entities.forEach((entity) => {
+          if (entity.type === 'bot_command') {
+            let botName = null;
+            let command = text.substr(entity.offset, entity.length);
+            const m = /([^@]+)(?:@(.+))?/.exec(command);
+            if (m) {
+              command = m[1];
+              botName = m[2];
+            }
+            const start = entity.offset + entity.length;
+            const args = text.substr(start, end - start);
+            if (args) {
+              command += args;
+            }
+            if (!botName || botNameRe.test(botName)) {
+              commands.unshift(command);
+            }
+            end = entity.offset;
+          }
+        });
       }
-    });
-  } else
-  if (event === 'callback_query') {
-    commands.push(callbackQuery.data);
+      break;
+    }
+    case 'callback_query': {
+      const callbackQuery = data as TCallbackQuery;
+      commands.push(callbackQuery.data);
+      break;
+    }
   }
   return commands;
 }
@@ -526,6 +552,27 @@ export interface TCallbackQuery {
 export interface TChatPhoto {
   small_file_id: string,
   big_file_id: string
+}
+
+export interface TChatMember {
+  user: TUser,
+  status: string,
+  until_date?: number,
+  can_be_edited?: boolean,
+  can_post_messages?: boolean,
+  can_edit_messages?: boolean,
+  can_delete_messages?: boolean,
+  can_restrict_members?: boolean,
+  can_promote_members?: boolean,
+  can_change_info?: boolean,
+  can_invite_users?: boolean,
+  can_pin_messages?: boolean,
+  is_member?: boolean,
+  can_send_messages?: boolean,
+  can_send_media_messages?: boolean,
+  can_send_polls?: boolean,
+  can_send_other_messages?: boolean,
+  can_add_web_page_previews?: boolean,
 }
 
 export default Router;

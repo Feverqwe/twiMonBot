@@ -1,4 +1,4 @@
-import Router, {RouterReq, RouterRes, TCallbackQuery, TChat, TInlineKeyboardButton, TMessage} from "./router";
+import Router, {RouterReq, RouterRes, TCallbackQuery, TChat, TChatMember, TInlineKeyboardButton, TMessage} from "./router";
 import htmlSanitize from "./tools/htmlSanitize";
 import ErrorWithCode from "./tools/errorWithCode";
 import pageBtnList from "./tools/pageBtnList";
@@ -13,6 +13,7 @@ import {IChannel, IChatWithChannel} from "./db";
 import {getButtonText, getString} from "./tools/streamToString";
 import ChatSender from "./chatSender";
 import parallel from "./tools/parallel";
+import TimeCache from "./tools/timeCache";
 
 const debug = require('debug')('app:Chat');
 const jsonStringifyPretty = require("json-stringify-pretty-compact");
@@ -30,9 +31,11 @@ class Chat {
   main: Main;
   log: LogFile;
   private router: Router;
+  private chatIdAdminIdsCache: TimeCache;
   constructor(/**Main*/main: Main) {
     this.main = main;
     this.log = new LogFile('chat');
+    this.chatIdAdminIdsCache = new TimeCache({maxSize: 100, ttl: 5 * 60 * 1000});
 
     this.router = new Router(main);
 
@@ -42,7 +45,7 @@ class Chat {
       this.router.handle('message', message);
     });
     this.main.bot.on('callback_query', (callbackQuery: TCallbackQuery) => {
-      this.router.handle('callback_query', null, callbackQuery);
+      this.router.handle('callback_query', callbackQuery);
     });
 
     this.base();
@@ -69,6 +72,27 @@ class Chat {
         });
       } else {
         return next();
+      }
+    });
+
+    this.router.textOrCallbackQuery(/(.+)/, (req, res, next) => {
+      if (['group', 'supergroup'].includes(req.chatType)) {
+        return promiseTry(() => {
+          const adminIds = this.chatIdAdminIdsCache.get(req.chatId);
+          if (adminIds) return adminIds;
+
+          return this.main.bot.getChatAdministrators(req.chatId).then((chatMembers: TChatMember[]) => {
+            const adminIds = chatMembers.map(chatMember => chatMember.user.id);
+            this.chatIdAdminIdsCache.set(req.chatId, adminIds);
+            return adminIds;
+          });
+        }).then((adminIds: number[]) => {
+          if (adminIds.includes(req.fromId)) {
+            next();
+          }
+        });
+      } else {
+        next();
       }
     });
 
