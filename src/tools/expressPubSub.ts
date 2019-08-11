@@ -98,7 +98,7 @@ class ExpressPubSub extends Events {
       this.emit('feed', {
         topic,
         hub,
-        callback: 'http://' + req.get('host') + req.url,
+        callback: req.protocol + '://' + req.hostname + req.originalUrl,
         feed: req.body,
         headers: req.headers
       });
