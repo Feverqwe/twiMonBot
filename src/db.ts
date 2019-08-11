@@ -947,6 +947,8 @@ class Db {
   }
 
   getFeedIdsForSync(channelIds: string[]): Promise<string[]> {
+    const minEndTime = new Date();
+    minEndTime.setHours(minEndTime.getHours() - 1);
     return YtPubSubFeedModel.findAll({
       where: {
         channelId: channelIds,
@@ -954,7 +956,10 @@ class Db {
           isStream: null
         }, {
           isStream: true,
-          actualEndAt: null
+          [Op.or]: [
+            {actualEndAt: null},
+            {actualEndAt: {[Op.gt]: minEndTime}},
+          ]
         }],
         syncTimeoutExpiresAt: {[Op.lt]: new Date()},
       },
