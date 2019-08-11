@@ -4,6 +4,8 @@ const Events = require('events');
 const crypto = require('crypto');
 const got = require('got');
 
+const debug = require('debug')('app:ExpressPubSub');
+
 class ExpressPubSub extends Events {
   private path: string;
   private secret: string;
@@ -67,11 +69,13 @@ class ExpressPubSub extends Events {
       }
 
       if (!topic) {
+        debug('post skip, cause: topic is empty');
         return res.sendStatus(400);
       }
 
       if (this.secret) {
         if (!req.get('x-hub-signature')) {
+          debug('post skip, cause: x-hub-signature is empty');
           return res.sendStatus(403);
         }
 
@@ -83,12 +87,14 @@ class ExpressPubSub extends Events {
         try {
           hmac = crypto.createHmac(algo, crypto.createHmac('sha1', this.secret).update(topic).digest('hex'));
         } catch (err) {
+          debug('post skip, cause: %o', err);
           return res.sendStatus(403);
         }
 
         hmac.update(req.body);
 
         if (hmac.digest('hex').toLowerCase() !== signature) {
+          debug('post skip, cause: signature is not equal');
           return res.sendStatus(202);
         }
       }
