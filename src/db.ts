@@ -1037,6 +1037,7 @@ class Db {
           [Op.or]: [{
             actualEndAt: {[Op.lt]: minStreamEndAtDate}
           }, {
+            actualStartAt: null,
             actualEndAt: null,
             [Op.or]: [{
               scheduledStartAt: {[Op.lt]: minStreamScheduledStartAtDate},
