@@ -61,6 +61,7 @@ export interface Config {
   push: {
     host: string,
     port: number,
+    path: string,
     secret: string,
     callbackUrl: string,
     leaseSeconds: number
@@ -105,6 +106,7 @@ const config: Config = {
   push: {
     host: 'localhost',
     port: 80,
+    path: '/',
     secret: '',
     callbackUrl: '',
     leaseSeconds: 86400

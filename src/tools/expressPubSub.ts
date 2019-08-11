@@ -6,19 +6,21 @@ const got = require('got');
 const qs = require('querystring');
 
 class ExpressPubSub extends Events {
+  private path: string;
   private secret: string;
   private callbackUrl: string;
   private leaseSeconds: number;
-  constructor(options: { secret: string; callbackUrl: string; leaseSeconds: number; }) {
+  constructor(options: { path: string; secret: string; callbackUrl: string; leaseSeconds: number; }) {
     super();
 
+    this.path = options.path;
     this.secret = options.secret;
     this.callbackUrl = options.callbackUrl;
     this.leaseSeconds = options.leaseSeconds;
   }
 
   bind(app: Express) {
-    app.get('/', (req, res) => {
+    app.get(this.path, (req, res) => {
       const {'hub.topic': topic, 'hub.mode': mode} = req.query;
       if (!topic || !mode) {
         return res.sendStatus(400);
@@ -56,7 +58,7 @@ class ExpressPubSub extends Events {
       }
     });
 
-    app.post('/', (req, res) => {
+    app.post(this.path, (req, res) => {
       let {topic, hub} = req.query;
 
       const requestRels = /<([^>]+)>;\s*rel=(?:["'](?=.*["']))?([A-z]+)/gi.exec(req.get('link'));
@@ -116,7 +118,7 @@ class ExpressPubSub extends Events {
       }
     });
 
-    app.use((req, res) => {
+    app.all(this.path, (req, res) => {
       res.sendStatus(405);
     });
   }

@@ -36,6 +36,7 @@ class YtPubSub {
     this.host = main.config.push.host || 'localhost';
     this.port = main.config.push.port;
     this.expressPubSub = new ExpressPubSub({
+      path: main.config.push.path,
       secret: main.config.push.secret,
       callbackUrl: main.config.push.callbackUrl,
       leaseSeconds: main.config.push.leaseSeconds,
@@ -44,7 +45,9 @@ class YtPubSub {
 
   init() {
     this.app = express();
-    this.app.use(bodyParser.raw());
+    this.app.use(bodyParser.raw({
+      type: 'application/atom+xml'
+    }));
 
     this.expressPubSub.bind(this.app);
     this.expressPubSub.on('denied', (err: any) => {
