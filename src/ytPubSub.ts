@@ -1,5 +1,4 @@
 import Main from "./main";
-import PubSubHubbub, {createServer} from "./vendor/pubsubhubbub";
 import {everyMinutes} from "./tools/everyTime";
 import parallel from "./tools/parallel";
 import serviceId from "./tools/serviceId";
@@ -8,30 +7,55 @@ import arrayDifference from "./tools/arrayDifference";
 import {IYtPubSubChannel, YtPubSubChannel, YtPubSubFeed} from "./db";
 import LogFile from "./logFile";
 import arrayByPart from "./tools/arrayByPart";
+import ExpressPubSub from "./tools/expressPubSub";
+import {Express} from "express";
 
 const debug = require('debug')('app:YtPubSub');
+const express = require('express');
 const {XmlDocument} = require("xmldoc");
 const qs = require('querystring');
 const promiseLimit = require('promise-limit');
 const oneLimit = promiseLimit(1);
 const throttle = require('lodash.throttle');
+const bodyParser = require('body-parser');
+const {Server} = require('http');
 
 class YtPubSub {
   main: Main;
   private hubUrl: string;
-  private pubsub: PubSubHubbub;
   private log: LogFile;
+  private app: Express;
+  private expressPubSub: ExpressPubSub;
+  private host: string;
+  private port: number;
+  private server: typeof Server;
   constructor(main: Main) {
     this.main = main;
     this.log = new LogFile('ytPubSub');
     this.hubUrl = 'https://pubsubhubbub.appspot.com/subscribe';
+    this.host = main.config.push.host || 'localhost';
+    this.port = main.config.push.port;
+    this.expressPubSub = new ExpressPubSub({
+      secret: main.config.push.secret,
+      callbackUrl: main.config.push.callbackUrl,
+      leaseSeconds: main.config.push.leaseSeconds,
+    });
   }
 
   init() {
-    this.pubsub = createServer(this.main.config.push);
+    this.app = express();
+    this.app.use(bodyParser.raw());
 
-    return new Promise((resolve, reject) => {
-      this.initListener((err) => err ? reject(err) : resolve());
+    this.expressPubSub.bind(this.app);
+    this.expressPubSub.on('denied', (err: any) => {
+      debug('Denied %o', err);
+    });
+    this.expressPubSub.on('feed', (data: PubSubFeed) => {
+      this.handleFeed(data);
+    });
+
+    return new Promise((resolve) => {
+      this.server = this.app.listen(this.port, this.host, resolve);
     }).then(() => {
       this.startUpdateInterval();
       this.startCleanInterval();
@@ -99,43 +123,13 @@ class YtPubSub {
   subscribe(channelId: string) {
     const topicUrl = getTopicUrl(channelId);
 
-    return new Promise((resolve, reject) => {
-      // @ts-ignore
-      this.pubsub.subscribe(topicUrl, this.hubUrl, (err: any, topic: string) => {
-        err ? reject(err) : resolve(topic);
-      });
-    });
+    return this.expressPubSub.subscribe(topicUrl, this.hubUrl);
   }
 
   unsubscribe(channelId: string) {
     const topicUrl = getTopicUrl(channelId);
 
-    return new Promise((resolve, reject) => {
-      // @ts-ignore
-      this.pubsub.unsubscribe(topicUrl, this.hubUrl, (err: any, topic: string) => {
-        err ? reject(err) : resolve(topic);
-      });
-    });
-  }
-
-  initListener(callback: (err?: any) => void) {
-    this.pubsub.on("listen", () => {
-      callback();
-    });
-
-    this.pubsub.on('error', (err) => {
-      callback(err);
-    });
-
-    this.pubsub.on('denied', (err) => {
-      debug('Denied %o', err);
-    });
-
-    this.pubsub.on('feed', (data: PubSubFeed) => {
-      this.handleFeed(data);
-    });
-
-    this.pubsub.listen(this.main.config.push.port, this.main.config.push.host);
+    return this.expressPubSub.unsubscribe(topicUrl, this.hubUrl);
   }
 
   feeds: Feed[] = [];
