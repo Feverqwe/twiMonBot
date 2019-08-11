@@ -3,7 +3,6 @@ import {Express} from "express";
 const Events = require('events');
 const crypto = require('crypto');
 const got = require('got');
-const qs = require('querystring');
 
 class ExpressPubSub extends Events {
   private path: string;
@@ -159,7 +158,8 @@ class ExpressPubSub extends Events {
     }
 
     return got.post(hub, {
-      body: qs.stringify(body)
+      form: true,
+      body: body
     }).then((res: any) => {
       if (![202, 204].includes(res.statusCode)) {
         const err = new Error(`Invalid response status ${res.statusCode}`);
