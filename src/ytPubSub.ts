@@ -17,7 +17,6 @@ const qs = require('querystring');
 const promiseLimit = require('promise-limit');
 const oneLimit = promiseLimit(1);
 const throttle = require('lodash.throttle');
-const bodyParser = require('body-parser');
 const {Server} = require('http');
 
 class YtPubSub {
@@ -45,9 +44,6 @@ class YtPubSub {
 
   init() {
     this.app = express();
-    this.app.use(bodyParser.raw({
-      type: 'application/atom+xml'
-    }));
 
     this.expressPubSub.bind(this.app);
     this.expressPubSub.on('denied', (data: any) => {
