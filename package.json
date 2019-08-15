@@ -23,7 +23,7 @@
     "promise-limit": "^2.7.0",
     "quick-lru": "^4.0.1",
     "request": "^2.88.0",
-    "sequelize": "^5.13.1",
+    "sequelize": "^5.15.0",
     "superstruct": "^0.6.1",
     "uuid": "^3.3.2",
     "xmldoc": "^1.1.2"
