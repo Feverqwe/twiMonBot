@@ -941,6 +941,7 @@ class Chat {
       {name: 'Check channels', method: 'checker.check'},
       {name: 'Clean chats & channels', method: 'checker.clean'},
       {name: 'Sender check', method: 'sender.check'},
+      {name: 'Active checker threads', method: 'checker.getActiveThreads'},
       {name: 'Update pubsub subscriptions', method: 'ytPubSub.updateSubscribes'},
       {name: 'Clean pubsub feeds', method: 'ytPubSub.clean'},
     ];
