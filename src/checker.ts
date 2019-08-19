@@ -91,7 +91,7 @@ class Checker {
           debug('Thread lock', existsThread.serviceId, existsThread.service.id);
         }
       } else {
-        const sessionId = `${Date.now()}.${Math.trunc(Math.random() * 1000)}`;
+        const sessionId = `${Math.trunc(Math.random() * 1000)}.${Math.trunc(Math.random() * 1000)}`;
         this.serviceThread.set(service, {
           startAt: Date.now(),
           sessionId: sessionId,
