@@ -16,7 +16,7 @@ export function getDescription(stream: IStreamWithChannel) {
 
   return joinString(...[
     joinString(getIcon(stream), htmlSanitize(stream.title), ' '),
-    htmlSanitize('a', joinString(stream.channel.title, game, ' — '), stream.channel.url)
+    htmlSanitize('a', joinString(stream.channel.title, game, ' — '), stream.url)
   ], '\n');
 }
 
