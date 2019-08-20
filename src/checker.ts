@@ -67,7 +67,7 @@ class Checker {
     this.updateTimer && this.updateTimer();
     this.updateTimer = everyMinutes(this.main.config.emitCheckChannelsEveryMinutes, () => {
       this.check().catch((err) => {
-        debug('check error', err);
+        debug('check error, cause: %o', err);
       });
     });
   }
@@ -77,7 +77,7 @@ class Checker {
     this.cleanTimer && this.cleanTimer();
     this.cleanTimer = everyMinutes(this.main.config.emitCleanChatsAndChannelsEveryHours * 60, () => {
       this.clean().catch((err) => {
-        debug('clean error', err);
+        debug('clean error, cause: %o', err);
       });
     });
   }
@@ -96,7 +96,9 @@ class Checker {
           startAt: Date.now(),
           sessionId: sessionId,
           service: service,
-          thread: this.runThread(service, sessionId)
+          thread: this.runThread(service, sessionId).catch((err) => {
+            debug('check: runThread error, cause: %o', err);
+          })
         });
         newThreadCount++;
       }
