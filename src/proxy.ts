@@ -9,6 +9,7 @@ import inlineInspect from "./tools/inlineInspect";
 const debug = require('debug')('app:proxyList');
 const ProxyAgent = require('proxy-agent');
 const got = require('got');
+const url = require('url');
 
 interface Agent {
   _latency: number,
@@ -48,6 +49,9 @@ class Proxy {
     });
 
     proxyList.map((proxy) => {
+      if (typeof proxy === 'string') {
+        proxy = url.parse(proxy);
+      }
       const agent = new ProxyAgent(proxy);
       this.online.push(agent);
     });

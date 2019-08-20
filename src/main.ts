@@ -71,7 +71,7 @@ export interface Config {
   proxy: {
     testUrls: (string|any)[];
     checkOnRun: boolean;
-    list: string[];
+    list: (string|object)[];
   };
 }
 
