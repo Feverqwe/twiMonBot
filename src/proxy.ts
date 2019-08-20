@@ -122,7 +122,7 @@ class Proxy {
 
   got(url: string, options: any):Promise<any> {
     const agent = this.getAgent();
-    return got(url, {timeout: 60 * 1000, ...options, agent}).catch((err: any) => {
+    return got(url, {...options, agent}).catch((err: any) => {
       if (err.name !== 'HTTPError') {
         debug(`got: Proxy ${agentToString(agent)} error: %o`, err);
       }
