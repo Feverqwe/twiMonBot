@@ -88,7 +88,7 @@ class Checker {
       const existsThread = this.serviceThread.get(service);
       if (existsThread) {
         if (existsThread.startAt > Date.now() - 5 * 60 * 1000) {
-          debug('Thread lock', existsThread.serviceId, existsThread.service.id);
+          debug('Thread lock', existsThread.sessionId, existsThread.service.id);
         }
       } else {
         const sessionId = `${Math.trunc(Math.random() * 1000)}.${Math.trunc(Math.random() * 1000)}`;
