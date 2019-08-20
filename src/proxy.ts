@@ -7,15 +7,12 @@ import Main from "./main";
 import inlineInspect from "./tools/inlineInspect";
 
 const debug = require('debug')('app:proxyList');
-const tunnel = require('tunnel');
+const ProxyAgent = require('proxy-agent');
 const got = require('got');
 
 interface Agent {
   _latency: number,
-  proxyOptions: {
-    host: string,
-    port: number,
-  }
+  proxyUri: string
 }
 
 class Proxy {
@@ -51,13 +48,7 @@ class Proxy {
     });
 
     proxyList.map((proxy) => {
-      if (typeof proxy === 'string') {
-        const [host, port] = proxy.split(':');
-        proxy = {host, port};
-      }
-      const agent = tunnel.httpsOverHttp({
-        proxy
-      });
+      const agent = new ProxyAgent(proxy);
       this.online.push(agent);
     });
 
@@ -176,14 +167,12 @@ function moveTo<T>(agent: T, from:T[], to:T[]) {
 
 function isProxyError(err: any) {
   return [
-    /tunneling socket could not be established/,
-    /got illegal response body from proxy/,
-    /Client network socket disconnected before secure TLS connection was established/
+    /connect ECONNREFUSED/
   ].some(re => re.test(err.message));
 }
 
 function agentToString(agent:Agent):string {
-  return `${agent.proxyOptions.host}:${agent.proxyOptions.port}`;
+  return `${agent.proxyUri}`;
 }
 
 export default Proxy;

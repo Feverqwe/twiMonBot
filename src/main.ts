@@ -14,6 +14,8 @@ import Youtube from "./services/youtube";
 import {TUser} from "./router";
 import YtPubSub from "./ytPubSub";
 
+const ProxyAgent = require('proxy-agent');
+
 // @ts-ignore
 process.env.NTBA_FIX_319 = true;
 // @ts-ignore
@@ -22,7 +24,6 @@ process.env.NTBA_FIX_350 = true;
 const TelegramBot = require('node-telegram-bot-api');
 const Events = require('events');
 const path = require('path');
-const tunnel = require('tunnel');
 
 const debug = require('debug')('app:Main');
 
@@ -67,11 +68,11 @@ export interface Config {
     leaseSeconds: number
   },
   adminIds: number[];
-  botProxy: null;
+  botProxy?: string;
   proxy: {
     testUrls: (string|any)[];
     checkOnRun: boolean;
-    list: (string|any)[];
+    list: string[];
   };
 }
 
@@ -192,9 +193,7 @@ class Main extends Events {
     let request = null;
     if (this.config.botProxy) {
       request = {
-        agent: tunnel.httpsOverHttp({
-          proxy: this.config.botProxy
-        })
+        agent: new ProxyAgent(this.config.botProxy)
       };
     }
 
