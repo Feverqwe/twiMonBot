@@ -87,7 +87,7 @@ class Checker {
     this.main.services.forEach((service) => {
       const existsThread = this.serviceThread.get(service);
       if (existsThread) {
-        if (existsThread.startAt > Date.now() - 5 * 60 * 1000) {
+        if (existsThread.startAt < Date.now() - 5 * 60 * 1000) {
           debug('Thread lock', existsThread.sessionId, existsThread.service.id);
         }
       } else {
