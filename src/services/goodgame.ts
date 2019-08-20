@@ -97,12 +97,16 @@ class Goodgame implements ServiceInterface {
     ].some(re => re.test(url));
   }
 
-  getStreams(channelIds: number[]) {
+  getStreams(channelIds: number[], sessionId: string) {
     const resultStreams:ServiceStream[] = [];
     const skippedChannelIds:number[] = [];
     const removedChannelIds:number[] = [];
+    this.main.checker.logV.write(`[${sessionId}]`, 'gg0', 'start');
     return parallel(10, arrayByPart(channelIds, 25), (channelIds) => {
+      this.main.checker.logV.write(`[${sessionId}]`, 'gg1', 'start');
       return withRetry({count: 3, timeout: 250}, () => {
+        this.main.checker.logV.write(`[${sessionId}]`, 'gg1', 'end');
+        this.main.checker.logV.write(`[${sessionId}]`, 'gg2', 'start');
         return this.gotWithProxy('https://api2.goodgame.ru/v2/streams', {
           query: {
             ids: channelIds.join(','),
@@ -115,6 +119,7 @@ class Goodgame implements ServiceInterface {
           json: true,
         });
       }).then(({body}) => {
+        this.main.checker.logV.write(`[${sessionId}]`, 'gg2', 'end');
         const streams = (Streams(body) as Streams)._embedded.streams;
 
         streams.forEach((stream) => {
@@ -159,6 +164,7 @@ class Goodgame implements ServiceInterface {
         skippedChannelIds.push(...channelIds);
       });
     }).then(() => {
+      this.main.checker.logV.write(`[${sessionId}]`, 'gg0', 'end');
       return {streams: resultStreams, skippedChannelIds, removedChannelIds};
     });
   }

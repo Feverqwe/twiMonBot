@@ -42,7 +42,7 @@ export interface ServiceInterface {
   noCachePreview?: boolean,
   gotWithProxy?: (url: string, options: object) => Promise<any>,
   match(query: string): boolean,
-  getStreams(channelsIds: (string|number)[]): Promise<ServiceGetStreamsResult>,
+  getStreams(channelsIds: (string|number)[], sessionId: string): Promise<ServiceGetStreamsResult>,
   getExistsChannelIds(channelsIds: (string|number)[]): Promise<(string|number)[]>,
   findChannel(query: string): Promise<ServiceChannel>,
 }
@@ -137,9 +137,17 @@ class Checker {
 
       const syncAt = new Date();
       this.logV.write(`[${sessionId}]`, 'p1', 'start');
+      this.logV.write(`[${sessionId}]`, 'p1_1', 'start');
+      this.logV.write(`[${sessionId}]`, 'p1_2', 'start');
       await Promise.all([
-        this.getStreams(service, channelIds, rawChannelIds),
-        this.getExistsStreams(channelIds)
+        this.getStreams(service, channelIds, rawChannelIds, sessionId).then((r) => {
+          this.logV.write(`[${sessionId}]`, 'p1_1', 'end');
+          return r;
+        }),
+        this.getExistsStreams(channelIds).then((r) => {
+          this.logV.write(`[${sessionId}]`, 'p1_2', 'end');
+          return r;
+        })
       ]).then(([streamsResult, existsStreamsResult]) => {
         this.logV.write(`[${sessionId}]`, 'p1', 'end');
         const {streams, checkedChannelIds, skippedChannelIds, removedChannelIds} = streamsResult;
@@ -363,13 +371,17 @@ class Checker {
     this.logV.write(`[${sessionId}]`, 'end');
   }
 
-  getStreams(service: ServiceInterface, channelIds: string[], rawChannelIds: (string|number)[]): Promise<{
+  getStreams(service: ServiceInterface, channelIds: string[], rawChannelIds: (string|number)[], sessionId: string): Promise<{
     streams: (Stream & { channelTitle: string; })[],
     checkedChannelIds: string[], skippedChannelIds: string[], removedChannelIds: string[]
   }> {
+    this.logV.write(`[${sessionId}]`, 's1', 'start');
     return this.main.db.setChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
-      return service.getStreams(rawChannelIds);
+      this.logV.write(`[${sessionId}]`, 's1', 'end');
+      this.logV.write(`[${sessionId}]`, 's2', 'start');
+      return service.getStreams(rawChannelIds, sessionId);
     }).then(({streams: rawStreams, skippedChannelIds: skippedRawChannelIds, removedChannelIds: removedRawChannelIds}: ServiceGetStreamsResult) => {
+      this.logV.write(`[${sessionId}]`, 's2', 'end');
       const streams: (Stream & { channelTitle: string; })[] = [];
 
       const checkedChannelIds = channelIds.slice(0);
