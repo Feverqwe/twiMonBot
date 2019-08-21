@@ -52,8 +52,9 @@ class Proxy {
       if (typeof proxy === 'string') {
         proxy = url.parse(proxy);
       }
+      // @ts-ignore
+      proxy.timeout = proxy.timeout || 10 * 1000;
       const agent = new ProxyAgent(proxy);
-      agent.timeout = 10 * 1000;
       this.online.push(agent);
     });
 
