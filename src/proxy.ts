@@ -53,6 +53,7 @@ class Proxy {
         proxy = url.parse(proxy);
       }
       const agent = new ProxyAgent(proxy);
+      agent.timeout = 10 * 1000;
       this.online.push(agent);
     });
 
@@ -171,7 +172,8 @@ function moveTo<T>(agent: T, from:T[], to:T[]) {
 
 function isProxyError(err: any) {
   return [
-    /connect ECONNREFUSED/
+    /connect ECONNREFUSED/,
+    /A "socket" was not created for HTTP request before/
   ].some(re => re.test(err.message));
 }
 
