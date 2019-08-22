@@ -7,6 +7,7 @@ import {Channel, IChannel, Stream} from "./db";
 import LogFile from "./logFile";
 import getInProgress from "./tools/getInProgress";
 import parallel from "./tools/parallel";
+import ErrorWithCode from "./tools/errorWithCode";
 
 const debug = require('debug')('app:Checker');
 
@@ -47,6 +48,14 @@ export interface ServiceInterface {
   findChannel(query: string): Promise<ServiceChannel>,
 }
 
+interface ThreadSession {
+  id: string,
+  startAt: number,
+  service: ServiceInterface,
+  aborted: boolean,
+  thread: Promise<any>
+}
+
 class Checker {
   main: Main;
   log: LogFile;
@@ -85,23 +94,25 @@ class Checker {
   check = async () => {
     let newThreadCount = 0;
     this.main.services.forEach((service) => {
-      const existsThread = this.serviceThread.get(service);
-      if (existsThread) {
-        if (existsThread.startAt < Date.now() - 5 * 60 * 1000) {
-          debug('Thread lock', existsThread.sessionId, existsThread.service.id);
-        }
-      } else {
-        const sessionId = `${Math.trunc(Math.random() * 1000)}.${Math.trunc(Math.random() * 1000)}`;
-        this.serviceThread.set(service, {
-          startAt: Date.now(),
-          sessionId: sessionId,
-          service: service,
-          thread: this.runThread(service, sessionId).catch((err) => {
-            debug('check: runThread error, cause: %o', err);
-          })
-        });
-        newThreadCount++;
+      const existsThreadSession = this.serviceThread.get(service);
+      if (existsThreadSession) {
+        if (existsThreadSession.startAt > Date.now() - 5 * 60 * 1000) return;
+        debug('Thread lock', existsThreadSession.id, existsThreadSession.service.id);
+        existsThreadSession.aborted = true;
       }
+
+      const session: ThreadSession = {
+        id: `${Math.trunc(Math.random() * 1000)}.${Math.trunc(Math.random() * 1000)}`,
+        startAt: Date.now(),
+        service: service,
+        aborted: false,
+        thread: null
+      };
+      session.thread = this.runThread(service, session).catch((err) => {
+        debug('check: runThread error, cause: %o', err);
+      });
+      this.serviceThread.set(service, session);
+      newThreadCount++;
     });
     return {
       newThreadCount
@@ -120,7 +131,8 @@ class Checker {
 
   serviceThread = new Map();
 
-  async runThread(service: ServiceInterface, sessionId: string) {
+  async runThread(service: ServiceInterface, session: ThreadSession) {
+    const sessionId = session.id;
     this.logV.write(`[${sessionId}]`, 'start', service.id);
     while (true) {
       const channels: IChannel[] = await this.main.db.getServiceChannelsForSync(service.id, service.batchSize);
@@ -151,6 +163,8 @@ class Checker {
           return r;
         })
       ]).then(([streamsResult, existsStreamsResult]) => {
+        if (session.aborted) throw new ErrorWithCode('Thread aborted', 'ABORTED');
+
         this.logV.write(`[${sessionId}]`, 'p1', 'end');
         const {streams, checkedChannelIds, skippedChannelIds, removedChannelIds} = streamsResult;
         const {existsStreams, existsStreamIds, existsStreamIdStream} = existsStreamsResult;
