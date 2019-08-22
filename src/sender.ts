@@ -45,7 +45,13 @@ class Sender {
         const newChatIds = chatIds.filter(chatId => !this.chatIdChatSender.has(chatId));
         return this.main.db.getChatsByIds(newChatIds).then((chats) => {
           chats.forEach((chat) => {
-            if (this.chatIdChatSender.has(chat.id)) return;
+            const existsThread = this.chatIdChatSender.get(chat.id);
+            if (existsThread) {
+              if (existsThread.lastActivityAt < Date.now() - 5 * 60 * 1000) {
+                debug('Thread lock', existsThread.chat.id);
+              }
+              return;
+            }
             const chatSender = new ChatSender(this.main, chat);
             this.chatIdChatSender.set(chat.id, chatSender);
             this.suspended.push(chatSender);
@@ -61,6 +67,17 @@ class Sender {
   checkThrottled = throttle(this.check, 1000, {
     leading: false
   });
+
+  getActiveThreads = async () => {
+    return Array.from(this.chatIdChatSender.values()).map((chatSender) => {
+      const {chat, startAt, lastActivityAt} = chatSender;
+      return {
+        chatId: chat.id,
+        startedMinAgo: ((Date.now() - startAt) / 60 / 1000).toFixed(2),
+        lastActivityMinAgo: ((Date.now() - lastActivityAt) / 60 / 1000).toFixed(2),
+      };
+    });
+  };
 
   threadLimit = 10;
   chatIdChatSender = new Map<string, ChatSender>();

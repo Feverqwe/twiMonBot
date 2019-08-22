@@ -122,11 +122,12 @@ class Checker {
   };
 
   getActiveThreads = async () => {
-    return Array.from(this.serviceThread.values()).map(({startAt, sessionId, service}) => {
+    return Array.from(this.serviceThread.values()).map(({startAt, lastActivityAt, sessionId, service}) => {
       return {
-        aliveMin: ((Date.now() - startAt) / 60 / 1000).toFixed(2),
+        sessionId,
         serviceId: service.id,
-        sessionId
+        startedMinAgo: ((Date.now() - startAt) / 60 / 1000).toFixed(2),
+        lastActivityMinAgo: ((Date.now() - lastActivityAt) / 60 / 1000).toFixed(2),
       };
     });
   };

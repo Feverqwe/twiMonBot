@@ -27,9 +27,14 @@ class ChatSender {
   private messages: IMessage[]|null;
   private methods: string[];
   private methodIndex: number;
+  startAt: number;
+  lastActivityAt: number;
   constructor(main: Main, chat: IChat) {
     this.main = main;
     this.chat = chat;
+
+    this.startAt = Date.now();
+    this.lastActivityAt = Date.now();
 
     this.methodIndex = 0;
     this.methods = ['send', 'update', 'delete'];
@@ -54,6 +59,7 @@ class ChatSender {
     let skipFromIndex: number = null;
     let startIndex = this.methodIndex;
     while (true) {
+      this.lastActivityAt = Date.now();
       const isDone = await promiseTry(() => {
         if (skipFromIndex !== null && this.methodIndex >= skipFromIndex) return true;
 
