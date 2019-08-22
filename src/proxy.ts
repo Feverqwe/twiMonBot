@@ -94,8 +94,8 @@ class Proxy {
   check(isVerbose = false) {
     return this.inProgress(() => {
       isVerbose && debug('checking...');
-      const agents = [].concat(this.online, this.offline);
-      return parallel(8, agents, (agent) => {
+      const allAgents = [].concat(this.online, this.offline);
+      return parallel(8, allAgents, (agent) => {
         isVerbose && debug('check', agentToString(agent));
         return this.testAgent(agent).then((results) => {
           agent._latency = getMiddleLatency(results);
@@ -113,8 +113,11 @@ class Proxy {
         if (this.online.length < 10) {
           isVerbose && debug('fetching...');
           return this.fetchProxies(10 - this.online.length).then((agents) => {
-            this.log.write(`Append:`, JSON.stringify(agents.map(agentToString)));
-            this.online.push(...agents);
+            const existsAgents = allAgents.map(agent => agentToString(agent));
+            const newAgents = agents.filter(agent => !existsAgents.includes(agentToString(agent)));
+
+            this.log.write(`Append:`, JSON.stringify(newAgents.map(agentToString)));
+            this.online.push(...newAgents);
           }, (err: any) => {
             debug('fetchProxies error: cause: %o', err);
           });
