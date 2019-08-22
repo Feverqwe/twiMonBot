@@ -113,7 +113,7 @@ class Proxy {
         if (this.online.length < 10) {
           isVerbose && debug('fetching...');
           return this.fetchProxies(10 - this.online.length).then((agents) => {
-            this.log.write(`Append:`, agents.map(agentToString).sort());
+            this.log.write(`Append:`, JSON.stringify(agents.map(agentToString)));
             this.online.push(...agents);
           }, (err: any) => {
             debug('fetchProxies error: cause: %o', err);
