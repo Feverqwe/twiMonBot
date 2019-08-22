@@ -190,7 +190,7 @@ class Proxy {
 
   testAgent(agent: Agent) {
     return parallel(1, this.testRequests, ({url, options, skipStatusCodes}) => {
-      const startTime = performance.now();
+      const startTime = Date.now();
       return got(url, {
         agent,
         timeout: 10 * 1000,
@@ -201,7 +201,7 @@ class Proxy {
         }
         throw err;
       }).then((res: any) => {
-        const latency = performance.now() - startTime;
+        const latency = Date.now() - startTime;
         return {res, latency};
       });
     });
