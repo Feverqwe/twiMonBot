@@ -51,6 +51,7 @@ export interface ServiceInterface {
 interface ThreadSession {
   id: string,
   startAt: number,
+  lastActivityAt: number,
   service: ServiceInterface,
   aborted: boolean,
   thread: Promise<any>
@@ -96,7 +97,7 @@ class Checker {
     this.main.services.forEach((service) => {
       const existsThreadSession = this.serviceThread.get(service);
       if (existsThreadSession) {
-        if (existsThreadSession.startAt > Date.now() - 5 * 60 * 1000) return;
+        if (existsThreadSession.lastActivityAt > Date.now() - 5 * 60 * 1000) return;
         debug('Thread lock', existsThreadSession.id, existsThreadSession.service.id);
         existsThreadSession.aborted = true;
       }
@@ -104,6 +105,7 @@ class Checker {
       const session: ThreadSession = {
         id: `${Math.trunc(Math.random() * 1000)}.${Math.trunc(Math.random() * 1000)}`,
         startAt: Date.now(),
+        lastActivityAt: Date.now(),
         service: service,
         aborted: false,
         thread: null
@@ -135,6 +137,7 @@ class Checker {
     const sessionId = session.id;
     this.logV.write(`[${sessionId}]`, 'start', service.id);
     while (true) {
+      session.lastActivityAt = Date.now();
       const channels: IChannel[] = await this.main.db.getServiceChannelsForSync(service.id, service.batchSize);
       if (!channels.length) {
         break;
