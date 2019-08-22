@@ -94,8 +94,8 @@ class Proxy {
   check(isVerbose = false) {
     return this.inProgress(() => {
       isVerbose && debug('checking...');
-      const allAgents = [].concat(this.online, this.offline);
-      return parallel(8, allAgents, (agent) => {
+      const agents = [].concat(this.online, this.offline);
+      return parallel(8, agents, (agent) => {
         isVerbose && debug('check', agentToString(agent));
         return this.testAgent(agent).then((results) => {
           agent._latency = getMiddleLatency(results);
@@ -112,12 +112,9 @@ class Proxy {
       }).then(() => {
         if (this.online.length < 10) {
           isVerbose && debug('fetching...');
-          return this.fetchProxies(10 - this.online.length).then((agents) => {
-            const existsAgents = allAgents.map(agent => agentToString(agent));
-            const newAgents = agents.filter(agent => !existsAgents.includes(agentToString(agent)));
-
-            this.log.write(`Append:`, JSON.stringify(newAgents.map(agentToString)));
-            this.online.push(...newAgents);
+          return this.fetchProxies(10 - this.online.length, agents).then((agents) => {
+            this.log.write(`Append:`, JSON.stringify(agents.map(agentToString)));
+            this.online.push(...agents);
           }, (err: any) => {
             debug('fetchProxies error: cause: %o', err);
           });
@@ -210,7 +207,7 @@ class Proxy {
     });
   }
 
-  fetchProxies(count = 10): Promise<Agent[]> {
+  fetchProxies(count = 10, existsAgents: Agent[]): Promise<Agent[]> {
     return got('https://github.com/fate0/proxylist/raw/master/proxy.list').then(({body}: {body: string}) => {
       const proxies: ProxyLine[] = [];
       body.split('\n').forEach((line: string) => {
@@ -227,10 +224,12 @@ class Proxy {
         return `${proxy.type}://${proxy.host}:${proxy.port}`;
       });
     }).then((proxies: string[]) => {
+      const existsAgentUrls = existsAgents.map(agentToString);
       const availableAgents: Agent[] = [];
       return parallel(8, proxies, async (proxyUrl) => {
         if (availableAgents.length >= count) return;
         const agent = new ProxyAgent(proxyUrl);
+        if (existsAgentUrls.includes(agentToString(agent))) return;
         try {
           const results = await this.testAgent(agent);
           agent._latency = getMiddleLatency(results);
