@@ -43,7 +43,7 @@ export interface ServiceInterface {
   noCachePreview?: boolean,
   gotWithProxy?: (url: string, options: object) => Promise<any>,
   match(query: string): boolean,
-  getStreams(channelsIds: (string|number)[], sessionId: string): Promise<ServiceGetStreamsResult>,
+  getStreams(channelsIds: (string|number)[]): Promise<ServiceGetStreamsResult>,
   getExistsChannelIds(channelsIds: (string|number)[]): Promise<(string|number)[]>,
   findChannel(query: string): Promise<ServiceChannel>,
 }
