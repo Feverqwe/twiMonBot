@@ -149,7 +149,12 @@ class Proxy {
     const agent = this.getAgent();
     let timeout: NodeJS.Timeout = null;
     let proxyTimeoutFired = false;
-    const request = got(url, {...options, agent}).then(...promiseFinally(() => {
+    const request = got(url, {...options, agent});
+    timeout = setTimeout(() => {
+      proxyTimeoutFired = true;
+      request.cancel();
+    }, 60 * 1000);
+    return request.then(...promiseFinally(() => {
       clearTimeout(timeout);
     })).catch((err: any) => {
       if (err.name !== 'HTTPError') {
@@ -163,11 +168,6 @@ class Proxy {
       }
       throw err;
     });
-    timeout = setTimeout(() => {
-      proxyTimeoutFired = true;
-      request.cancel();
-    }, 60 * 1000);
-    return request;
   }
 
   moveToOffline(agent: Agent) {
