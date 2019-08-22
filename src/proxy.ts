@@ -147,10 +147,9 @@ class Proxy {
 
   got(url: string, options: any):Promise<any> {
     const agent = this.getAgent();
-    let timeout: NodeJS.Timeout = null;
-    let proxyTimeoutFired = false;
     const request = got(url, {...options, agent});
-    timeout = setTimeout(() => {
+    let proxyTimeoutFired = false;
+    const timeout = setTimeout(() => {
       proxyTimeoutFired = true;
       request.cancel();
     }, 60 * 1000);
