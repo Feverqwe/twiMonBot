@@ -6,6 +6,7 @@ import parallel from "./tools/parallel";
 import Main from "./main";
 import inlineInspect from "./tools/inlineInspect";
 import promiseFinally from "./tools/promiseFinally";
+import {struct} from "superstruct";
 
 const debug = require('debug')('app:proxyList');
 const ProxyAgent = require('proxy-agent');
@@ -14,8 +15,24 @@ const url = require('url');
 
 interface Agent {
   _latency: number,
+  _errorCount: number,
+  _successCount: number,
   proxyUri: string
 }
+
+interface ProxyLine {
+  type: string,
+  host: string,
+  port: number,
+  response_time: number,
+}
+
+const ProxyLine:(any: any) => ProxyLine = struct(struct.partial({
+  type: 'string',
+  host: 'string',
+  port: 'number',
+  response_time: 'number',
+}));
 
 class Proxy {
   main: Main;
@@ -80,49 +97,48 @@ class Proxy {
       const agents = [].concat(this.online, this.offline);
       return parallel(8, agents, (agent) => {
         isVerbose && debug('check', agentToString(agent));
-        return parallel(1, this.testRequests, ({url, options, skipStatusCodes}) => {
-          const startTime = Date.now();
-          return got(url, {
-            agent,
-            timeout: 10 * 1000,
-            ...options
-          }).catch((err: any) => {
-            if (isProxyError(err) || err.name === 'TimeoutError') {
-              throw err;
-            }
-            if (skipStatusCodes && skipStatusCodes.includes(err.response && err.response.statusCode)) {
-              return;
-            }
-            this.log.write(`Check: Proxy ${agentToString(agent)} error: ${inlineInspect(err)}`);
-            throw err;
-          }).then((res: any) => {
-            const latency = Date.now() - startTime;
-            return {res, latency};
-          });
-        }).then((results) => {
-          const latency = results.reduce((sum, {latency}) => {
-            return sum + latency;
-          }, 0) / results.length;
-          agent._latency = latency;
+        return this.testAgent(agent).then((results) => {
+          agent._latency = getMiddleLatency(results);
+          incSuccessCount(agent);
           this.moveToOnline(agent);
         }, (err: any) => {
+          this.log.write(`Check: Proxy ${agentToString(agent)} error: ${inlineInspect(err)}`);
           agent._latency = Infinity;
+          incErrorCount(agent);
           this.moveToOffline(agent);
         });
+      }).then(() => {
+        if (this.online.length < 10) {
+          isVerbose && debug('fetching...');
+          return this.fetchProxies(10 - this.online.length).then((agents) => {
+            this.log.write(`Append:`, agents.map(agentToString).sort());
+            this.online.push(...agents);
+          }, (err: any) => {
+            debug('fetchProxies error: cause: %o', err);
+          });
+        }
       }).then(() => {
         this.online.sort((a, b) => {
           return a._latency > b._latency ? 1 : -1;
         });
 
-        this.log.write(`Check state:`, this.online.length, '/', this.offline.length);
+        const removedProxies: Agent[] = [];
+        this.offline.slice(0).forEach((agent) => {
+          if (isBrokenAgent(agent)) {
+            moveTo(agent, this.offline, removedProxies);
+          }
+        });
 
-        if (isVerbose) {
-          const online = this.online.map(agentToString);
-          this.log.write(`Online:`, online);
-        }
+        this.log.write(`Check state:`, this.online.length, '/', (this.online.length + this.offline.length));
+
+        const online = this.online.map(agentToString);
+        this.log.write(`Online:`, JSON.stringify(online));
 
         const offline = this.offline.map(agentToString).sort();
-        this.log.write(`Offline:`, offline);
+        this.log.write(`Offline:`, JSON.stringify(offline));
+
+        const removed = removedProxies.map(agentToString).sort();
+        this.log.write(`Removed:`, JSON.stringify(removed));
       });
     });
   }
@@ -169,6 +185,72 @@ class Proxy {
     this.lastTimeUsed = getNow();
     return this.online.length > 0;
   }
+
+  testAgent(agent: Agent) {
+    return parallel(1, this.testRequests, ({url, options, skipStatusCodes}) => {
+      const startTime = performance.now();
+      return got(url, {
+        agent,
+        timeout: 10 * 1000,
+        ...options
+      }).catch((err: any) => {
+        if (isProxyError(err) || err.name === 'TimeoutError') {
+          throw err;
+        }
+        if (skipStatusCodes && skipStatusCodes.includes(err.response && err.response.statusCode)) {
+          return;
+        }
+        throw err;
+      }).then((res: any) => {
+        const latency = performance.now() - startTime;
+        return {res, latency};
+      });
+    });
+  }
+
+  fetchProxies(count = 10): Promise<Agent[]> {
+    return got('https://github.com/fate0/proxylist/raw/master/proxy.list').then(({body}: {body: string}) => {
+      const proxies: ProxyLine[] = [];
+      body.split('\n').forEach((line: string) => {
+        try {
+          proxies.push(ProxyLine(JSON.parse(line)));
+        } catch (err) {
+          // pass
+        }
+      });
+      proxies.sort(({response_time: a}, {response_time: b}) => {
+        return a === b ? 0 : a < b ? -1: 1;
+      });
+      return proxies.map((proxy) => {
+        return `${proxy.type}://${proxy.host}:${proxy.port}`;
+      });
+    }).then((proxies: string[]) => {
+      const availableAgents: Agent[] = [];
+      return parallel(8, proxies, async (proxyUrl) => {
+        if (availableAgents.length >= count) return;
+        const agent = new ProxyAgent(proxyUrl);
+        try {
+          const results = await this.testAgent(agent);
+          agent._latency = getMiddleLatency(results);
+          availableAgents.push(agent);
+        } catch (err) {
+          // pass
+        }
+      }).then(() => availableAgents);
+    }).then((agents: Agent[]) => {
+      agents.sort((a, b) => {
+        return a._latency > b._latency ? 1 : -1;
+      });
+      return agents.slice(0, count);
+    });
+  }
+}
+
+function isBrokenAgent(agent: Agent) {
+  const successCount = agent._successCount || 0;
+  const errorCount = agent._errorCount || 0;
+  const sum = successCount + errorCount;
+  return (sum >= 12 && 1 / sum * successCount < 0.5);
 }
 
 function moveTo<T>(agent: T, from:T[], to:T[]) {
@@ -191,6 +273,20 @@ function isProxyError(err: any) {
 
 function agentToString(agent:Agent):string {
   return `${agent.proxyUri}`;
+}
+
+function getMiddleLatency(results: {latency: number}[]) {
+  return results.reduce((sum: number, {latency}) => {
+    return sum + latency;
+  }, 0) / results.length;
+}
+
+function incSuccessCount(agent: Agent) {
+  agent._successCount = (agent._successCount || 0) + 1;
+}
+
+function incErrorCount(agent: Agent) {
+  agent._errorCount = (agent._errorCount || 0) + 1;
 }
 
 export default Proxy;
