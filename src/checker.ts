@@ -398,7 +398,7 @@ class Checker {
     return this.main.db.setChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
       this.logV.write(`[${sessionId}]`, 's1', 'end');
       this.logV.write(`[${sessionId}]`, 's2', 'start');
-      return service.getStreams(rawChannelIds, sessionId);
+      return service.getStreams(rawChannelIds);
     }).then(({streams: rawStreams, skippedChannelIds: skippedRawChannelIds, removedChannelIds: removedRawChannelIds}: ServiceGetStreamsResult) => {
       this.logV.write(`[${sessionId}]`, 's2', 'end');
       const streams: (Stream & { channelTitle: string; })[] = [];
