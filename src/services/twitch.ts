@@ -103,7 +103,6 @@ class Twitch implements ServiceInterface {
             'Client-ID': this.main.config.twitchToken
           },
           json: true,
-          timeout: 60 * 1000,
         });
       }).then(({body}) => {
         const result = Streams(body);
@@ -167,7 +166,6 @@ class Twitch implements ServiceInterface {
         'Accept': 'application/vnd.twitchtv.v5+json',
         'Client-ID': this.main.config.twitchToken
       },
-      timeout: 60 * 1000,
     }).catch((err: any) => {
       if (err.statusCode === 404) {
         throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
@@ -203,7 +201,6 @@ class Twitch implements ServiceInterface {
         'Client-ID': this.main.config.twitchToken
       },
       json: true,
-      timeout: 60 * 1000,
     }).then(({body}: {body: object}) => {
       const channels = Channels(body).channels;
       if (!channels.length) {

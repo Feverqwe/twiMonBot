@@ -76,7 +76,6 @@ class Mixer implements ServiceInterface {
             'user-agent': ''
           },
           json: true,
-          timeout: 60 * 1000,
         });
       }, isNotFoundChannel).then(({body}) => {
         const channel = ExtendedChannel(body);
@@ -149,7 +148,6 @@ class Mixer implements ServiceInterface {
         'user-agent': ''
       },
       json: true,
-      timeout: 60 * 1000,
     }).then(({body}: {body: object}) => {
       const channels = Channels(body);
       if (!channels.length) {
@@ -165,7 +163,6 @@ class Mixer implements ServiceInterface {
         'user-agent': ''
       },
       json: true,
-      timeout: 60 * 1000,
     }).then(({body}: {body: object}) => {
       return ExtendedChannel(body);
     }, (err: any) => {
