@@ -5,6 +5,7 @@ import getInProgress from "./tools/getInProgress";
 import parallel from "./tools/parallel";
 import Main from "./main";
 import inlineInspect from "./tools/inlineInspect";
+import promiseFinally from "./tools/promiseFinally";
 
 const debug = require('debug')('app:proxyList');
 const ProxyAgent = require('proxy-agent');
@@ -128,11 +129,14 @@ class Proxy {
 
   got(url: string, options: any):Promise<any> {
     const agent = this.getAgent();
-    return got(url, {timeout: 60 * 1000, ...options, agent}).catch((err: any) => {
+    let timeout: NodeJS.Timeout = null;
+    const request = got(url, {...options, agent}).then(...promiseFinally(() => {
+      clearTimeout(timeout);
+    })).catch((err: any) => {
       if (err.name !== 'HTTPError') {
         debug(`got: Proxy ${agentToString(agent)} error: %o`, err);
       }
-      if (isProxyError(err)) {
+      if (isProxyError(err) || err.name === 'CancelError') {
         this.moveToOffline(agent);
         if (this.hasOnline()) {
           return this.got(url, options);
@@ -140,6 +144,10 @@ class Proxy {
       }
       throw err;
     });
+    timeout = setTimeout(() => {
+      request.cancel();
+    }, 60 * 1000);
+    return request;
   }
 
   moveToOffline(agent: Agent) {
