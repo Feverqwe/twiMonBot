@@ -102,7 +102,9 @@ class Proxy {
           incSuccessCount(agent);
           this.moveToOnline(agent);
         }, (err: any) => {
-          this.log.write(`Check: Proxy ${agentToString(agent)} error: ${inlineInspect(err)}`);
+          if (!isProxyError(err) && err.name !== 'TimeoutError') {
+            this.log.write(`Check: Proxy ${agentToString(agent)} error: ${inlineInspect(err)}`);
+          }
           agent._latency = Infinity;
           incErrorCount(agent);
           this.moveToOffline(agent);
@@ -194,9 +196,6 @@ class Proxy {
         timeout: 10 * 1000,
         ...options
       }).catch((err: any) => {
-        if (isProxyError(err) || err.name === 'TimeoutError') {
-          throw err;
-        }
         if (skipStatusCodes && skipStatusCodes.includes(err.response && err.response.statusCode)) {
           return;
         }
