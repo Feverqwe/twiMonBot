@@ -207,7 +207,7 @@ class Proxy {
     });
   }
 
-  fetchProxies(count = 10, isRandom = false): Promise<Agent[]> {
+  fetchProxies(count = 10): Promise<Agent[]> {
     return got('https://github.com/fate0/proxylist/raw/master/proxy.list').then(({body}: {body: string}) => {
       const proxies: ProxyLine[] = [];
       body.split('\n').forEach((line: string) => {
@@ -217,19 +217,9 @@ class Proxy {
           // pass
         }
       });
-      if (isRandom) {
-        proxies.sort((aa, bb) => {
-          // @ts-ignore
-          const a = aa._rnd || (aa._rnd = Math.random());
-          // @ts-ignore
-          const b = bb._rnd || (bb._rnd = Math.random());
-          return a === b ? 0 : a < b ? -1 : 1;
-        });
-      } else {
-        proxies.sort(({response_time: a}, {response_time: b}) => {
-          return a === b ? 0 : a < b ? -1 : 1;
-        });
-      }
+      proxies.sort(({response_time: a}, {response_time: b}) => {
+        return a === b ? 0 : a < b ? -1: 1;
+      });
       return proxies.map((proxy) => {
         return `${proxy.type}://${proxy.host}:${proxy.port}`;
       });
@@ -251,12 +241,6 @@ class Proxy {
         return a._latency > b._latency ? 1 : -1;
       });
       return agents.slice(0, count);
-    });
-  }
-
-  getOnlineProxy() {
-    return this.fetchProxies(1, true).then(([agent]) => {
-      return agent.proxyUri;
     });
   }
 }
