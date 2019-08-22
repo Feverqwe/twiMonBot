@@ -271,8 +271,8 @@ function moveTo<T>(agent: T, from:T[], to:T[]) {
 
 function isProxyError(err: any) {
   return [
-    /connect ECONNREFUSED/,
-    /connect EHOSTUNREACH/,
+    /ECONNREFUSED/,
+    /EHOSTUNREACH/,
     /A "socket" was not created for HTTP request before/
   ].some(re => re.test(err.message));
 }
