@@ -83,8 +83,6 @@ class Mixer implements ServiceInterface {
 
         if (!channel.online) return;
 
-        const channelId = channel.token.toLowerCase();
-
         const url = getChannelUrl(channel.token);
 
         let game = null;
@@ -104,7 +102,7 @@ class Mixer implements ServiceInterface {
           isRecord: false,
           previews: previews,
           viewers: channel.viewersCurrent,
-          channelId: channelId,
+          channelId: channel.id,
           channelTitle: channel.token,
         });
       }, (err) => {
@@ -133,7 +131,7 @@ class Mixer implements ServiceInterface {
       }
       throw err;
     }).then((channel: Channel) => {
-      const id = channel.token.toLowerCase();
+      const id = channel.id;
       const title = channel.token;
       const url = getChannelUrl(channel.token);
       return {id, title, url};
@@ -196,6 +194,29 @@ class Mixer implements ServiceInterface {
     }
 
     return channelId;
+  }
+
+  getChannelIdNewIdList(ids: (string|number)[]) {
+    const channelIdsChanges: [string, number][] = [];
+    return parallel(10, ids, (channelId) => {
+      return got('https://mixer.com/api/v1/channels/' + encodeURIComponent(channelId), {
+        headers: {
+          'user-agent': ''
+        },
+        json: true,
+        timeout: 60 * 1000,
+      }).then(({body}: {body: object}) => {
+        const channel = ExtendedChannel(body);
+        const _id = channel.id;
+        const id = channel.token.toLowerCase();
+        channelIdsChanges.push([id, _id]);
+      }, (err: any) => {
+        if (err.statusCode === 404) {
+          // pass
+        }
+        throw err;
+      });
+    }).then(() => channelIdsChanges);
   }
 }
 
