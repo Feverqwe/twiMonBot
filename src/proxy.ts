@@ -137,10 +137,14 @@ class Proxy {
         this.log.write(`Online:`, JSON.stringify(online));
 
         const offline = this.offline.map(agentToString).sort();
-        this.log.write(`Offline:`, JSON.stringify(offline));
+        if (offline.length) {
+          this.log.write(`Offline:`, JSON.stringify(offline));
+        }
 
         const removed = removedProxies.map(agentToString).sort();
-        this.log.write(`Removed:`, JSON.stringify(removed));
+        if (removed.length) {
+          this.log.write(`Removed:`, JSON.stringify(removed));
+        }
       });
     });
   }
