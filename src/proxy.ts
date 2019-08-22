@@ -211,7 +211,9 @@ class Proxy {
   }
 
   fetchProxies(count = 10, existsAgents: Agent[]): Promise<Agent[]> {
-    return got('https://github.com/fate0/proxylist/raw/master/proxy.list').then(({body}: {body: string}) => {
+    return got('https://github.com/fate0/proxylist/raw/master/proxy.list', {
+      timeout: 60 * 1000,
+    }).then(({body}: {body: string}) => {
       const proxies: ProxyLine[] = [];
       body.split('\n').forEach((line: string) => {
         try {

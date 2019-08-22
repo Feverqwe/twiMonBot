@@ -349,11 +349,7 @@ class ChatSender {
             contentType = 'image/jpeg';
           }
           const options: {[s: string]: any} = {};
-          if (agent) {
-            options.timeout = 60 * 1000;
-            options.agent = agent;
-          }
-          return this.main.bot.sendPhoto(this.chat.id, request(url, options), {caption}, {contentType}).then((message: TMessage) => {
+          return this.main.bot.sendPhoto(this.chat.id, request(url, {timeout: 60 * 1000, agent}), {caption}, {contentType}).then((message: TMessage) => {
             this.main.sender.log.write(`[send photo as file] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`);
             this.main.tracker.track(this.chat.id, {
               ec: 'bot',
