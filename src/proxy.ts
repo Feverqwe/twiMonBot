@@ -249,7 +249,7 @@ function isBrokenAgent(agent: Agent) {
   const successCount = agent._successCount || 0;
   const errorCount = agent._errorCount || 0;
   const sum = successCount + errorCount;
-  return (sum >= 12 && 1 / sum * successCount < 0.5);
+  return (sum >= 12 && 1 / sum * successCount < 0.8);
 }
 
 function moveTo<T>(agent: T, from:T[], to:T[]) {
