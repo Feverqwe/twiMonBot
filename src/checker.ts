@@ -410,7 +410,7 @@ class Checker {
         });
 
         if (!checkedChannelIds.includes(stream.channelId)) {
-          debug('Stream %s skip, cause: Channel %s is not exists', stream.id, stream.channelId);
+          debug('Stream %s skip, cause: Channel %s is not exists in %j', stream.id, stream.channelId, checkedChannelIds);
           return;
         }
 
