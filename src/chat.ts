@@ -944,7 +944,6 @@ class Chat {
       {name: 'Active checker threads', method: 'checker.getActiveThreads'},
       {name: 'Update pubsub subscriptions', method: 'ytPubSub.updateSubscribes'},
       {name: 'Clean pubsub feeds', method: 'ytPubSub.clean'},
-      {name: 'moveMixerChannels', method: 'checker.moveMixerChannels'},
     ];
 
     this.router.callback_query(/\/admin\/(?<command>.+)/, isAdmin, (req, res) => {

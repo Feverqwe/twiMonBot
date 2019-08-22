@@ -195,29 +195,6 @@ class Mixer implements ServiceInterface {
 
     return channelId;
   }
-
-  getChannelIdNewIdList(ids: (string|number)[]) {
-    const channelIdsChanges: [string, number][] = [];
-    return parallel(10, ids, (channelId) => {
-      return got('https://mixer.com/api/v1/channels/' + encodeURIComponent(channelId), {
-        headers: {
-          'user-agent': ''
-        },
-        json: true,
-        timeout: 60 * 1000,
-      }).then(({body}: {body: object}) => {
-        const channel = ExtendedChannel(body);
-        const _id = channel.id;
-        const id = channel.token.toLowerCase();
-        channelIdsChanges.push([id, _id]);
-      }, (err: any) => {
-        if (err.statusCode === 404) {
-          // pass
-        }
-        throw err;
-      });
-    }).then(() => channelIdsChanges);
-  }
 }
 
 function getChannelUrl(channelId: string) {
