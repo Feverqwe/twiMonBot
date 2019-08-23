@@ -8,7 +8,7 @@ const got = require('got').extend({
 
 const gotWithTimeout = (url: string, options: any) => {
   return got(url, options).catch((err: any) => {
-    if (err.name === 'TimeoutError' && err.gotOptions.timeout === timeout) {
+    if (err.name === 'TimeoutError' && err.gotOptions && err.gotOptions.gotTimeout && err.gotOptions.gotTimeout.request === timeout) {
       err.name = 'LockTimeoutError';
     }
     throw err;
