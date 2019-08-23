@@ -7,8 +7,8 @@ import {struct} from "superstruct";
 import arrayByPart from "../tools/arrayByPart";
 import withRetry from "../tools/withRetry";
 import promiseTry from "../tools/promiseTry";
+import got from "../tools/gotWithTimeout";
 
-const got = require('got');
 const debug = require('debug')('app:Youtube');
 const XmlEntities = require('html-entities/lib/xml-entities');
 

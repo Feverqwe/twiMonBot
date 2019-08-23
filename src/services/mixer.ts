@@ -4,8 +4,8 @@ import ErrorWithCode from "../tools/errorWithCode";
 import {struct} from "superstruct";
 import parallel from "../tools/parallel";
 import withRetry from "../tools/withRetry";
+import got from "../tools/gotWithTimeout";
 
-const got = require('got');
 const debug = require('debug')('app:Mixer');
 
 interface Channel {

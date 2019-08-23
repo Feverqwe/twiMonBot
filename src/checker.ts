@@ -7,7 +7,6 @@ import {Channel, IChannel, Stream} from "./db";
 import LogFile from "./logFile";
 import getInProgress from "./tools/getInProgress";
 import parallel from "./tools/parallel";
-import ErrorWithCode from "./tools/errorWithCode";
 
 const debug = require('debug')('app:Checker');
 
@@ -53,7 +52,6 @@ interface ThreadSession {
   startAt: number,
   lastActivityAt: number,
   service: ServiceInterface,
-  aborted: boolean,
   thread: Promise<any>
 }
 
@@ -97,9 +95,10 @@ class Checker {
     this.main.services.forEach((service) => {
       const existsThreadSession = this.serviceThread.get(service);
       if (existsThreadSession) {
-        if (existsThreadSession.lastActivityAt > Date.now() - 5 * 60 * 1000) return;
-        debug('Thread lock', existsThreadSession.id, existsThreadSession.service.id);
-        existsThreadSession.aborted = true;
+        if (existsThreadSession.lastActivityAt < Date.now() - 5 * 60 * 1000) {
+          debug('Thread lock', existsThreadSession.id, existsThreadSession.service.id);
+        }
+        return;
       }
 
       const session: ThreadSession = {
@@ -107,7 +106,6 @@ class Checker {
         startAt: Date.now(),
         lastActivityAt: Date.now(),
         service: service,
-        aborted: false,
         thread: null
       };
       session.thread = this.runThread(service, session).catch((err) => {
@@ -167,8 +165,6 @@ class Checker {
           return r;
         })
       ]).then(([streamsResult, existsStreamsResult]) => {
-        if (session.aborted) throw new ErrorWithCode('Thread aborted', 'ABORTED');
-
         this.logV.write(`[${sessionId}]`, 'p1', 'end');
         const {streams, checkedChannelIds, skippedChannelIds, removedChannelIds} = streamsResult;
         const {existsStreams, existsStreamIds, existsStreamIdStream} = existsStreamsResult;

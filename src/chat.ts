@@ -1,4 +1,12 @@
-import Router, {RouterReq, RouterRes, TCallbackQuery, TChat, TChatMember, TInlineKeyboardButton, TMessage} from "./router";
+import Router, {
+  RouterReq,
+  RouterRes,
+  TCallbackQuery,
+  TChat,
+  TChatMember,
+  TInlineKeyboardButton,
+  TMessage
+} from "./router";
 import htmlSanitize from "./tools/htmlSanitize";
 import ErrorWithCode from "./tools/errorWithCode";
 import pageBtnList from "./tools/pageBtnList";

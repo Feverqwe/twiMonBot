@@ -5,12 +5,11 @@ import getInProgress from "./tools/getInProgress";
 import parallel from "./tools/parallel";
 import Main from "./main";
 import inlineInspect from "./tools/inlineInspect";
-import promiseFinally from "./tools/promiseFinally";
 import {struct} from "superstruct";
+import got from "./tools/gotWithTimeout";
 
 const debug = require('debug')('app:proxyList');
 const ProxyAgent = require('proxy-agent');
-const got = require('got');
 const url = require('url');
 
 interface Agent {
@@ -151,19 +150,11 @@ class Proxy {
 
   got(url: string, options: any):Promise<any> {
     const agent = this.getAgent();
-    const request = got(url, {...options, agent});
-    let proxyTimeoutFired = false;
-    const timeout = setTimeout(() => {
-      proxyTimeoutFired = true;
-      request.cancel();
-    }, 60 * 1000);
-    return request.then(...promiseFinally(() => {
-      clearTimeout(timeout);
-    })).catch((err: any) => {
+    return got(url, {...options, agent}).catch((err: any) => {
       if (err.name !== 'HTTPError') {
         debug(`got: Proxy ${agentToString(agent)} error: %o`, err);
       }
-      if (isProxyError(err) || (err.name === 'CancelError' && proxyTimeoutFired)) {
+      if (isProxyError(err) || err.name === 'LockTimeoutError') {
         this.moveToOffline(agent);
         if (this.hasOnline()) {
           return this.got(url, options);

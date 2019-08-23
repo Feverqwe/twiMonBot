@@ -7,9 +7,9 @@ import {getCaption, getDescription} from "./tools/streamToString";
 import {ServiceInterface} from "./checker";
 import {TMessage} from "./router";
 import appendQueryParam from "./tools/appendQueryParam";
+import got from "./tools/gotWithTimeout";
 
 const debug = require('debug')('app:ChatSender');
-const got = require('got');
 const request = require('request');
 
 const streamWeakMap = new WeakMap();

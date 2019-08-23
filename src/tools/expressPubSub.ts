@@ -1,8 +1,8 @@
 import {Express} from "express";
+import got from "./gotWithTimeout";
 
 const Events = require('events');
 const crypto = require('crypto');
-const got = require('got');
 const express = require('express');
 
 const debug = require('debug')('app:ExpressPubSub');
