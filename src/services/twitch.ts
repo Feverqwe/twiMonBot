@@ -5,7 +5,6 @@ import ErrorWithCode from "../tools/errorWithCode";
 import {struct} from "superstruct";
 import arrayByPart from "../tools/arrayByPart";
 import withRetry from "../tools/withRetry";
-import noCacheUrl from "../tools/noCacheUrl";
 
 const got = require('got');
 const debug = require('debug')('app:Twitch');

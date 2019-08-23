@@ -4,7 +4,6 @@ import ErrorWithCode from "../tools/errorWithCode";
 import {struct} from "superstruct";
 import parallel from "../tools/parallel";
 import withRetry from "../tools/withRetry";
-import noCacheUrl from "../tools/noCacheUrl";
 
 const got = require('got');
 const debug = require('debug')('app:Mixer');
