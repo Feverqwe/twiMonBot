@@ -90,20 +90,18 @@ class Twitch implements ServiceInterface {
     const skippedChannelIds: number[] = [];
     const removedChannelIds: number[] = [];
     return parallel(10, arrayByPart(channelIds, 100), (channelIds) => {
-      return withRetry({count: 3, timeout: 250}, () => {
-        return got('https://api.twitch.tv/kraken/streams', {
-          query: {
-            limit: 100,
-            channel: channelIds.join(','),
-            stream_type: 'all'
-          },
-          headers: {
-            'Accept': 'application/vnd.twitchtv.v5+json',
-            'Client-ID': this.main.config.twitchToken
-          },
-          json: true,
-        });
-      }).then(({body}) => {
+      return got('https://api.twitch.tv/kraken/streams', {
+        query: {
+          limit: 100,
+          channel: channelIds.join(','),
+          stream_type: 'all'
+        },
+        headers: {
+          'Accept': 'application/vnd.twitchtv.v5+json',
+          'Client-ID': this.main.config.twitchToken
+        },
+        json: true,
+      }).then(({body}: {body: any}) => {
         const result = Streams(body);
         if (result._total > 100) {
           debug('result is more than limit', result._total);
@@ -134,7 +132,7 @@ class Twitch implements ServiceInterface {
             channelTitle: stream.channel.display_name
           });
         });
-      }).catch((err) => {
+      }).catch((err: any) => {
         debug(`getStreams for channels (%j) skip, cause: %o`, channelIds, err);
         skippedChannelIds.push(...channelIds);
       });

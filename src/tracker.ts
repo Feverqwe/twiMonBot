@@ -47,17 +47,15 @@ class Tracker {
       while (this.queue.length) {
         const queue = this.queue.splice(0);
         await parallel(10, arrayByPart(queue, 20), (queue) => {
-          return withRetry({count: 3, timeout: 250}, () => {
-            return got.post('https://www.google-analytics.com/batch', {
-              headers: {
-                'Content-Type': 'text/html'
-              },
-              body: queue.map(([time, hit]) => {
-                hit.qt = Date.now() - time;
-                return qs.stringify(hit);
-              }).join('\n'),
-            });
-          }).catch((err) => {
+          return got.post('https://www.google-analytics.com/batch', {
+            headers: {
+              'Content-Type': 'text/html'
+            },
+            body: queue.map(([time, hit]) => {
+              hit.qt = Date.now() - time;
+              return qs.stringify(hit);
+            }).join('\n'),
+          }).catch((err: any) => {
             debug('track error: %o', err);
             const fourHoursAgo = new Date();
             fourHoursAgo.setHours(fourHoursAgo.getHours() - 4);

@@ -208,33 +208,31 @@ class Youtube implements ServiceInterface {
   getStreamIdSnippetByChannelId(channelId: string, isUpcoming = false) {
     const idSnippet: Map<string, SearchVideoResponseSnippet> = new Map();
     return iterPages((pageToken?) => {
-      return withRetry({count: 3, timeout: 250}, () => {
-        const query = {
-          part: 'snippet',
-          channelId: channelId,
-          pageToken: pageToken,
-          eventType: 'live',
-          maxResults: 50,
-          order: 'date',
-          safeSearch: 'none',
-          type: 'video',
-          fields: 'items(id/videoId,snippet),nextPageToken',
-          key: this.main.config.ytToken,
-        };
+      const query = {
+        part: 'snippet',
+        channelId: channelId,
+        pageToken: pageToken,
+        eventType: 'live',
+        maxResults: 50,
+        order: 'date',
+        safeSearch: 'none',
+        type: 'video',
+        fields: 'items(id/videoId,snippet),nextPageToken',
+        key: this.main.config.ytToken,
+      };
 
-        if (isUpcoming) {
-          query.eventType = 'upcoming';
-          const minDate = new Date();
-          minDate.setDate(minDate.getDate() - 7);
-          // @ts-ignore
-          query.publishedAfter = minDate.toISOString();
-        }
+      if (isUpcoming) {
+        query.eventType = 'upcoming';
+        const minDate = new Date();
+        minDate.setDate(minDate.getDate() - 7);
+        // @ts-ignore
+        query.publishedAfter = minDate.toISOString();
+      }
 
-        return gotLimited('https://www.googleapis.com/youtube/v3/search', {
-          query,
-          json: true
-        });
-      }, isDailyLimitExceeded).then(({body}) => {
+      return gotLimited('https://www.googleapis.com/youtube/v3/search', {
+        query,
+        json: true
+      }).then(({body}) => {
         const result = SearchVideoResponse(body);
 
         result.items.forEach((item) => {
@@ -252,18 +250,16 @@ class Youtube implements ServiceInterface {
     const idStreamInfo: Map<string, {scheduledStartAt: Date|null, actualStartAt: Date|null, actualEndAt: Date|null, viewers: number|null}> = new Map();
     return parallel(10, arrayByPart(ids, 50), (videoIds) => {
       return iterPages((pageToken?) => {
-        return withRetry({count: 3, timeout: 250}, () => {
-          return gotLimited('https://www.googleapis.com/youtube/v3/videos', {
-            query: {
-              part: 'liveStreamingDetails',
-              id: videoIds.join(','),
-              pageToken: pageToken,
-              fields: 'items(id,liveStreamingDetails),nextPageToken',
-              key: this.main.config.ytToken
-            },
-            json: true,
-          });
-        }, isDailyLimitExceeded).then(({body}) => {
+        return gotLimited('https://www.googleapis.com/youtube/v3/videos', {
+          query: {
+            part: 'liveStreamingDetails',
+            id: videoIds.join(','),
+            pageToken: pageToken,
+            fields: 'items(id,liveStreamingDetails),nextPageToken',
+            key: this.main.config.ytToken
+          },
+          json: true,
+        }).then(({body}) => {
           const videosResponse = VideosResponse(body);
 
           videosResponse.items.forEach((item) => {
@@ -303,19 +299,17 @@ class Youtube implements ServiceInterface {
     const resultChannelIds: string[] = [];
     return parallel(10, arrayByPart(ids, 50), (ids) => {
       return iterPages((pageToken?) => {
-        return withRetry({count: 3, timeout: 250}, () => {
-          return gotLimited('https://www.googleapis.com/youtube/v3/channels', {
-            query: {
-              part: 'id',
-              id: ids.join(','),
-              pageToken: pageToken,
-              maxResults: 50,
-              fields: 'items/id,nextPageToken',
-              key: this.main.config.ytToken
-            },
-            json: true,
-          });
-        }, isDailyLimitExceeded).then(({body}) => {
+        return gotLimited('https://www.googleapis.com/youtube/v3/channels', {
+          query: {
+            part: 'id',
+            id: ids.join(','),
+            pageToken: pageToken,
+            maxResults: 50,
+            fields: 'items/id,nextPageToken',
+            key: this.main.config.ytToken
+          },
+          json: true,
+        }).then(({body}) => {
           const channelsItemsId = ChannelsItemsId(body);
           channelsItemsId.items.forEach((item) => {
             resultChannelIds.push(item.id);

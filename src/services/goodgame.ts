@@ -101,18 +101,16 @@ class Goodgame implements ServiceInterface {
     const skippedChannelIds:number[] = [];
     const removedChannelIds:number[] = [];
     return parallel(10, arrayByPart(channelIds, 25), (channelIds) => {
-      return withRetry({count: 3, timeout: 250}, () => {
-        return this.gotWithProxy('https://api2.goodgame.ru/v2/streams', {
-          query: {
-            ids: channelIds.join(','),
-            adult: true,
-            hidden: true
-          },
-          headers: {
-            'Accept': 'application/vnd.goodgame.v2+json'
-          },
-          json: true,
-        });
+      return this.gotWithProxy('https://api2.goodgame.ru/v2/streams', {
+        query: {
+          ids: channelIds.join(','),
+          adult: true,
+          hidden: true
+        },
+        headers: {
+          'Accept': 'application/vnd.goodgame.v2+json'
+        },
+        json: true,
       }).then(({body}) => {
         const streams = (Streams(body) as Streams)._embedded.streams;
 

@@ -69,14 +69,12 @@ class Mixer implements ServiceInterface {
     const skippedChannelIds: string[] = [];
     const removedChannelIds: string[] = [];
     return parallel(10, channelIds, (channelId) => {
-      return withRetry({count: 3, timeout: 250}, () => {
-        return got('https://mixer.com/api/v1/channels/' + encodeURIComponent(channelId), {
-          headers: {
-            'user-agent': ''
-          },
-          json: true,
-        });
-      }, isNotFoundChannel).then(({body}) => {
+      return got('https://mixer.com/api/v1/channels/' + encodeURIComponent(channelId), {
+        headers: {
+          'user-agent': ''
+        },
+        json: true,
+      }).then(({body}: {body: any}) => {
         const channel = ExtendedChannel(body);
 
         if (!channel.online) return;
@@ -103,7 +101,7 @@ class Mixer implements ServiceInterface {
           channelId: channel.id,
           channelTitle: channel.token,
         });
-      }, (err) => {
+      }, (err: any) => {
         if (isNotFoundChannel(err)) {
           removedChannelIds.push(channelId);
         } else {
