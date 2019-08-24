@@ -11,7 +11,7 @@
     "postinstall": "npm run build"
   },
   "dependencies": {
-    "@types/express": "^4.17.0",
+    "@types/express": "^4.17.1",
     "debug": "^4.1.1",
     "express": "^4.17.1",
     "got": "^9.6.0",
@@ -24,9 +24,9 @@
     "proxy-agent": "^3.1.0",
     "quick-lru": "^4.0.1",
     "request": "^2.88.0",
-    "sequelize": "^5.15.0",
-    "superstruct": "^0.6.1",
-    "uuid": "^3.3.2",
+    "sequelize": "^5.16.0",
+    "superstruct": "^0.6.2",
+    "uuid": "^3.3.3",
     "xmldoc": "^1.1.2"
   },
   "devDependencies": {
@@ -34,7 +34,7 @@
     "@babel/plugin-proposal-class-properties": "^7.5.0",
     "@types/superstruct": "^0.5.0",
     "del-cli": "^2.0.0",
-    "rollup": "^1.19.4",
+    "rollup": "^1.20.1",
     "rollup-plugin-babel": "^4.3.3",
     "rollup-plugin-typescript": "^1.0.1",
     "tslib": "^1.10.0",
