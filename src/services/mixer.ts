@@ -3,7 +3,6 @@ import {ServiceInterface, ServiceStream} from "../checker";
 import ErrorWithCode from "../tools/errorWithCode";
 import {struct} from "superstruct";
 import parallel from "../tools/parallel";
-import withRetry from "../tools/withRetry";
 import got from "../tools/gotWithTimeout";
 
 const debug = require('debug')('app:Mixer');

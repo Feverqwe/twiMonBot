@@ -3,7 +3,6 @@ import {struct} from "superstruct";
 import Main from "../main";
 import parallel from "../tools/parallel";
 import arrayByPart from "../tools/arrayByPart";
-import withRetry from "../tools/withRetry";
 import {ServiceInterface, ServiceStream} from "../checker";
 import promiseTry from "../tools/promiseTry";
 import got from "../tools/gotWithTimeout";

@@ -4,7 +4,6 @@ import parallel from "../tools/parallel";
 import ErrorWithCode from "../tools/errorWithCode";
 import {struct} from "superstruct";
 import arrayByPart from "../tools/arrayByPart";
-import withRetry from "../tools/withRetry";
 import got from "../tools/gotWithTimeout";
 
 const debug = require('debug')('app:Twitch');
