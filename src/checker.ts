@@ -58,11 +58,9 @@ interface ThreadSession {
 class Checker {
   main: Main;
   log: LogFile;
-  logV: LogFile;
   constructor(main: Main) {
     this.main = main;
     this.log = new LogFile('checker');
-    this.logV = new LogFile('checker-v');
   }
 
   init() {
@@ -134,7 +132,6 @@ class Checker {
 
   async runThread(service: ServiceInterface, session: ThreadSession) {
     const sessionId = session.id;
-    this.logV.write(`[${sessionId}]`, 'start', service.id);
     while (true) {
       session.lastActivityAt = Date.now();
       const channels: IChannel[] = await this.main.db.getServiceChannelsForSync(service.id, service.batchSize);
@@ -152,20 +149,10 @@ class Checker {
       });
 
       const syncAt = new Date();
-      this.logV.write(`[${sessionId}]`, 'p1', 'start');
-      this.logV.write(`[${sessionId}]`, 'p1_1', 'start');
-      this.logV.write(`[${sessionId}]`, 'p1_2', 'start');
       await Promise.all([
-        this.getStreams(service, channelIds, rawChannelIds, sessionId).then((r) => {
-          this.logV.write(`[${sessionId}]`, 'p1_1', 'end');
-          return r;
-        }),
-        this.getExistsStreams(channelIds).then((r) => {
-          this.logV.write(`[${sessionId}]`, 'p1_2', 'end');
-          return r;
-        })
+        this.getStreams(service, channelIds, rawChannelIds, sessionId),
+        this.getExistsStreams(channelIds)
       ]).then(([streamsResult, existsStreamsResult]) => {
-        this.logV.write(`[${sessionId}]`, 'p1', 'end');
         const {streams, checkedChannelIds, skippedChannelIds, removedChannelIds} = streamsResult;
         const {existsStreams, existsStreamIds, existsStreamIdStream} = existsStreamsResult;
 
@@ -296,9 +283,7 @@ class Checker {
           }
         });
 
-        this.logV.write(`[${sessionId}]`, 'p2', 'start');
         return this.getChatIdStreamIdChanges(streamIdStream, newStreamIds).then((chatIdStreamIdChanges) => {
-          this.logV.write(`[${sessionId}]`, 'p2', 'end');
           const channelsChanges = Object.values(channelIdsChanges);
           const migratedStreamsIdCouple = Array.from(migratedStreamFromIdToId.entries());
           const syncStreams: Stream[] = [
@@ -306,7 +291,6 @@ class Checker {
             ...[].concat(offlineStreamIds, timeoutStreamIds).map((id) => existsStreamIdStream.get(id))
           ];
 
-          this.logV.write(`[${sessionId}]`, 'p3', 'start');
           return this.main.db.putStreams(
             channelsChanges,
             removedChannelIds,
@@ -317,7 +301,6 @@ class Checker {
             chatIdStreamIdChanges,
           );
         }).then(() => {
-          this.logV.write(`[${sessionId}]`, 'p3', 'end');
           streams.forEach((stream: Stream) => {
             const id = stream.id;
             if (newStreamIds.includes(id)) {
@@ -367,7 +350,6 @@ class Checker {
             }
           });
 
-          this.logV.write(`[${sessionId}]`, 'emit', 'checkThrottled');
           this.main.sender.checkThrottled();
 
           return {
@@ -384,20 +366,15 @@ class Checker {
     }
 
     this.serviceThread.delete(service);
-    this.logV.write(`[${sessionId}]`, 'end');
   }
 
   getStreams(service: ServiceInterface, channelIds: string[], rawChannelIds: (string|number)[], sessionId: string): Promise<{
     streams: (Stream & { channelTitle: string; })[],
     checkedChannelIds: string[], skippedChannelIds: string[], removedChannelIds: string[]
   }> {
-    this.logV.write(`[${sessionId}]`, 's1', 'start');
     return this.main.db.setChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
-      this.logV.write(`[${sessionId}]`, 's1', 'end');
-      this.logV.write(`[${sessionId}]`, 's2', 'start');
       return service.getStreams(rawChannelIds);
     }).then(({streams: rawStreams, skippedChannelIds: skippedRawChannelIds, removedChannelIds: removedRawChannelIds}: ServiceGetStreamsResult) => {
-      this.logV.write(`[${sessionId}]`, 's2', 'end');
       const streams: (Stream & { channelTitle: string; })[] = [];
 
       const checkedChannelIds = channelIds.slice(0);
