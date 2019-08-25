@@ -379,12 +379,18 @@ class Chat {
           }, async (err: any) => {
             let isResolved = false;
             let message = null;
+            if (['CHANNEL_BROADCASTS_IS_NOT_FOUND'].includes(err.code)) {
+              isResolved = true;
+              message = this.main.locale.getMessage('channelBroadcastsIsNotFound')
+                .replace('{channelName}', query)
+                .replace('{serviceName}', service.name);
+            } else
             if ([
               'INCORRECT_CHANNEL_ID',
               'CHANNEL_BY_VIDEO_ID_IS_NOT_FOUND',
               'INCORRECT_USERNAME', 'CHANNEL_BY_USER_IS_NOT_FOUND',
               'QUERY_IS_EMPTY', 'CHANNEL_BY_QUERY_IS_NOT_FOUND',
-              'CHANNEL_BY_ID_IS_NOT_FOUND', 'CHANNEL_BROADCASTS_IS_NOT_FOUND'
+              'CHANNEL_BY_ID_IS_NOT_FOUND'
             ].includes(err.code)) {
               isResolved = true;
               message = this.main.locale.getMessage('channelIsNotFound')

@@ -23,6 +23,7 @@ languages.en = {
   cleared: 'Success! Watchlist has been cleared!',
   selectDelChannel: 'Select the channel you want to delete',
   channelIsNotFound: 'Oops! Channel {channelName} ({serviceName}) can not be found!',
+  channelBroadcastsIsNotFound: `Oops! Channel {channelName} ({serviceName}) don't have any completed/live/upcoming broadcasts!`,
   clearSure: 'Are you sure?',
   streamIsNotFound: 'Oops! Stream is not found or offline!',
   users: 'Users: {count}',
