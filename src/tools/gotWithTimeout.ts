@@ -5,19 +5,6 @@ const aliases = ['get', 'post', 'put', 'patch', 'head', 'delete'];
 
 const got = require('got');
 
-interface gotFn {
-  (url: string, options?: object): Promise<any>,
-}
-
-interface gotAliases {
-  get: gotFn,
-  post: gotFn,
-  put: gotFn,
-  patch: gotFn,
-  head: gotFn,
-  delete: gotFn,
-}
-
 const gotWithTimeout = (url: string, options: any) => {
   return gotLockTimeout(got(url, options));
 };
@@ -37,10 +24,12 @@ function gotLockTimeout(request: Promise<any> & {cancel: () => void}): Promise<a
     clearTimeout(timeout);
   })).catch((err: any) => {
     if (err.name === 'CancelError' && lockTimeoutFired) {
-      throw new ErrorWithCode('Lock timeout fired', 'LockTimeoutError');
+      const err = new ErrorWithCode('Lock timeout fired', 'ETIMEDOUT');
+      err.name = 'LockTimeoutError';
+      throw err;
     }
     throw err;
   });
 }
 
-export default gotWithTimeout as gotFn & gotAliases;
+export default gotWithTimeout as typeof got;
