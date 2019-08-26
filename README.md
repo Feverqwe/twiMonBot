@@ -1,8 +1,11 @@
-Twitch, Youtube, Mixer and GoodGame monitor
+
+Twitch, Youtube, Mixer and GoodGame Livestream monitor
 =======
 
-It bot for telegram.
+This is a bot for Telegram.
 Write to [@twiMonBot](https://telegram.me/twimonbot) and use it!
+
+Note: This bot watches for _livestreams_. For YouTube _videos_, use [Feverqwe/ytWatchBot](https://github.com/Feverqwe/ytWatchBot).
 
 Run
 ---
