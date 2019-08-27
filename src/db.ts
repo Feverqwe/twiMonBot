@@ -673,7 +673,7 @@ class Db {
       await Promise.all([
         bulk(channelsChanges, (channelsChanges) => {
           return ChannelModel.bulkCreate(channelsChanges, {
-            updateOnDuplicate: ['lastSyncAt', 'title'],
+            updateOnDuplicate: ['lastSyncAt', 'title', 'url'],
             transaction
           });
         }),
