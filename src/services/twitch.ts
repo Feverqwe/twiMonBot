@@ -128,7 +128,8 @@ class Twitch implements ServiceInterface {
             previews: previews,
             viewers: stream.viewers,
             channelId: stream.channel._id,
-            channelTitle: stream.channel.display_name
+            channelTitle: stream.channel.display_name,
+            channelUrl: stream.channel.url,
           });
         });
       }).catch((err: any) => {

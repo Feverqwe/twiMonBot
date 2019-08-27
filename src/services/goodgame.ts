@@ -148,6 +148,7 @@ class Goodgame implements ServiceInterface {
             viewers: viewers,
             channelId: stream.channel.id,
             channelTitle: stream.channel.key,
+            channelUrl: stream.channel.url,
           });
         });
       }).catch((err) => {

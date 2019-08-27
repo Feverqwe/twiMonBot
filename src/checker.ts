@@ -20,6 +20,7 @@ export interface ServiceStream {
   viewers: number|null,
   channelId: string|number,
   channelTitle: string,
+  channelUrl: string,
 }
 
 export interface ServiceChannel {
@@ -175,6 +176,11 @@ class Checker {
           const title = channelChanges.title || channel.title;
           if (title !== stream.channelTitle) {
             channelChanges.title = stream.channelTitle;
+          }
+
+          const url = channelChanges.url || channel.url;
+          if (url !== stream.channelUrl) {
+            channelChanges.url = stream.channelUrl;
           }
 
           const channelStreamIds = ensureMap(channelIdStreamIds, stream.channelId, []);
@@ -369,13 +375,13 @@ class Checker {
   }
 
   getStreams(service: ServiceInterface, channelIds: string[], rawChannelIds: (string|number)[], sessionId: string): Promise<{
-    streams: (Stream & { channelTitle: string; })[],
+    streams: (Stream & { channelTitle: string; channelUrl: string; })[],
     checkedChannelIds: string[], skippedChannelIds: string[], removedChannelIds: string[]
   }> {
     return this.main.db.setChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
       return service.getStreams(rawChannelIds);
     }).then(({streams: rawStreams, skippedChannelIds: skippedRawChannelIds, removedChannelIds: removedRawChannelIds}: ServiceGetStreamsResult) => {
-      const streams: (Stream & { channelTitle: string; })[] = [];
+      const streams: (Stream & { channelTitle: string; channelUrl: string; })[] = [];
 
       const checkedChannelIds = channelIds.slice(0);
       const onMapRawChannel = (rawId: string|number) => {

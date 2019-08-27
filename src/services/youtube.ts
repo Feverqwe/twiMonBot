@@ -194,6 +194,7 @@ class Youtube implements ServiceInterface {
           viewers: viewers,
           channelId: channelId,
           channelTitle: channelTitle,
+          channelUrl: getChannelUrl(channelId),
         });
       });
     }, (err) => {

@@ -99,6 +99,7 @@ class Mixer implements ServiceInterface {
           viewers: channel.viewersCurrent,
           channelId: channel.id,
           channelTitle: channel.token,
+          channelUrl: getChannelUrl(channel.token),
         });
       }, (err: any) => {
         if (isNotFoundChannel(err)) {
