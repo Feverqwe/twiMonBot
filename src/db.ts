@@ -39,11 +39,13 @@ export interface Channel {
   service: string,
   title: string,
   url: string,
+  lastStreamAt?: Date,
   lastSyncAt?: Date,
   syncTimeoutExpiresAt?: Date,
   createdAt?: Date,
 }
 export interface IChannel extends Channel, Sequelize.Model {
+  lastStreamAt: Date,
   createdAt: Date
 }
 class ChannelModel extends Sequelize.Model {}
@@ -207,6 +209,7 @@ class Db {
       service: {type: Sequelize.STRING(191), allowNull: false},
       title: {type: Sequelize.TEXT, allowNull: true},
       url: {type: Sequelize.TEXT, allowNull: false},
+      lastStreamAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
       lastSyncAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
       syncTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
     }, {
@@ -673,7 +676,7 @@ class Db {
       await Promise.all([
         bulk(channelsChanges, (channelsChanges) => {
           return ChannelModel.bulkCreate(channelsChanges, {
-            updateOnDuplicate: ['lastSyncAt', 'title', 'url'],
+            updateOnDuplicate: ['lastStreamAt', 'lastSyncAt', 'title', 'url'],
             transaction
           });
         }),

@@ -183,6 +183,8 @@ class Checker {
             channelChanges.url = stream.channelUrl;
           }
 
+          channelChanges.lastStreamAt = syncAt;
+
           const channelStreamIds = ensureMap(channelIdStreamIds, stream.channelId, []);
           channelStreamIds.push(stream.id);
 
