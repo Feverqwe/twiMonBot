@@ -555,10 +555,12 @@ class Db {
   getChatIdChannelIdTop10ByServiceId(serviceId: string): Promise<{
     channelId: string, service: string, chatCount: number, title: string
   }[]> {
+    const monthAgo = new Date();
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
     return this.sequelize.query(`
       SELECT channelId, COUNT(chatId) as chatCount, channels.service as service, channels.title as title FROM chatIdChannelId
       INNER JOIN channels ON channelId = channels.id
-      WHERE channels.service = "${serviceId}"
+      WHERE channels.service = "${serviceId}" AND channels.lastStreamAt > "${monthAgo.toISOString()}"
       GROUP BY channelId ORDER BY COUNT(chatId) DESC LIMIT 10
     `, {type: Sequelize.QueryTypes.SELECT});
   }
