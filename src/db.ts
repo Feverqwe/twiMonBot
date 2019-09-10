@@ -222,6 +222,9 @@ class Db {
         name: 'service_idx',
         fields: ['service']
       }, {
+        name: 'lastStreamAt_idx',
+        fields: ['lastStreamAt']
+      }, {
         name: 'lastSyncAt_idx',
         fields: ['lastSyncAt']
       }, {
