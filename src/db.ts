@@ -621,7 +621,7 @@ class Db {
         syncTimeoutExpiresAt: {[Op.lt]: new Date()},
         lastSyncAt: {[Op.lt]: date},
       },
-      order: [['lastStreamAt', 'DESC'], 'lastSyncAt'],
+      order: Sequelize.literal(`lastStreamAt IS NULL, lastSyncAt`),
       limit: limit,
     });
   }
