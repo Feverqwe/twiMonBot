@@ -621,7 +621,7 @@ class Db {
         syncTimeoutExpiresAt: {[Op.lt]: new Date()},
         lastSyncAt: {[Op.lt]: date},
       },
-      order: ['lastSyncAt'],
+      order: [['lastStreamAt', 'DESC'], 'lastSyncAt'],
       limit: limit,
     });
   }
