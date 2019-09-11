@@ -209,7 +209,7 @@ class Db {
       service: {type: Sequelize.STRING(191), allowNull: false},
       title: {type: Sequelize.TEXT, allowNull: true},
       url: {type: Sequelize.TEXT, allowNull: false},
-      lastStreamAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
+      lastStreamAt: {type: Sequelize.DATE, allowNull: true},
       lastSyncAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
       syncTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
     }, {
