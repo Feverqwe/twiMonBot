@@ -215,8 +215,10 @@ class ChatSender {
           throw new ErrorWithCode(`Chat ${this.chat.id} is migrated to ${newChatId}`, 'CHAT_IS_MIGRATED');
         }, (err: any) => {
           if (/would lead to a duplicate entry in table/.test(err.message)) {
-            this.main.chat.log.write(`[deleted] ${this.chat.id}, cause: ${inlineInspect(err)}`);
-            throw new ErrorWithCode(`Chat ${this.chat.id} is deleted`, 'CHAT_IS_DELETED');
+            return this.main.db.deleteChatById(this.chat.id).then(() => {
+              this.main.chat.log.write(`[deleted] ${this.chat.id}, cause: ${inlineInspect(err)}`);
+              throw new ErrorWithCode(`Chat ${this.chat.id} is deleted`, 'CHAT_IS_DELETED');
+            });
           }
           throw err;
         });
