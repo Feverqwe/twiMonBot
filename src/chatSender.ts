@@ -8,6 +8,7 @@ import {ServiceInterface} from "./checker";
 import {TMessage} from "./router";
 import appendQueryParam from "./tools/appendQueryParam";
 import got from "./tools/gotWithTimeout";
+import inlineInspect from "./tools/inlineInspect";
 
 const debug = require('debug')('app:ChatSender');
 const request = require('request');
@@ -212,6 +213,12 @@ class ChatSender {
         return this.main.db.changeChatId(this.chat.id, '' + newChatId).then(() => {
           this.main.chat.log.write(`[migrate] ${this.chat.id} > ${newChatId}`);
           throw new ErrorWithCode(`Chat ${this.chat.id} is migrated to ${newChatId}`, 'CHAT_IS_MIGRATED');
+        }, (err: any) => {
+          if (/would lead to a duplicate entry in table/.test(err.message)) {
+            this.main.chat.log.write(`[deleted] ${this.chat.id}, cause: ${inlineInspect(err)}`);
+            throw new ErrorWithCode(`Chat ${this.chat.id} is deleted`, 'CHAT_IS_DELETED');
+          }
+          throw err;
         });
       }
     }
