@@ -1,3 +1,4 @@
+import promiseFinally from "./promiseFinally";
 import ErrorWithCode from "./errorWithCode";
 
 const aliases = ['get', 'post', 'put', 'patch', 'head', 'delete'];
@@ -19,9 +20,9 @@ function gotLockTimeout(request: Promise<any> & {cancel: () => void}): Promise<a
     lockTimeoutFired = true;
     request.cancel();
   }, 60 * 1000);
-  return request.finally(() => {
+  return request.then(...promiseFinally(() => {
     clearTimeout(timeout);
-  }).catch((err: any) => {
+  })).catch((err: any) => {
     if (err.name === 'CancelError' && lockTimeoutFired) {
       const err = new ErrorWithCode('Lock timeout fired', 'ETIMEDOUT');
       err.name = 'LockTimeoutError';

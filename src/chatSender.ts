@@ -1,6 +1,8 @@
 import Main from "./main";
 import {IChat, IMessage, IStream, IStreamWithChannel} from "./db";
+import promiseTry from "./tools/promiseTry";
 import ErrorWithCode from "./tools/errorWithCode";
+import promiseFinally from "./tools/promiseFinally";
 import {getCaption, getDescription} from "./tools/streamToString";
 import {ServiceInterface} from "./checker";
 import {TMessage} from "./router";
@@ -59,7 +61,7 @@ class ChatSender {
     let startIndex = this.methodIndex;
     while (true) {
       this.lastActivityAt = Date.now();
-      const isDone = await Promise.try(() => {
+      const isDone = await promiseTry(() => {
         if (skipFromIndex !== null && this.methodIndex >= skipFromIndex) return true;
 
         switch (this.methods[this.methodIndex]) {
@@ -127,7 +129,7 @@ class ChatSender {
         text = getCaption(stream);
       }
 
-      return Promise.try(() => {
+      return promiseTry(() => {
         if (message.text === text) return;
 
         return this.updateStreamMessage(message.type, message.chatId, message.id, stream, text).catch((err: any) => {
@@ -168,7 +170,7 @@ class ChatSender {
     const minDeleteTime = new Date();
     minDeleteTime.setHours(minDeleteTime.getHours() - 48);
 
-    return Promise.try(() => {
+    return promiseTry(() => {
       if (this.chat.isEnabledAutoClean && message.createdAt.getTime() > minDeleteTime.getTime()) {
         return this.deleteStreamMessage(message.chatId, message.id);
       }
@@ -225,7 +227,7 @@ class ChatSender {
   };
 
   sendStream(stream: IStreamWithChannel) {
-    return Promise.try(() => {
+    return promiseTry(() => {
       if (this.chat.isHidePreview || !stream.previews.length) {
         return this.sendStreamAsText(stream);
       } else {
@@ -302,9 +304,9 @@ class ChatSender {
     let promise: Promise<SentMessage> = streamWeakMap.get(stream);
 
     if (!promise) {
-      promise = this.ensureTelegramPreviewFileId(stream).finally(() => {
+      promise = this.ensureTelegramPreviewFileId(stream).then(...promiseFinally(() => {
         streamWeakMap.delete(stream);
-      });
+      }));
       streamWeakMap.set(stream, promise);
       promise = promise.catch((err: any) => {
         if (err.code === 'ETELEGRAM' && /not enough rights to send photos/.test(err.response.body.description)) {

@@ -7,7 +7,6 @@
     "target": "es2017",
     "allowJs": true,
     "strict": true,
-    "strictNullChecks": false,
-    "lib": ["esnext"]
+    "strictNullChecks": false
   }
 }

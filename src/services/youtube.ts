@@ -5,6 +5,7 @@ import parallel from "../tools/parallel";
 import ErrorWithCode from "../tools/errorWithCode";
 import {struct} from "superstruct";
 import arrayByPart from "../tools/arrayByPart";
+import promiseTry from "../tools/promiseTry";
 import got from "../tools/gotWithTimeout";
 
 const debug = require('debug')('app:Youtube');
@@ -533,7 +534,7 @@ function isDailyLimitExceeded(err: any) {
 function iterPages(callback: (pageToken?: string) => Promise<string|undefined>):Promise<void> {
   let limit = 100;
   const getPage = (pageToken?: string): Promise<void> => {
-    return Promise.try(() => callback(pageToken)).then((nextPageToken?: string) => {
+    return promiseTry(() => callback(pageToken)).then((nextPageToken?: string) => {
       if (nextPageToken) {
         if (--limit < 0) {
           throw new ErrorWithCode(`Page limit reached`, 'PAGE_LIMIT_REACHED');
