@@ -4,7 +4,7 @@ import resolve from "rollup-plugin-node-resolve";
 const extensions = ['.js', '.ts'];
 
 export default {
-  input: ['./src/main.ts', './src/testProxies.js'],
+  input: './src/main.ts', // ['./src/main.ts', './src/testProxies.js'],
   output: {
     dir: './dist',
     format: 'cjs'
