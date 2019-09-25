@@ -4,7 +4,6 @@ import Main from "../main";
 import parallel from "../tools/parallel";
 import arrayByPart from "../tools/arrayByPart";
 import {ServiceInterface, ServiceStream} from "../checker";
-import promiseTry from "../tools/promiseTry";
 import got from "../tools/gotWithTimeout";
 
 const debug = require('debug')('app:Goodgame');
@@ -230,7 +229,7 @@ class Goodgame implements ServiceInterface {
 
   lastDirectConnectTryAt: number = null;
   gotWithProxy = (url: string, options: object)  => {
-    return promiseTry(() => {
+    return Promise.try(() => {
       const tryDate = new Date();
       tryDate.setHours(tryDate.getHours() - 3);
       if (!this.lastDirectConnectTryAt || this.lastDirectConnectTryAt < tryDate.getTime()) {

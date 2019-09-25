@@ -8,7 +8,6 @@ import {ServiceChannel, ServiceInterface} from "./checker";
 import * as Sequelize from "sequelize";
 import arrayDifference from "./tools/arrayDifference";
 
-const Sequelize = require('sequelize');
 const debug = require('debug')('app:db');
 const {Op} = Sequelize;
 const ISOLATION_LEVELS = Sequelize.Transaction.ISOLATION_LEVELS;
