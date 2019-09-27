@@ -491,8 +491,10 @@ async function getValidPreviewUrl(urls: string[], service: ServiceInterface): Pr
       lastError = err;
     }
   }
-  debug('getValidPreviewUrl error %o', lastError);
-  throw new ErrorWithCode(`Previews is invalid`, 'INVALID_PREVIEWS');
+  const err = new ErrorWithCode(`Previews is invalid`, 'INVALID_PREVIEWS');
+  // @ts-ignore
+  err.original = lastError;
+  throw err;
 }
 
 export function isBlockedError(err: any) {
