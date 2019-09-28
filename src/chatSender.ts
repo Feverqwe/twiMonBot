@@ -477,14 +477,14 @@ async function getValidPreviewUrl(urls: string[], service: ServiceInterface): Pr
         gotFn = service.gotWithProxy;
       }
       return await gotFn(urls[i], {method: 'HEAD', timeout: 5 * 1000}).catch((err: any) => {
-        if (err.response && err.response.statusCode === 405) { // fix for mixer
+        if (err.statusCode === 405) { // fix for mixer
           return gotFn(urls[i], {headers: {Range: `bytes=0-1`}, timeout: 5 * 1000});
         }
         throw err;
       }).then((response: any) => {
         const url = response.url;
         const contentType = response.headers['content-type'];
-        const agent = response.request.options.agent;
+        const agent = response.request.gotOptions.agent;
         return {url, contentType, agent};
       });
     } catch (err) {

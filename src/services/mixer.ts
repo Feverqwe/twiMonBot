@@ -72,7 +72,7 @@ class Mixer implements ServiceInterface {
         headers: {
           'user-agent': ''
         },
-        responseType: 'json',
+        json: true,
       }).then(({body}: {body: any}) => {
         const channel = ExtendedChannel(body);
 
@@ -136,7 +136,7 @@ class Mixer implements ServiceInterface {
 
   requestChannelByQuery(query: string) {
     return got('https://mixer.com/api/v1/channels', {
-      searchParams: {
+      query: {
         limit: 1,
         scope: 'names',
         q: query
@@ -144,7 +144,7 @@ class Mixer implements ServiceInterface {
       headers: {
         'user-agent': ''
       },
-      responseType: 'json',
+      json: true,
     }).then(({body}: {body: object}) => {
       const channels = Channels(body);
       if (!channels.length) {
@@ -159,11 +159,11 @@ class Mixer implements ServiceInterface {
       headers: {
         'user-agent': ''
       },
-      responseType: 'json',
+      json: true,
     }).then(({body}: {body: object}) => {
       return ExtendedChannel(body);
     }, (err: any) => {
-      if (err.response && err.response.statusCode === 404) {
+      if (err.statusCode === 404) {
         throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
       }
       throw err;
@@ -196,8 +196,8 @@ function getChannelUrl(channelId: string) {
 }
 
 function isNotFoundChannel(err: any) {
-  return err.name === 'HTTPError' && err.response && err.response.statusCode === 404 &&
-    err.response.body && err.response.body.error === 'Not Found' && err.response.body.message === 'Channel not found.';
+  return err.name === 'HTTPError' && err.statusCode === 404 &&
+    err.body && err.body.error === 'Not Found' && err.body.message === 'Channel not found.';
 }
 
 export default Mixer;
