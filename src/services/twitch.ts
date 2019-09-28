@@ -90,7 +90,7 @@ class Twitch implements ServiceInterface {
     const removedChannelIds: number[] = [];
     return parallel(10, arrayByPart(channelIds, 100), (channelIds) => {
       return got('https://api.twitch.tv/kraken/streams', {
-        query: {
+        searchParams: {
           limit: 100,
           channel: channelIds.join(','),
           stream_type: 'all'
@@ -99,7 +99,7 @@ class Twitch implements ServiceInterface {
           'Accept': 'application/vnd.twitchtv.v5+json',
           'Client-ID': this.main.config.twitchToken
         },
-        json: true,
+        responseType: 'json',
       }).then(({body}: {body: any}) => {
         const result = Streams(body);
         if (result._total > 100) {
@@ -164,7 +164,7 @@ class Twitch implements ServiceInterface {
         'Client-ID': this.main.config.twitchToken
       },
     }).catch((err: any) => {
-      if (err.statusCode === 404) {
+      if (err.response && err.response.statusCode === 404) {
         throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
       }
       throw err;
@@ -192,12 +192,12 @@ class Twitch implements ServiceInterface {
 
   requestChannelByQuery(query: string) {
     return got('https://api.twitch.tv/kraken/search/channels', {
-      query: {query},
+      searchParams: {query},
       headers: {
         'Accept': 'application/vnd.twitchtv.v5+json',
         'Client-ID': this.main.config.twitchToken
       },
-      json: true,
+      responseType: 'json',
     }).then(({body}: {body: object}) => {
       const channels = Channels(body).channels;
       if (!channels.length) {

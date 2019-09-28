@@ -101,7 +101,7 @@ class Goodgame implements ServiceInterface {
     const removedChannelIds:number[] = [];
     return parallel(10, arrayByPart(channelIds, 25), (channelIds) => {
       return this.gotWithProxy('https://api2.goodgame.ru/v2/streams', {
-        query: {
+        searchParams: {
           ids: channelIds.join(','),
           adult: true,
           hidden: true
@@ -109,7 +109,7 @@ class Goodgame implements ServiceInterface {
         headers: {
           'Accept': 'application/vnd.goodgame.v2+json'
         },
-        json: true,
+        responseType: 'json',
       }).then(({body}) => {
         const streams = (Streams(body) as Streams)._embedded.streams;
 
@@ -193,7 +193,7 @@ class Goodgame implements ServiceInterface {
       headers: {
         'Accept': 'application/vnd.goodgame.v2+json'
       },
-      json: true,
+      responseType: 'json',
     }).then(({body}: {body: object}) => {
       const stream = Stream(body);
       const id = stream.channel.id;
@@ -201,7 +201,7 @@ class Goodgame implements ServiceInterface {
       const title = stream.channel.key;
       return {id, title, url};
     }, (err: any) => {
-      if (err.statusCode === 404) {
+      if (err.response && err.response.statusCode === 404) {
         throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
       }
       throw err;

@@ -230,8 +230,8 @@ class Youtube implements ServiceInterface {
       }
 
       return gotLimited('https://www.googleapis.com/youtube/v3/search', {
-        query,
-        json: true
+        searchParams: query,
+        responseType: 'json',
       }).then(({body}) => {
         const result = SearchVideoResponse(body);
 
@@ -251,14 +251,14 @@ class Youtube implements ServiceInterface {
     return parallel(10, arrayByPart(ids, 50), (videoIds) => {
       return iterPages((pageToken?) => {
         return gotLimited('https://www.googleapis.com/youtube/v3/videos', {
-          query: {
+          searchParams: {
             part: 'liveStreamingDetails',
             id: videoIds.join(','),
             pageToken: pageToken,
             fields: 'items(id,liveStreamingDetails),nextPageToken',
             key: this.main.config.ytToken
           },
-          json: true,
+          responseType: 'json',
         }).then(({body}) => {
           const videosResponse = VideosResponse(body);
 
@@ -300,7 +300,7 @@ class Youtube implements ServiceInterface {
     return parallel(10, arrayByPart(ids, 50), (ids) => {
       return iterPages((pageToken?) => {
         return gotLimited('https://www.googleapis.com/youtube/v3/channels', {
-          query: {
+          searchParams: {
             part: 'id',
             id: ids.join(','),
             pageToken: pageToken,
@@ -308,7 +308,7 @@ class Youtube implements ServiceInterface {
             fields: 'items/id,nextPageToken',
             key: this.main.config.ytToken
           },
-          json: true,
+          responseType: 'json',
         }).then(({body}) => {
           const channelsItemsId = ChannelsItemsId(body);
           channelsItemsId.items.forEach((item) => {
@@ -341,14 +341,14 @@ class Youtube implements ServiceInterface {
       return this.channelHasBroadcasts(channelId).then(() => channelId);
     }).then((channelId: string) => {
       return gotLimited('https://www.googleapis.com/youtube/v3/search', {
-        query: {
+        searchParams: {
           part: 'snippet',
           channelId: channelId,
           maxResults: 1,
           fields: 'items/snippet',
           key: this.main.config.ytToken
         },
-        json: true,
+        responseType: 'json',
       }).then(({body}) => {
         const searchItemsSnippet = SearchItemsSnippet(body);
         if (!searchItemsSnippet.items.length) {
@@ -407,14 +407,14 @@ class Youtube implements ServiceInterface {
     }
 
     return gotLimited('https://www.googleapis.com/youtube/v3/videos', {
-      query: {
+      searchParams: {
         part: 'snippet',
         id: videoId,
         maxResults: 1,
         fields: 'items/snippet',
         key: this.main.config.ytToken
       },
-      json: true,
+      responseType: 'json',
     }).then(({body}) => {
       const videosItemsSnippet = VideosItemsSnippet(body);
       if (!videosItemsSnippet.items.length) {
@@ -447,14 +447,14 @@ class Youtube implements ServiceInterface {
     }
 
     return gotLimited('https://www.googleapis.com/youtube/v3/channels', {
-      query: {
+      searchParams: {
         part: 'snippet',
         forUsername: username,
         maxResults: 1,
         fields: 'items/id',
         key: this.main.config.ytToken
       },
-      json: true,
+      responseType: 'json',
     }).then(({body}) => {
       const channelsItemsId = ChannelsItemsId(body);
       if (!channelsItemsId.items.length) {
@@ -471,7 +471,7 @@ class Youtube implements ServiceInterface {
     }
 
     return gotLimited('https://www.googleapis.com/youtube/v3/search', {
-      query: {
+      searchParams: {
         part: 'snippet',
         q: query,
         type: 'channel',
@@ -479,7 +479,7 @@ class Youtube implements ServiceInterface {
         fields: 'items(id)',
         key: this.main.config.ytToken
       },
-      json: true,
+      responseType: 'json',
     }).then(({body}) => {
       const searchItemsId = SearchItemsId(body);
       if (!searchItemsId.items.length) {
@@ -493,7 +493,7 @@ class Youtube implements ServiceInterface {
   async channelHasBroadcasts(channelId: string) {
     for (const type of ['completed', 'live', 'upcoming']) {
       const result = await gotLimited('https://www.googleapis.com/youtube/v3/search', {
-        query: {
+        searchParams: {
           part: 'snippet',
           channelId: channelId,
           eventType: type,
@@ -504,7 +504,7 @@ class Youtube implements ServiceInterface {
           fields: 'items(id/videoId)',
           key: this.main.config.ytToken
         },
-        json: true
+        responseType: 'json',
       }).then(({body}) => SearchItemsIdVideoId(body));
 
       if (result.items.length) {
@@ -525,7 +525,7 @@ function getChannelUrl(channelId: string) {
 }
 
 function isDailyLimitExceeded(err: any) {
-  if (err.name === 'HTTPError' && err.statusCode === 403 && err.body && err.body.error && err.body.error.code === 403 && /Daily Limit Exceeded/.test(err.body.error.message)) {
+  if (err.name === 'HTTPError' && err.response && err.response.statusCode === 403 && err.response.body && err.response.body.error && err.response.body.error.code === 403 && /Daily Limit Exceeded/.test(err.response.body.error.message)) {
     return true;
   }
   return false;
