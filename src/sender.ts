@@ -23,6 +23,7 @@ class Sender {
 
   init() {
     this.startCheckInterval();
+    this.startCleanInterval();
   }
 
   checkTimer: Function = null;
@@ -31,6 +32,16 @@ class Sender {
     this.checkTimer = everyMinutes(this.main.config.emitSendMessagesEveryMinutes, () => {
       this.check().catch((err: any) => {
         debug('check error', err);
+      });
+    });
+  }
+
+  cleanTimer: Function = null;
+  startCleanInterval() {
+    this.cleanTimer && this.cleanTimer();
+    this.cleanTimer = everyMinutes(this.main.config.emitCheckExistsChatsEveryHours * 60, () => {
+      this.checkChatsExists().catch((err) => {
+        debug('checkChatsExists error', err);
       });
     });
   }

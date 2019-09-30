@@ -9,6 +9,7 @@
   "removeStreamIfOfflineMoreThanMinutes": 15,
   "emitCleanChatsAndChannelsEveryHours": 1,
   "emitSendMessagesEveryMinutes": 5,
+  "emitCheckExistsChatsEveryHours": 24,
   "chatSendTimeoutAfterErrorMinutes": 1,
   "emitCheckProxyEveryHours": 1,
   "emitUpdateChannelPubSubSubscribeEveryMinutes": 5,
