@@ -19,7 +19,7 @@ function gotLockTimeout(request: Promise<any> & {cancel: () => void}): Promise<a
   const timeout = setTimeout(() => {
     lockTimeoutFired = true;
     request.cancel();
-  }, 1.5 * 60 * 1000);
+  }, 60 * 1000);
   return request.then(...promiseFinally(() => {
     clearTimeout(timeout);
   })).catch((err: any) => {
