@@ -85,7 +85,7 @@ class Goodgame implements ServiceInterface {
     this.id = 'goodgame';
     this.name = 'Goodgame';
     this.batchSize = 25;
-    this.withProxy = true;
+    this.withProxy = false;
     this.noCachePreview = true;
   }
 
@@ -100,7 +100,7 @@ class Goodgame implements ServiceInterface {
     const skippedChannelIds:number[] = [];
     const removedChannelIds:number[] = [];
     return parallel(10, arrayByPart(channelIds, 25), (channelIds) => {
-      return this.gotWithProxy('https://api2.goodgame.ru/v2/streams', {
+      return got('https://api2.goodgame.ru/v2/streams', {
         query: {
           ids: channelIds.join(','),
           adult: true,
@@ -189,7 +189,7 @@ class Goodgame implements ServiceInterface {
   }
 
   requestChannelById(channelId: string|number) {
-    return this.gotWithProxy('https://api2.goodgame.ru/v2/streams/' + encodeURIComponent(channelId), {
+    return got('https://api2.goodgame.ru/v2/streams/' + encodeURIComponent(channelId), {
       headers: {
         'Accept': 'application/vnd.goodgame.v2+json'
       },
