@@ -20,16 +20,16 @@ interface Stream {
   },
 }
 
-const Stream: (any: any) => Stream = struct(struct.partial({
+const Stream: (any: any) => Stream = struct.pick({
   id: 'number',
   key: 'string',
   url: 'string',
-  channel: struct.partial({
+  channel: struct.pick({
     id: 'number',
     key: 'string',
     url: 'string',
   }),
-}));
+});
 
 interface Streams {
   _embedded: {
@@ -52,26 +52,26 @@ interface Streams {
   }
 }
 
-const Streams = struct(struct.partial({
-  _embedded: struct.partial({
-    streams: [struct.partial({
+const Streams = struct.pick({
+  _embedded: struct.pick({
+    streams: [struct.pick({
       key: 'string',
       status: 'string',
       id: 'number',
       viewers: 'string',
-      channel: struct.partial({
+      channel: struct.pick({
         id: 'number',
         key: 'string',
         title: 'string',
         url: 'string',
         thumb: 'string',
-        games: [struct.partial({
+        games: [struct.pick({
           title: 'string|null'
         })],
       })
     })]
   }),
-}));
+});
 
 class Goodgame implements ServiceInterface {
   main: Main;
@@ -110,7 +110,7 @@ class Goodgame implements ServiceInterface {
           'Accept': 'application/vnd.goodgame.v2+json'
         },
         json: true,
-      }).then(({body}) => {
+      }).then(({body}: any) => {
         const streams = (Streams(body) as Streams)._embedded.streams;
 
         streams.forEach((stream) => {
@@ -151,7 +151,7 @@ class Goodgame implements ServiceInterface {
             channelUrl: stream.channel.url,
           });
         });
-      }).catch((err) => {
+      }).catch((err: any) => {
         debug(`getStreams for channels (%j) skip, cause: %o`, channelIds, err);
         skippedChannelIds.push(...channelIds);
       });

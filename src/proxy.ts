@@ -26,12 +26,12 @@ interface ProxyLine {
   response_time: number,
 }
 
-const ProxyLine:(any: any) => ProxyLine = struct(struct.partial({
+const ProxyLine:(any: any) => ProxyLine = struct.pick({
   type: 'string',
   host: 'string',
   port: 'number',
   response_time: 'number',
-}));
+});
 
 class Proxy {
   main: Main;

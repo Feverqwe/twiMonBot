@@ -17,14 +17,14 @@ interface Channels {
   }[]
 }
 
-const Channels:(any: any) => Channels = struct(struct.partial({
-  channels: [struct.partial({
+const Channels:(any: any) => Channels = struct.pick({
+  channels: [struct.pick({
     _id: 'number',
     name: 'string',
     display_name: 'string',
     url: 'string',
   })]
-}));
+});
 
 interface Streams {
   _total: number,
@@ -45,16 +45,16 @@ interface Streams {
   }[]
 }
 
-const Streams: (any: any) => Streams = struct(struct.partial({
+const Streams: (any: any) => Streams = struct.pick({
   _total: 'number',
-  streams: [struct.partial({
+  streams: [struct.pick({
     _id: 'number',
     stream_type: 'string',
-    preview: struct.dict(['string', 'string']),
+    preview: struct.record(['string', 'string']),
     viewers: 'number',
     game: 'string',
     created_at: 'string',
-    channel: struct.partial({
+    channel: struct.pick({
       _id: 'number',
       name: 'string',
       display_name: 'string',
@@ -62,7 +62,7 @@ const Streams: (any: any) => Streams = struct(struct.partial({
       url: 'string',
     })
   })]
-}));
+});
 
 class Twitch implements ServiceInterface {
   main: Main;

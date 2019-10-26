@@ -23,13 +23,13 @@ interface VideosItemsSnippet {
   }[]
 }
 
-const VideosItemsSnippet:(any: any) => VideosItemsSnippet = struct(struct.partial({
-  items: [struct.partial({
-    snippet: struct.partial({
+const VideosItemsSnippet:(any: any) => VideosItemsSnippet = struct.pick({
+  items: [struct.pick({
+    snippet: struct.pick({
       channelId: 'string'
     })
   })]
-}));
+});
 
 interface ChannelsItemsId {
   items: {
@@ -38,12 +38,12 @@ interface ChannelsItemsId {
   nextPageToken: string,
 }
 
-const ChannelsItemsId:(any: any) => ChannelsItemsId = struct(struct.partial({
-  items: [struct.partial({
+const ChannelsItemsId:(any: any) => ChannelsItemsId = struct.pick({
+  items: [struct.pick({
     id: 'string'
   })],
   nextPageToken: 'string?'
-}));
+});
 
 interface SearchItemsId {
   items: {
@@ -53,13 +53,13 @@ interface SearchItemsId {
   }[]
 }
 
-const SearchItemsId:(any: any) => SearchItemsId = struct(struct.partial({
-  items: [struct.partial({
-    id: struct.partial({
+const SearchItemsId:(any: any) => SearchItemsId = struct.pick({
+  items: [struct.pick({
+    id: struct.pick({
       channelId: 'string'
     })
   })]
-}));
+});
 
 interface SearchItemsIdVideoId {
   items: {
@@ -69,13 +69,13 @@ interface SearchItemsIdVideoId {
   }[]
 }
 
-const SearchItemsIdVideoId:(any: any) => SearchItemsIdVideoId = struct(struct.partial({
-  items: [struct.partial({
-    id: struct.partial({
+const SearchItemsIdVideoId:(any: any) => SearchItemsIdVideoId = struct.pick({
+  items: [struct.pick({
+    id: struct.pick({
       videoId: 'string'
     })
   })]
-}));
+});
 
 interface SearchItemsSnippet {
   items: {
@@ -86,14 +86,14 @@ interface SearchItemsSnippet {
   }[]
 }
 
-const SearchItemsSnippet:(any: any) => SearchItemsSnippet = struct(struct.partial({
-  items: [struct.partial({
-    snippet: struct.partial({
+const SearchItemsSnippet:(any: any) => SearchItemsSnippet = struct.pick({
+  items: [struct.pick({
+    snippet: struct.pick({
       channelId: 'string',
       channelTitle: 'string'
     })
   })]
-}));
+});
 
 interface SearchVideoResponseSnippet {
   title: string,
@@ -113,12 +113,12 @@ interface SearchVideoResponse {
   nextPageToken?: string
 }
 
-const SearchVideoResponse: (any: any) => SearchVideoResponse = struct(struct.partial({
-  items: [struct.partial({
-    id: struct.partial({
+const SearchVideoResponse: (any: any) => SearchVideoResponse = struct.pick({
+  items: [struct.pick({
+    id: struct.pick({
       videoId: 'string',
     }),
-    snippet: struct.partial({
+    snippet: struct.pick({
       title: 'string',
       liveBroadcastContent: 'string',
       publishedAt: 'string',
@@ -127,7 +127,7 @@ const SearchVideoResponse: (any: any) => SearchVideoResponse = struct(struct.par
     }),
   })],
   nextPageToken: 'string?'
-}));
+});
 
 interface VideosResponse {
   items: {
@@ -142,10 +142,10 @@ interface VideosResponse {
   nextPageToken?: string
 }
 
-const VideosResponse: (any: any) => VideosResponse = struct(struct.partial({
-  items: [struct.partial({
+const VideosResponse: (any: any) => VideosResponse = struct.pick({
+  items: [struct.pick({
     id: 'string',
-    liveStreamingDetails: struct.optional(struct.partial({
+    liveStreamingDetails: struct.optional(struct.pick({
       scheduledStartTime: 'string?',
       actualStartTime: 'string?',
       actualEndTime: 'string?',
@@ -153,7 +153,7 @@ const VideosResponse: (any: any) => VideosResponse = struct(struct.partial({
     })),
   })],
   nextPageToken: 'string?'
-}));
+});
 
 class Youtube implements ServiceInterface {
   main: Main;

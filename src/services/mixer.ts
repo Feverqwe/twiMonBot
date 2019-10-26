@@ -16,7 +16,7 @@ interface Channel {
   createdAt: string
 }
 
-const Channels:(any: any) => Channel[] = struct([struct.partial({
+const Channels:(any: any) => Channel[] = struct([struct.pick({
   id: 'number',
   token: 'string',
   name: 'string',
@@ -31,17 +31,17 @@ interface ExtendedChannel extends Channel {
   }
 }
 
-const ExtendedChannel:(any: any) => ExtendedChannel = struct(struct.partial({
+const ExtendedChannel:(any: any) => ExtendedChannel = struct.pick({
   id: 'number',
   token: 'string',
   name: 'string',
   online: 'boolean',
   viewersCurrent: 'number',
-  type: struct.optional(struct.union([struct.partial({
+  type: struct.optional(struct.union([struct.pick({
     name: 'string'
   }), 'null'])),
   createdAt: 'string'
-}));
+});
 
 class Mixer implements ServiceInterface {
   main: Main;
