@@ -79,7 +79,7 @@ const Channel: (any: any) => Channel = struct.pick({
   })
 });
 
-class Wsad implements ServiceInterface {
+class Wasd implements ServiceInterface {
   main: Main;
   id: string;
   name: string;
@@ -270,4 +270,4 @@ function retryIfLocationMismatch(cb: () => {}) {
   });
 }
 
-export default Wsad;
+export default Wasd;

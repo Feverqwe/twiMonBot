@@ -13,7 +13,7 @@ import Twitch from "./services/twitch";
 import Youtube from "./services/youtube";
 import {TUser} from "./router";
 import YtPubSub from "./ytPubSub";
-import Wsad from "./services/wsad";
+import Wasd from "./services/wasd";
 
 // @ts-ignore
 process.env.NTBA_FIX_319 = true;
@@ -133,6 +133,7 @@ class Main extends Events {
   youtube: Youtube;
   mixer: Mixer;
   goodgame: Goodgame;
+  wasd: Wasd;
   services: ServiceInterface[];
   serviceIdService: Map<string, ServiceInterface>;
   tracker: Tracker;
@@ -158,7 +159,7 @@ class Main extends Events {
     this.youtube = new Youtube(this);
     this.mixer = new Mixer(this);
     this.goodgame = new Goodgame(this);
-    this.wasd = new Wsad(this);
+    this.wasd = new Wasd(this);
     this.services = [this.twitch, this.youtube, this.mixer, this.goodgame, this.wasd];
     this.serviceIdService = this.services.reduce((map, service) => {
       map.set(service.id, service);
