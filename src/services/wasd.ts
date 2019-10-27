@@ -7,7 +7,7 @@ import ErrorWithCode from "../tools/errorWithCode";
 import parallel from "../tools/parallel";
 import arrayByPart from "../tools/arrayByPart";
 
-const debug = require('debug')('app:StreamList');
+const debug = require('debug')('app:Wasd');
 const {CookieJar} = require('tough-cookie');
 const promiseLimit = require('promise-limit');
 
