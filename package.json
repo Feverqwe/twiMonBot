@@ -25,6 +25,7 @@
     "request": "^2.88.0",
     "sequelize": "^5.21.1",
     "superstruct": "^0.8.2",
+    "tough-cookie": "^3.0.1",
     "uuid": "^3.3.3",
     "xmldoc": "^1.1.2"
   },
