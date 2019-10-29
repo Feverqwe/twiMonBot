@@ -4,8 +4,11 @@ import ErrorWithCode from "../tools/errorWithCode";
 import {struct} from "superstruct";
 import parallel from "../tools/parallel";
 import got from "../tools/gotWithTimeout";
+import RateLimit from "../tools/rateLimit";
 
 const debug = require('debug')('app:Mixer');
+const limit = new RateLimit(1000);
+const gotLimited = limit.wrap(got);
 
 interface Channel {
   id: number,
@@ -68,7 +71,7 @@ class Mixer implements ServiceInterface {
     const skippedChannelIds: string[] = [];
     const removedChannelIds: string[] = [];
     return parallel(10, channelIds, (channelId) => {
-      return got('https://mixer.com/api/v1/channels/' + encodeURIComponent(channelId), {
+      return gotLimited('https://mixer.com/api/v1/channels/' + encodeURIComponent(channelId), {
         headers: {
           'user-agent': '',
           'client-id': this.main.config.mixerClientId,
@@ -136,7 +139,7 @@ class Mixer implements ServiceInterface {
   }
 
   requestChannelByQuery(query: string) {
-    return got('https://mixer.com/api/v1/channels', {
+    return gotLimited('https://mixer.com/api/v1/channels', {
       query: {
         limit: 1,
         scope: 'names',
@@ -157,7 +160,7 @@ class Mixer implements ServiceInterface {
   }
 
   requestChannelById(channelId: string) {
-    return got('https://mixer.com/api/v1/channels/' + encodeURIComponent(channelId), {
+    return gotLimited('https://mixer.com/api/v1/channels/' + encodeURIComponent(channelId), {
       headers: {
         'user-agent': '',
         'client-id': this.main.config.mixerClientId,
