@@ -70,7 +70,8 @@ class Mixer implements ServiceInterface {
     return parallel(10, channelIds, (channelId) => {
       return got('https://mixer.com/api/v1/channels/' + encodeURIComponent(channelId), {
         headers: {
-          'user-agent': ''
+          'user-agent': '',
+          'client-id': this.main.config.mixerClientId,
         },
         json: true,
       }).then(({body}: {body: any}) => {
@@ -139,7 +140,8 @@ class Mixer implements ServiceInterface {
       query: {
         limit: 1,
         scope: 'names',
-        q: query
+        q: query,
+        'client-id': this.main.config.mixerClientId,
       },
       headers: {
         'user-agent': ''
@@ -157,7 +159,8 @@ class Mixer implements ServiceInterface {
   requestChannelById(channelId: string) {
     return got('https://mixer.com/api/v1/channels/' + encodeURIComponent(channelId), {
       headers: {
-        'user-agent': ''
+        'user-agent': '',
+        'client-id': this.main.config.mixerClientId,
       },
       json: true,
     }).then(({body}: {body: object}) => {

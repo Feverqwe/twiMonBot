@@ -3,6 +3,7 @@
   "gaId": "",
   "ytToken": "",
   "twitchToken": "",
+  "mixerClientId": "",
   "emitCheckChannelsEveryMinutes": 5,
   "checkChannelIfLastSyncLessThenMinutes": 2.5,
   "channelSyncTimeoutMinutes": 2.5,

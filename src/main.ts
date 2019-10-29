@@ -36,6 +36,7 @@ export interface Config {
   gaId: string;
   ytToken: string;
   twitchToken: string;
+  mixerClientId: string;
   emitCheckChannelsEveryMinutes: number;
   checkChannelIfLastSyncLessThenMinutes: number;
   channelSyncTimeoutMinutes: number;
@@ -82,6 +83,7 @@ const config: Config = {
   gaId: '',
   ytToken: '',
   twitchToken: '',
+  mixerClientId: '',
   emitCheckChannelsEveryMinutes: 5,
   checkChannelIfLastSyncLessThenMinutes: 2.5,
   channelSyncTimeoutMinutes: 2.5,
