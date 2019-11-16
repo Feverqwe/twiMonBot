@@ -7,6 +7,7 @@ import {Channel, IChannel, Stream} from "./db";
 import LogFile from "./logFile";
 import getInProgress from "./tools/getInProgress";
 import parallel from "./tools/parallel";
+import promiseFinally from "./tools/promiseFinally";
 
 const debug = require('debug')('app:Checker');
 
@@ -107,7 +108,9 @@ class Checker {
         service: service,
         thread: null
       };
-      session.thread = this.runThread(service, session).catch((err) => {
+      session.thread = this.runThread(service, session).then(...promiseFinally(() => {
+        this.serviceThread.delete(service);
+      })).catch((err) => {
         debug('check: runThread error, cause: %o', err);
       });
       this.serviceThread.set(service, session);
@@ -372,8 +375,6 @@ class Checker {
         });
       });
     }
-
-    this.serviceThread.delete(service);
   }
 
   getStreams(service: ServiceInterface, channelIds: string[], rawChannelIds: (string|number)[], sessionId: string): Promise<{
