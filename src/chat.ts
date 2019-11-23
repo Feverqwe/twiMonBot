@@ -525,7 +525,7 @@ class Chat {
       });
     });
 
-    this.router.callback_query(/\/deleteChannel/, provideChat, (req: RouterReqWithChat, res) => {
+    this.router.callback_query(/\/unsetChannel/, provideChat, (req: RouterReqWithChat, res) => {
       return promiseTry(() => {
         return this.main.db.deleteChatById(req.chat.channelId);
       }).then(() => {
@@ -1102,7 +1102,7 @@ function getOptions(chat: IChatWithChannel) {
   if (chat.channelId) {
     btnList.push([{
       text: 'Remove channel (' + chat.channelId + ')',
-      callback_data: '/deleteChannel',
+      callback_data: '/unsetChannel',
     }]);
   } else {
     btnList.push([{
