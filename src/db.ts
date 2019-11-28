@@ -563,7 +563,7 @@ class Db {
     return this.sequelize.query(`
       SELECT channelId, COUNT(chatId) as chatCount, channels.service as service, channels.title as title FROM chatIdChannelId
       INNER JOIN channels ON channelId = channels.id
-      WHERE channels.service = "${serviceId}" AND channels.lastStreamAt > "${monthAgo.toISOString()}"
+      WHERE channels.service = "${serviceId}" AND channels.lastStreamAt > "${dateToSql(monthAgo)}"
       GROUP BY channelId ORDER BY COUNT(chatId) DESC LIMIT 10
     `, {type: Sequelize.QueryTypes.SELECT});
   }
@@ -764,7 +764,7 @@ class Db {
     return this.sequelize.query(`
       SELECT DISTINCT chatId FROM chatIdStreamId
       INNER JOIN chats ON chatIdStreamId.chatId = chats.id
-      WHERE chats.sendTimeoutExpiresAt < "${new Date().toISOString()}"
+      WHERE chats.sendTimeoutExpiresAt < "${dateToSql(new Date())}"
     `,  { type: Sequelize.QueryTypes.SELECT}).then((results: {chatId: string}[]) => {
       return results.map(result => result.chatId);
     });
@@ -826,8 +826,8 @@ class Db {
       INNER JOIN chats ON messages.chatId = chats.id
       WHERE (
         (messages.hasChanges = 1 AND messages.streamId IS NOT NULL) OR 
-        (messages.streamId IS NULL AND messages.createdAt < "${deletedBeforeDate.toISOString()}")
-      ) AND chats.sendTimeoutExpiresAt < "${new Date().toISOString()}"
+        (messages.streamId IS NULL AND messages.createdAt < "${dateToSql(deletedBeforeDate)}")
+      ) AND chats.sendTimeoutExpiresAt < "${dateToSql(new Date())}"
     `, { type: Sequelize.QueryTypes.SELECT}).then((results: {chatId: string}[]) => {
       return results.map(result => result.chatId);
     });
@@ -1072,6 +1072,14 @@ function getDeletedBeforeDate() {
   const deletedBeforeDate = new Date();
   deletedBeforeDate.setHours(deletedBeforeDate.getHours() - 24);
   return deletedBeforeDate;
+}
+
+function dateToSql(date: Date) {
+  const [YYYY, MM, DD, HH, mm, ss] = [
+    date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate(),
+    date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds()
+  ].map(v => ((v < 10) ? '0' : '') + v);
+  return `${YYYY}-${MM}-${DD} ${HH}:${mm}:${ss}`;
 }
 
 export default Db;
