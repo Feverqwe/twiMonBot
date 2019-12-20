@@ -337,7 +337,12 @@ class Youtube implements ServiceInterface {
         return this.requestChannelIdByQuery(query);
       }
       throw err;
-    }).then((channelId) => {
+    }).then(async (channelId) => {
+      const alreadyExists = await this.main.db.hasChannelByServiceRawId(this, channelId);
+      if (alreadyExists) {
+        return channelId;
+      }
+
       return this.channelHasBroadcasts(channelId).then(() => channelId);
     }).then((channelId: string) => {
       return gotLimited('https://www.googleapis.com/youtube/v3/search', {
@@ -429,7 +434,8 @@ class Youtube implements ServiceInterface {
     let username = null;
     [
       /youtube\.com\/(?:#\/)?user\/([\w\-]+)/i,
-      /youtube\.com\/([\w\-]+)/i
+      /youtube\.com\/([\w\-]+)/i,
+      /youtube\.com\/c\/([\w\-]+)/i,
     ].some((re) => {
       const m = re.exec(url);
       if (m) {

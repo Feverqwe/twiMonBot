@@ -525,6 +525,17 @@ class Db {
     });
   }
 
+  hasChannelByServiceRawId(service: ServiceInterface, rawChannelId: string|number) {
+    const id = serviceId.wrap(service, rawChannelId);
+
+    return ChannelModel.findOne({
+      where: {id},
+      attributes: ['id'],
+    }).then((channel: {id: string}) => {
+      return !!channel;
+    });
+  }
+
   changeChannelId(id: string, newId: string) {
     return ChannelModel.update({id: newId}, {
       where: {id}
