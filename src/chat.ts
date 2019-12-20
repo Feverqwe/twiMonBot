@@ -191,12 +191,20 @@ class Chat {
         Promise.all(this.main.services.map((service) => {
           return this.main.db.getChatIdChannelIdTop10ByServiceId(service.id);
         })),
-      ]).then(([chatCount, channelCount, onlineCount, serviceTopChannelsList]) => {
+        Promise.all(this.main.services.map((service) => {
+          return this.main.db.getServiceIdChannelCount(service.id);
+        })),
+      ]).then(([chatCount, channelCount, onlineCount, serviceTopChannelsList, serviceChannelCountList]) => {
         const lines = [];
 
         lines.push(this.main.locale.getMessage('users').replace('{count}', '' + chatCount));
         lines.push(this.main.locale.getMessage('channels').replace('{count}', '' + channelCount));
         lines.push(this.main.locale.getMessage('online').replace('{count}', '' + onlineCount));
+
+        const serviceCountMap = new Map();
+        serviceChannelCountList.forEach(({service, channelCount}) => {
+          serviceCountMap.set(service, channelCount);
+        });
 
         serviceTopChannelsList.sort((aa, bb) => {
           const a = aa.length;
@@ -207,11 +215,12 @@ class Chat {
         serviceTopChannelsList.forEach((serviceTopChannels) => {
           if (serviceTopChannels.length) {
             const service = this.main.getServiceById(serviceTopChannels[0].service);
+            const channelCount = serviceCountMap.get(serviceTopChannels[0].service);
             const name = service.name;
             lines.push('');
-            lines.push(`${name}:`);
+            lines.push(`${name} (${channelCount}):`);
             serviceTopChannels.forEach(({title, chatCount}, index) => {
-              lines.push(chatCount + '. ' + title);
+              lines.push(chatCount + ' - ' + title);
             });
           }
         });
