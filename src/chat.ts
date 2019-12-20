@@ -211,7 +211,7 @@ class Chat {
             lines.push('');
             lines.push(`${name}:`);
             serviceTopChannels.forEach(({title, chatCount}, index) => {
-              lines.push((index + 1) + '. ' + title);
+              lines.push(chatCount + '. ' + title);
             });
           }
         });
