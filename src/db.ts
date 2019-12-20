@@ -585,7 +585,9 @@ class Db {
     return this.sequelize.query(`
       SELECT service, COUNT(id) as channelCount FROM channels 
       WHERE service = "${serviceId}" AND channels.lastStreamAt > "${dateToSql(monthAgo)}"
-    `, {type: Sequelize.QueryTypes.SELECT});
+    `, {type: Sequelize.QueryTypes.SELECT}).then((results: {service: null|string, channelCount: number}[]) => {
+      return results[0];
+    });
   }
 
   getChannelsByChatId(chatId: string): Promise<IChannel[]> {
