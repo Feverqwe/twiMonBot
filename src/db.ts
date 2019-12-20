@@ -580,11 +580,9 @@ class Db {
   }
 
   getServiceIdChannelCount(serviceId: string) {
-    const monthAgo = new Date();
-    monthAgo.setMonth(monthAgo.getMonth() - 1);
     return this.sequelize.query(`
       SELECT service, COUNT(id) as channelCount FROM channels 
-      WHERE service = "${serviceId}" AND channels.lastStreamAt > "${dateToSql(monthAgo)}"
+      WHERE service = "${serviceId}"
     `, {type: Sequelize.QueryTypes.SELECT}).then((results: {service: null|string, channelCount: number}[]) => {
       return results[0];
     });
