@@ -40,6 +40,7 @@ export interface Config {
   emitCheckChannelsEveryMinutes: number;
   checkChannelIfLastSyncLessThenMinutes: number;
   channelSyncTimeoutMinutes: number;
+  deadChannelSyncTimeoutMinutes: number;
   emitSendMessagesEveryMinutes: number;
   emitCheckExistsChatsEveryHours: number;
   chatSendTimeoutAfterErrorMinutes: number;
@@ -87,6 +88,7 @@ const config: Config = {
   emitCheckChannelsEveryMinutes: 5,
   checkChannelIfLastSyncLessThenMinutes: 2.5,
   channelSyncTimeoutMinutes: 2.5,
+  deadChannelSyncTimeoutMinutes: 15,
   removeStreamIfOfflineMoreThanMinutes: 15,
   emitCleanChatsAndChannelsEveryHours: 1,
   emitSendMessagesEveryMinutes: 5,

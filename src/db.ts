@@ -657,13 +657,37 @@ class Db {
   }
 
   setChannelsSyncTimeoutExpiresAt(ids: string[]) {
-    const date = new Date();
-    date.setSeconds(date.getSeconds() + this.main.config.channelSyncTimeoutMinutes * 60);
-    return ChannelModel.update({
-      syncTimeoutExpiresAt: date
-    }, {
-      where: {id: ids}
-    });
+    const aliveTimeout = new Date();
+    aliveTimeout.setSeconds(aliveTimeout.getSeconds() + this.main.config.channelSyncTimeoutMinutes * 60);
+
+    const deadTimeout = new Date();
+    deadTimeout.setSeconds(deadTimeout.getSeconds() + this.main.config.deadChannelSyncTimeoutMinutes * 60);
+
+    const channelIsDeadFromDate = new Date();
+    channelIsDeadFromDate.setMonth(channelIsDeadFromDate.getMonth() - 3);
+
+    return Promise.all([
+      ChannelModel.update({
+        syncTimeoutExpiresAt: aliveTimeout
+      }, {
+        where: {
+          id: ids,
+          lastStreamAt: {[Op.gt]: channelIsDeadFromDate}
+        }
+      }),
+      ChannelModel.update({
+        syncTimeoutExpiresAt: deadTimeout
+      }, {
+        where: {id: ids},
+        [Op.or]: [
+          {lastStreamAt: {[Op.lte]: channelIsDeadFromDate}},
+          {
+            lastStreamAt: null,
+            createdAt: {[Op.lte]: channelIsDeadFromDate}
+          }
+        ]
+      }),
+    ]);
   }
 
   removeChannelByIds(ids: string[]) {

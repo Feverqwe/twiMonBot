@@ -7,6 +7,7 @@
   "emitCheckChannelsEveryMinutes": 5,
   "checkChannelIfLastSyncLessThenMinutes": 2.5,
   "channelSyncTimeoutMinutes": 2.5,
+  "deadChannelSyncTimeoutMinutes": 15,
   "removeStreamIfOfflineMoreThanMinutes": 15,
   "emitCleanChatsAndChannelsEveryHours": 1,
   "emitSendMessagesEveryMinutes": 5,
