@@ -678,14 +678,16 @@ class Db {
       ChannelModel.update({
         syncTimeoutExpiresAt: deadTimeout
       }, {
-        where: {id: ids},
-        [Op.or]: [
-          {lastStreamAt: {[Op.lte]: channelIsDeadFromDate}},
-          {
-            lastStreamAt: null,
-            createdAt: {[Op.lte]: channelIsDeadFromDate}
-          }
-        ]
+        where: {
+          id: ids,
+          [Op.or]: [
+            {lastStreamAt: {[Op.lte]: channelIsDeadFromDate}},
+            {
+              lastStreamAt: null,
+              createdAt: {[Op.lte]: channelIsDeadFromDate}
+            }
+          ]
+        },
       }),
     ]);
   }
