@@ -672,7 +672,13 @@ class Db {
       }, {
         where: {
           id: ids,
-          lastStreamAt: {[Op.gt]: channelIsDeadFromDate}
+          [Op.or]: [
+            {lastStreamAt: {[Op.gt]: channelIsDeadFromDate}},
+            {
+              lastStreamAt: null,
+              createdAt: {[Op.gt]: channelIsDeadFromDate}
+            }
+          ]
         }
       }),
       ChannelModel.update({
