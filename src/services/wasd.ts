@@ -6,10 +6,10 @@ import promiseTry from "../tools/promiseTry";
 import ErrorWithCode from "../tools/errorWithCode";
 import parallel from "../tools/parallel";
 import arrayByPart from "../tools/arrayByPart";
+import promiseLimit from "../tools/promiseLimit";
 
 const debug = require('debug')('app:Wasd');
 const {CookieJar} = require('tough-cookie');
-const promiseLimit = require('promise-limit');
 
 const cookieJar = new CookieJar();
 

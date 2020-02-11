@@ -9,12 +9,12 @@ import LogFile from "./logFile";
 import arrayByPart from "./tools/arrayByPart";
 import ExpressPubSub from "./tools/expressPubSub";
 import {Express} from "express";
+import promiseLimit from "./tools/promiseLimit";
 
 const debug = require('debug')('app:YtPubSub');
 const express = require('express');
 const {XmlDocument} = require("xmldoc");
 const qs = require('querystring');
-const promiseLimit = require('promise-limit');
 const oneLimit = promiseLimit(1);
 const throttle = require('lodash.throttle');
 const {Server} = require('http');

@@ -2,13 +2,13 @@ import parallel from "./tools/parallel";
 import arrayByPart from "./tools/arrayByPart";
 import Main from "./main";
 import got from "./tools/gotWithTimeout";
+import promiseLimit from "./tools/promiseLimit";
 
 const debug = require('debug')('app:tracker');
 const qs = require('querystring');
 const uuidV4 = require('uuid/v4');
 const QuickLRU = require('quick-lru');
 const throttle = require('lodash.throttle');
-const promiseLimit = require('promise-limit');
 
 const oneLimit = promiseLimit(1);
 
