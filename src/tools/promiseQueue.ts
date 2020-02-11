@@ -1,3 +1,5 @@
+import promiseTry from "./promiseTry";
+
 const itemWeakMap = new WeakMap();
 
 class PromiseQueue {
@@ -51,7 +53,7 @@ class PromiseQueue {
 
   runQueue(callback: Function, resolve: Function) {
     this.activeCount++;
-    const promise = promiseTry(callback);
+    const promise = promiseTry(callback as () => any);
     resolve(promise);
     promise.then(this.finishQueue, this.finishQueue);
   }
@@ -72,10 +74,6 @@ function removeFromArray(arr: Array<any>, item: any) {
     return true;
   }
   return false;
-}
-
-function promiseTry(callback: Function) {
-  return new Promise(r => r(callback()));
 }
 
 export default PromiseQueue;
