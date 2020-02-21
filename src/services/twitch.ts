@@ -27,7 +27,7 @@ const Channels:(any: any) => Channels = struct.pick({
 });
 
 interface Streams {
-  _total: number,
+  // _total: number,
   streams: {
     _id: number,
     stream_type: string,
@@ -46,7 +46,7 @@ interface Streams {
 }
 
 const Streams: (any: any) => Streams = struct.pick({
-  _total: 'number',
+  // _total: 'number',
   streams: [struct.pick({
     _id: 'number',
     stream_type: 'string',
@@ -102,9 +102,9 @@ class Twitch implements ServiceInterface {
         json: true,
       }).then(({body}: {body: any}) => {
         const result = Streams(body);
-        if (result._total > 100) {
+        /*if (result._total > 100) {
           debug('result is more than limit', result._total);
-        }
+        }*/
         const streams = result.streams;
 
         streams.forEach((stream) => {
