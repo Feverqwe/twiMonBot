@@ -465,6 +465,12 @@ class Db {
     });
   }
 
+  setChatUsernameById(id: string, username: string) {
+    return ChatModel.update({username}, {
+      where: {id}
+    });
+  }
+
   getChatIds(offset: number, limit: number): Promise<string[]> {
     return ChatModel.findAll({
       offset,
