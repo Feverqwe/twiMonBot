@@ -304,6 +304,13 @@ export class RouterReq {
     });
   }
 
+  get chatUsername(): string {
+    return this._useCache('chatUsername', () => {
+      const message = this._findMessage();
+      return message && message.chat.username;
+    });
+  }
+
   get messageId(): number {
     return this._useCache('messageId', () => {
       const message = this._findMessage();

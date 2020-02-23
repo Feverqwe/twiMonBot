@@ -15,6 +15,7 @@ const ISOLATION_LEVELS = Sequelize.Transaction.ISOLATION_LEVELS;
 
 export interface Chat {
   id: string,
+  username: string|null,
   channelId: string,
   isHidePreview: boolean,
   isMutedRecords: boolean,
@@ -180,6 +181,7 @@ class Db {
 
     ChatModel.init({
       id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
+      username: {type: Sequelize.STRING(191), allowNull: true},
       channelId: {type: Sequelize.STRING(191), allowNull: true},
       isHidePreview: {type: Sequelize.BOOLEAN, defaultValue: false},
       isMutedRecords: {type: Sequelize.BOOLEAN, defaultValue: true},
@@ -423,9 +425,12 @@ class Db {
     });
   }
 
-  ensureChat(id: string): Promise<IChatWithChannel> {
+  ensureChat(id: string, username: string): Promise<IChatWithChannel> {
     return ChatModel.findOrCreate({
       where: {id},
+      defaults: {
+        username,
+      },
       //@ts-ignore
       include: [
         {model: ChatModel, as: 'channel'}
