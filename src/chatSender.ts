@@ -234,23 +234,15 @@ class ChatSender {
         return this.sendStreamAsPhoto(stream);
       }
     }).then((sendMessage: SentMessage) => {
-      const message = sendMessage.message;
-      const username = message.chat.username || null;
-      let isUpdateUsername = false;
-      if (username !== this.chat.username) {
-        isUpdateUsername = true;
-        this.chat.username = username;
-      }
       return Promise.all([
         this.main.db.deleteChatIdStreamId(this.chat.id, stream.id),
         this.main.db.putMessage({
-          id: message.message_id.toString(),
+          id: sendMessage.message.message_id.toString(),
           chatId: this.chat.id,
           streamId: stream.id,
           type: sendMessage.type,
           text: sendMessage.text,
         }),
-        isUpdateUsername && this.main.db.setChatUsernameById(this.chat.id, username)
       ]);
     }, this.onSendMessageError);
   }
