@@ -144,7 +144,7 @@ class ChatSender {
           hasChanges: false
         });
       }, (err: any) => {
-        if (err.code === 'ETELEGRAM' && /message to edit not found/.test(err.response.body.description)) {
+        if (err.code === 'ETELEGRAM' && /message to edit not found|message can't be edited/.test(err.response.body.description)) {
           return this.main.db.deleteMessageById(message._id);
         }
         return this.onSendMessageError(err);
