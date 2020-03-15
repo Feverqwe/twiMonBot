@@ -6,7 +6,7 @@ import promiseLimit from "./tools/promiseLimit";
 
 const debug = require('debug')('app:tracker');
 const qs = require('querystring');
-const uuidV4 = require('uuid/v4');
+const uuidV4 = require('uuid').v4;
 const QuickLRU = require('quick-lru');
 const throttle = require('lodash.throttle');
 
