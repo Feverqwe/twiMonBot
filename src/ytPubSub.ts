@@ -230,17 +230,40 @@ class YtPubSub {
           });
         }).then(async () => {
           const feedIds = feeds.map(feed => feed.id);
-          const existsFeedIds = await this.main.db.getExistsFeedIds(feedIds);
+          const existsFeeds = await this.main.db.getExistsFeeds(feedIds);
+
+          const existsNotStreamIds: string[] = [];
+          const existsFeedIds: string[] = [];
+          existsFeeds.forEach((feed) => {
+            if (feed.isStream !== null && !feed.isStream) {
+              existsNotStreamIds.push(feed.id);
+            }
+            existsFeedIds.push(feed.id);
+          });
+
+          const notExistFeeds: YtPubSubFeed[] = [];
+          const fixedIsStreamFeeds: YtPubSubFeed[] = [];
+          feeds.forEach((feed) => {
+            if (!existsFeedIds.includes(feed.id)) {
+              notExistFeeds.push(feed);
+            } else
+            if (existsNotStreamIds.includes(feed.id)) {
+              fixedIsStreamFeeds.push(feed);
+              feed.isStream = null;
+            }
+          });
 
           await Promise.all([
             this.main.db.putFeeds(feeds),
             this.main.db.setYtPubSubChannelsLastSyncAt(channelIds, syncAt)
           ]);
 
-          feeds.forEach((feed) => {
-            if (!existsFeedIds.includes(feed.id)) {
-              this.log.write('[insert full]', feed.channelId, feed.id);
-            }
+          notExistFeeds.forEach((feed) => {
+            this.log.write('[insert full]', feed.channelId, feed.id);
+          });
+
+          fixedIsStreamFeeds.forEach((feed) => {
+            this.log.write('[fixed]', feed.channelId, feed.id);
           });
         });
       });

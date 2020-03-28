@@ -1044,6 +1044,13 @@ class Db {
     });
   }
 
+  getExistsFeeds(ids: string[]): Promise<{id: string, isStream?: boolean}[]> {
+    return YtPubSubFeedModel.findAll({
+      where: {id: ids},
+      attributes: ['id', 'isStream']
+    });
+  }
+
   getStreamFeedsByChannelIds(channelIds: string[]): Promise<IYtPubSubFeed[]> {
     return YtPubSubFeedModel.findAll({
       where: {
@@ -1068,7 +1075,7 @@ class Db {
   putFeeds(feeds: YtPubSubFeed[]) {
     return bulk(feeds, (feeds) => {
       return YtPubSubFeedModel.bulkCreate(feeds, {
-        updateOnDuplicate: ['title', 'channelTitle']
+        updateOnDuplicate: ['title', 'channelTitle', 'isStream']
       });
     });
   }
