@@ -232,11 +232,16 @@ class YtPubSub {
           const feedIds = feeds.map(feed => feed.id);
           const existsFeeds = await this.main.db.getExistsFeeds(feedIds);
 
-          const existsNotStreamIds: string[] = [];
+          const existsIsStreamTrueIds: string[] = [];
+          const existsIsStreamFalseIds: string[] = [];
           const existsFeedIds: string[] = [];
           existsFeeds.forEach((feed) => {
-            if (feed.isStream !== null && !feed.isStream) {
-              existsNotStreamIds.push(feed.id);
+            if (feed.isStream !== null) {
+              if (feed.isStream) {
+                existsIsStreamTrueIds.push(feed.id);
+              } else {
+                existsIsStreamFalseIds.push(feed.id);
+              }
             }
             existsFeedIds.push(feed.id);
           });
@@ -247,9 +252,12 @@ class YtPubSub {
             if (!existsFeedIds.includes(feed.id)) {
               notExistFeeds.push(feed);
             } else
-            if (existsNotStreamIds.includes(feed.id)) {
+            if (existsIsStreamFalseIds.includes(feed.id)) {
               fixedIsStreamFeeds.push(feed);
               feed.isStream = null;
+            } else
+            if (existsIsStreamTrueIds.includes(feed.id)) {
+              feed.isStream = true;
             }
           });
 
