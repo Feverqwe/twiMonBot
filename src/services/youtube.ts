@@ -19,6 +19,12 @@ interface VideosItemsSnippet {
   items: {
     snippet: {
       channelId: string
+    },
+    liveStreamingDetails?: {
+      scheduledStartTime?: string,
+      actualStartTime?: string,
+      actualEndTime?: string,
+      concurrentViewers?: string,
     }
   }[]
 }
@@ -27,7 +33,13 @@ const VideosItemsSnippet:(any: any) => VideosItemsSnippet = struct.pick({
   items: [struct.pick({
     snippet: struct.pick({
       channelId: 'string'
-    })
+    }),
+    liveStreamingDetails: struct.optional(struct.pick({
+      scheduledStartTime: 'string?',
+      actualStartTime: 'string?',
+      actualEndTime: 'string?',
+      concurrentViewers: 'string?',
+    })),
   })]
 });
 
@@ -322,9 +334,13 @@ class Youtube implements ServiceInterface {
   }
 
   findChannel(query: string) {
+    const session = {
+      isLiveVideoUrl: false,
+    };
+
     return this.getChannelIdByUrl(query).catch((err) => {
       if (err.code === 'IS_NOT_CHANNEL_URL') {
-        return this.requestChannelIdByVideoUrl(query);
+        return this.requestChannelIdByVideoUrl(query, session);
       }
       throw err;
     }).catch((err) => {
@@ -338,6 +354,8 @@ class Youtube implements ServiceInterface {
       }
       throw err;
     }).then(async (channelId) => {
+      if (session.isLiveVideoUrl) return channelId;
+
       const alreadyExists = await this.main.db.hasChannelByServiceRawId(this, channelId);
       if (alreadyExists) {
         return channelId;
@@ -393,7 +411,7 @@ class Youtube implements ServiceInterface {
     return channelId;
   }
 
-  async requestChannelIdByVideoUrl(url: string) {
+  async requestChannelIdByVideoUrl(url: string, session: {isLiveVideoUrl?: boolean} = {}) {
     let videoId = null;
     [
       /youtu\.be\/([\w\-]+)/i,
@@ -413,10 +431,10 @@ class Youtube implements ServiceInterface {
 
     return gotLimited('https://www.googleapis.com/youtube/v3/videos', {
       query: {
-        part: 'snippet',
+        part: 'snippet,liveStreamingDetails',
         id: videoId,
         maxResults: 1,
-        fields: 'items/snippet',
+        fields: 'items(snippet/channelId,liveStreamingDetails)',
         key: this.main.config.ytToken
       },
       json: true,
@@ -426,7 +444,13 @@ class Youtube implements ServiceInterface {
         throw new ErrorWithCode('Video by id is not found', 'CHANNEL_BY_VIDEO_ID_IS_NOT_FOUND');
       }
 
-      return videosItemsSnippet.items[0].snippet.channelId;
+      const firstItem = videosItemsSnippet.items[0];
+
+      if (firstItem.liveStreamingDetails) {
+        session.isLiveVideoUrl = true;
+      }
+
+      return firstItem.snippet.channelId;
     });
   }
 
