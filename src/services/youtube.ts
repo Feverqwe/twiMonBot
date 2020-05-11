@@ -9,7 +9,7 @@ import promiseTry from "../tools/promiseTry";
 import got from "../tools/gotWithTimeout";
 
 const debug = require('debug')('app:Youtube');
-const XmlEntities = require('html-entities/lib/xml-entities');
+const XmlEntities = require('html-entities/lib/xml-entities').XmlEntities;
 
 const limit = new RateLimit(1000);
 const gotLimited = limit.wrap(got);
