@@ -89,7 +89,7 @@ class Twitch implements ServiceInterface {
     return parallel(10, arrayByPart(channelIds, 100), (channelIds) => {
       return got('https://api.twitch.tv/kraken/streams', {
         query: {
-          limit: 100,
+          limit: 500,
           channel: channelIds.join(','),
           stream_type: 'all'
         },
