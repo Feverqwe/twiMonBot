@@ -7,7 +7,7 @@ class Locale {
 const languages:{[s: string]: {[s: string]: string}} = {};
 
 languages.en = {
-  help: 'Hi! I will notify you about the beginning of the broadcasts on Twitch, Youtube, GoodGame and Mixer!',
+  help: 'Hi! I will notify you about the beginning of the broadcasts on Twitch, Youtube and GoodGame!',
   offline: 'All channels in offline',
   emptyServiceList: `You don't have channels in watchlist, yet.`,
   enterChannelName: 'Enter the channel URL or name (example: {example}):',

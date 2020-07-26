@@ -8,7 +8,6 @@ import Checker, {ServiceInterface} from "./checker";
 import RateLimit from "./tools/rateLimit";
 import Proxy from "./proxy";
 import Goodgame from "./services/goodgame";
-import Mixer from "./services/mixer";
 import Twitch from "./services/twitch";
 import Youtube from "./services/youtube";
 import {TUser} from "./router";
@@ -36,7 +35,6 @@ export interface Config {
   gaId: string;
   ytToken: string;
   twitchToken: string;
-  mixerClientId: string;
   emitCheckChannelsEveryMinutes: number;
   checkChannelIfLastSyncLessThenMinutes: number;
   channelSyncTimeoutMinutes: number;
@@ -85,7 +83,6 @@ const config: Config = {
   gaId: '',
   ytToken: '',
   twitchToken: '',
-  mixerClientId: '',
   emitCheckChannelsEveryMinutes: 5,
   checkChannelIfLastSyncLessThenMinutes: 2.5,
   channelSyncTimeoutMinutes: 2.5,
@@ -137,7 +134,6 @@ class Main extends Events {
   db: Db;
   twitch: Twitch;
   youtube: Youtube;
-  mixer: Mixer;
   goodgame: Goodgame;
   wasd: Wasd;
   services: ServiceInterface[];
@@ -163,10 +159,9 @@ class Main extends Events {
 
     this.twitch = new Twitch(this);
     this.youtube = new Youtube(this);
-    this.mixer = new Mixer(this);
     this.goodgame = new Goodgame(this);
     this.wasd = new Wasd(this);
-    this.services = [this.twitch, this.youtube, this.mixer, this.goodgame, this.wasd];
+    this.services = [this.twitch, this.youtube, this.goodgame, this.wasd];
     this.serviceIdService = this.services.reduce((map, service) => {
       map.set(service.id, service);
       return map;

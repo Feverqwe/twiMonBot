@@ -1,5 +1,5 @@
 
-Twitch, Youtube, Mixer and GoodGame Livestream monitor
+Twitch, Youtube and GoodGame Livestream monitor
 =======
 
 This is a bot for Telegram.
