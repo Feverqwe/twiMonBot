@@ -108,7 +108,7 @@ class Twitch implements ServiceInterface {
             let url = stream.preview[size];
             if (url) {
               if (size === 'template') {
-                url = url.replace('{width}', '1280').replace('{height}', '720')
+                url = url.replace('{width}', '1920').replace('{height}', '1080')
               }
               previews.push(url);
             }
