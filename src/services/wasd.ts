@@ -15,13 +15,12 @@ const cookieJar = new CookieJar();
 
 interface Stream {
   media_container_id: number,
+  media_container_name: string,
+  media_container_status: string,
   channel_id: number,
   media_container_streams: [{
     stream_id: number,
-    stream_name: string,
-    stream_status: string,
     stream_current_viewers: number,
-    channel_id: number,
     stream_media: [{
       media_id: number,
       media_status: string,
@@ -29,21 +28,23 @@ interface Stream {
         media_preview_url: string,
       }
     }],
-    stream_channel: {
-      channel_name: string,
-    }
   }],
+  media_container_user: {
+    channel_id: number,
+  },
+  media_container_channel: {
+    channel_name: string,
+  },
 }
 
 const Stream: (any: any) => Stream = struct.pick({
   media_container_id: 'number',
+  media_container_name: 'string',
+  media_container_status: 'string',
   channel_id: 'number',
   media_container_streams: [struct.pick({
     stream_id: 'number',
-    stream_name: 'string',
-    stream_status: 'string', // RUNNING
     stream_current_viewers: 'number',
-    channel_id: 'number',
     stream_media: [struct.pick({
       media_id: 'number',
       media_status: 'string', // RUNNING
@@ -51,10 +52,13 @@ const Stream: (any: any) => Stream = struct.pick({
         media_preview_url: 'string'
       })
     })],
-    stream_channel: struct.pick({
-      channel_name: 'string'
-    })
-  })]
+  })],
+  media_container_user: struct.pick({
+    channel_id: 'number',
+  }),
+  media_container_channel: struct.pick({
+    channel_name: 'string',
+  }),
 });
 
 interface StreamList {
@@ -95,7 +99,7 @@ class Wasd implements ServiceInterface {
 
   match(url: string) {
     return [
-      /wasd\.tv\/channel\/\d+/i
+      /wasd\.tv\/[^\/]+/i
     ].some(re => re.test(url));
   }
 
@@ -106,7 +110,7 @@ class Wasd implements ServiceInterface {
     return parallel(10, arrayByPart(channelIds, 100), (channelIds) => {
       return retryIfLocationMismatch(() => {
         return prepCookieJar().then(() => {
-          return got('https://wasd.tv/api/media-containers', {
+          return got('https://wasd.tv/api/v2/media-containers', {
             query: {
               media_container_status: 'RUNNING',
               limit: 100,
@@ -121,10 +125,19 @@ class Wasd implements ServiceInterface {
       }).then(({body}: any) => {
         const streamList = StreamList(body).result;
 
-        streamList.forEach(({channel_id, media_container_streams}) => {
+        streamList.forEach((result) => {
+          const {
+            channel_id,
+            media_container_status,
+            media_container_name,
+            media_container_streams,
+            media_container_user,
+            media_container_channel,
+          } = result;
+          if (media_container_status !== 'RUNNING') return;
+
           media_container_streams.forEach((stream) => {
-            if (stream.stream_status !== 'RUNNING') return;
-            if (stream.channel_id !== channel_id) return;
+            if (media_container_user.channel_id !== channel_id) return;
 
             const previews: string[] = [];
             stream.stream_media.forEach((media) => {
@@ -135,15 +148,15 @@ class Wasd implements ServiceInterface {
 
             resultStreams.push({
               id: stream.stream_id,
-              url: getChannelUrl(stream.channel_id),
-              title: stream.stream_name,
+              url: getChannelUrl(channel_id),
+              title: media_container_name,
               game: null,
               isRecord: false,
               previews: previews,
               viewers: stream.stream_current_viewers,
-              channelId: stream.channel_id,
-              channelTitle: stream.stream_channel.channel_name,
-              channelUrl: getChannelUrl(stream.channel_id),
+              channelId: channel_id,
+              channelTitle: media_container_channel.channel_name,
+              channelUrl: getChannelUrl(channel_id),
             });
           });
         });
@@ -173,14 +186,14 @@ class Wasd implements ServiceInterface {
   }
 
   findChannel(query: string): Promise<ServiceChannel> {
-    return this.getChannelIdByUrl(query).catch((err) => {
+    return this.getChannelNameByUrl(query).catch((err) => {
       if (err.code === 'IS_NOT_CHANNEL_URL') {
         return query;
       } else {
         throw err;
       }
-    }).then((channelId) => {
-      return this.requestChannelById(channelId);
+    }).then((query) => {
+      return this.requestChannelByQuery(query);
     }).then(({body}: any) => {
       const channel = Channel(body).result;
       const id = channel.channel_id;
@@ -190,7 +203,7 @@ class Wasd implements ServiceInterface {
     });
   }
 
-  requestChannelById(channelId: number | string) {
+  requestChannelById(channelId: number) {
     return retryIfLocationMismatch(() => {
       return prepCookieJar().then(() => {
         return got('https://wasd.tv/api/channels/' + encodeURIComponent(channelId), {
@@ -207,10 +220,27 @@ class Wasd implements ServiceInterface {
     });
   }
 
-  async getChannelIdByUrl(url: string) {
+  requestChannelByQuery(query: string) {
+    return retryIfLocationMismatch(() => {
+      return prepCookieJar().then(() => {
+        return got('https://wasd.tv/api/channels/nicknames/' + encodeURIComponent(query), {
+          timeout: 10 * 1000,
+          cookieJar: cookieJar,
+          json: true,
+        });
+      });
+    }).catch((err: any) => {
+      if (err.statusCode === 404) {
+        throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
+      }
+      throw err;
+    });
+  }
+
+  async getChannelNameByUrl(url: string) {
     let channelId = '';
     [
-      /wasd\.tv\/channel\/(\d+)/i
+      /wasd\.tv\/([^\/]+)/i
     ].some((re) => {
       const m = re.exec(url);
       if (m) {
