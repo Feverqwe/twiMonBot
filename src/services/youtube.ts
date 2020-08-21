@@ -323,9 +323,11 @@ class Youtube implements ServiceInterface {
           json: true,
         }).then(({body}) => {
           const channelsItemsId = ChannelsItemsId(body);
-          channelsItemsId.items && channelsItemsId.items.forEach((item) => {
-            resultChannelIds.push(item.id);
-          });
+          if (channelsItemsId.items) {
+            channelsItemsId.items.forEach((item) => {
+              resultChannelIds.push(item.id);
+            });
+          }
 
           return channelsItemsId.nextPageToken;
         });
