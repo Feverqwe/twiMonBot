@@ -44,16 +44,16 @@ const VideosItemsSnippet:(any: any) => VideosItemsSnippet = struct.pick({
 });
 
 interface ChannelsItemsId {
-  items: {
+  items?: {
     id: string,
   }[],
   nextPageToken: string,
 }
 
 const ChannelsItemsId:(any: any) => ChannelsItemsId = struct.pick({
-  items: [struct.pick({
+  items: struct.optional([struct.pick({
     id: 'string'
-  })],
+  })]),
   nextPageToken: 'string?'
 });
 
@@ -323,7 +323,7 @@ class Youtube implements ServiceInterface {
           json: true,
         }).then(({body}) => {
           const channelsItemsId = ChannelsItemsId(body);
-          channelsItemsId.items.forEach((item) => {
+          channelsItemsId.items && channelsItemsId.items.forEach((item) => {
             resultChannelIds.push(item.id);
           });
 
@@ -458,8 +458,8 @@ class Youtube implements ServiceInterface {
     let username = null;
     [
       /youtube\.com\/(?:#\/)?user\/([\w\-]+)/i,
-      /youtube\.com\/([\w\-]+)/i,
       /youtube\.com\/c\/([\w\-]+)/i,
+      /youtube\.com\/([\w\-]+)/i,
     ].some((re) => {
       const m = re.exec(url);
       if (m) {
@@ -487,7 +487,7 @@ class Youtube implements ServiceInterface {
       json: true,
     }).then(({body}) => {
       const channelsItemsId = ChannelsItemsId(body);
-      if (!channelsItemsId.items.length) {
+      if (!channelsItemsId.items || !channelsItemsId.items.length) {
         throw new ErrorWithCode('Channel by user is not found', 'CHANNEL_BY_USER_IS_NOT_FOUND');
       }
 
