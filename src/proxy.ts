@@ -9,8 +9,18 @@ import {struct} from "superstruct";
 import got from "./tools/gotWithTimeout";
 
 const debug = require('debug')('app:proxyList');
-const ProxyAgent = require('proxy-agent');
 const url = require('url');
+
+const lazy = {
+  // @ts-ignore
+  _proxyAgent: null,
+  get ProxyAgent() {
+    if (!this._proxyAgent) {
+      this._proxyAgent = require('proxy-agent');
+    }
+    return this._proxyAgent;
+  }
+};
 
 interface Agent {
   _latency: number,
@@ -71,7 +81,7 @@ class Proxy {
       }
       // @ts-ignore
       proxy.timeout = proxy.timeout || 10 * 1000;
-      const agent = new ProxyAgent(proxy);
+      const agent = new lazy.ProxyAgent(proxy);
       this.online.push(agent);
     });
 
@@ -222,7 +232,7 @@ class Proxy {
       const availableAgents: Agent[] = [];
       return parallel(8, proxies, async (proxyUrl) => {
         if (availableAgents.length >= count) return;
-        const agent = new ProxyAgent(proxyUrl);
+        const agent = new lazy.ProxyAgent(proxyUrl);
         if (existsAgentUrls.includes(agentToString(agent))) return;
         try {
           const results = await this.testAgent(agent);
