@@ -1,12 +1,12 @@
 {
   "compilerOptions": {
     "experimentalDecorators": true,
-    "outDir": "./tsDist/",
-    "sourceMap": true,
-    "moduleResolution": "node",
-    "target": "es2017",
     "allowJs": true,
     "strict": true,
-    "strictNullChecks": false
+    "noEmit": true,
+    "strictNullChecks": false,
+    "target": "ES2019",
+    "moduleResolution": "Node",
+    "skipLibCheck": true
   }
 }
