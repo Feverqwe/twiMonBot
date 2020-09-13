@@ -221,6 +221,11 @@ class ChatSender {
           }
           throw err;
         });
+      } else
+      if (/not enough rights to send photos/.test(body.description)) {
+        this.chat.isHidePreview = true;
+
+        return this.chat.save();
       }
     }
     throw err;
@@ -458,7 +463,6 @@ const blockedErrors = [
   /chat not found/,
   /channel not found/,
   /USER_DEACTIVATED/,
-  /not enough rights to send photos to the chat/,
   /have no rights to send a message/,
   /need administrator rights in the channel chat/,
   /CHAT_WRITE_FORBIDDEN/,
