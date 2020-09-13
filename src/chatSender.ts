@@ -294,6 +294,17 @@ class ChatSender {
           text: caption,
           message
         };
+      }, (err: Error & any) => {
+        if (err.code === 'ETELEGRAM') {
+          const body = err.response.body;
+
+          if (/FILE_REFERENCE_.+/.test(body.description)) {
+            stream.telegramPreviewFileId = null;
+
+            return this.sendStreamAsPhoto(stream);
+          }
+        }
+        throw err;
       });
     } else {
       return this.requestAndSendPhoto(stream);
