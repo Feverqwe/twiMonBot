@@ -225,7 +225,9 @@ class ChatSender {
       if (/not enough rights to send photos/.test(body.description)) {
         this.chat.isHidePreview = true;
 
-        return this.chat.save();
+        return this.chat.save().then(() => {
+          throw new ErrorWithCode(`Chat ${this.chat.id} is deny photos`, 'CHAT_IS_DENY_PHOTOS');
+        });
       }
     }
     throw err;
