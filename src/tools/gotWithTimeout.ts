@@ -20,9 +20,9 @@ function gotLockTimeout(request: Promise<any> & {cancel: () => void}): Promise<a
     lockTimeoutFired = true;
     request.cancel();
   }, 60 * 1000);
-  return request.then(...promiseFinally(() => {
+  return request.finally(() => {
     clearTimeout(timeout);
-  })).catch((err: any) => {
+  }).catch((err: any) => {
     if (err.name === 'CancelError' && lockTimeoutFired) {
       const error = new ErrorWithCode('Lock timeout fired', 'ETIMEDOUT');
       error.name = 'LockTimeoutError';

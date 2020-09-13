@@ -7,9 +7,9 @@ const getInProgress = (): <T>(callback: () => T) => Promise<T|undefined> => {
     if (isInProgress) return Promise.resolve(undefined);
     isInProgress = true;
     // @ts-ignore
-    return promiseTry(() => callback()).then(...promiseFinally(() => {
+    return promiseTry(() => callback()).finally(() => {
       isInProgress = false;
-    }));
+    });
   };
 };
 

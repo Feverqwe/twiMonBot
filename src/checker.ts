@@ -108,9 +108,9 @@ class Checker {
         service: service,
         thread: null
       };
-      session.thread = this.runThread(service, session).then(...promiseFinally(() => {
+      session.thread = this.runThread(service, session).finally(() => {
         this.serviceThread.delete(service);
-      })).catch((err) => {
+      }).catch((err) => {
         debug('check: runThread error, cause: %o', err);
       });
       this.serviceThread.set(service, session);

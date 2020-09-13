@@ -304,9 +304,9 @@ class ChatSender {
     let promise: Promise<SentMessage> = streamWeakMap.get(stream);
 
     if (!promise) {
-      promise = this.ensureTelegramPreviewFileId(stream).then(...promiseFinally(() => {
+      promise = this.ensureTelegramPreviewFileId(stream).finally(() => {
         streamWeakMap.delete(stream);
-      }));
+      });
       streamWeakMap.set(stream, promise);
       promise = promise.catch((err: any) => {
         if (err.code === 'ETELEGRAM' && /not enough rights to send photos/.test(err.response.body.description)) {
