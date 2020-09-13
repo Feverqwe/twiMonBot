@@ -10,7 +10,6 @@ import arrayByPart from "./tools/arrayByPart";
 import ExpressPubSub from "./tools/expressPubSub";
 import {Express} from "express";
 import promiseLimit from "./tools/promiseLimit";
-import promiseTry from "./tools/promiseTry";
 
 const debug = require('debug')('app:YtPubSub');
 const express = require('express');
@@ -19,9 +18,6 @@ const qs = require('querystring');
 const oneLimit = promiseLimit(1);
 const throttle = require('lodash.throttle');
 const {Server} = require('http');
-const Fs = require('fs');
-const Path = require('path');
-const heapdump = require('heapdump');
 
 class YtPubSub {
   main: Main;
@@ -49,8 +45,6 @@ class YtPubSub {
   init() {
     this.app = express();
 
-    this.bindDump();
-
     this.expressPubSub.bind(this.app);
     this.expressPubSub.on('denied', (data: any) => {
       debug('Denied %o', data);
@@ -65,49 +59,6 @@ class YtPubSub {
       this.startUpdateInterval();
       this.startCleanInterval();
     });
-  }
-
-  bindDump() {
-    this.app.get('/heapdump', (req, res) => {
-      promiseTry(async () => {
-        if (this.main.config.apiSecret !== req.query.secret) {
-          throw new ErrorWithCode('Incorrect secret', 'INCORRECT_SECRET');
-        }
-
-        const dumpPath = Path.join(__dirname, '../dumps');
-
-        try {
-          await Fs.promises.access(dumpPath);
-        } catch (err) {
-          if (err.code === 'ENOENT') {
-            await Fs.promises.mkdir(dumpPath);
-          }
-        }
-
-        const filename: string = await new Promise((resolve, reject) => {
-          heapdump.writeSnapshot(Path.join(dumpPath, getName('dump') + '.heapsnapshot'), (err: Error, filename: string) => {
-            err ? reject(err) : resolve(filename);
-          });
-        });
-
-        res.set('Content-Disposition', `attachment; filename="${Path.basename(filename)}"`);
-        res.sendFile(filename);
-      }).catch((err) => {
-        if (err.code === 'INCORRECT_SECRET') {
-          res.sendStatus(403);
-        } else {
-          debug('/heapdump error: %o', err);
-          res.sendStatus(500);
-        }
-      });
-    });
-
-    function getName(name: string) {
-      const date = new Date();
-      const dateStr = [date.getFullYear(), date.getMonth() + 1, date.getDate()].map(v => (v < 10 ? '0' : '') + v).join('-');
-      const timeStr = [date.getHours(), date.getMinutes(), date.getSeconds()].map(v => (v < 10 ? '0' : '') + v).join('-');
-      return `${name}_${dateStr}_${timeStr}`;
-    }
   }
 
   updateTimer: () => void = null;

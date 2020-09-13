@@ -74,7 +74,6 @@ export interface Config {
     checkOnRun: boolean;
     list: (string|object)[];
   };
-  apiSecret: string;
 }
 
 const config: Config = {
@@ -121,8 +120,7 @@ const config: Config = {
     testUrls: ['https://ya.ru'],
     list: [],
     checkOnRun: true
-  },
-  apiSecret: '',
+  }
 };
 
 loadConfig(path.join(__dirname, '..', 'config.json'), config);
