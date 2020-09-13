@@ -1,4 +1,3 @@
-import promiseFinally from "./promiseFinally";
 import promiseTry from "./promiseTry";
 
 const getProvider = <I, T, R>(requestDataById: (id: I) => Promise<T>, keepAlive = 0): (id: I, callback: (result: T) => R) => Promise<R> => {

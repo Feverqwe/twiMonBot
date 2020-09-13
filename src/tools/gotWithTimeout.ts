@@ -1,4 +1,3 @@
-import promiseFinally from "./promiseFinally";
 import ErrorWithCode from "./errorWithCode";
 
 const aliases = ['get', 'post', 'put', 'patch', 'head', 'delete'];

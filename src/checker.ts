@@ -7,7 +7,6 @@ import {Channel, IChannel, Stream} from "./db";
 import LogFile from "./logFile";
 import getInProgress from "./tools/getInProgress";
 import parallel from "./tools/parallel";
-import promiseFinally from "./tools/promiseFinally";
 
 const debug = require('debug')('app:Checker');
 

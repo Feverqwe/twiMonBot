@@ -1,4 +1,3 @@
-import promiseFinally from "./promiseFinally";
 import promiseTry from "./promiseTry";
 
 const getInProgress = (): <T>(callback: () => T) => Promise<T|undefined> => {

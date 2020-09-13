@@ -2,7 +2,6 @@ import Main from "./main";
 import {IChat, IMessage, IStream, IStreamWithChannel} from "./db";
 import promiseTry from "./tools/promiseTry";
 import ErrorWithCode from "./tools/errorWithCode";
-import promiseFinally from "./tools/promiseFinally";
 import {getCaption, getDescription} from "./tools/streamToString";
 import {ServiceInterface} from "./checker";
 import {TMessage} from "./router";
