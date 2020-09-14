@@ -29,54 +29,7 @@ process.on('unhandledRejection', (err, promise) => {
   debug('unhandledRejection %o', err);
 });
 
-export interface Config {
-  token: string;
-  gaId: string;
-  ytToken: string;
-  twitchToken: string;
-  emitCheckChannelsEveryMinutes: number;
-  checkChannelIfLastSyncLessThenMinutes: number;
-  channelSyncTimeoutMinutes: number;
-  deadChannelSyncTimeoutMinutes: number;
-  emitSendMessagesEveryMinutes: number;
-  emitCheckExistsChatsEveryHours: number;
-  chatSendTimeoutAfterErrorMinutes: number;
-  emitCleanChatsAndChannelsEveryHours: number;
-  removeStreamIfOfflineMoreThanMinutes: number;
-  emitCheckProxyEveryHours: number;
-  emitUpdateChannelPubSubSubscribeEveryMinutes: number,
-  updateChannelPubSubSubscribeIfExpiresLessThenMinutes: number,
-  channelPubSubSubscribeTimeoutMinutes: number,
-  checkPubSubChannelIfLastSyncLessThenMinutes: number,
-  feedSyncTimeoutMinutes: number,
-  emitCleanPubSubFeedEveryHours: number,
-  cleanPubSubFeedIfEndedOlderThanHours: number,
-  defaultChannelName: string;
-  db: {
-    host: string;
-    port: number;
-    database: string;
-    user: string
-    password: string;
-  },
-  push: {
-    host: string,
-    port: number,
-    path: string,
-    secret: string,
-    callbackUrl: string,
-    leaseSeconds: number
-  },
-  adminIds: number[];
-  botProxy?: string;
-  proxy: {
-    testUrls: (string|any)[];
-    checkOnRun: boolean;
-    list: (string|object)[];
-  };
-}
-
-const config: Config = {
+const config = {
   token: '',
   gaId: '',
   ytToken: '',
@@ -114,11 +67,11 @@ const config: Config = {
     callbackUrl: '',
     leaseSeconds: 86400
   },
-  adminIds: [],
-  botProxy: null,
+  adminIds: [] as number[],
+  botProxy: null as string|null,
   proxy: {
     testUrls: ['https://ya.ru'],
-    list: [],
+    list: [] as (string|object)[],
     checkOnRun: true
   }
 };
@@ -126,7 +79,7 @@ const config: Config = {
 loadConfig(path.join(__dirname, '..', 'config.json'), config);
 
 class Main extends Events {
-  config: Config;
+  config = config;
   locale: Locale;
   db: Db;
   twitch: Twitch;
@@ -150,7 +103,6 @@ class Main extends Events {
   }
 
   init() {
-    this.config = config;
     this.locale = new Locale();
     this.db = new Db(this);
 
