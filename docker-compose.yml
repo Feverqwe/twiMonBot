@@ -1,0 +1,16 @@
+{
+  "version": "2",
+  "services": {
+    "twimonbot": {
+      "build": ".",
+      "ports": [
+        "1339:1339"
+      ],
+      "volumes": [
+          "./log:/opt/twiMonBot/log"
+      ],
+      "restart": "always",
+      "network_mode": "host"
+    }
+  }
+}

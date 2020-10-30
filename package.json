@@ -7,8 +7,7 @@
     "watch": "npm run build -- -w",
     "start": "node ./dist/main.js",
     "migrate": "node ./dist/main.js --migrate",
-    "testProxies": "node ./dist/testProxies.js",
-    "postinstall": "npm run build"
+    "testProxies": "node ./dist/testProxies.js"
   },
   "dependencies": {
     "debug": "^4.1.1",
