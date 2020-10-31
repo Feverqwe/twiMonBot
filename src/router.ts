@@ -283,11 +283,11 @@ export class RouterReq {
     this._cache = {};
   }
 
-  get fromId(): number | undefined | null {
+  get fromId(): number | null {
     return this._useCache('fromId', () => {
       let from = null;
       if (this.message) {
-        from = this.message.from;
+        from = this.message.from || null;
       } else
       if (this.callback_query) {
         from = this.callback_query.from;
@@ -296,21 +296,21 @@ export class RouterReq {
     });
   }
 
-  get chatId(): number | null | undefined {
+  get chatId(): number | null {
     return this._useCache('chatId', () => {
       const message = this._findMessage();
       return message && message.chat.id;
     });
   }
 
-  get chatType(): string | null | undefined {
+  get chatType(): string | null {
     return this._useCache('chatType', () => {
       const message = this._findMessage();
       return message && message.chat.type;
     });
   }
 
-  get messageId(): number | null | undefined {
+  get messageId(): number | null {
     return this._useCache('messageId', () => {
       const message = this._findMessage();
       return message && message.message_id;
@@ -320,19 +320,21 @@ export class RouterReq {
   get query() {
     return this._useCache('query', () => {
       let query: {[s: string]: any} = {};
-      if (!this.callback_query) return Object.freeze(query);
 
-      const text = this.callback_query.data!;
-      const re = /\?([^\s]+)/;
-      const m = re.exec(text);
-      if (m) {
-        const queryStr = m[1];
-        if (/^[\[{]/.test(queryStr)) {
-          query = JSON.parse(queryStr);
-        } else {
-          query = qs.parse(m[1]);
+      if (this.callback_query) {
+        const text = this.callback_query.data;
+        const re = /\?([^\s]+)/;
+        const m = re.exec(text!);
+        if (m) {
+          const queryStr = m[1];
+          if (/^[\[{]/.test(queryStr)) {
+            query = JSON.parse(queryStr);
+          } else {
+            query = qs.parse(m[1]);
+          }
         }
       }
+
       return Object.freeze(query);
     });
   }
@@ -341,8 +343,8 @@ export class RouterReq {
     return this._useCache('entities', () => {
       const entities: {[s: string]: any} = {};
 
-      if (this.message && this.message.entities && typeof this.message.text === "string") {
-        const text = this.message.text;
+      if (this.message && this.message.entities) {
+        const text = this.message.text || '';
         this.message.entities.forEach((entity) => {
           let array = entities[entity.type];
           if (!array) {
@@ -369,7 +371,7 @@ export class RouterReq {
     if (this.callback_query) {
       message = this.callback_query.message;
     }
-    return message;
+    return message || null;
   }
 
   private _useCache<T>(key: string, fn: () => T):T {
