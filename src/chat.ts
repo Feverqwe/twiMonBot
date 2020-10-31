@@ -344,8 +344,8 @@ class Chat {
             }]
           ];
           return requestChoose(req.chatId, req.fromId, messageId, messageText, cancelText, chooseKeyboard).then(({req, msg}) => {
-            requestedService = req.params.value;
-            const service = this.main.getServiceById(req.params.value)!;
+            requestedService = req.params!.value;
+            const service = this.main.getServiceById(req.params!.value)!;
             return {service, messageId: msg.message_id};
           });
         }).then(({service, messageId}) => {
@@ -553,7 +553,7 @@ class Chat {
     });
 
     this.router.textOrCallbackQuery(/\/setChannel(?:\s+(?<channelId>.+))?/, provideChat, (req: RouterReqWithChat, res) => {
-      const channelId = req.params.channelId;
+      const channelId = req.params!.channelId;
       let requestedData: string | null = null;
 
       return promiseTry(() => {
@@ -648,7 +648,7 @@ class Chat {
     });
 
     this.router.callback_query(/\/(?<optionsType>options|channelOptions)\/(?<key>[^\/]+)\/(?<value>.+)/, provideChat, (req: RouterReqWithChat, res) => {
-      const {optionsType, key, value} = req.params;
+      const {optionsType, key, value} = req.params!;
       return promiseTry(() => {
         const changes: {[s: string]: any} = {};
         switch (key) {
@@ -782,7 +782,7 @@ class Chat {
     });
 
     this.router.callback_query(/\/watch\/(?<streamId>.+)/, provideChat, (req: RouterReqWithChat, res) => {
-      const {streamId} = req.params;
+      const {streamId} = req.params!;
       return this.main.db.getStreamWithChannelById(streamId).then((stream) => {
         const chatSender = new ChatSender(this.main, req.chat);
         return chatSender.sendStream(stream);
@@ -909,7 +909,7 @@ class Chat {
           fromId: fromId,
         }, 3 * 60).then(({req, res, next}) => {
           return this.main.bot.answerCallbackQuery(req.callback_query!.id).then(async () => {
-            if (req.params.value === 'cancel') {
+            if (req.params!.value === 'cancel') {
               await editOrSendNewMessage(chatId, msg.message_id, cancelText);
               throw new ErrorWithCode('Response cancel', 'RESPONSE_CANCEL');
             }
