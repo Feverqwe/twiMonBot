@@ -222,14 +222,18 @@ class RouterRoute {
   }
 
   getParams(command: string) {
+    if (!this.re) {
+      return {};
+    }
+
     let result = null;
     if (this.re) {
       const m = this.re.exec(command);
       if (m) {
-        result = m.groups;
+        result = m.groups || {};
       }
     }
-    return result || {};
+    return result;
   }
 
   match(req: RouterReq) {
@@ -255,7 +259,7 @@ class RouterRoute {
 export class RouterReq {
   commands = [] as string[];
   command = '';
-  params: {[s: string]: string} = {};
+  params: {[s: string]: string} | null = null;
   event: string;
   private _cache: {[s: string]: {value?: any}};
   message?: TMessage;
