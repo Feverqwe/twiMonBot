@@ -16,9 +16,7 @@ const messageTypes = [
   'new_chat_photo', 'delete_chat_photo', 'group_chat_created'
 ] as const;
 
-interface RouterMethodCallback {
-  (req: RouterReq|any, res: RouterRes|any, next: () => void): void
-}
+type RouterMethodCallback = (req: RouterReq | any, res: RouterRes, next: () => void) => void;
 
 type RouterMethodArgs = [RegExp|RouterMethodCallback, ...RouterMethodCallback[]];
 interface RouterMethod {
@@ -102,7 +100,7 @@ class Router extends RouterImpl {
       const req = new RouterReq(event, data);
       const res = new RouterRes(this.main.bot, req);
       let index = 0;
-      const next = () => {
+      const next = (): void => {
         const route = this.stack[index++];
         if (!route) return;
 
@@ -156,20 +154,15 @@ class Router extends RouterImpl {
     };
   }
 
-  waitResponse(re: RegExp|WaitResponseDetails|null, details: WaitResponseDetails|number, timeoutSec?: number): Promise<{
+  waitResponse(re: RegExp|null, details: WaitResponseDetails, timeoutSec: number): Promise<{
     req: RouterReq, res: RouterRes, next: () => void
   }> {
-    if (!(re instanceof RegExp)) {
-      timeoutSec = details as unknown as number;
-      details = re as WaitResponseDetails;
-      re = null;
-    }
     return new Promise((resolve, reject) => {
       const timeoutTimer = setTimeout(() => {
         callback(new ErrorWithCode('ETIMEDOUT', 'RESPONSE_TIMEOUT'));
-      }, timeoutSec! * 1000);
+      }, timeoutSec * 1000);
 
-      const callback = (err: any, result?: any) => {
+      const callback = (err: null | Error & any, result?: any) => {
         const pos = this.stack.indexOf(route);
         if (pos !== -1) {
           this.stack.splice(pos, 1);
@@ -180,7 +173,7 @@ class Router extends RouterImpl {
         err ? reject(err) : resolve(result);
       };
 
-      const route = new RouterRoute(details as WaitResponseDetails, re as RegExp|null, (req: RouterReq, res: RouterRes, next: () => void) => {
+      const route = new RouterRoute(details, re, (req, res, next) => {
         if ((details as WaitResponseDetails).throwOnCommand) {
           const entities = req.entities;
           if (entities.bot_command) {

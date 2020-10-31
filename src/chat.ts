@@ -263,7 +263,7 @@ class Chat {
       return this.main.db.ensureChat('' + req.chatId).then((chat) => {
         req.chat = chat;
         next();
-      }, (err: any) => {
+      }, (err) => {
         debug('ensureChat error! %o', err);
         this.main.bot.sendMessage(req.chatId, 'Oops something went wrong...');
       });
@@ -880,7 +880,7 @@ class Chat {
       }
 
       return this.main.bot.sendMessage(chatId, msgText, options).then((msg: TMessage) => {
-        return this.router.waitResponse({
+        return this.router.waitResponse(null, {
           event: 'message',
           type: 'text',
           chatId: chatId,
