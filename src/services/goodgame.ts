@@ -242,15 +242,6 @@ class Goodgame implements ServiceInterface {
       } else {
         throw new ErrorWithCode('Direct connect is not available', 'DIRECT_CONNECT_IS_NOT_AVAILABLE');
       }
-    }).catch((err) => {
-      if (err.name === 'TimeoutError' ||
-        ['DIRECT_CONNECT_IS_NOT_AVAILABLE', 'ECONNRESET', 'ETIMEDOUT'].includes(err.code)
-      ) {
-        if (this.main.proxy.hasOnline()) {
-          return this.main.proxy.got(url, options);
-        }
-      }
-      throw err;
     });
   };
 }

@@ -6,7 +6,6 @@ import Sender from "./sender";
 import Chat from "./chat";
 import Checker, {ServiceInterface} from "./checker";
 import RateLimit from "./tools/rateLimit";
-import Proxy from "./proxy";
 import Goodgame from "./services/goodgame";
 import Twitch from "./services/twitch";
 import Youtube from "./services/youtube";
@@ -68,7 +67,6 @@ const config = {
     leaseSeconds: 86400
   },
   adminIds: [] as number[],
-  botProxy: null as string|null,
   proxy: {
     testUrls: ['https://ya.ru'],
     list: [] as (string|object)[],
@@ -91,7 +89,6 @@ class Main extends Events {
   tracker: Tracker;
   sender: Sender;
   checker: Checker;
-  proxy: Proxy;
   bot: typeof TelegramBot;
   chat: Chat;
   botName: string;
@@ -119,7 +116,6 @@ class Main extends Events {
     this.tracker = new Tracker(this);
     this.sender = new Sender(this);
     this.checker = new Checker(this);
-    this.proxy = new Proxy(this);
     this.ytPubSub = new YtPubSub(this);
 
     this.bot = this.initBot();
@@ -144,19 +140,10 @@ class Main extends Events {
   }
 
   initBot() {
-    let request = null;
-    if (this.config.botProxy) {
-      const ProxyAgent = require('proxy-agent');
-      request = {
-        agent: new ProxyAgent(this.config.botProxy)
-      };
-    }
-
     const bot = new TelegramBot(this.config.token, {
       polling: {
         autoStart: false
       },
-      request: request
     });
     bot.on('polling_error', function (err: any) {
       debug('pollingError %s', err.message);
