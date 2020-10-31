@@ -245,8 +245,7 @@ class Chat {
       const message = liveTime.replace(/\$remainFrom\(([^)]+)\)/, (str, date) => {
         const m = /(\d{4}).(\d{2}).(\d{2})/.exec(date);
         if (m) {
-          // @ts-ignore
-          const endTime = (new Date(m[1], m[2], m[3])).getTime();
+          const endTime = (new Date(Number(m[1]), Number(m[2]), Number(m[3]))).getTime();
           const month =Math.trunc((endTime - Date.now()) / 1000 / 60 / 60 / 24 / 30 * 10) / 10;
           return `${month} months`;
         }
@@ -977,7 +976,6 @@ class Chat {
           throw new ErrorWithCode('Method is not found', 'METHOD_IS_NOT_FOUND');
         }
         const {scope, endPoint} = resolvePath(this.main, command);
-        // @ts-ignore
         return scope[endPoint].call(scope);
       }).then((result) => {
         const resultStr = jsonStringifyPretty({result}, {

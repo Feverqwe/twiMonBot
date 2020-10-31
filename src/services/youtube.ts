@@ -222,7 +222,7 @@ class Youtube implements ServiceInterface {
   getStreamIdSnippetByChannelId(channelId: string, isUpcoming = false) {
     const idSnippet: Map<string, SearchVideoResponseSnippet> = new Map();
     return iterPages((pageToken?) => {
-      const query = {
+      const query: Record<string, any> = {
         part: 'snippet',
         channelId: channelId,
         pageToken: pageToken,
@@ -239,7 +239,6 @@ class Youtube implements ServiceInterface {
         query.eventType = 'upcoming';
         const minDate = new Date();
         minDate.setDate(minDate.getDate() - 7);
-        // @ts-ignore
         query.publishedAfter = minDate.toISOString();
       }
 

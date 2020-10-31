@@ -4,11 +4,10 @@ import serviceId from "./tools/serviceId";
 import Main from "./main";
 import parallel from "./tools/parallel";
 import {ServiceChannel, ServiceInterface} from "./checker";
-// @ts-ignore
-import * as Sequelize from "sequelize";
+import type * as SequelizeType from "sequelize";
 import arrayDifference from "./tools/arrayDifference";
 
-const Sequelize = require('sequelize');
+const Sequelize = require('sequelize') as typeof SequelizeType;
 const debug = require('debug')('app:db');
 const {Op} = Sequelize;
 const ISOLATION_LEVELS = Sequelize.Transaction.ISOLATION_LEVELS;
@@ -25,7 +24,7 @@ export interface Chat {
   createdAt?: Date,
   updatedAt?: Date,
 }
-export interface IChat extends Chat, Sequelize.Model {
+export interface IChat extends Chat, SequelizeType.Model {
   createdAt: Date,
   updatedAt: Date,
 }
@@ -44,7 +43,7 @@ export interface Channel {
   syncTimeoutExpiresAt?: Date,
   createdAt?: Date,
 }
-export interface IChannel extends Channel, Sequelize.Model {
+export interface IChannel extends Channel, SequelizeType.Model {
   lastStreamAt: Date,
   createdAt: Date
 }
@@ -56,7 +55,7 @@ export interface ChatIdStreamId {
   streamId: string,
   createdAt?: Date,
 }
-export interface IChatIdStreamId extends ChatIdStreamId, Sequelize.Model {
+export interface IChatIdStreamId extends ChatIdStreamId, SequelizeType.Model {
   id: number,
   createdAt: Date,
 }
@@ -79,7 +78,7 @@ export interface Stream {
   createdAt?: Date,
   updatedAt?: Date,
 }
-export interface IStream extends Stream, Sequelize.Model {
+export interface IStream extends Stream, SequelizeType.Model {
   createdAt: Date,
   updatedAt: Date,
 }
@@ -93,7 +92,7 @@ export interface ChatIdChannelId {
   channelId: string,
   createdAt?: Date,
 }
-export interface IChatIdChannelId extends ChatIdChannelId, Sequelize.Model {
+export interface IChatIdChannelId extends ChatIdChannelId, SequelizeType.Model {
   createdAt: Date,
 }
 class ChatIdChannelIdModel extends Sequelize.Model {}
@@ -109,7 +108,7 @@ export interface Message {
   createdAt?: Date,
   updatedAt?: Date,
 }
-export interface IMessage extends Message, Sequelize.Model {
+export interface IMessage extends Message, SequelizeType.Model {
   _id: number,
   createdAt: Date,
   updatedAt: Date,
@@ -126,7 +125,7 @@ export interface YtPubSubChannel {
   subscriptionTimeoutExpiresAt?: Date,
   createdAt?: Date,
 }
-export interface IYtPubSubChannel extends YtPubSubChannel, Sequelize.Model {
+export interface IYtPubSubChannel extends YtPubSubChannel, SequelizeType.Model {
   createdAt: Date
 }
 class YtPubSubChannelModel extends Sequelize.Model {}
@@ -145,7 +144,7 @@ export interface YtPubSubFeed {
   createdAt?: Date,
   updatedAt?: Date,
 }
-export interface IYtPubSubFeed extends YtPubSubFeed, Sequelize.Model {
+export interface IYtPubSubFeed extends YtPubSubFeed, SequelizeType.Model {
   createdAt: Date,
   updatedAt: Date,
 }
@@ -153,7 +152,7 @@ class YtPubSubFeedModel extends Sequelize.Model {}
 
 class Db {
   main: Main;
-  sequelize: Sequelize.Sequelize;
+  sequelize: SequelizeType.Sequelize;
   constructor(main: Main) {
     this.main = main;
     this.sequelize = new Sequelize.Sequelize(main.config.db.database, main.config.db.user, main.config.db.password, {

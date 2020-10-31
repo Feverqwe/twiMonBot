@@ -25,8 +25,7 @@ function gotLockTimeout(request: Promise<any> & {cancel: () => void}): Promise<a
     if (err.name === 'CancelError' && lockTimeoutFired) {
       const error = new ErrorWithCode('Lock timeout fired', 'ETIMEDOUT');
       error.name = 'LockTimeoutError';
-      // @ts-ignore
-      error.original = err;
+      (error as any).original = err;
       throw error;
     }
     throw err;

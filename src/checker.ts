@@ -204,7 +204,7 @@ class Checker {
         const changedStreamIdChangeType = new Map();
 
         updatedStreamIds.forEach((id) => {
-          const stream = streamIdStream.get(id);
+          const stream = streamIdStream.get(id)!;
           const prevStream = existsStreamIdStream.get(id)!;
 
           let hasChanges = false;
@@ -217,8 +217,7 @@ class Checker {
             hasChanges = true;
           }
           if (!hasChanges) {
-            hasChanges = ['title', 'game'].some((field) => {
-              // @ts-ignore
+            hasChanges = (['title', 'game'] as (keyof Stream)[]).some((field) => {
               return stream[field] !== prevStream[field];
             });
             if (hasChanges) {
@@ -494,7 +493,6 @@ class Checker {
           if (!channelIds.length) break;
           result.channelCount += channelIds.length;
 
-          // @ts-ignore
           await service.getExistsChannelIds(channelIds.map(id => serviceId.unwrap(id))).then((existsRawChannelIds) => {
             const existsChannelIds = existsRawChannelIds.map((id: string|number) => serviceId.wrap(service, id));
 

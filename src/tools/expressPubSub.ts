@@ -183,8 +183,7 @@ class ExpressPubSub extends Events {
     }).then((res: any) => {
       if (![202, 204].includes(res.statusCode)) {
         const err = new Error(`Invalid response status ${res.statusCode}`);
-        // @ts-ignore
-        err.response = res;
+        (err as any).response = res;
         throw err;
       }
       return res;

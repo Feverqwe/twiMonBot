@@ -502,8 +502,7 @@ async function getValidPreviewUrl(urls: string[], service: ServiceInterface): Pr
     }
   }
   const err = new ErrorWithCode(`Previews is invalid`, 'INVALID_PREVIEWS');
-  // @ts-ignore
-  err.original = lastError;
+  (err as any).original = lastError;
   throw err;
 }
 

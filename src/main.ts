@@ -13,10 +13,10 @@ import {TUser} from "./router";
 import YtPubSub from "./ytPubSub";
 import Wasd from "./services/wasd";
 
-// @ts-ignore
-process.env.NTBA_FIX_319 = true;
-// @ts-ignore
-process.env.NTBA_FIX_350 = true;
+Object.assign(process.env, {
+  NTBA_FIX_319: true,
+  NTBA_FIX_350: true,
+});
 
 const TelegramBot = require('node-telegram-bot-api');
 const Events = require('events');

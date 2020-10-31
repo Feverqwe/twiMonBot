@@ -25,7 +25,7 @@ interface RouterMethod {
 }
 
 interface RouterRouteDetails {
-  event?: string,
+  event?: ['message', 'callback_query'][number],
   type?: string,
   fromId?: number,
   chatId?: number,
@@ -147,12 +147,11 @@ class Router extends RouterImpl {
     });
   }
 
-  custom(methods: string[]): RouterMethod {
+  custom(methods: (keyof Router)[]): RouterMethod {
     return (re: RegExp|RouterMethodCallback, ...callbacks: RouterMethodCallback[]) => {
       const args = [re, ...callbacks];
       methods.forEach((method) => {
-        // @ts-ignore
-        this[method].apply(this, args);
+        (this[method] as RouterMethod).apply(this, args as any);
       });
     };
   }
@@ -203,7 +202,7 @@ class Router extends RouterImpl {
 class RouterRoute {
   re: RegExp|null;
   dispatch: RouterMethodCallback;
-  event?: string;
+  event?: ['message', 'callback_query'][number];
   type?: string;
   fromId?: number;
   chatId?: number;
@@ -237,12 +236,10 @@ class RouterRoute {
     if (!req.params) {
       return false;
     }
-    // @ts-ignore
     if (this.event && !req[this.event]) {
       return false;
     }
-    // @ts-ignore
-    if (this.type && !req[this.event][this.type]) {
+    if (this.type && !req[this.event!]![this.type as keyof (TMessage | TCallbackQuery)]) {
       return false;
     }
     if (this.chatId && req.chatId != this.chatId) {
