@@ -91,7 +91,7 @@ class Main extends Events {
   checker: Checker;
   bot: typeof TelegramBot;
   chat: Chat;
-  botName: string | undefined;
+  botName!: string;
   ytPubSub: YtPubSub;
   constructor() {
     super();
@@ -128,6 +128,8 @@ class Main extends Events {
         this.checker.init(),
         this.sender.init(),
         this.bot.getMe().then((user: TUser) => {
+          if (!user.username) throw new Error('Bot name is empty');
+
           this.botName = user.username;
           return this.bot.startPolling();
         }),

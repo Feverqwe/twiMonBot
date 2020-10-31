@@ -20,8 +20,9 @@ interface RouterMethodCallback {
   (req: RouterReq|any, res: RouterRes|any, next: () => void): void
 }
 
+type RouterMethodArgs = [RegExp|RouterMethodCallback, ...RouterMethodCallback[]];
 interface RouterMethod {
-  (re: RegExp|RouterMethodCallback, ...callbacks: RouterMethodCallback[]): void
+  (...callbacks: RouterMethodArgs): void
 }
 
 interface RouterRouteDetails {
@@ -55,14 +56,14 @@ const RouterImpl = class MessageTypesImpl implements MessageTypesObj {
   stack: RouterRoute[] = [];
   constructor() {
     for (const type of messageTypes) {
-      const routerMethod = (re: RegExp, ...callbacks: RouterMethodCallback[]) => {
-        const args = prepareArgs(re, ...callbacks);
+      const routerMethod = (...callbacks: RouterMethodArgs) => {
+        const {re, callbackList} = prepareArgs(callbacks);
 
-        args.callbackList.forEach((callback) => {
+        callbackList.forEach((callback) => {
           this.stack.push(new RouterRoute({
             event: 'message',
             type: type
-          }, args.re, callback));
+          }, re, callback));
         });
       };
       this[type] = routerMethod as RouterMethod;
@@ -119,39 +120,38 @@ class Router extends RouterImpl {
     });
   };
 
-  all(re?: RegExp|RouterMethodCallback, ...callbacks: RouterMethodCallback[]) {
-    const args = prepareArgs(re, ...callbacks);
+  all(...callbacks: RouterMethodArgs) {
+    const {re, callbackList} = prepareArgs(callbacks);
 
-    args.callbackList.forEach((callback) => {
-      this.stack.push(new RouterRoute({}, args.re, callback));
+    callbackList.forEach((callback) => {
+      this.stack.push(new RouterRoute({}, re, callback));
     });
   }
 
-  message(re?: RegExp|RouterMethodCallback, ...callbacks: RouterMethodCallback[]) {
-    const args = prepareArgs(re, ...callbacks);
+  message(...callbacks: RouterMethodArgs) {
+    const {re, callbackList} = prepareArgs(callbacks);
 
-    args.callbackList.forEach((callback) => {
+    callbackList.forEach((callback) => {
       this.stack.push(new RouterRoute({
         event: 'message'
-      }, args.re, callback));
+      }, re, callback));
     });
   }
 
-  callback_query(re?: RegExp|RouterMethodCallback, ...callbacks: RouterMethodCallback[]) {
-    const args = prepareArgs(re, ...callbacks);
+  callback_query(...callbacks: RouterMethodArgs) {
+    const {re, callbackList} = prepareArgs(callbacks);
 
-    args.callbackList.forEach((callback) => {
+    callbackList.forEach((callback) => {
       this.stack.push(new RouterRoute({
         event: 'callback_query'
-      }, args.re, callback));
+      }, re, callback));
     });
   }
 
   custom(methods: (keyof Router)[]): RouterMethod {
-    return (re: RegExp|RouterMethodCallback, ...callbacks: RouterMethodCallback[]) => {
-      const args = [re, ...callbacks];
+    return (...callbacks: RouterMethodArgs) => {
       methods.forEach((method) => {
-        (this[method] as RouterMethod).apply(this, args as any);
+        (this[method] as RouterMethod).apply(this, callbacks);
       });
     };
   }
@@ -391,14 +391,14 @@ export class RouterRes {
   }
 }
 
-function prepareArgs(re?: RegExp|RouterMethodCallback|null, ...callbacks: RouterMethodCallback[]) {
-  if (typeof re === 'function') {
-    callbacks.unshift(re);
-    re = null;
+function prepareArgs(callbacks: RouterMethodArgs) {
+  let re = null;
+  if (typeof callbacks[0] !== 'function') {
+    re = callbacks.shift() as RegExp;
   }
   return {
-    re: re as RegExp|null,
-    callbackList: callbacks
+    re: re,
+    callbackList: callbacks as RouterMethodCallback[]
   }
 }
 
