@@ -26,7 +26,7 @@ class Sender {
     this.startCleanInterval();
   }
 
-  checkTimer: Function = null;
+  checkTimer: (() => void) | null = null;
   startCheckInterval() {
     this.checkTimer && this.checkTimer();
     this.checkTimer = everyMinutes(this.main.config.emitSendMessagesEveryMinutes, () => {
@@ -36,7 +36,7 @@ class Sender {
     });
   }
 
-  cleanTimer: Function = null;
+  cleanTimer: (() => void) | null = null;
   startCleanInterval() {
     this.cleanTimer && this.cleanTimer();
     this.cleanTimer = everyMinutes(this.main.config.emitCheckExistsChatsEveryHours * 60, () => {
@@ -52,7 +52,7 @@ class Sender {
         this.main.db.getDistinctChatIdStreamIdChatIds(),
         this.main.db.getDistinctMessagesChatIds(),
       ]).then((results) => {
-        const chatIds = arrayUniq([].concat(...results));
+        const chatIds = arrayUniq(([] as string[]).concat(...results));
         const newChatIds = chatIds.filter(chatId => !this.chatIdChatSender.has(chatId));
         return this.main.db.getChatsByIds(newChatIds).then((chats) => {
           chats.forEach((chat) => {
@@ -107,7 +107,7 @@ class Sender {
     if (!suspended.length && !threads.length) return;
     if (!suspended.length || threads.length === threadLimit) return;
 
-    const chatSender = suspended.shift();
+    const chatSender = suspended.shift()!;
     threads.push(chatSender);
 
     return chatSender.next().catch(async (err: any) => {

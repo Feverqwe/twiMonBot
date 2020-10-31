@@ -23,7 +23,7 @@ class YtPubSub {
   main: Main;
   private hubUrl: string;
   private log: LogFile;
-  private app: Express;
+  private app!: Express;
   private expressPubSub: ExpressPubSub;
   private host: string;
   private port: number;
@@ -61,7 +61,7 @@ class YtPubSub {
     });
   }
 
-  updateTimer: () => void = null;
+  updateTimer: (() => void) | null = null;
   startUpdateInterval() {
     this.updateTimer && this.updateTimer();
     this.updateTimer = everyMinutes(this.main.config.emitUpdateChannelPubSubSubscribeEveryMinutes, () => {
@@ -71,7 +71,7 @@ class YtPubSub {
     });
   }
 
-  cleanTimer: () => void = null;
+  cleanTimer: (() => void) | null = null;
   startCleanInterval() {
     this.cleanTimer && this.cleanTimer();
     this.cleanTimer = everyMinutes(this.main.config.emitCleanPubSubFeedEveryHours * 60, () => {
@@ -221,7 +221,7 @@ class YtPubSub {
       return this.main.db.setYtPubSubChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
         const feeds: YtPubSubFeed[] = [];
         return parallel(10, channelIds, (channelId) => {
-          const channel = channelIdChannel.get(channelId);
+          const channel = channelIdChannel.get(channelId)!;
           return this.requestFeedsByChannelId(channelId, channel.isUpcomingChecked).then((channelFeeds) => {
             feeds.push(...channelFeeds);
           }, (err) => {
@@ -307,7 +307,7 @@ class YtPubSub {
         });
 
         notStreamIds.forEach((id) => {
-          const feed = feedIdFeed.get(id);
+          const feed = feedIdFeed.get(id)!;
           if (feed.isStream) {
             this.log.write('[not found]', feed.channelId, feed.id);
           }
@@ -320,14 +320,21 @@ class YtPubSub {
     });
   }
 
-  requestFeedsByChannelId(channelId: string, isUpcomingChecked: boolean): Promise<YtPubSubFeed[]> {
+  requestFeedsByChannelId(channelId: string, isUpcomingChecked: boolean | undefined): Promise<YtPubSubFeed[]> {
     const feeds: YtPubSubFeed[] = [];
-    return Promise.all([
-      !isUpcomingChecked && this.main.youtube.getStreamIdSnippetByChannelId(channelId, true),
+
+    const promises = [];
+    if (!isUpcomingChecked) {
+      promises.push(
+        this.main.youtube.getStreamIdSnippetByChannelId(channelId, true)
+      );
+    }
+    promises.push(
       this.main.youtube.getStreamIdSnippetByChannelId(channelId)
-    ]).then((results) => {
+    );
+
+    return Promise.all(promises).then((results) => {
       results.forEach((streamIdSnippet) => {
-        if (!streamIdSnippet) return;
         streamIdSnippet.forEach((snippet, id) => {
           feeds.push({
             id,
@@ -413,7 +420,7 @@ interface XmlElement {
   children?: XmlElement[]
 }
 
-function getChildNode(root: XmlElement, name: string): XmlElement {
+function getChildNode(root: XmlElement, name: string): XmlElement | null {
   let el = null;
   if (root.children) {
     for (let i = 0, node; node = root.children[i]; i++) {

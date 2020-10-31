@@ -39,9 +39,7 @@ export interface ServiceInterface {
   id: string,
   name: string,
   batchSize: number,
-  withProxy?: boolean,
   noCachePreview?: boolean,
-  gotWithProxy?: (url: string, options: object) => Promise<any>,
   match(query: string): boolean,
   getStreams(channelsIds: (string|number)[]): Promise<ServiceGetStreamsResult>,
   getExistsChannelIds(channelsIds: (string|number)[]): Promise<(string|number)[]>,
@@ -53,7 +51,7 @@ interface ThreadSession {
   startAt: number,
   lastActivityAt: number,
   service: ServiceInterface,
-  thread: Promise<any>
+  thread?: Promise<any>
 }
 
 class Checker {
@@ -69,7 +67,7 @@ class Checker {
     this.startCleanInterval();
   }
 
-  updateTimer: Function = null;
+  updateTimer: (() => void) | null = null;
   startUpdateInterval() {
     this.updateTimer && this.updateTimer();
     this.updateTimer = everyMinutes(this.main.config.emitCheckChannelsEveryMinutes, () => {
@@ -79,7 +77,7 @@ class Checker {
     });
   }
 
-  cleanTimer: Function = null;
+  cleanTimer: (() => void) | null = null;
   startCleanInterval() {
     this.cleanTimer && this.cleanTimer();
     this.cleanTimer = everyMinutes(this.main.config.emitCleanChatsAndChannelsEveryHours * 60, () => {
@@ -105,7 +103,6 @@ class Checker {
         startAt: Date.now(),
         lastActivityAt: Date.now(),
         service: service,
-        thread: null
       };
       session.thread = this.runThread(service, session).finally(() => {
         this.serviceThread.delete(service);
@@ -172,7 +169,7 @@ class Checker {
         });
 
         streams.forEach((stream) => {
-          const channel = channelIdChannel.get(stream.channelId);
+          const channel = channelIdChannel.get(stream.channelId)!;
           const channelChanges = channelIdsChanges[channel.id];
 
           const title = channelChanges.title || channel.title;
@@ -208,7 +205,7 @@ class Checker {
 
         updatedStreamIds.forEach((id) => {
           const stream = streamIdStream.get(id);
-          const prevStream = existsStreamIdStream.get(id);
+          const prevStream = existsStreamIdStream.get(id)!;
 
           let hasChanges = false;
           if (prevStream.isOffline || prevStream.isTimeout) {
@@ -234,7 +231,7 @@ class Checker {
         });
 
         offlineStreamIds.slice(0).forEach((id) => {
-          const stream = existsStreamIdStream.get(id);
+          const stream = existsStreamIdStream.get(id)!;
 
           if (skippedChannelIds.includes(stream.channelId)) {
             const pos = offlineStreamIds.indexOf(id);
@@ -258,7 +255,7 @@ class Checker {
 
           const channelStreamIds = channelIdStreamIds.get(stream.channelId);
           if (channelStreamIds) {
-            const channelNewStreams = arrayDifference(channelStreamIds, updatedStreamIds).map(id => streamIdStream.get(id));
+            const channelNewStreams = arrayDifference(channelStreamIds, updatedStreamIds).map(id => streamIdStream.get(id)!);
             const similarStream = findSimilarStream(channelNewStreams, stream);
             if (similarStream) {
               const oPos = offlineStreamIds.indexOf(id);
@@ -283,7 +280,7 @@ class Checker {
           } else {
             const minOfflineDate = new Date();
             minOfflineDate.setMinutes(minOfflineDate.getMinutes() - this.main.config.removeStreamIfOfflineMoreThanMinutes);
-            if (stream.offlineFrom.getTime() < minOfflineDate.getTime()) {
+            if (stream.offlineFrom!.getTime() < minOfflineDate.getTime()) {
               const pos = offlineStreamIds.indexOf(id);
               if (pos !== -1) {
                 offlineStreamIds.splice(pos, 1);
@@ -297,8 +294,8 @@ class Checker {
           const channelsChanges = Object.values(channelIdsChanges);
           const migratedStreamsIdCouple = Array.from(migratedStreamFromIdToId.entries());
           const syncStreams: Stream[] = [
-            ...[].concat(newStreamIds, migratedStreamsIds, updatedStreamIds).map(id => setStreamUpdatedAt(streamIdStream.get(id), syncAt)),
-            ...[].concat(offlineStreamIds, timeoutStreamIds).map((id) => existsStreamIdStream.get(id))
+            ...([] as string[]).concat(newStreamIds, migratedStreamsIds, updatedStreamIds).map(id => setStreamUpdatedAt(streamIdStream.get(id)!, syncAt)),
+            ...([] as string[]).concat(offlineStreamIds, timeoutStreamIds).map((id) => existsStreamIdStream.get(id)!)
           ];
 
           return this.main.db.putStreams(
@@ -443,7 +440,7 @@ class Checker {
   }[]> {
     const channelIdNewStreamIds: Map<string, string[]> = new Map();
     newStreamIds.forEach((id) => {
-      const stream = streamIdStream.get(id);
+      const stream = streamIdStream.get(id)!;
       const channelStreamIds = ensureMap(channelIdNewStreamIds, stream.channelId, []);
       channelStreamIds.push(stream.id);
     });
@@ -466,7 +463,7 @@ class Checker {
         const streamIds = channelIdNewStreamIds.get(channelId);
         if (streamIds) {
           streamIds.forEach((streamId) => {
-            const stream = streamIdStream.get(streamId);
+            const stream = streamIdStream.get(streamId)!;
             chats.forEach(({chatId, isMutedRecords}) => {
               if (!stream.isRecord || !isMutedRecords) {
                 chatIdStreamIdChanges.push({chatId, streamId});

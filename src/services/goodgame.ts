@@ -4,7 +4,6 @@ import Main from "../main";
 import parallel from "../tools/parallel";
 import arrayByPart from "../tools/arrayByPart";
 import {ServiceInterface, ServiceStream} from "../checker";
-import promiseTry from "../tools/promiseTry";
 import got from "../tools/gotWithTimeout";
 
 const debug = require('debug')('app:Goodgame');
@@ -78,14 +77,12 @@ class Goodgame implements ServiceInterface {
   id: string;
   name: string;
   batchSize: number;
-  withProxy: boolean;
   noCachePreview: boolean;
   constructor(main: Main) {
     this.main = main;
     this.id = 'goodgame';
     this.name = 'Goodgame';
     this.batchSize = 25;
-    this.withProxy = false;
     this.noCachePreview = true;
   }
 
@@ -133,7 +130,7 @@ class Goodgame implements ServiceInterface {
             previews.push(thumb);
           }
 
-          let viewers = parseInt(stream.viewers, 10);
+          let viewers: null | number = parseInt(stream.viewers, 10);
           if (!isFinite(viewers)) {
             viewers = null;
           }
@@ -227,23 +224,6 @@ class Goodgame implements ServiceInterface {
 
     return channelId;
   }
-
-  lastDirectConnectTryAt: number = null;
-  gotWithProxy = (url: string, options: object)  => {
-    return promiseTry(() => {
-      const tryDate = new Date();
-      tryDate.setHours(tryDate.getHours() - 3);
-      if (!this.lastDirectConnectTryAt || this.lastDirectConnectTryAt < tryDate.getTime()) {
-        this.lastDirectConnectTryAt = Date.now();
-        return got(url, {timeout: 5 * 1000, ...options}).then((result: any) => {
-          this.lastDirectConnectTryAt = null;
-          return result;
-        });
-      } else {
-        throw new ErrorWithCode('Direct connect is not available', 'DIRECT_CONNECT_IS_NOT_AVAILABLE');
-      }
-    });
-  };
 }
 
 export default Goodgame;

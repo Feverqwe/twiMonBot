@@ -136,7 +136,7 @@ export interface YtPubSubFeed {
   title: string,
   channelId: string,
   channelTitle: string,
-  isStream?: boolean,
+  isStream?: boolean | null,
   scheduledStartAt?: Date,
   actualStartAt?: Date,
   actualEndAt?: Date,

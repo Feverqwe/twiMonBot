@@ -12,7 +12,7 @@ const parallel = <T, F>(limit: number, items: T[], callback:(item: T, index: num
   let canceled = false;
   const results = new Array(items.length);
 
-  const runThread = () : Promise<any> => {
+  const runThread = () : Promise<any> | undefined => {
     if (canceled || index >= items.length) return;
 
     const idx = index++;

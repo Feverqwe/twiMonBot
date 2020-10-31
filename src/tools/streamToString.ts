@@ -9,7 +9,7 @@ const icons = {
 };
 
 export function getDescription(stream: IStreamWithChannel) {
-  let game = stream.game;
+  let game = stream.game!;
   if (stream.title.includes(game)) {
     game = '';
   }
@@ -21,7 +21,7 @@ export function getDescription(stream: IStreamWithChannel) {
 }
 
 export function getCaption(stream: IStreamWithChannel) {
-  let game = stream.game;
+  let game = stream.game!;
   if (stream.title.includes(game)) {
     game = '';
   }
@@ -33,7 +33,7 @@ export function getCaption(stream: IStreamWithChannel) {
 }
 
 export function getString(stream: IStreamWithChannel) {
-  let game = stream.game;
+  let game = stream.game!;
   if (stream.title.includes(game)) {
     game = '';
   }
@@ -41,7 +41,7 @@ export function getString(stream: IStreamWithChannel) {
   const icon = getIcon(stream, true);
 
   return joinString(...[
-    joinString(htmlSanitize('b', stream.channel.title), icon, stream.viewers && stream.viewers.toString(), ' '),
+    joinString(htmlSanitize('b', stream.channel.title), icon, typeof stream.viewers === "number" ? stream.viewers.toString() : null, ' '),
     htmlSanitize(joinString(stream.title, game, ' — ')),
     htmlSanitize(stream.url)
   ], '\n');
@@ -69,6 +69,6 @@ function getIcon(stream: IStream, withOnline?: boolean) {
 }
 
 function joinString(...parts: (string|null)[]) {
-  const sep = parts.pop();
+  const sep = parts.pop()!;
   return parts.map(s => s && s.trim()).filter(s => !!s).join(sep).trim();
 }

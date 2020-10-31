@@ -91,15 +91,11 @@ class Main extends Events {
   checker: Checker;
   bot: typeof TelegramBot;
   chat: Chat;
-  botName: string;
+  botName: string | undefined;
   ytPubSub: YtPubSub;
   constructor() {
     super();
 
-    this.init();
-  }
-
-  init() {
     this.locale = new Locale();
     this.db = new Db(this);
 
@@ -121,6 +117,11 @@ class Main extends Events {
     this.bot = this.initBot();
     this.chat = new Chat(this);
 
+
+    this.init();
+  }
+
+  init() {
     return this.db.init().then(() => {
       return Promise.all([
         this.ytPubSub.init(),

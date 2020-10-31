@@ -47,8 +47,6 @@ class Chat {
 
     this.router = new Router(main);
 
-    this.router.textOrCallbackQuery = this.router.custom(['text', 'callback_query']);
-
     this.main.bot.on('message', (message: TMessage) => {
       this.router.handle('message', message);
     });
@@ -214,7 +212,7 @@ class Chat {
 
         serviceTopChannelsList.forEach((serviceTopChannels) => {
           if (serviceTopChannels.length) {
-            const service = this.main.getServiceById(serviceTopChannels[0].service);
+            const service = this.main.getServiceById(serviceTopChannels[0].service)!;
             const channelCount = serviceCountMap.get(serviceTopChannels[0].service);
             const name = service.name;
             lines.push('');
@@ -233,7 +231,7 @@ class Chat {
       });
     });
 
-    let liveTime: string = null;
+    let liveTime = '';
     this.router.textOrCallbackQuery(/\/about/, (req, res) => {
       if (!liveTime) {
         try {
@@ -303,26 +301,27 @@ class Chat {
     });
 
     this.router.textOrCallbackQuery(/\/add(?:\s+(?<query>.+$))?/, provideChat, (req, res) => {
-      const query = req.params.query;
-      let requestedData: string = null;
-      let requestedService: string = null;
+      const query: string | undefined = req.params.query;
+      let requestedData: string | null = null;
+      let requestedService: string | null = null;
 
       return promiseTry(() => {
         if (query) {
-          return {query: query.trim(), messageId: undefined};
+          return {query: query.trim()};
         }
 
         const messageText = this.main.locale.getMessage('enterChannelName').replace('{example}', this.main.config.defaultChannelName);
         const cancelText = this.main.locale.getMessage('commandCanceled').replace('{command}', 'add');
         return requestData(req.chatId, req.fromId, messageText, cancelText).then(({req, msg}) => {
-          requestedData = req.message.text;
-          this.main.tracker.track(req.chatId, {
+          const messageText = req.message && req.message.text || '';
+          requestedData = messageText;
+          this.main.tracker.track(req.chatId!, {
             ec: 'command',
             ea: '/add',
-            el: req.message.text,
+            el: messageText,
             t: 'event'
           });
-          return {query: req.message.text.trim(), messageId: msg.message_id};
+          return {query: messageText.trim(), messageId: msg.message_id};
         });
       }).then(({query, messageId}: {query: string, messageId?: number}) => {
         return promiseTry(() => {
@@ -347,7 +346,7 @@ class Chat {
           ];
           return requestChoose(req.chatId, req.fromId, messageId, messageText, cancelText, chooseKeyboard).then(({req, msg}) => {
             requestedService = req.params.value;
-            const service = this.main.getServiceById(req.params.value);
+            const service = this.main.getServiceById(req.params.value)!;
             return {service, messageId: msg.message_id};
           });
         }).then(({service, messageId}) => {
@@ -465,7 +464,7 @@ class Chat {
           return {channel, deleted: !!count};
         });
       }).then(({channel, deleted}) => {
-        const service = this.main.getServiceById(channel.service);
+        const service = this.main.getServiceById(channel.service)!;
         return this.main.bot.editMessageText(this.main.locale.getMessage('channelDeleted')
           .replace('{channelName}', channel.title)
           .replace('{serviceName}', service.name)
@@ -496,7 +495,7 @@ class Chat {
 
     this.router.textOrCallbackQuery(/\/delete/, provideChannels, withChannels, (req: RouterReqWithChannels, res) => {
       const channels = req.channels.map((channel) => {
-        const service = this.main.getServiceById(channel.service);
+        const service = this.main.getServiceById(channel.service)!;
         return [{
           text: `${channel.title} (${service.name})`,
           callback_data: `/delete/${channel.id}`
@@ -556,24 +555,25 @@ class Chat {
 
     this.router.textOrCallbackQuery(/\/setChannel(?:\s+(?<channelId>.+))?/, provideChat, (req: RouterReqWithChat, res) => {
       const channelId = req.params.channelId;
-      let requestedData: string = null;
+      let requestedData: string | null = null;
 
       return promiseTry(() => {
         if (channelId) {
-          return {channelId: channelId.trim(), messageId: undefined};
+          return {channelId: channelId.trim()};
         }
 
         const messageText = this.main.locale.getMessage('telegramChannelEnter');
         const cancelText = this.main.locale.getMessage('commandCanceled').replace('{command}', '\/setChannel');
-        return requestData(req.chatId, req.fromId, messageText, cancelText).then(({req, msg}) => {
-          requestedData = req.message.text;
-          this.main.tracker.track(req.chatId, {
+        return requestData(req.chatId!, req.fromId!, messageText, cancelText).then(({req, msg}) => {
+          const messageText = req.message && req.message.text || '';
+          requestedData = messageText;
+          this.main.tracker.track(req.chatId!, {
             ec: 'command',
             ea: '/setChannel',
-            el: req.message.text,
+            el: messageText,
             t: 'event'
           });
-          return {channelId: req.message.text.trim(), messageId: msg.message_id};
+          return {channelId: messageText.trim(), messageId: msg.message_id};
         });
       }).then(({channelId, messageId}: {channelId: string, messageId?: number}) => {
         return promiseTry(() => {
@@ -602,7 +602,7 @@ class Chat {
           });
         }).then((channelId) => {
           const message = this.main.locale.getMessage('telegramChannelSet').replace('{channelName}', channelId);
-          return editOrSendNewMessage(req.chatId, messageId, message).then(() => {
+          return editOrSendNewMessage(req.chatId!, messageId, message).then(() => {
             if (req.callback_query) {
               return this.main.bot.editMessageReplyMarkup(JSON.stringify({
                 inline_keyboard: getOptions(req.chat)
@@ -634,7 +634,7 @@ class Chat {
           } else {
             message = 'Unexpected error';
           }
-          await editOrSendNewMessage(req.chatId, req.messageId, message);
+          await editOrSendNewMessage(req.chatId!, req.messageId, message);
           if (!isResolved) {
             throw err;
           }
@@ -686,7 +686,7 @@ class Chat {
           }
           case 'channelOptions': {
             Object.assign(req.chat.channel, changes);
-            return req.chat.channel.save();
+            return req.chat.channel!.save();
           }
         }
       }).then(() => {
@@ -730,7 +730,7 @@ class Chat {
     this.router.textOrCallbackQuery(/\/online/, provideChannels, withChannels, (req: RouterReqWithChannels, res) => {
       const channelIds = req.channels.map(channel => channel.id);
       return this.main.db.getStreamsWithChannelByChannelIds(channelIds).then((streams) => {
-        let message: string = null;
+        let message: string;
         if (!streams.length){
           message = this.main.locale.getMessage('offline');
         } else {
@@ -810,17 +810,17 @@ class Chat {
       });
 
       serviceIds.sort((aa, bb) => {
-        const a = serviceIdChannels.get(aa).length;
-        const b = serviceIdChannels.get(bb).length;
+        const a = serviceIdChannels.get(aa)!.length;
+        const b = serviceIdChannels.get(bb)!.length;
         return a === b ? 0 : a > b ? -1 : 1;
       });
 
       const lines: string[] = [];
       serviceIds.forEach((serviceId) => {
         const channelLines = [];
-        const service = this.main.getServiceById(serviceId);
+        const service = this.main.getServiceById(serviceId)!;
         channelLines.push(htmlSanitize('b', service.name + ':'));
-        serviceIdChannels.get(serviceId).forEach((channel) => {
+        serviceIdChannels.get(serviceId)!.forEach((channel) => {
           channelLines.push(htmlSanitize('a', channel.title, channel.url));
         });
         lines.push(channelLines.join('\n'));
@@ -898,7 +898,7 @@ class Chat {
       });
     };
 
-    const requestChoose = (chatId: number, fromId: number, messageId: number, messageText: string, cancelText: string, inline_keyboard: TInlineKeyboardButton[][]): Promise<{
+    const requestChoose = (chatId: number, fromId: number, messageId: number | undefined, messageText: string, cancelText: string, inline_keyboard: TInlineKeyboardButton[][]): Promise<{
       req: RouterReq, msg: TMessage
     }> => {
       return editOrSendNewMessage(chatId, messageId, messageText, {
@@ -909,7 +909,7 @@ class Chat {
           chatId: chatId,
           fromId: fromId,
         }, 3 * 60).then(({req, res, next}) => {
-          return this.main.bot.answerCallbackQuery(req.callback_query.id).then(async () => {
+          return this.main.bot.answerCallbackQuery(req.callback_query!.id).then(async () => {
             if (req.params.value === 'cancel') {
               await editOrSendNewMessage(chatId, msg.message_id, cancelText);
               throw new ErrorWithCode('Response cancel', 'RESPONSE_CANCEL');
@@ -925,7 +925,7 @@ class Chat {
       });
     };
 
-    const editOrSendNewMessage = (chatId: number, messageId: number|undefined, text: string, form?: object) => {
+    const editOrSendNewMessage = (chatId: number, messageId: number|undefined|null, text: string, form?: object) => {
       return promiseTry(() => {
         if (!messageId) {
           throw new ErrorWithCode('messageId is empty', 'MESSAGE_ID_IS_EMPTY');
@@ -951,7 +951,7 @@ class Chat {
   admin() {
     const isAdmin = (req: RouterReq, res: RouterRes, next: () => void) => {
       const adminIds = this.main.config.adminIds || [];
-      if (adminIds.includes(req.chatId)) {
+      if (adminIds.includes(req.chatId!)) {
         next();
       } else {
         this.main.bot.sendMessage(req.chatId, `Access denied for you (${req.chatId})`);
@@ -993,17 +993,18 @@ class Chat {
     });
 
     this.router.textOrCallbackQuery(/\/admin/, isAdmin, (req, res) => {
+      type Button = {text: string, callback_data: string};
       return this.main.bot.sendMessage(req.chatId, 'Admin menu', {
         reply_markup: JSON.stringify({
           inline_keyboard: commands.reduce((menu, {name, method}, index) => {
-            const buttons = index % 2 ? menu.pop() : [];
+            const buttons: Button[] = index % 2 ? menu.pop()! : [];
             buttons.push({
               text: name || method,
               callback_data: `/admin/${method}`
             });
             menu.push(buttons);
             return menu;
-          }, [])
+          }, [] as Button[][])
         })
       }).catch((err: any) => {
         debug('%j error %o', req.command, err);

@@ -6,17 +6,20 @@ const sanitizeAttr = function (text: string) {
   return sanitize(text).replace(/"/g, '&quot;');
 };
 
-const htmlSanitize = function (type?: string, text?: string, url?: string) {
-  if (!text) {
-    text = type;
+const htmlSanitize = function (type?: string, textOrType?: string, url?: string) {
+  let text: string;
+  if (!textOrType) {
+    text = type!;
     type = '';
+  } else {
+    text = textOrType;
   }
 
   switch (type) {
     case '':
       return sanitize(text);
     case 'a':
-      return '<a href="' + sanitizeAttr(url) + '">' + sanitize(text) + '</a>';
+      return '<a href="' + sanitizeAttr(url!) + '">' + sanitize(text) + '</a>';
     case 'b':
       return '<b>' + sanitize(text) + '</b>';
     case 'strong':

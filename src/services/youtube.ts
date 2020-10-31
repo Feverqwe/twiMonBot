@@ -196,6 +196,8 @@ class Youtube implements ServiceInterface {
           return `https://i.ytimg.com/vi/${id}/${quality}.jpg`;
         });
 
+        const normViewers = typeof viewers === "number" ? viewers : null;
+
         resultStreams.push({
           id: id,
           game: null,
@@ -203,7 +205,7 @@ class Youtube implements ServiceInterface {
           previews: previews,
           title: title,
           url: getVideoUrl(id),
-          viewers: viewers,
+          viewers: normViewers,
           channelId: channelId,
           channelTitle: channelTitle,
           channelUrl: getChannelUrl(channelId),
@@ -289,7 +291,7 @@ class Youtube implements ServiceInterface {
             if (actualEndTime) {
               actualEndAt = new Date(actualEndTime);
             }
-            let viewers = parseInt(concurrentViewers, 10);
+            let viewers: null | number = parseInt(concurrentViewers!, 10);
             if (!isFinite(viewers)) {
               viewers = null;
             }

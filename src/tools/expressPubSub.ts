@@ -75,7 +75,7 @@ class ExpressPubSub extends Events {
     route.post((req, res) => {
       let {topic, hub} = req.query;
 
-      const requestRels = /<([^>]+)>;\s*rel=(?:["'](?=.*["']))?([A-z]+)/gi.exec(req.get('link'));
+      const requestRels = /<([^>]+)>;\s*rel=(?:["'](?=.*["']))?([A-z]+)/gi.exec(req.get('link')!);
       if(requestRels) {
         const [, url, rel] = requestRels;
         setTopicHub(url, rel);
@@ -92,7 +92,8 @@ class ExpressPubSub extends Events {
           return res.sendStatus(403);
         }
 
-        const signatureParts = req.get('x-hub-signature').split('=');
+        const signatureHeader = req.get('x-hub-signature') || '';
+        const signatureParts = signatureHeader.split('=');
         const algo = (signatureParts.shift() || '').toLowerCase();
         const signature = (signatureParts.pop() || '').toLowerCase();
         let hmac;

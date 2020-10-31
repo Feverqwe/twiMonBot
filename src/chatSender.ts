@@ -56,7 +56,7 @@ class ChatSender {
   }
 
   async next() {
-    let skipFromIndex: number = null;
+    let skipFromIndex: number | null = null;
     let startIndex = this.methodIndex;
     while (true) {
       this.lastActivityAt = Date.now();
@@ -98,7 +98,9 @@ class ChatSender {
       return true;
     }
 
-    return this.main.sender.provideStream(this.streamIds.shift(), (stream) => {
+    const streamId = this.streamIds.shift()!;
+
+    return this.main.sender.provideStream(streamId, (stream) => {
       return this.sendStream(stream);
     }).catch((err) => {
       if (err.code === 'STREAM_IS_NOT_FOUND') {
@@ -118,10 +120,10 @@ class ChatSender {
       return true;
     }
 
-    const message = this.messages.shift();
+    const message = this.messages.shift()!;
 
     return this.main.sender.provideStream(message.streamId, (stream) => {
-      let text: string = null;
+      let text: string;
       if (message.type === 'text') {
         text = getDescription(stream);
       } else {
@@ -164,7 +166,7 @@ class ChatSender {
       return true;
     }
 
-    const message = messages.shift();
+    const message = messages.shift()!;
 
     const minDeleteTime = new Date();
     minDeleteTime.setHours(minDeleteTime.getHours() - 48);
@@ -351,7 +353,7 @@ class ChatSender {
   }
 
   ensureTelegramPreviewFileId(stream: IStreamWithChannel): Promise<SentMessage> {
-    const service = this.main.getServiceById(stream.channel.service);
+    const service = this.main.getServiceById(stream.channel.service)!;
     const previews = !Array.isArray(stream.previews) ? JSON.parse(stream.previews) : stream.previews;
     return getValidPreviewUrl(previews, service).then(({url: _url, contentType, agent}) => {
       let url = _url;
@@ -479,8 +481,8 @@ const sendUrlErrors = [
 
 function getPhotoFileIdFromMessage(message: TMessage): string|null {
   let fileId = null;
-  message.photo.slice(0).sort((a, b) => {
-    return a.file_size > b.file_size ? -1 : 1;
+  message.photo!.slice(0).sort((a, b) => {
+    return a.file_size! > b.file_size! ? -1 : 1;
   }).some(item => fileId = item.file_id);
   return fileId;
 }
@@ -489,11 +491,7 @@ async function getValidPreviewUrl(urls: string[], service: ServiceInterface): Pr
   let lastError = null;
   for (let i = 0, len = urls.length; i < len; i++) {
     try {
-      let gotFn = got;
-      if (service.withProxy) {
-        gotFn = service.gotWithProxy;
-      }
-      return await gotFn(urls[i], {method: 'HEAD', timeout: 5 * 1000}).then((response: any) => {
+      return await got(urls[i], {method: 'HEAD', timeout: 5 * 1000}).then((response: any) => {
         const url = response.url;
         const contentType = response.headers['content-type'];
         const agent = response.request.gotOptions.agent;

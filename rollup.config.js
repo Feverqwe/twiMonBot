@@ -8,7 +8,7 @@ export default {
     format: 'cjs'
   },
   plugins: [
-    typescript({target: 'ES2019', tsconfig: false}),
+    typescript(),
     babel({
       plugins: [
         ['@babel/plugin-proposal-class-properties', { "loose": true }]

@@ -20,7 +20,7 @@ class PromiseQueue {
    * @return {Promise<T>}
    */
   add(callback: () => any) {
-    let resolve = null;
+    let resolve = noop;
     const promise = new Promise((_resolve) => {
       resolve = _resolve;
     });
@@ -61,7 +61,7 @@ class PromiseQueue {
   finishQueue = () => {
     this.activeCount--;
     if (this.queue.length > 0) {
-      const [callback, resolve] = this.queue.shift();
+      const [callback, resolve] = this.queue.shift()!;
       this.runQueue(callback, resolve);
     }
   }
@@ -75,5 +75,7 @@ function removeFromArray(arr: Array<any>, item: any) {
   }
   return false;
 }
+
+function noop() {}
 
 export default PromiseQueue;

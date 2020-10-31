@@ -10,7 +10,7 @@ const dayMs = 24 * hourMs;
  */
 const everyTime = (ms: number|{ms: number, offset?: number}, callback: () => any): () => void => {
   let _ms = 0;
-  let _offset = 0;
+  let _offset: number | undefined = 0;
   if (typeof ms === 'object') {
     _offset = ms.offset;
     _ms = ms.ms;
@@ -18,8 +18,8 @@ const everyTime = (ms: number|{ms: number, offset?: number}, callback: () => any
     _ms = ms;
   }
 
-  let offsetTimeoutId: NodeJS.Timeout = null;
-  let intervalId: NodeJS.Timeout = null;
+  let offsetTimeoutId: NodeJS.Timeout | null = null;
+  let intervalId: NodeJS.Timeout | null = null;
 
   offsetTimeoutId = setTimeout(() => {
     intervalId = setInterval(() => {
@@ -29,8 +29,8 @@ const everyTime = (ms: number|{ms: number, offset?: number}, callback: () => any
   }, getOffset(_ms, _offset));
 
   return () => {
-    clearTimeout(offsetTimeoutId);
-    clearInterval(intervalId);
+    clearTimeout(offsetTimeoutId!);
+    clearInterval(intervalId!);
   };
 };
 

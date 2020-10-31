@@ -1,20 +1,13 @@
 class RateLimit {
   limit: number;
   interval: number;
-  queue: (() => any)[];
-  time: number;
-  count: number;
-  timerId: NodeJS.Timeout;
+  queue: (() => any)[] = [];
+  time = 0;
+  count = 0;
+  timerId: NodeJS.Timeout | null = null;
   constructor(limit: number, interval?: number) {
     this.limit = limit;
     this.interval = interval || 1000;
-
-    this.queue = [];
-
-    this.time = 0;
-    this.count = 0;
-
-    this.timerId = null;
   }
 
   _next() {
@@ -28,7 +21,8 @@ class RateLimit {
 
     while (this.queue.length && this.count < this.limit) {
       this.count++;
-      this.queue.shift()();
+      const callback = this.queue.shift()!;
+      callback();
     }
 
     if (this.count === this.limit) {
