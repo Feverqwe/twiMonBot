@@ -1,5 +1,6 @@
 import promiseTry from "./promiseTry";
 
+const debug = require('debug')('app:fetchRequest');
 const http = require('http');
 const https = require('https');
 const fetch = require('node-fetch');
@@ -30,8 +31,8 @@ interface FetchResponse {
   headers: Record<string, string | string[]>,
 }
 
-function fetchRequest(url: string, options: FetchRequestOptions) {
-  const {responseType, keepAlive, searchParams, cookieJar, ...fetchOptions} = options;
+function fetchRequest(url: string, options?: FetchRequestOptions) {
+  const {responseType, keepAlive, searchParams, cookieJar, ...fetchOptions} = options || {};
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
@@ -39,6 +40,8 @@ function fetchRequest(url: string, options: FetchRequestOptions) {
   }, 60 * 1000);
 
   return promiseTry(async () => {
+    fetchOptions.method = fetchOptions.method || 'GET';
+
     if (searchParams) {
       url = url.split('?')[0] + '?' + qs.stringify(searchParams);
     }
@@ -72,7 +75,7 @@ function fetchRequest(url: string, options: FetchRequestOptions) {
 
     const fetchResponse: FetchResponse = {
       url: rawResponse.url,
-      method: options.method!,
+      method: fetchOptions.method,
       statusCode: rawResponse.status,
       statusMessage: rawResponse.statusText,
       headers: normalizeHeaders(rawResponse.headers),
@@ -92,7 +95,7 @@ function fetchRequest(url: string, options: FetchRequestOptions) {
       }
     }
 
-    if (options.method !== 'HEAD') {
+    if (fetchOptions.method !== 'HEAD') {
       try {
         if (responseType === 'buffer') {
           fetchResponse.rawBody = await rawResponse.buffer();
@@ -210,10 +213,16 @@ function keepAliveAgentFn(_parsedURL: URL) {
   }
 }
 
-function normalizeHeaders(fetchHeaders: Headers) {
+function normalizeHeaders(fetchHeaders: Headers & any) {
   const headers: Record<string, string | string[]> = {};
-  fetchHeaders.forEach((value, key) => {
-    headers[key.toLowerCase()] = value;
+  const rawHeaders: Record<string, string[]> = fetchHeaders.raw();
+  Object.entries(rawHeaders).forEach(([key, values]) => {
+    const lowKey = key.toLowerCase();
+    if (values.length === 1) {
+      headers[lowKey] = values[0];
+    } else {
+      headers[lowKey] = values;
+    }
   });
   return headers;
 }
