@@ -5,8 +5,7 @@
     "clean": "del-cli ./dist",
     "build": "npm run clean && rollup -c ./rollup.config.js",
     "watch": "npm run build -- -w",
-    "start": "node ./dist/main.js",
-    "migrate": "node ./dist/main.js --migrate"
+    "start": "node ./dist/main.js"
   },
   "dependencies": {
     "abort-controller": "^3.0.0",
