@@ -48,6 +48,12 @@ function fetchRequest(url: string, options: FetchRequestOptions) {
       agent: agentFn,
       ...fetchOptions,
       signal: controller.signal,
+    }).catch((err: Error & any) => {
+      if (err.name === 'FetchError' && err.type === 'request-timeout') {
+        throw new TimeoutError(err);
+      } else {
+        throw new RequestError(err.message, err);
+      }
     });
 
     const fetchResponse: FetchResponse = {
@@ -68,10 +74,10 @@ function fetchRequest(url: string, options: FetchRequestOptions) {
           fetchResponse.rawBody = await rawResponse.text();
         }
       } catch (err) {
-        if (err.name === 'FetchError' && err.name !== 'body-timeout') {
-          throw new ReadError(err, fetchResponse);
+        if (err.name === 'FetchError' && err.type === 'body-timeout') {
+          throw new TimeoutError(err);
         } else {
-          throw err;
+          throw new ReadError(err, fetchResponse);
         }
       }
 
@@ -93,15 +99,6 @@ function fetchRequest(url: string, options: FetchRequestOptions) {
     }
 
     return fetchResponse;
-  }).catch((err) => {
-    if (err.name === 'FetchError') {
-      if (['request-timeout', 'body-timeout'].includes(err.type)) {
-        throw new TimeoutError(err);
-      } else {
-        throw new RequestError(err.message, err, undefined);
-      }
-    }
-    throw err;
   }).finally(() => {
     clearTimeout(timeoutId);
   });
