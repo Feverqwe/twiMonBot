@@ -14,6 +14,10 @@ interface FetchRequestOptions {
   timeout?: number,
   keepAlive?: boolean,
   body?: string | URLSearchParams,
+  cookieJar?: {
+    setCookie: (rawCookie: string, url: string) => Promise<unknown>,
+    getCookieString: (url: string) => Promise<string>,
+  },
 }
 
 interface FetchResponse {
@@ -27,7 +31,7 @@ interface FetchResponse {
 }
 
 function fetchRequest(url: string, options: FetchRequestOptions) {
-  const {responseType, keepAlive, searchParams, ...fetchOptions} = options;
+  const {responseType, keepAlive, searchParams, cookieJar, ...fetchOptions} = options;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
@@ -42,6 +46,16 @@ function fetchRequest(url: string, options: FetchRequestOptions) {
     let agentFn;
     if (keepAlive) {
       agentFn = keepAliveAgentFn;
+    }
+
+    if (cookieJar) {
+      if (!fetchOptions.headers) {
+        fetchOptions.headers = {};
+      }
+      const cookieString = await cookieJar.getCookieString(url);
+      if (cookieString) {
+        fetchOptions.headers.cookie = cookieString;
+      }
     }
 
     const rawResponse: Response & {buffer: () => Promise<Buffer>} = await fetch(url, {
@@ -65,6 +79,18 @@ function fetchRequest(url: string, options: FetchRequestOptions) {
       rawBody: undefined as any,
       body: undefined as any,
     };
+
+    if (cookieJar) {
+      let rawCookies = fetchResponse.headers['set-cookie'];
+      if (rawCookies) {
+        if (!Array.isArray(rawCookies)) {
+          rawCookies = [rawCookies];
+        }
+        await Promise.all(rawCookies.map((rawCookie: string) => {
+          return cookieJar.setCookie(rawCookie, fetchResponse.url)
+        }));
+      }
+    }
 
     if (options.method !== 'HEAD') {
       try {

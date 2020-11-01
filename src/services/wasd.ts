@@ -1,12 +1,12 @@
 import {ServiceChannel, ServiceInterface, ServiceStream} from "../checker";
 import Main from "../main";
 import * as s from "superstruct";
-import got from "../tools/gotWithTimeout";
 import promiseTry from "../tools/promiseTry";
 import ErrorWithCode from "../tools/errorWithCode";
 import parallel from "../tools/parallel";
 import arrayByPart from "../tools/arrayByPart";
 import promiseLimit from "../tools/promiseLimit";
+import fetchRequest, {HTTPError} from "../tools/fetchRequest";
 
 const debug = require('debug')('app:Wasd');
 const {CookieJar} = require('tough-cookie');
@@ -75,8 +75,8 @@ class Wasd implements ServiceInterface {
     return parallel(10, arrayByPart(channelIds, 100), (channelIds) => {
       return retryIfLocationMismatch(() => {
         return prepCookieJar().then(() => {
-          return got('https://wasd.tv/api/v2/media-containers', {
-            query: {
+          return fetchRequest('https://wasd.tv/api/v2/media-containers', {
+            searchParams: {
               media_container_status: 'RUNNING',
               limit: 100,
               offset: 0,
@@ -84,7 +84,8 @@ class Wasd implements ServiceInterface {
             },
             timeout: 10 * 1000,
             cookieJar: cookieJar,
-            json: true,
+            responseType: 'json',
+            keepAlive: true,
           });
         });
       }).then(({body}: any) => {
@@ -171,14 +172,15 @@ class Wasd implements ServiceInterface {
   requestChannelById(channelId: number) {
     return retryIfLocationMismatch(() => {
       return prepCookieJar().then(() => {
-        return got('https://wasd.tv/api/channels/' + encodeURIComponent(channelId), {
+        return fetchRequest('https://wasd.tv/api/channels/' + encodeURIComponent(channelId), {
           timeout: 10 * 1000,
           cookieJar: cookieJar,
-          json: true,
+          responseType: 'json',
+          keepAlive: true,
         });
       });
-    }).catch((err: any) => {
-      if (err.statusCode === 404) {
+    }).catch((err: HTTPError) => {
+      if (err.name === 'HTTPError' && err.response.statusCode === 404) {
         throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
       }
       throw err;
@@ -188,14 +190,15 @@ class Wasd implements ServiceInterface {
   requestChannelByQuery(query: string) {
     return retryIfLocationMismatch(() => {
       return prepCookieJar().then(() => {
-        return got('https://wasd.tv/api/channels/nicknames/' + encodeURIComponent(query), {
+        return fetchRequest('https://wasd.tv/api/channels/nicknames/' + encodeURIComponent(query), {
           timeout: 10 * 1000,
           cookieJar: cookieJar,
-          json: true,
+          responseType: 'json',
+          keepAlive: true,
         });
       });
-    }).catch((err: any) => {
-      if (err.statusCode === 404) {
+    }).catch((err: HTTPError) => {
+      if (err.name === 'HTTPError' && err.response.statusCode === 404) {
         throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
       }
       throw err;
@@ -243,10 +246,11 @@ function prepCookieJar() {
     });
 
     if (!hasToken || !hasTokenSignature) {
-      await got('https://wasd.tv/api/auth/anon-token', {
+      await fetchRequest('https://wasd.tv/api/auth/anon-token', {
         method: 'POST',
         timeout: 10 * 1000,
         cookieJar: cookieJar,
+        keepAlive: true,
       });
     }
   });
