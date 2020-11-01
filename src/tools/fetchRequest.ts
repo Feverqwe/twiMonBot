@@ -32,12 +32,14 @@ interface FetchResponse {
 }
 
 function fetchRequest(url: string, options?: FetchRequestOptions) {
-  const {responseType, keepAlive, searchParams, cookieJar, ...fetchOptions} = options || {};
+  const {responseType, keepAlive, searchParams, cookieJar, timeout, ...fetchOptions} = options || {};
 
+  let isTimeout = false;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
+    isTimeout = true;
     controller.abort();
-  }, 60 * 1000);
+  }, timeout);
 
   return promiseTry(async () => {
     fetchOptions.method = fetchOptions.method || 'GET';
@@ -66,7 +68,7 @@ function fetchRequest(url: string, options?: FetchRequestOptions) {
       ...fetchOptions,
       signal: controller.signal,
     }).catch((err: Error & any) => {
-      if (err.name === 'FetchError' && err.type === 'request-timeout') {
+      if (err.name === 'AbortError' && err.type === 'aborted' && isTimeout) {
         throw new TimeoutError(err);
       } else {
         throw new RequestError(err.message, err);
@@ -103,7 +105,7 @@ function fetchRequest(url: string, options?: FetchRequestOptions) {
           fetchResponse.rawBody = await rawResponse.text();
         }
       } catch (err) {
-        if (err.name === 'FetchError' && err.type === 'body-timeout') {
+        if (err.name === 'AbortError' && err.type === 'aborted' && isTimeout) {
           throw new TimeoutError(err);
         } else {
           throw new ReadError(err, fetchResponse);
