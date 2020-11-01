@@ -3,10 +3,11 @@ import Main from "../main";
 import RateLimit from "../tools/rateLimit";
 import parallel from "../tools/parallel";
 import ErrorWithCode from "../tools/errorWithCode";
-import {struct} from "superstruct";
+import * as s from "superstruct";
 import arrayByPart from "../tools/arrayByPart";
 import promiseTry from "../tools/promiseTry";
 import got from "../tools/gotWithTimeout";
+import {StructType} from "superstruct";
 
 const debug = require('debug')('app:Youtube');
 const XmlEntities = require('html-entities/lib/xml-entities').XmlEntities;
@@ -15,156 +16,82 @@ const limit = new RateLimit(1000);
 const gotLimited = limit.wrap(got);
 const xmlEntities = new XmlEntities();
 
-interface VideosItemsSnippet {
-  items: {
-    snippet: {
-      channelId: string
-    },
-    liveStreamingDetails?: {
-      scheduledStartTime?: string,
-      actualStartTime?: string,
-      actualEndTime?: string,
-      concurrentViewers?: string,
-    }
-  }[]
-}
-
-const VideosItemsSnippet:(any: any) => VideosItemsSnippet = struct.pick({
-  items: [struct.pick({
-    snippet: struct.pick({
-      channelId: 'string'
+const VideosItemsSnippetStruct = s.type({
+  items: s.array(s.type({
+    snippet: s.type({
+      channelId: s.string()
     }),
-    liveStreamingDetails: struct.optional(struct.pick({
-      scheduledStartTime: 'string?',
-      actualStartTime: 'string?',
-      actualEndTime: 'string?',
-      concurrentViewers: 'string?',
+    liveStreamingDetails: s.optional(s.type({
+      scheduledStartTime: s.optional(s.string()),
+      actualStartTime: s.optional(s.string()),
+      actualEndTime: s.optional(s.string()),
+      concurrentViewers: s.optional(s.string()),
     })),
-  })]
+  }))
 });
 
-interface ChannelsItemsId {
-  items?: {
-    id: string,
-  }[],
-  nextPageToken: string,
-}
-
-const ChannelsItemsId:(any: any) => ChannelsItemsId = struct.pick({
-  items: struct.optional([struct.pick({
-    id: 'string'
-  })]),
-  nextPageToken: 'string?'
+const ChannelsItemsIdStruct = s.type({
+  items: s.optional(s.array(s.type({
+    id: s.string()
+  }))),
+  nextPageToken: s.optional(s.string())
 });
 
-interface SearchItemsId {
-  items: {
-    id: {
-      channelId: string
-    }
-  }[]
-}
-
-const SearchItemsId:(any: any) => SearchItemsId = struct.pick({
-  items: [struct.pick({
-    id: struct.pick({
-      channelId: 'string'
+const SearchItemsIdStruct = s.type({
+  items: s.array(s.type({
+    id: s.type({
+      channelId: s.string()
     })
-  })]
+  }))
 });
 
-interface SearchItemsIdVideoId {
-  items: {
-    id: {
-      videoId: string
-    }
-  }[]
-}
-
-const SearchItemsIdVideoId:(any: any) => SearchItemsIdVideoId = struct.pick({
-  items: [struct.pick({
-    id: struct.pick({
-      videoId: 'string'
+const SearchItemsIdVideoIdStruct = s.type({
+  items: s.array(s.type({
+    id: s.type({
+      videoId: s.string()
     })
-  })]
+  }))
 });
 
-interface SearchItemsSnippet {
-  items: {
-    snippet: {
-      channelId: string,
-      channelTitle: string,
-    }
-  }[]
-}
-
-const SearchItemsSnippet:(any: any) => SearchItemsSnippet = struct.pick({
-  items: [struct.pick({
-    snippet: struct.pick({
-      channelId: 'string',
-      channelTitle: 'string'
+const SearchItemsSnippetStruct = s.type({
+  items: s.array(s.type({
+    snippet: s.type({
+      channelId: s.string(),
+      channelTitle: s.string()
     })
-  })]
+  }))
 });
 
-interface SearchVideoResponseSnippet {
-  title: string,
-  liveBroadcastContent: string,
-  publishedAt: string,
-  channelTitle: string,
-  channelId: string,
-}
+type SearchVideoResponseSnippet = StructType<typeof SearchVideoResponseSnippetStruct>;
+const SearchVideoResponseSnippetStruct = s.type({
+  title: s.string(),
+  liveBroadcastContent: s.string(),
+  publishedAt: s.string(),
+  channelTitle: s.string(),
+  channelId: s.string(),
+});
 
-interface SearchVideoResponse {
-  items: {
-    id: {
-      videoId: string,
-    },
-    snippet: SearchVideoResponseSnippet
-  }[],
-  nextPageToken?: string
-}
-
-const SearchVideoResponse: (any: any) => SearchVideoResponse = struct.pick({
-  items: [struct.pick({
-    id: struct.pick({
-      videoId: 'string',
+const SearchVideoResponseStruct = s.type({
+  items: s.array(s.type({
+    id: s.type({
+      videoId: s.string(),
     }),
-    snippet: struct.pick({
-      title: 'string',
-      liveBroadcastContent: 'string',
-      publishedAt: 'string',
-      channelTitle: 'string',
-      channelId: 'string',
-    }),
-  })],
-  nextPageToken: 'string?'
+    snippet: SearchVideoResponseSnippetStruct,
+  })),
+  nextPageToken: s.optional(s.string())
 });
 
-interface VideosResponse {
-  items: {
-    id: string,
-    liveStreamingDetails?: {
-      scheduledStartTime?: string,
-      actualStartTime?: string,
-      actualEndTime?: string,
-      concurrentViewers?: string,
-    }
-  }[],
-  nextPageToken?: string
-}
-
-const VideosResponse: (any: any) => VideosResponse = struct.pick({
-  items: [struct.pick({
-    id: 'string',
-    liveStreamingDetails: struct.optional(struct.pick({
-      scheduledStartTime: 'string?',
-      actualStartTime: 'string?',
-      actualEndTime: 'string?',
-      concurrentViewers: 'string?',
+const VideosResponseStruct = s.type({
+  items: s.array(s.type({
+    id: s.string(),
+    liveStreamingDetails: s.optional(s.type({
+      scheduledStartTime: s.optional(s.string()),
+      actualStartTime: s.optional(s.string()),
+      actualEndTime: s.optional(s.string()),
+      concurrentViewers: s.optional(s.string()),
     })),
-  })],
-  nextPageToken: 'string?'
+  })),
+  nextPageToken: s.optional(s.string())
 });
 
 class Youtube implements ServiceInterface {
@@ -246,7 +173,7 @@ class Youtube implements ServiceInterface {
         query,
         json: true
       }).then(({body}) => {
-        const result = SearchVideoResponse(body);
+        const result = s.coerce(body, SearchVideoResponseStruct);
 
         result.items.forEach((item) => {
           idSnippet.set(item.id.videoId, item.snippet);
@@ -273,7 +200,7 @@ class Youtube implements ServiceInterface {
           },
           json: true,
         }).then(({body}) => {
-          const videosResponse = VideosResponse(body);
+          const videosResponse = s.coerce(body, VideosResponseStruct);
 
           videosResponse.items.forEach((item) => {
             if (!item.liveStreamingDetails) return;
@@ -323,7 +250,7 @@ class Youtube implements ServiceInterface {
           },
           json: true,
         }).then(({body}) => {
-          const channelsItemsId = ChannelsItemsId(body);
+          const channelsItemsId = s.coerce(body, ChannelsItemsIdStruct);
           if (channelsItemsId.items) {
             channelsItemsId.items.forEach((item) => {
               resultChannelIds.push(item.id);
@@ -376,7 +303,7 @@ class Youtube implements ServiceInterface {
         },
         json: true,
       }).then(({body}) => {
-        const searchItemsSnippet = SearchItemsSnippet(body);
+        const searchItemsSnippet = s.coerce(body, SearchItemsSnippetStruct);
         if (!searchItemsSnippet.items.length) {
           throw new ErrorWithCode('Channel is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
         }
@@ -442,7 +369,7 @@ class Youtube implements ServiceInterface {
       },
       json: true,
     }).then(({body}) => {
-      const videosItemsSnippet = VideosItemsSnippet(body);
+      const videosItemsSnippet = s.coerce(body, VideosItemsSnippetStruct);
       if (!videosItemsSnippet.items.length) {
         throw new ErrorWithCode('Video by id is not found', 'CHANNEL_BY_VIDEO_ID_IS_NOT_FOUND');
       }
@@ -489,7 +416,7 @@ class Youtube implements ServiceInterface {
       },
       json: true,
     }).then(({body}) => {
-      const channelsItemsId = ChannelsItemsId(body);
+      const channelsItemsId = s.coerce(body, ChannelsItemsIdStruct);
       if (!channelsItemsId.items || !channelsItemsId.items.length) {
         throw new ErrorWithCode('Channel by user is not found', 'CHANNEL_BY_USER_IS_NOT_FOUND');
       }
@@ -514,7 +441,7 @@ class Youtube implements ServiceInterface {
       },
       json: true,
     }).then(({body}) => {
-      const searchItemsId = SearchItemsId(body);
+      const searchItemsId = s.coerce(body, SearchItemsIdStruct);
       if (!searchItemsId.items.length) {
         throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
       }
@@ -538,7 +465,7 @@ class Youtube implements ServiceInterface {
           key: this.main.config.ytToken
         },
         json: true
-      }).then(({body}) => SearchItemsIdVideoId(body));
+      }).then(({body}) => s.coerce(body, SearchItemsIdVideoIdStruct));
 
       if (result.items.length) {
         return true;

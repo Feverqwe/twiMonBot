@@ -1,6 +1,6 @@
 import {ServiceChannel, ServiceInterface, ServiceStream} from "../checker";
 import Main from "../main";
-import {struct} from "superstruct";
+import * as s from "superstruct";
 import got from "../tools/gotWithTimeout";
 import promiseTry from "../tools/promiseTry";
 import ErrorWithCode from "../tools/errorWithCode";
@@ -13,73 +13,38 @@ const {CookieJar} = require('tough-cookie');
 
 const cookieJar = new CookieJar();
 
-interface Stream {
-  media_container_id: number,
-  media_container_name: string,
-  media_container_status: string,
-  channel_id: number,
-  media_container_streams: [{
-    stream_id: number,
-    stream_current_viewers: number,
-    stream_media: [{
-      media_id: number,
-      media_status: string,
-      media_meta: {
-        media_preview_url: string,
-      }
-    }],
-  }],
-  media_container_user: {
-    channel_id: number,
-  },
-  media_container_channel: {
-    channel_name: string,
-  },
-}
-
-const Stream: (any: any) => Stream = struct.pick({
-  media_container_id: 'number',
-  media_container_name: 'string',
-  media_container_status: 'string',
-  channel_id: 'number',
-  media_container_streams: [struct.pick({
-    stream_id: 'number',
-    stream_current_viewers: 'number',
-    stream_media: [struct.pick({
-      media_id: 'number',
-      media_status: 'string', // RUNNING
-      media_meta: struct.pick({
-        media_preview_url: 'string'
+const StreamStruct = s.type({
+  media_container_id: s.number(),
+  media_container_name: s.string(),
+  media_container_status: s.string(),
+  channel_id: s.number(),
+  media_container_streams: s.array(s.type({
+    stream_id: s.number(),
+    stream_current_viewers: s.number(),
+    stream_media: s.array(s.type({
+      media_id: s.number(),
+      media_status: s.string(), // RUNNING
+      media_meta: s.type({
+        media_preview_url: s.string()
       })
-    })],
-  })],
-  media_container_user: struct.pick({
-    channel_id: 'number',
+    })),
+  })),
+  media_container_user: s.type({
+    channel_id: s.number(),
   }),
-  media_container_channel: struct.pick({
-    channel_name: 'string',
+  media_container_channel: s.type({
+    channel_name: s.string(),
   }),
 });
 
-interface StreamList {
-  result: [Stream],
-}
-
-const StreamList: (any: any) => StreamList = struct.pick({
-  result: [Stream]
+const StreamListStruct = s.type({
+  result: s.array(StreamStruct),
 });
 
-interface Channel {
-  result: {
-    channel_id: number,
-    channel_name: string,
-  }
-}
-
-const Channel: (any: any) => Channel = struct.pick({
-  result: struct.pick({
-    channel_id: 'number',
-    channel_name: 'string',
+const ChannelStruct = s.type({
+  result: s.type({
+    channel_id: s.number(),
+    channel_name: s.string(),
   })
 });
 
@@ -123,7 +88,7 @@ class Wasd implements ServiceInterface {
           });
         });
       }).then(({body}: any) => {
-        const streamList = StreamList(body).result;
+        const streamList = s.coerce(body, StreamListStruct).result;
 
         streamList.forEach((result) => {
           const {
@@ -195,7 +160,7 @@ class Wasd implements ServiceInterface {
     }).then((query) => {
       return this.requestChannelByQuery(query);
     }).then(({body}: any) => {
-      const channel = Channel(body).result;
+      const channel = s.coerce(body, ChannelStruct).result;
       const id = channel.channel_id;
       const title = channel.channel_name;
       const url = getChannelUrl(id);

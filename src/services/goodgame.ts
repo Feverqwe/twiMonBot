@@ -1,5 +1,5 @@
 import ErrorWithCode from "../tools/errorWithCode";
-import {struct} from "superstruct";
+import * as s from "superstruct";
 import Main from "../main";
 import parallel from "../tools/parallel";
 import arrayByPart from "../tools/arrayByPart";
@@ -8,67 +8,35 @@ import got from "../tools/gotWithTimeout";
 
 const debug = require('debug')('app:Goodgame');
 
-interface Stream {
-  id: number,
-  key: string,
-  url: string,
-  channel: {
-    id: number,
-    key: string,
-    url: string,
-  },
-}
-
-const Stream: (any: any) => Stream = struct.pick({
-  id: 'number',
-  key: 'string',
-  url: 'string',
-  channel: struct.pick({
-    id: 'number',
-    key: 'string',
-    url: 'string',
+const StreamStrict = s.type({
+  id: s.number(),
+  key: s.string(),
+  url: s.string(),
+  channel: s.type({
+    id: s.number(),
+    key: s.string(),
+    url: s.string(),
   }),
 });
 
-interface Streams {
-  _embedded: {
-    streams: {
-      key: string,
-      status: string,
-      id: number,
-      viewers: string,
-      channel: {
-        id: number,
-        key: string,
-        title: string,
-        url: string,
-        thumb: string,
-        games: {
-          title: string|null
-        }[]
-      }
-    }[]
-  }
-}
-
-const Streams = struct.pick({
-  _embedded: struct.pick({
-    streams: [struct.pick({
-      key: 'string',
-      status: 'string',
-      id: 'number',
-      viewers: 'string',
-      channel: struct.pick({
-        id: 'number',
-        key: 'string',
-        title: 'string',
-        url: 'string',
-        thumb: 'string',
-        games: [struct.pick({
-          title: 'string|null'
-        })],
+const StreamsStruct = s.type({
+  _embedded: s.type({
+    streams: s.array(s.type({
+      key: s.string(),
+      status: s.string(),
+      id: s.number(),
+      viewers: s.string(),
+      channel: s.type({
+        id: s.number(),
+        key: s.string(),
+        title: s.string(),
+        url: s.string(),
+        thumb: s.string(),
+        games: s.array(s.type({
+          title: s.nullable(s.string())
+        })),
       })
-    })]
+    }))
   }),
 });
 
@@ -108,7 +76,7 @@ class Goodgame implements ServiceInterface {
         },
         json: true,
       }).then(({body}: any) => {
-        const streams = (Streams(body) as Streams)._embedded.streams;
+        const streams = s.coerce(body, StreamsStruct)._embedded.streams;
 
         streams.forEach((stream) => {
           if (stream.status !== 'Live') return;
@@ -192,7 +160,7 @@ class Goodgame implements ServiceInterface {
       },
       json: true,
     }).then(({body}: {body: object}) => {
-      const stream = Stream(body);
+      const stream = s.coerce(body, StreamStrict);
       const id = stream.channel.id;
       const url = stream.channel.url;
       const title = stream.channel.key;

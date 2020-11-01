@@ -2,64 +2,37 @@ import {ServiceInterface, ServiceStream} from "../checker";
 import Main from "../main";
 import parallel from "../tools/parallel";
 import ErrorWithCode from "../tools/errorWithCode";
-import {struct} from "superstruct";
+import * as s from "superstruct";
 import arrayByPart from "../tools/arrayByPart";
 import got from "../tools/gotWithTimeout";
 
 const debug = require('debug')('app:Twitch');
 
-interface Channels {
-  channels: {
-    _id: number,
-    name: string,
-    display_name: string,
-    url: string,
-  }[]
-}
-
-const Channels:(any: any) => Channels = struct.pick({
-  channels: [struct.pick({
-    _id: 'number',
-    name: 'string',
-    display_name: 'string',
-    url: 'string',
-  })]
+const ChannelsStruct = s.type({
+  channels: s.array(s.type({
+    _id: s.number(),
+    name: s.string(),
+    display_name: s.string(),
+    url: s.string(),
+  })),
 });
 
-interface Streams {
-  streams: {
-    _id: number,
-    stream_type: string,
-    preview: {[s: string]: string},
-    viewers: number,
-    game: string,
-    created_at: string,
-    channel: {
-      _id: number,
-      name: string,
-      display_name: string,
-      status: string,
-      url: string,
-    }
-  }[]
-}
-
-const Streams: (any: any) => Streams = struct.pick({
-  streams: [struct.pick({
-    _id: 'number',
-    stream_type: 'string',
-    preview: struct.record(['string', 'string']),
-    viewers: 'number',
-    game: 'string',
-    created_at: 'string',
-    channel: struct.pick({
-      _id: 'number',
-      name: 'string',
-      display_name: 'string',
-      status: 'string',
-      url: 'string',
+const StreamsStruct = s.type({
+  streams: s.array(s.type({
+    _id: s.number(),
+    stream_type: s.string(),
+    preview: s.record(s.string(), s.string()),
+    viewers: s.number(),
+    game: s.string(),
+    created_at: s.string(),
+    channel: s.type({
+      _id: s.number(),
+      name: s.string(),
+      display_name: s.string(),
+      status: s.string(),
+      url: s.string(),
     })
-  })]
+  }))
 });
 
 class Twitch implements ServiceInterface {
@@ -99,7 +72,7 @@ class Twitch implements ServiceInterface {
         },
         json: true,
       }).then(({body}: {body: any}) => {
-        const result = Streams(body);
+        const result = s.coerce(body, StreamsStruct);
         const streams = result.streams;
 
         streams.forEach((stream) => {
@@ -194,7 +167,7 @@ class Twitch implements ServiceInterface {
       },
       json: true,
     }).then(({body}: {body: object}) => {
-      const channels = Channels(body).channels;
+      const channels = s.coerce(body, ChannelsStruct).channels;
       if (!channels.length) {
         throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
       }
