@@ -66,12 +66,7 @@ const config = {
     callbackUrl: '',
     leaseSeconds: 86400
   },
-  adminIds: [] as number[],
-  proxy: {
-    testUrls: ['https://ya.ru'],
-    list: [] as (string|object)[],
-    checkOnRun: true
-  }
+  adminIds: [] as number[]
 };
 
 loadConfig(path.join(__dirname, '..', 'config.json'), config);
