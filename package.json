@@ -6,8 +6,7 @@
     "build": "npm run clean && rollup -c ./rollup.config.js",
     "watch": "npm run build -- -w",
     "start": "node ./dist/main.js",
-    "migrate": "node ./dist/main.js --migrate",
-    "testProxies": "node ./dist/testProxies.js"
+    "migrate": "node ./dist/main.js --migrate"
   },
   "dependencies": {
     "abort-controller": "^3.0.0",
