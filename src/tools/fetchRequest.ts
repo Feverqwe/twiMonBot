@@ -49,11 +49,11 @@ function fetchRequest(url: string, options: FetchRequestOptions) {
     }
 
     if (cookieJar) {
-      if (!fetchOptions.headers) {
-        fetchOptions.headers = {};
-      }
       const cookieString = await cookieJar.getCookieString(url);
       if (cookieString) {
+        if (!fetchOptions.headers) {
+          fetchOptions.headers = {};
+        }
         fetchOptions.headers.cookie = cookieString;
       }
     }
