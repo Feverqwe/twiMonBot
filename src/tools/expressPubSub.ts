@@ -181,9 +181,9 @@ class ExpressPubSub extends Events {
     return fetchRequest(hub, {
       method: 'POST',
       headers: {
-        'Content-Type': 'x-www-form-urlencoded',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams(body),
+      body: qs.stringify(body),
       keepAlive: true,
     }).then((res) => {
       if (![202, 204].includes(res.statusCode)) {
