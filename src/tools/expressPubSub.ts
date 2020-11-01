@@ -183,7 +183,7 @@ class ExpressPubSub extends Events {
       headers: {
         'Content-Type': 'x-www-form-urlencoded',
       },
-      body: qs.stringify(body),
+      body: new URLSearchParams(body),
       keepAlive: true,
     }).then((res) => {
       if (![202, 204].includes(res.statusCode)) {
