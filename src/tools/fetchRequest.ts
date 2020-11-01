@@ -177,7 +177,7 @@ const httpsAgent = new https.Agent({
 });
 
 function keepAliveAgentFn(_parsedURL: URL) {
-  if (_parsedURL.protocol == 'http:') {
+  if (_parsedURL.protocol === 'http:') {
     return httpAgent;
   } else {
     return httpsAgent;
