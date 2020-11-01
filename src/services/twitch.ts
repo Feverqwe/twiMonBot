@@ -4,7 +4,7 @@ import parallel from "../tools/parallel";
 import ErrorWithCode from "../tools/errorWithCode";
 import * as s from "superstruct";
 import arrayByPart from "../tools/arrayByPart";
-import got from "../tools/gotWithTimeout";
+import fetchRequest, {HTTPError} from "../tools/fetchRequest";
 
 const debug = require('debug')('app:Twitch');
 
@@ -60,8 +60,8 @@ class Twitch implements ServiceInterface {
     const skippedChannelIds: number[] = [];
     const removedChannelIds: number[] = [];
     return parallel(10, arrayByPart(channelIds, 100), (channelIds) => {
-      return got('https://api.twitch.tv/kraken/streams', {
-        query: {
+      return fetchRequest('https://api.twitch.tv/kraken/streams', {
+        searchParams: {
           limit: 100,
           channel: channelIds.join(','),
           stream_type: 'all'
@@ -70,7 +70,8 @@ class Twitch implements ServiceInterface {
           'Accept': 'application/vnd.twitchtv.v5+json',
           'Client-ID': this.main.config.twitchToken
         },
-        json: true,
+        keepAlive: true,
+        responseType: 'json',
       }).then(({body}: {body: any}) => {
         const result = s.coerce(body, StreamsStruct);
         const streams = result.streams;
@@ -126,13 +127,14 @@ class Twitch implements ServiceInterface {
   }
 
   requestChannelById(channelId: number) {
-    return got('https://api.twitch.tv/kraken/channels/' + channelId, {
+    return fetchRequest('https://api.twitch.tv/kraken/channels/' + channelId, {
       headers: {
         'Accept': 'application/vnd.twitchtv.v5+json',
         'Client-ID': this.main.config.twitchToken
       },
-    }).catch((err: any) => {
-      if (err.statusCode === 404) {
+      keepAlive: true,
+    }).catch((err: HTTPError) => {
+      if (err.name === 'HTTPError' && err.response.statusCode === 404) {
         throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
       }
       throw err;
@@ -159,13 +161,14 @@ class Twitch implements ServiceInterface {
   }
 
   requestChannelByQuery(query: string) {
-    return got('https://api.twitch.tv/kraken/search/channels', {
-      query: {query},
+    return fetchRequest('https://api.twitch.tv/kraken/search/channels', {
+      searchParams: {query},
       headers: {
         'Accept': 'application/vnd.twitchtv.v5+json',
         'Client-ID': this.main.config.twitchToken
       },
-      json: true,
+      keepAlive: true,
+      responseType: 'json',
     }).then(({body}: {body: object}) => {
       const channels = s.coerce(body, ChannelsStruct).channels;
       if (!channels.length) {

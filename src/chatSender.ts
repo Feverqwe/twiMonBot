@@ -6,8 +6,8 @@ import {getCaption, getDescription} from "./tools/streamToString";
 import {ServiceInterface} from "./checker";
 import {TMessage} from "./router";
 import appendQueryParam from "./tools/appendQueryParam";
-import got from "./tools/gotWithTimeout";
 import inlineInspect from "./tools/inlineInspect";
+import fetchRequest from "./tools/fetchRequest";
 
 const debug = require('debug')('app:ChatSender');
 const request = require('request');
@@ -355,7 +355,7 @@ class ChatSender {
   ensureTelegramPreviewFileId(stream: IStreamWithChannel): Promise<SentMessage> {
     const service = this.main.getServiceById(stream.channel.service)!;
     const previews = !Array.isArray(stream.previews) ? JSON.parse(stream.previews) : stream.previews;
-    return getValidPreviewUrl(previews, service).then(({url: _url, contentType, agent}) => {
+    return getValidPreviewUrl(previews, service).then(({url: _url, contentType}) => {
       let url = _url;
       if (service.noCachePreview) {
         url = appendQueryParam(url, '_', stream.updatedAt.getTime());
@@ -381,12 +381,7 @@ class ChatSender {
             debug('Content-type is empty, set default content-type %s', url);
             contentType = 'image/jpeg';
           }
-          const options: {[s: string]: any} = {};
-          if (agent) {
-            options.timeout = 60 * 1000;
-            options.agent = agent;
-          }
-          return this.main.bot.sendPhoto(this.chat.id, request(url, options), {caption}, {contentType}).then((message: TMessage) => {
+          return this.main.bot.sendPhoto(this.chat.id, request(url), {caption}, {contentType}).then((message: TMessage) => {
             this.main.sender.log.write(`[send photo as file] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`);
             this.main.tracker.track(this.chat.id, {
               ec: 'bot',
@@ -487,15 +482,18 @@ function getPhotoFileIdFromMessage(message: TMessage): string|null {
   return fileId;
 }
 
-async function getValidPreviewUrl(urls: string[], service: ServiceInterface): Promise<{ url: string; contentType: string, agent: object }> {
+async function getValidPreviewUrl(urls: string[], service: ServiceInterface) {
   let lastError = null;
   for (let i = 0, len = urls.length; i < len; i++) {
     try {
-      return await got(urls[i], {method: 'HEAD', timeout: 5 * 1000}).then((response: any) => {
+      return await fetchRequest(urls[i], {
+        method: 'HEAD',
+        timeout: 5 * 1000,
+        keepAlive: true,
+      }).then((response) => {
         const url = response.url;
-        const contentType = response.headers['content-type'];
-        const agent = response.request.gotOptions.agent;
-        return {url, contentType, agent};
+        const contentType = response.headers['content-type'] as string;
+        return {url, contentType};
       });
     } catch (err) {
       lastError = err;

@@ -4,7 +4,7 @@ import Main from "../main";
 import parallel from "../tools/parallel";
 import arrayByPart from "../tools/arrayByPart";
 import {ServiceInterface, ServiceStream} from "../checker";
-import got from "../tools/gotWithTimeout";
+import fetchRequest, {HTTPError} from "../tools/fetchRequest";
 
 const debug = require('debug')('app:Goodgame');
 
@@ -65,8 +65,8 @@ class Goodgame implements ServiceInterface {
     const skippedChannelIds:number[] = [];
     const removedChannelIds:number[] = [];
     return parallel(10, arrayByPart(channelIds, 25), (channelIds) => {
-      return got('https://api2.goodgame.ru/v2/streams', {
-        query: {
+      return fetchRequest('https://api2.goodgame.ru/v2/streams', {
+        searchParams: {
           ids: channelIds.join(','),
           adult: true,
           hidden: true
@@ -74,7 +74,8 @@ class Goodgame implements ServiceInterface {
         headers: {
           'Accept': 'application/vnd.goodgame.v2+json'
         },
-        json: true,
+        keepAlive: true,
+        responseType: 'json',
       }).then(({body}: any) => {
         const streams = s.coerce(body, StreamsStruct)._embedded.streams;
 
@@ -154,19 +155,20 @@ class Goodgame implements ServiceInterface {
   }
 
   requestChannelById(channelId: string|number) {
-    return got('https://api2.goodgame.ru/v2/streams/' + encodeURIComponent(channelId), {
+    return fetchRequest('https://api2.goodgame.ru/v2/streams/' + encodeURIComponent(channelId), {
       headers: {
         'Accept': 'application/vnd.goodgame.v2+json'
       },
-      json: true,
+      keepAlive: true,
+      responseType: 'json',
     }).then(({body}: {body: object}) => {
       const stream = s.coerce(body, StreamStrict);
       const id = stream.channel.id;
       const url = stream.channel.url;
       const title = stream.channel.key;
       return {id, title, url};
-    }, (err: any) => {
-      if (err.statusCode === 404) {
+    }, (err: HTTPError) => {
+      if (err.name === 'HTTPError' && err.response.statusCode === 404) {
         throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
       }
       throw err;

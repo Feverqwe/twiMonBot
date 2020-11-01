@@ -1,8 +1,8 @@
 import parallel from "./tools/parallel";
 import arrayByPart from "./tools/arrayByPart";
 import Main from "./main";
-import got from "./tools/gotWithTimeout";
 import promiseLimit from "./tools/promiseLimit";
+import fetchRequest from "./tools/fetchRequest";
 
 const debug = require('debug')('app:tracker');
 const qs = require('querystring');
@@ -46,7 +46,8 @@ class Tracker {
       while (this.queue.length) {
         const queue = this.queue.splice(0);
         await parallel(10, arrayByPart(queue, 20), (queue) => {
-          return got.post('https://www.google-analytics.com/batch', {
+          return fetchRequest('https://www.google-analytics.com/batch', {
+            method: 'POST',
             headers: {
               'Content-Type': 'text/html'
             },
@@ -54,6 +55,7 @@ class Tracker {
               hit.qt = Date.now() - time;
               return qs.stringify(hit);
             }).join('\n'),
+            keepAlive: true,
           }).catch((err: any) => {
             const fourHoursAgo = new Date();
             fourHoursAgo.setHours(fourHoursAgo.getHours() - 4);
