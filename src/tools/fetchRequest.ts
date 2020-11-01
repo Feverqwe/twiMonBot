@@ -32,7 +32,7 @@ interface FetchResponse {
 }
 
 function fetchRequest(url: string, options?: FetchRequestOptions) {
-  const {responseType, keepAlive, searchParams, cookieJar, timeout, ...fetchOptions} = options || {};
+  const {responseType, keepAlive, searchParams, cookieJar, timeout = 60 * 1000, ...fetchOptions} = options || {};
 
   let isTimeout = false;
   const controller = new AbortController();
