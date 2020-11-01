@@ -220,7 +220,8 @@ function normalizeHeaders(fetchHeaders: Headers & any) {
     const lowKey = key.toLowerCase();
     if (values.length === 1) {
       headers[lowKey] = values[0];
-    } else {
+    } else
+    if (values.length) {
       headers[lowKey] = values;
     }
   });
