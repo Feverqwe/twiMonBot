@@ -257,13 +257,15 @@ function prepCookieJar() {
 }
 
 function retryIfLocationMismatch(cb: () => {}) {
-  return promiseTry(() => cb()).catch(async (err) => {
-    const bodyError = err.body && err.body.error;
-    if (bodyError && bodyError.status_code === 401 && ['AUTH_TOKEN_EXPIRED', 'AUTH_TOKEN_LOCATION_MISMATCH'].includes(bodyError.code)) {
-      await new Promise((resolve, reject) => cookieJar.removeAllCookies((err: any) => {
-        err ? reject(err) : resolve();
-      }));
-      return cb();
+  return promiseTry(() => cb()).catch(async (err: HTTPError) => {
+    if (err.name === 'HTTPError') {
+      const bodyError = err.response.body && err.response.body.error;
+      if (bodyError && bodyError.status_code === 401 && ['AUTH_TOKEN_EXPIRED', 'AUTH_TOKEN_LOCATION_MISMATCH'].includes(bodyError.code)) {
+        await new Promise((resolve, reject) => cookieJar.removeAllCookies((err: any) => {
+          err ? reject(err) : resolve();
+        }));
+        return cb();
+      }
     }
     throw err;
   });
