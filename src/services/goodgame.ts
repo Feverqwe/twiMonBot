@@ -76,7 +76,7 @@ class Goodgame implements ServiceInterface {
         },
         keepAlive: true,
         responseType: 'json',
-      }).then(({body}: any) => {
+      }).then(({body}) => {
         const streams = s.coerce(body, StreamsStruct)._embedded.streams;
 
         streams.forEach((stream) => {
@@ -161,7 +161,7 @@ class Goodgame implements ServiceInterface {
       },
       keepAlive: true,
       responseType: 'json',
-    }).then(({body}: {body: object}) => {
+    }).then(({body}) => {
       const stream = s.coerce(body, StreamStrict);
       const id = stream.channel.id;
       const url = stream.channel.url;
@@ -176,10 +176,10 @@ class Goodgame implements ServiceInterface {
   }
 
   async getChannelIdByUrl(url: string) {
-    let channelId = null;
+    let channelId = '';
     [
       /goodgame\.ru\/channel\/([\w\-]+)/i
-    ].some((re: RegExp) => {
+    ].some((re) => {
       const m = re.exec(url);
       if (m) {
         channelId = m[1];

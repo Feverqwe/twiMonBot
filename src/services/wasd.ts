@@ -277,7 +277,7 @@ function prepCookieJar() {
 }
 
 function retryIfLocationMismatch<T>(cb: () => Promise<T> | T) {
-  return promiseTry(() => cb()).catch(async (err: HTTPError) => {
+  return promiseTry(cb).catch(async (err: HTTPError) => {
     if (err.name === 'HTTPError') {
       const bodyError = err.response.body && err.response.body.error;
       if (bodyError && bodyError.status_code === 401 && ['AUTH_TOKEN_EXPIRED', 'AUTH_TOKEN_LOCATION_MISMATCH'].includes(bodyError.code)) {

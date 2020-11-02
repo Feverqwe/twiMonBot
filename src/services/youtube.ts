@@ -295,7 +295,7 @@ class Youtube implements ServiceInterface {
       }
 
       return this.channelHasBroadcasts(channelId).then(() => channelId);
-    }).then((channelId: string) => {
+    }).then((channelId) => {
       return fetchRequestLimited('https://www.googleapis.com/youtube/v3/search', {
         searchParams: {
           part: 'snippet',
@@ -323,7 +323,7 @@ class Youtube implements ServiceInterface {
   }
 
   async getChannelIdByUrl(url: string) {
-    let channelId = null;
+    let channelId = '';
     [
       /youtube\.com\/(?:#\/)?channel\/([\w\-]+)/i
     ].some((re) => {
@@ -346,7 +346,7 @@ class Youtube implements ServiceInterface {
   }
 
   async requestChannelIdByVideoUrl(url: string, session: {isLiveVideoUrl?: boolean} = {}) {
-    let videoId = null;
+    let videoId = '';
     [
       /youtu\.be\/([\w\-]+)/i,
       /youtube\.com\/.+[?&]v=([\w\-]+)/i,
@@ -390,7 +390,7 @@ class Youtube implements ServiceInterface {
   }
 
   async requestChannelIdByUserUrl(url: string) {
-    let username = null;
+    let username = '';
     [
       /youtube\.com\/(?:#\/)?user\/([\w\-]+)/i,
       /youtube\.com\/c\/([\w\-]+)/i,
@@ -499,7 +499,7 @@ function isDailyLimitExceeded(err: HTTPError) {
   return false;
 }
 
-function iterPages(callback: (pageToken?: string) => Promise<string|undefined>):Promise<void> {
+function iterPages(callback: (pageToken?: string) => Promise<string|undefined>) {
   let limit = 100;
   const getPage = (pageToken?: string): Promise<void> => {
     return promiseTry(() => callback(pageToken)).then((nextPageToken?: string) => {

@@ -72,7 +72,7 @@ class Twitch implements ServiceInterface {
         },
         keepAlive: true,
         responseType: 'json',
-      }).then(({body}: {body: any}) => {
+      }).then(({body}) => {
         const result = s.coerce(body, StreamsStruct);
         const streams = result.streams;
 
@@ -142,7 +142,7 @@ class Twitch implements ServiceInterface {
   }
 
   findChannel(query: string) {
-    return this.getChannelNameByUrl(query).then((name: string) => {
+    return this.getChannelNameByUrl(query).then((name) => {
       return JSON.stringify(name);
     }).catch((err: any) => {
       if (err.code === 'IS_NOT_CHANNEL_URL') {
@@ -150,9 +150,9 @@ class Twitch implements ServiceInterface {
       } else {
         throw err;
       }
-    }).then((query: string) => {
+    }).then((query) => {
       return this.requestChannelByQuery(query);
-    }).then((channel: {_id: number, display_name: string, url: string}) => {
+    }).then((channel) => {
       const id = channel._id;
       const title = channel.display_name;
       const url = channel.url;
@@ -169,7 +169,7 @@ class Twitch implements ServiceInterface {
       },
       keepAlive: true,
       responseType: 'json',
-    }).then(({body}: {body: object}) => {
+    }).then(({body}) => {
       const channels = s.coerce(body, ChannelsStruct).channels;
       if (!channels.length) {
         throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
@@ -179,10 +179,10 @@ class Twitch implements ServiceInterface {
   }
 
   async getChannelNameByUrl(url: string) {
-    let channelName = null;
+    let channelName = '';
     [
       /twitch\.tv\/([\w\-]+)/i
-    ].some((re: RegExp) => {
+    ].some((re) => {
       const m = re.exec(url);
       if (m) {
         channelName = m[1];
