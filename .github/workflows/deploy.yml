@@ -1,0 +1,24 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2
+    - run: >
+        mkdir -p ${{ secrets.HOME_PLACE }}/twiMonBot/log &&
+        chown nobody:nogroup ${{ secrets.HOME_PLACE }}/twiMonBot/log &&
+        ln -s ${{ secrets.HOME_PLACE }}/twiMonBot/log ./log &&
+        cp ${{ secrets.HOME_PLACE }}/twiMonBot/config.json ./config.json &&
+        cp ${{ secrets.HOME_PLACE }}/twiMonBot/liveTime.json ./liveTime.json
+    - run: docker-compose build
+  run:
+    name: Run
+    needs: [ build ]
+    runs-on: self-hosted
+    steps:
+    - run: docker-compose up -d
