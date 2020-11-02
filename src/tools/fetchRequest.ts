@@ -34,12 +34,8 @@ interface FetchResponse {
 function fetchRequest(url: string, options?: FetchRequestOptions) {
   const {responseType, keepAlive, searchParams, cookieJar, timeout = 60 * 1000, ...fetchOptions} = options || {};
 
-  let isTimeout = false;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    isTimeout = true;
-    controller.abort();
-  }, timeout);
+  let timeoutId: NodeJS.Timeout | null = null;
+  let setCookiePromise: Promise<unknown[]> | null = null;
 
   return promiseTry(async () => {
     fetchOptions.method = fetchOptions.method || 'GET';
@@ -61,6 +57,15 @@ function fetchRequest(url: string, options?: FetchRequestOptions) {
         }
         fetchOptions.headers.cookie = cookieString;
       }
+    }
+
+    let isTimeout = false;
+    const controller = new AbortController();
+    if (timeout) {
+      timeoutId = setTimeout(() => {
+        isTimeout = true;
+        controller.abort();
+      }, timeout);
     }
 
     const rawResponse: Response & {buffer: () => Promise<Buffer>} = await fetch(url, {
@@ -91,7 +96,7 @@ function fetchRequest(url: string, options?: FetchRequestOptions) {
         if (!Array.isArray(rawCookies)) {
           rawCookies = [rawCookies];
         }
-        await Promise.all(rawCookies.map((rawCookie: string) => {
+        setCookiePromise = Promise.all(rawCookies.map((rawCookie: string) => {
           return cookieJar.setCookie(rawCookie, fetchResponse.url)
         }));
       }
@@ -131,7 +136,10 @@ function fetchRequest(url: string, options?: FetchRequestOptions) {
 
     return fetchResponse;
   }).finally(() => {
-    clearTimeout(timeoutId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    return setCookiePromise;
   });
 }
 
