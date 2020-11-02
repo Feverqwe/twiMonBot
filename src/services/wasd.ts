@@ -87,7 +87,7 @@ class Wasd implements ServiceInterface {
             keepAlive: true,
           });
         });
-      }).then(({body}: any) => {
+      }).then(({body}) => {
         const streamList = s.coerce(body, StreamListStruct).result;
 
         streamList.forEach((result) => {
@@ -134,7 +134,7 @@ class Wasd implements ServiceInterface {
     });
   }
 
-  getExistsChannelIds(ids: number[]): Promise<number[]> {
+  getExistsChannelIds(ids: number[]) {
     const resultChannelIds: number[] = [];
     return parallel(10, ids, (channelId) => {
       return this.requestChannelById(channelId).then(() => {
@@ -151,15 +151,23 @@ class Wasd implements ServiceInterface {
   }
 
   findChannel(query: string): Promise<ServiceChannel> {
-    return this.getChannelNameByUrl(query).catch((err) => {
-      if (err.code === 'IS_NOT_CHANNEL_URL') {
-        return query;
-      } else {
+    return this.getChannelIdByUrl(query).then((channelId) => {
+      return this.requestChannelById(channelId);
+    }, (err) => {
+      if (err.code !== 'IS_NOT_CHANNEL_URL') {
         throw err;
       }
-    }).then((query) => {
-      return this.requestChannelByQuery(query);
-    }).then(({body}: any) => {
+
+      return this.getChannelNameByUrl(query).catch((err) => {
+        if (err.code !== 'IS_NOT_CHANNEL_URL') {
+          throw err;
+        }
+
+        return query;
+      }).then((query) => {
+        return this.requestChannelByQuery(query);
+      });
+    }).then(({body}) => {
       const channel = s.coerce(body, ChannelStruct).result;
       const id = channel.channel_id;
       const title = channel.channel_name;
@@ -219,6 +227,24 @@ class Wasd implements ServiceInterface {
 
     return channelId;
   }
+
+  async getChannelIdByUrl(url: string) {
+    let channelId: number | null = null;
+    [
+      /wasd\.tv\/channel\/(\d+)/i
+    ].some((re) => {
+      const m = re.exec(url);
+      if (m) {
+        channelId = parseInt(m[1], 10);
+        return true;
+      }
+    });
+    if (!channelId) {
+      throw new ErrorWithCode('Is not channel id url', 'IS_NOT_CHANNEL_URL');
+    }
+
+    return channelId!;
+  }
 }
 
 function getChannelUrl(channelId: number) {
@@ -250,7 +276,7 @@ function prepCookieJar() {
   });
 }
 
-function retryIfLocationMismatch(cb: () => {}) {
+function retryIfLocationMismatch<T>(cb: () => Promise<T> | T) {
   return promiseTry(() => cb()).catch(async (err: HTTPError) => {
     if (err.name === 'HTTPError') {
       const bodyError = err.response.body && err.response.body.error;
