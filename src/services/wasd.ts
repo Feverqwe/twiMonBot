@@ -228,9 +228,7 @@ function getChannelUrl(channelId: number) {
 const singleThread = promiseLimit(1);
 function prepCookieJar() {
   return singleThread(async () => {
-    const cookies: {key: string}[] = await new Promise((resolve, reject) => cookieJar.getCookies('https://wasd.tv/', {}, (err: any, result: any) => {
-      err ? reject(err) : resolve(result);
-    }));
+    const cookies: {key: string}[] = await cookieJar.getCookies('https://wasd.tv/', {});
     const hasToken = cookies.some((item) => {
       if (item.key === 'cronos-auth-token') {
         return true;
@@ -257,9 +255,7 @@ function retryIfLocationMismatch(cb: () => {}) {
     if (err.name === 'HTTPError') {
       const bodyError = err.response.body && err.response.body.error;
       if (bodyError && bodyError.status_code === 401 && ['AUTH_TOKEN_EXPIRED', 'AUTH_TOKEN_LOCATION_MISMATCH'].includes(bodyError.code)) {
-        await new Promise((resolve, reject) => cookieJar.removeAllCookies((err: any) => {
-          err ? reject(err) : resolve();
-        }));
+        await cookieJar.removeAllCookies();
         return cb();
       }
     }
