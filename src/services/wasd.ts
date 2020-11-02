@@ -82,7 +82,6 @@ class Wasd implements ServiceInterface {
               offset: 0,
               channel_id: channelIds.join(',')
             },
-            timeout: 10 * 1000,
             cookieJar: cookieJar,
             responseType: 'json',
             keepAlive: true,
@@ -173,7 +172,6 @@ class Wasd implements ServiceInterface {
     return retryIfLocationMismatch(() => {
       return prepCookieJar().then(() => {
         return fetchRequest('https://wasd.tv/api/channels/' + encodeURIComponent(channelId), {
-          timeout: 10 * 1000,
           cookieJar: cookieJar,
           responseType: 'json',
           keepAlive: true,
@@ -191,7 +189,6 @@ class Wasd implements ServiceInterface {
     return retryIfLocationMismatch(() => {
       return prepCookieJar().then(() => {
         return fetchRequest('https://wasd.tv/api/channels/nicknames/' + encodeURIComponent(query), {
-          timeout: 10 * 1000,
           cookieJar: cookieJar,
           responseType: 'json',
           keepAlive: true,
@@ -248,7 +245,6 @@ function prepCookieJar() {
     if (!hasToken || !hasTokenSignature) {
       await fetchRequest('https://wasd.tv/api/auth/anon-token', {
         method: 'POST',
-        timeout: 10 * 1000,
         cookieJar: cookieJar,
         keepAlive: true,
       });
