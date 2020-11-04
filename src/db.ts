@@ -805,7 +805,7 @@ class Db {
     });
   }
 
-  getOnlineStreamCount() {
+  getOnlineStreamCount(): Promise<number> {
     return StreamModel.count({
       where: {
         isOffline: false,
