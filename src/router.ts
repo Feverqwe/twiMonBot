@@ -16,22 +16,50 @@ const messageTypes = [
   'new_chat_photo', 'delete_chat_photo', 'group_chat_created'
 ] as const;
 
-type RouterMethodCallback = (req: RouterReq | any, res: RouterRes, next: () => void) => void;
+type RouterMethodCallback = (req: RouterReq, res: RouterRes, next: () => void) => void;
 
 type RouterMethodArgs = [RegExp|RouterMethodCallback, ...RouterMethodCallback[]];
 interface RouterMethod {
   (...callbacks: RouterMethodArgs): void
 }
 
+interface WaitResponseDetails extends RouterRouteDetails {
+  throwOnCommand?: boolean
+}
+
 interface RouterRouteDetails {
   event?: ['message', 'callback_query'][number],
   type?: string,
-  fromId?: number,
+  fromId?: number | null,
   chatId?: number,
 }
 
-interface WaitResponseDetails extends RouterRouteDetails {
-  throwOnCommand?: boolean
+export interface RouterTextReq extends RouterMessageReq {
+  message: TMessage & {text: string};
+  fromId: number | null;
+}
+
+export interface RouterMessageReq extends RouterReqWithAnyMessage {
+  message: TMessage;
+  callback_query: undefined;
+  params: {[s: string]: string};
+}
+
+export interface RouterCallbackQueryReq extends RouterReqWithAnyMessage {
+  message: undefined;
+  callback_query: TCallbackQuery & {data: string};
+  fromId: number;
+}
+
+interface RouterReqWithAnyMessage extends RouterReqCallback {
+  messageId: number;
+  chatId: number;
+  chatType: string;
+}
+
+interface RouterReqCallback extends RouterReq {
+  params: {[s: string]: string};
+  query: {[s: string]: any};
 }
 
 const RouterImpl = class MessageTypesImpl implements MessageTypesObj {
@@ -54,7 +82,7 @@ const RouterImpl = class MessageTypesImpl implements MessageTypesObj {
   stack: RouterRoute[] = [];
   constructor() {
     for (const type of messageTypes) {
-      const routerMethod = (...callbacks: RouterMethodArgs) => {
+      this[type] = (...callbacks: RouterMethodArgs) => {
         const {re, callbackList} = prepareArgs(callbacks);
 
         callbackList.forEach((callback) => {
@@ -64,7 +92,6 @@ const RouterImpl = class MessageTypesImpl implements MessageTypesObj {
           }, re, callback));
         });
       };
-      this[type] = routerMethod as RouterMethod;
     }
   }
 }
@@ -174,7 +201,7 @@ class Router extends RouterImpl {
       };
 
       const route = new RouterRoute(details, re, (req, res, next) => {
-        if ((details as WaitResponseDetails).throwOnCommand) {
+        if (details.throwOnCommand) {
           const entities = req.entities;
           if (entities.bot_command) {
             callback(new ErrorWithCode('BOT_COMMAND', 'RESPONSE_COMMAND'));
@@ -196,13 +223,13 @@ class RouterRoute {
   re: RegExp|null;
   dispatch: RouterMethodCallback;
   event?: ['message', 'callback_query'][number];
-  type?: string;
-  fromId?: number;
+  type?: keyof (TMessage | TCallbackQuery);
+  fromId?: number | null;
   chatId?: number;
   constructor(details: RouterRouteDetails, re: RegExp | null, callback: RouterMethodCallback) {
     this.re = re;
     this.event = details.event;
-    this.type = details.type;
+    this.type = details.type as (keyof (TMessage | TCallbackQuery) | undefined);
     this.fromId = details.fromId;
     this.chatId = details.chatId;
     this.dispatch = (req, res, next) => {
@@ -236,7 +263,7 @@ class RouterRoute {
     if (this.event && !req[this.event]) {
       return false;
     }
-    if (this.type && !req[this.event!]![this.type as keyof (TMessage | TCallbackQuery)]) {
+    if (this.type && !req[this.event!]![this.type]) {
       return false;
     }
     if (this.chatId && req.chatId != this.chatId) {
@@ -254,9 +281,9 @@ export class RouterReq {
   command = '';
   params: {[s: string]: string} | null = null;
   event: string;
-  private _cache: {[s: string]: {value?: any}};
   message?: TMessage;
   callback_query?: TCallbackQuery;
+  private _cache = {} as {[s: string]: {value?: any}};
 
   constructor(event: string, data: TMessage|TCallbackQuery) {
     this.event = event;
@@ -273,7 +300,6 @@ export class RouterReq {
         throw new Error(`Unknown case ${event}`);
       }
     }
-    this._cache = {};
   }
 
   get fromId(): number | null {
@@ -317,7 +343,7 @@ export class RouterReq {
       if (this.callback_query) {
         const text = this.callback_query.data;
         const re = /\?([^\s]+)/;
-        const m = re.exec(text!);
+        const m = re.exec(text as string);
         if (m) {
           const queryStr = m[1];
           if (/^[\[{]/.test(queryStr)) {
@@ -431,7 +457,9 @@ function getCommands(event: string, data: TMessage|TCallbackQuery, botNameRe: Re
     }
     case 'callback_query': {
       const callbackQuery = data as TCallbackQuery;
-      commands.push(callbackQuery.data!);
+      if (typeof callbackQuery.data === "string") {
+        commands.push(callbackQuery.data);
+      }
       break;
     }
   }

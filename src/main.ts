@@ -148,7 +148,7 @@ class Main extends Events {
     });
 
     const limit = new RateLimit(30);
-    bot.sendMessage = limit.wrap(bot.sendMessage.bind(bot));
+    bot.sendMessage = limit.wrap(bot.sendMessage.bind(bot)) as (chatId: number, text: string) => Promise<unknown>;
     bot.sendPhotoQuote = limit.wrap(bot.sendPhoto.bind(bot));
 
     return bot;

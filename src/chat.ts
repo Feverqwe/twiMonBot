@@ -1,5 +1,8 @@
 import Router, {
   RouterReq,
+  RouterCallbackQueryReq,
+  RouterMessageReq,
+  RouterTextReq,
   RouterRes,
   TCallbackQuery,
   TChat,
@@ -17,21 +20,22 @@ import ensureMap from "./tools/ensureMap";
 import arrayByPart from "./tools/arrayByPart";
 import promiseTry from "./tools/promiseTry";
 import Main from "./main";
-import {IChannel, IChatWithChannel} from "./db";
+import {IChannel, IChat, IChatWithChannel} from "./db";
 import {getButtonText, getString} from "./tools/streamToString";
 import ChatSender from "./chatSender";
 import parallel from "./tools/parallel";
 import TimeCache from "./tools/timeCache";
+import assertType from "./tools/assertType";
 
 const debug = require('debug')('app:Chat');
 const jsonStringifyPretty = require("json-stringify-pretty-compact");
 const fs = require('fs');
 
-interface RouterReqWithChat extends RouterReq {
+interface WithChat {
   chat: IChatWithChannel;
 }
 
-interface RouterReqWithChannels extends RouterReq {
+interface WithChannels {
   channels: IChannel[];
 }
 
@@ -62,6 +66,8 @@ class Chat {
 
   base() {
     this.router.message((req, res, next) => {
+      assertType<RouterMessageReq>(req);
+
       const {migrate_to_chat_id: targetChatId, migrate_from_chat_id: sourceChatId} = req.message;
       if (targetChatId || sourceChatId) {
         return promiseTry(async () => {
@@ -82,10 +88,14 @@ class Chat {
     });
 
     this.router.callback_query((req, res, next) => {
+      assertType<RouterCallbackQueryReq>(req);
+
       return this.main.bot.answerCallbackQuery(req.callback_query.id).then(next);
     });
 
     this.router.textOrCallbackQuery((req, res, next) => {
+      assertType<RouterTextReq | RouterCallbackQueryReq>(req);
+
       if (['group', 'supergroup'].includes(req.chatType)) {
         return promiseTry(() => {
           const adminIds = this.chatIdAdminIdsCache.get(req.chatId);
@@ -97,7 +107,7 @@ class Chat {
             return adminIds;
           });
         }).then((adminIds: number[]) => {
-          if (adminIds.includes(req.fromId)) {
+          if (adminIds.includes(req.fromId as number)) {
             next();
           }
         });
@@ -107,6 +117,8 @@ class Chat {
     });
 
     this.router.textOrCallbackQuery(/(.+)/, (req, res, next) => {
+      assertType<RouterTextReq | RouterCallbackQueryReq>(req);
+
       next();
       if (req.message) {
         this.main.tracker.track(req.chatId, {
@@ -137,6 +149,8 @@ class Chat {
     });
 
     this.router.text(/\/ping/, (req, res) => {
+      assertType<RouterTextReq>(req);
+
       return this.main.bot.sendMessage(req.chatId, 'pong').catch((err: any) => {
         debug('%j error %o', req.command, err);
       });
@@ -155,12 +169,16 @@ class Chat {
     };
 
     this.router.text(/\/(start|menu|help)/, (req, res) => {
+      assertType<RouterTextReq>(req);
+
       return sendMenu(req.chatId, 0).catch((err: any) => {
         debug('%j error %o', req.command, err);
       });
     });
 
     this.router.callback_query(/\/menu(?:\/(?<page>\d+))?/, (req, res) => {
+      assertType<RouterCallbackQueryReq>(req);
+
       const page = parseInt(req.params.page || '0', 10);
       return this.main.bot.editMessageReplyMarkup(JSON.stringify({
         inline_keyboard: getMenu(page)
@@ -182,6 +200,8 @@ class Chat {
     });
 
     this.router.textOrCallbackQuery(/\/top/, (req, res) => {
+      assertType<RouterTextReq | RouterCallbackQueryReq>(req);
+
       return Promise.all([
         this.main.db.getChatIdChannelIdChatIdCount(),
         this.main.db.getChatIdChannelIdChannelIdCount(),
@@ -259,7 +279,9 @@ class Chat {
   }
 
   user() {
-    const provideChat = (req: RouterReqWithChat, res: RouterRes, next: () => void) => {
+    const provideChat = (req: RouterReq, res: RouterRes, next: () => void) => {
+      assertType<RouterTextReq & WithChat>(req);
+
       return this.main.db.ensureChat('' + req.chatId).then((chat) => {
         req.chat = chat;
         next();
@@ -269,7 +291,9 @@ class Chat {
       });
     };
 
-    const provideChannels = (req: RouterReqWithChannels, res: RouterRes, next: () => void) => {
+    const provideChannels = (req: RouterReq, res: RouterRes, next: () => void) => {
+      assertType<RouterTextReq & WithChannels>(req);
+
       return this.main.db.getChannelsByChatId('' + req.chatId).then((channels) => {
         req.channels = channels;
         next();
@@ -279,7 +303,9 @@ class Chat {
       });
     };
 
-    const withChannels = (req: RouterReqWithChannels, res: RouterRes, next: () => void) => {
+    const withChannels = (req: RouterReq, res: RouterRes, next: () => void) => {
+      assertType<RouterTextReq & WithChannels>(req);
+
       if (req.channels.length) {
         next();
       } else {
@@ -288,6 +314,8 @@ class Chat {
     };
 
     this.router.callback_query(/\/cancel\/(?<command>[^\s]+)/, (req, res) => {
+      assertType<RouterCallbackQueryReq>(req);
+
       const command = req.params.command;
 
       const cancelText = this.main.locale.getMessage('commandCanceled').replace('{command}', command);
@@ -300,6 +328,8 @@ class Chat {
     });
 
     this.router.textOrCallbackQuery(/\/add(?:\s+(?<query>.+$))?/, provideChat, (req, res) => {
+      assertType<(RouterTextReq & WithChat | RouterCallbackQueryReq & WithChat)>(req);
+
       const query: string | undefined = req.params.query;
       let requestedData: string | null = null;
       let requestedService: string | null = null;
@@ -314,7 +344,7 @@ class Chat {
         return requestData(req.chatId, req.fromId, messageText, cancelText).then(({req, msg}) => {
           const messageText = req.message && req.message.text || '';
           requestedData = messageText;
-          this.main.tracker.track(req.chatId!, {
+          this.main.tracker.track(req.chatId, {
             ec: 'command',
             ea: '/add',
             el: messageText,
@@ -344,8 +374,8 @@ class Chat {
             }]
           ];
           return requestChoose(req.chatId, req.fromId, messageId, messageText, cancelText, chooseKeyboard).then(({req, msg}) => {
-            requestedService = req.params!.value;
-            const service = this.main.getServiceById(req.params!.value)!;
+            requestedService = req.params.value;
+            const service = this.main.getServiceById(req.params.value)!;
             return {service, messageId: msg.message_id};
           });
         }).then(({service, messageId}) => {
@@ -428,6 +458,8 @@ class Chat {
     });
 
     this.router.callback_query(/\/clear\/confirmed/, (req, res) => {
+      assertType<RouterCallbackQueryReq>(req);
+
       return this.main.db.deleteChatById('' + req.chatId).then(() => {
         this.log.write(`[deleted] ${req.chatId}, cause: /clear`);
         return this.main.bot.editMessageText(this.main.locale.getMessage('cleared'), {
@@ -440,6 +472,8 @@ class Chat {
     });
 
     this.router.textOrCallbackQuery(/\/clear/, (req, res) => {
+      assertType<RouterTextReq | RouterCallbackQueryReq>(req);
+
       return this.main.bot.sendMessage(req.chatId, this.main.locale.getMessage('clearSure'), {
         reply_markup: JSON.stringify({
           inline_keyboard: [[{
@@ -456,6 +490,8 @@ class Chat {
     });
 
     this.router.callback_query(/\/delete\/(?<channelId>.+)/, (req, res) => {
+      assertType<RouterCallbackQueryReq>(req);
+
       const channelId = req.params.channelId;
 
       return this.main.db.getChannelById(channelId).then((channel) => {
@@ -492,7 +528,9 @@ class Chat {
       });
     });
 
-    this.router.textOrCallbackQuery(/\/delete/, provideChannels, withChannels, (req: RouterReqWithChannels, res) => {
+    this.router.textOrCallbackQuery(/\/delete/, provideChannels, withChannels, (req, res) => {
+      assertType<(RouterTextReq | RouterCallbackQueryReq) & WithChannels>(req);
+
       const channels = req.channels.map((channel) => {
         const service = this.main.getServiceById(channel.service)!;
         return [{
@@ -532,7 +570,9 @@ class Chat {
       });
     });
 
-    this.router.callback_query(/\/unsetChannel/, provideChat, (req: RouterReqWithChat, res) => {
+    this.router.callback_query(/\/unsetChannel/, provideChat, (req, res) => {
+      assertType<RouterCallbackQueryReq & WithChat>(req);
+
       return promiseTry(() => {
         return this.main.db.deleteChatById(req.chat.channelId);
       }).then(() => {
@@ -552,8 +592,10 @@ class Chat {
       });
     });
 
-    this.router.textOrCallbackQuery(/\/setChannel(?:\s+(?<channelId>.+))?/, provideChat, (req: RouterReqWithChat, res) => {
-      const channelId = req.params!.channelId;
+    this.router.textOrCallbackQuery(/\/setChannel(?:\s+(?<channelId>.+))?/, provideChat, (req, res) => {
+      assertType<(RouterCallbackQueryReq | RouterTextReq) & WithChat>(req);
+
+      const channelId = req.params.channelId;
       let requestedData: string | null = null;
 
       return promiseTry(() => {
@@ -563,10 +605,12 @@ class Chat {
 
         const messageText = this.main.locale.getMessage('telegramChannelEnter');
         const cancelText = this.main.locale.getMessage('commandCanceled').replace('{command}', '\/setChannel');
-        return requestData(req.chatId!, req.fromId!, messageText, cancelText).then(({req, msg}) => {
-          const messageText = req.message && req.message.text || '';
+        return requestData(req.chatId, req.fromId, messageText, cancelText).then(({req, msg}) => {
+          assertType<RouterMessageReq>(req);
+
+          const messageText = req.message.text || '';
           requestedData = messageText;
-          this.main.tracker.track(req.chatId!, {
+          this.main.tracker.track(req.chatId, {
             ec: 'command',
             ea: '/setChannel',
             el: messageText,
@@ -601,7 +645,7 @@ class Chat {
           });
         }).then((channelId) => {
           const message = this.main.locale.getMessage('telegramChannelSet').replace('{channelName}', channelId);
-          return editOrSendNewMessage(req.chatId!, messageId, message).then(() => {
+          return editOrSendNewMessage(req.chatId, messageId, message).then(() => {
             if (req.callback_query) {
               return this.main.bot.editMessageReplyMarkup(JSON.stringify({
                 inline_keyboard: getOptions(req.chat)
@@ -633,7 +677,7 @@ class Chat {
           } else {
             message = 'Unexpected error';
           }
-          await editOrSendNewMessage(req.chatId!, req.messageId, message);
+          await editOrSendNewMessage(req.chatId, req.messageId, message);
           if (!isResolved) {
             throw err;
           }
@@ -647,8 +691,10 @@ class Chat {
       });
     });
 
-    this.router.callback_query(/\/(?<optionsType>options|channelOptions)\/(?<key>[^\/]+)\/(?<value>.+)/, provideChat, (req: RouterReqWithChat, res) => {
-      const {optionsType, key, value} = req.params!;
+    this.router.callback_query(/\/(?<optionsType>options|channelOptions)\/(?<key>[^\/]+)\/(?<value>.+)/, provideChat, (req, res) => {
+      assertType<RouterCallbackQueryReq & WithChat>(req);
+
+      const {optionsType, key, value} = req.params;
       return promiseTry(() => {
         const changes: {[s: string]: any} = {};
         switch (key) {
@@ -684,8 +730,10 @@ class Chat {
             return req.chat.save();
           }
           case 'channelOptions': {
+            assertType<IChat & {channel: IChat}>(req.chat);
+
             Object.assign(req.chat.channel, changes);
-            return req.chat.channel!.save();
+            return req.chat.channel.save();
           }
         }
       }).then(() => {
@@ -705,7 +753,9 @@ class Chat {
       });
     });
 
-    this.router.textOrCallbackQuery(/\/options/, provideChat, (req: RouterReqWithChat, res) => {
+    this.router.textOrCallbackQuery(/\/options/, provideChat, (req, res) => {
+      assertType<(RouterCallbackQueryReq | RouterTextReq) & WithChat>(req);
+
       return promiseTry(() => {
         if (req.callback_query && !req.query.rel) {
           return this.main.bot.editMessageReplyMarkup(JSON.stringify({
@@ -726,7 +776,9 @@ class Chat {
       });
     });
 
-    this.router.textOrCallbackQuery(/\/online/, provideChannels, withChannels, (req: RouterReqWithChannels, res) => {
+    this.router.textOrCallbackQuery(/\/online/, provideChannels, withChannels, (req, res) => {
+      assertType<(RouterCallbackQueryReq | RouterTextReq) & WithChannels>(req);
+
       const channelIds = req.channels.map(channel => channel.id);
       return this.main.db.getStreamsWithChannelByChannelIds(channelIds).then((streams) => {
         let message: string;
@@ -781,8 +833,10 @@ class Chat {
       });
     });
 
-    this.router.callback_query(/\/watch\/(?<streamId>.+)/, provideChat, (req: RouterReqWithChat, res) => {
-      const {streamId} = req.params!;
+    this.router.callback_query(/\/watch\/(?<streamId>.+)/, provideChat, (req, res) => {
+      assertType<RouterCallbackQueryReq & WithChat>(req);
+
+      const {streamId} = req.params;
       return this.main.db.getStreamWithChannelById(streamId).then((stream) => {
         const chatSender = new ChatSender(this.main, req.chat);
         return chatSender.sendStream(stream);
@@ -797,7 +851,9 @@ class Chat {
       });
     });
 
-    this.router.textOrCallbackQuery(/\/list/, provideChannels, withChannels, (req: RouterReqWithChannels, res) => {
+    this.router.textOrCallbackQuery(/\/list/, provideChannels, withChannels, (req, res) => {
+      assertType<(RouterCallbackQueryReq | RouterTextReq) & WithChannels>(req);
+
       const serviceIds: string[] = [];
       const serviceIdChannels: Map<string, IChannel[]> = new Map();
       req.channels.forEach((channel: IChannel) => {
@@ -867,8 +923,8 @@ class Chat {
       });
     });
 
-    const requestData = (chatId: number, fromId: number, messageText: string, cancelText: string): Promise<{
-      req: RouterReq, msg: TMessage
+    const requestData = (chatId: number, fromId: number | null, messageText: string, cancelText: string): Promise<{
+      req: RouterMessageReq, msg: TMessage
     }> => {
       const options: {[s: string]: any} = {};
       let msgText = messageText;
@@ -887,6 +943,7 @@ class Chat {
           fromId: fromId,
           throwOnCommand: true
         }, 3 * 60).then(({req, res, next}) => {
+          assertType<RouterMessageReq>(req);
           return {req, msg};
         }, async (err) => {
           if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
@@ -897,8 +954,8 @@ class Chat {
       });
     };
 
-    const requestChoose = (chatId: number, fromId: number, messageId: number | undefined, messageText: string, cancelText: string, inline_keyboard: TInlineKeyboardButton[][]): Promise<{
-      req: RouterReq, msg: TMessage
+    const requestChoose = (chatId: number, fromId: number | null, messageId: number | undefined, messageText: string, cancelText: string, inline_keyboard: TInlineKeyboardButton[][]): Promise<{
+      req: RouterCallbackQueryReq, msg: TMessage
     }> => {
       return editOrSendNewMessage(chatId, messageId, messageText, {
         reply_markup: JSON.stringify({inline_keyboard})
@@ -908,8 +965,10 @@ class Chat {
           chatId: chatId,
           fromId: fromId,
         }, 3 * 60).then(({req, res, next}) => {
-          return this.main.bot.answerCallbackQuery(req.callback_query!.id).then(async () => {
-            if (req.params!.value === 'cancel') {
+          assertType<RouterCallbackQueryReq>(req);
+
+          return this.main.bot.answerCallbackQuery(req.callback_query.id).then(async () => {
+            if (req.params.value === 'cancel') {
               await editOrSendNewMessage(chatId, msg.message_id, cancelText);
               throw new ErrorWithCode('Response cancel', 'RESPONSE_CANCEL');
             }
@@ -924,7 +983,7 @@ class Chat {
       });
     };
 
-    const editOrSendNewMessage = (chatId: number, messageId: number|undefined|null, text: string, form?: object) => {
+    const editOrSendNewMessage = (chatId: number, messageId: number|undefined, text: string, form?: object) => {
       return promiseTry(() => {
         if (!messageId) {
           throw new ErrorWithCode('messageId is empty', 'MESSAGE_ID_IS_EMPTY');
@@ -949,8 +1008,10 @@ class Chat {
 
   admin() {
     const isAdmin = (req: RouterReq, res: RouterRes, next: () => void) => {
+      assertType<RouterTextReq | RouterCallbackQueryReq>(req);
+
       const adminIds = this.main.config.adminIds || [];
-      if (adminIds.includes(req.chatId!)) {
+      if (adminIds.includes(req.chatId)) {
         next();
       } else {
         this.main.bot.sendMessage(req.chatId, `Access denied for you (${req.chatId})`);
@@ -970,6 +1031,8 @@ class Chat {
     ];
 
     this.router.callback_query(/\/admin\/(?<command>.+)/, isAdmin, (req, res) => {
+      assertType<RouterCallbackQueryReq>(req);
+
       const command = req.params.command;
       return promiseTry(() => {
         if (!commands.some(({method}) => method === command)) {
@@ -991,6 +1054,8 @@ class Chat {
     });
 
     this.router.textOrCallbackQuery(/\/admin/, isAdmin, (req, res) => {
+      assertType<RouterCallbackQueryReq | RouterTextReq>(req);
+
       type Button = {text: string, callback_data: string};
       return this.main.bot.sendMessage(req.chatId, 'Admin menu', {
         reply_markup: JSON.stringify({
@@ -1012,7 +1077,7 @@ class Chat {
 }
 
 function getMenu(page: number) {
-  let menu = null;
+  let menu;
   if (page > 0) {
     menu = [
       [

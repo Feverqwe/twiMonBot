@@ -838,7 +838,7 @@ class Db {
       include: [
         {model: ChannelModel, required: true}
       ]
-    }).then((stream: any) => {
+    }).then((stream: IStreamWithChannel) => {
       if (!stream) {
         throw new ErrorWithCode('Stream is not found', 'STREAM_IS_NOT_FOUND');
       }
