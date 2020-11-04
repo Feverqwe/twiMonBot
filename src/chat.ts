@@ -923,7 +923,7 @@ class Chat {
     });
 
     const requestData = (chatId: number, fromId: number | null, messageText: string, cancelText: string): Promise<{
-      req: RouterMessageReq, msg: TMessage
+      req: RouterTextReq, msg: TMessage
     }> => {
       const options: {[s: string]: any} = {};
       let msgText = messageText;
@@ -942,7 +942,7 @@ class Chat {
           fromId: fromId,
           throwOnCommand: true
         }, 3 * 60).then(({req, res, next}) => {
-          assertType<RouterMessageReq>(req);
+          assertType<RouterTextReq>(req);
           return {req, msg};
         }, async (err) => {
           if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {

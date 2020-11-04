@@ -112,7 +112,7 @@ class Router extends RouterImpl {
     return this._botNameRe;
   }
 
-  handle = (event: string, data: TMessage|TCallbackQuery) => {
+  handle = (event: 'message' | 'callback_query', data: TMessage|TCallbackQuery) => {
     const commands = getCommands(event, data, this.botNameRe);
     if (!commands.length) {
       commands.push('');
@@ -274,13 +274,11 @@ export class RouterReq {
   commands = [] as string[];
   command = '';
   params: {[s: string]: string} | null = null;
-  event: string;
   message?: TMessage;
   callback_query?: TCallbackQuery;
   private _cache = {} as {[s: string]: {value?: any}};
 
-  constructor(event: string, data: TMessage|TCallbackQuery) {
-    this.event = event;
+  constructor(public event: 'message' | 'callback_query', data: TMessage|TCallbackQuery) {
     switch (event) {
       case 'message': {
         this.message = data as TMessage;
@@ -354,7 +352,7 @@ export class RouterReq {
 
   get entities() {
     return this._useCache('entities', () => {
-      const entities: {[s: string]: any} = {};
+      const entities: Record<string, {type: string, value: string, url?: string, user?: TUser}[]> = {};
 
       if (this.message && this.message.entities) {
         const text = this.message.text || '';
