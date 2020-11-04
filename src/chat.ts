@@ -342,7 +342,7 @@ class Chat {
         const messageText = this.main.locale.getMessage('enterChannelName').replace('{example}', this.main.config.defaultChannelName);
         const cancelText = this.main.locale.getMessage('commandCanceled').replace('{command}', 'add');
         return requestData(req.chatId, req.fromId, messageText, cancelText).then(({req, msg}) => {
-          const messageText = req.message && req.message.text || '';
+          const messageText = req.message.text || '';
           requestedData = messageText;
           this.main.tracker.track(req.chatId, {
             ec: 'command',
@@ -606,8 +606,6 @@ class Chat {
         const messageText = this.main.locale.getMessage('telegramChannelEnter');
         const cancelText = this.main.locale.getMessage('commandCanceled').replace('{command}', '\/setChannel');
         return requestData(req.chatId, req.fromId, messageText, cancelText).then(({req, msg}) => {
-          assertType<RouterMessageReq>(req);
-
           const messageText = req.message.text || '';
           requestedData = messageText;
           this.main.tracker.track(req.chatId, {

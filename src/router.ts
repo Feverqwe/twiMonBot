@@ -97,18 +97,12 @@ const RouterImpl = class MessageTypesImpl implements MessageTypesObj {
 }
 
 class Router extends RouterImpl {
-  main: Main;
-  _botNameRe: RegExp | null;
+  _botNameRe: RegExp | null = null;
 
-  textOrCallbackQuery: RouterMethod;
+  textOrCallbackQuery = this.custom(['text', 'callback_query']);
 
-  constructor(main: Main) {
+  constructor(public main: Main) {
     super();
-
-    this.main = main;
-    this._botNameRe = null;
-
-    this.textOrCallbackQuery = this.custom(['text', 'callback_query']);
   }
 
   get botNameRe() {
