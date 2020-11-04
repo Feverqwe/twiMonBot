@@ -6,6 +6,7 @@ import parallel from "./tools/parallel";
 import {ServiceChannel, ServiceInterface} from "./checker";
 import type * as SequelizeType from "sequelize";
 import arrayDifference from "./tools/arrayDifference";
+import promiseTry from "./tools/promiseTry";
 
 const Sequelize = require('sequelize') as typeof SequelizeType;
 const debug = require('debug')('app:db');
@@ -579,10 +580,12 @@ class Db {
   }
 
   getServiceIdChannelCount(serviceId: string) {
-    return this.sequelize.query(`
+    return promiseTry(() => {
+      return this.sequelize.query(`
       SELECT service, COUNT(id) as channelCount FROM channels 
       WHERE service = "${serviceId}"
-    `, {type: Sequelize.QueryTypes.SELECT}).then((results: {service: null|string, channelCount: number}[]) => {
+    `, {type: Sequelize.QueryTypes.SELECT});
+    }).then((results: {service: string, channelCount: number}[]) => {
       return results[0];
     });
   }

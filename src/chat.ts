@@ -220,7 +220,8 @@ class Chat {
         lines.push(this.main.locale.getMessage('online').replace('{count}', '' + onlineCount));
 
         const serviceCountMap = new Map();
-        serviceChannelCountList.forEach(({service, channelCount}) => {
+        serviceChannelCountList.forEach((item) => {
+          const {service, channelCount} = item;
           serviceCountMap.set(service, channelCount);
         });
 
