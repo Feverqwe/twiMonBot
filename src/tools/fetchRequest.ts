@@ -41,7 +41,9 @@ function fetchRequest(url: string, options?: FetchRequestOptions) {
     fetchOptions.method = fetchOptions.method || 'GET';
 
     if (searchParams) {
-      url = url.split('?')[0] + '?' + qs.stringify(searchParams);
+      const uri = new URL(url);
+      uri.search = '?' + qs.stringify(searchParams);
+      url = uri.toString();
     }
 
     let agentFn;
