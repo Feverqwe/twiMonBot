@@ -1,4 +1,4 @@
-FROM node:12-alpine as node
+FROM node:14-alpine as node
 ENV NO_UPDATE_NOTIFIER true
 
 FROM node as base
