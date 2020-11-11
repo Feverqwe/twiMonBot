@@ -40,6 +40,7 @@ export interface ServiceInterface {
   name: string,
   batchSize: number,
   noCachePreview?: boolean,
+  streamUrlWithoutChannelName?: boolean,
   match(query: string): boolean,
   getStreams(channelsIds: (string|number)[]): Promise<ServiceGetStreamsResult>,
   getExistsChannelIds(channelsIds: (string|number)[]): Promise<(string|number)[]>,

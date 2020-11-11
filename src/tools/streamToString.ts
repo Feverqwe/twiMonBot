@@ -1,5 +1,6 @@
 import {IStream, IStreamWithChannel} from "../db";
 import htmlSanitize from "./htmlSanitize";
+import {ServiceInterface} from "../checker";
 
 const icons = {
   timeout: '⏳',
@@ -8,47 +9,52 @@ const icons = {
   record: '📽️',
 };
 
-export function getDescription(stream: IStreamWithChannel) {
-  let game = stream.game!;
-  if (stream.title.includes(game)) {
-    game = '';
-  }
+export function getDescription(stream: IStreamWithChannel, service: ServiceInterface) {
+  const icon = getIcon(stream);
+  const game = stream.game || '';
+  const channelName = service.streamUrlWithoutChannelName ? stream.channel.title : '';
 
-  return joinString(...[
-    joinString(getIcon(stream), htmlSanitize(stream.title), ' '),
-    htmlSanitize('a', joinString(stream.channel.title, game, ' — '), stream.url)
+  return joinString([
+    joinString([
+      joinString([icon, htmlSanitize('', stream.title)], ' '),
+      htmlSanitize('', game),
+    ], ' — '),
+    htmlSanitize('', joinString([stream.url, channelName], ' – ')),
   ], '\n');
 }
 
-export function getCaption(stream: IStreamWithChannel) {
-  let game = stream.game!;
-  if (stream.title.includes(game)) {
-    game = '';
-  }
+export function getStreamAsCaption(stream: IStreamWithChannel, service: ServiceInterface) {
+  const icon = getIcon(stream);
+  const game = stream.game || '';
+  const channelName = service.streamUrlWithoutChannelName ? stream.channel.title : '';
 
-  return joinString(...[
-    joinString(joinString(getIcon(stream), stream.title, ' '), game, ' — '),
-    stream.url
+  return joinString([
+    joinString([
+      joinString([icon, stream.title], ' '),
+      game,
+    ], ' — '),
+    joinString([stream.url, channelName], ' – '),
   ], '\n');
 }
 
-export function getString(stream: IStreamWithChannel) {
-  let game = stream.game!;
-  if (stream.title.includes(game)) {
-    game = '';
-  }
-
+export function getStreamAsText(stream: IStreamWithChannel) {
   const icon = getIcon(stream, true);
+  const game = stream.game || '';
+  const viewers = typeof stream.viewers === 'number' ? String(stream.viewers) : '';
 
-  return joinString(...[
-    joinString(htmlSanitize('b', stream.channel.title), icon, typeof stream.viewers === "number" ? stream.viewers.toString() : null, ' '),
-    htmlSanitize(joinString(stream.title, game, ' — ')),
-    htmlSanitize(stream.url)
+  return joinString([
+    joinString([
+      htmlSanitize('b', stream.channel.title), icon, viewers
+    ], ' '),
+    htmlSanitize('', joinString([stream.title, game], ' — ')),
+    htmlSanitize('', stream.url)
   ], '\n');
 }
 
-export function getButtonText(stream: IStreamWithChannel) {
-  return joinString(stream.channel.title, stream.title, ' — ');
+export function getStreamAsButtonText(stream: IStreamWithChannel) {
+  return joinString([
+    stream.channel.title, stream.title
+  ], ' — ');
 }
 
 function getIcon(stream: IStream, withOnline?: boolean) {
@@ -68,7 +74,6 @@ function getIcon(stream: IStream, withOnline?: boolean) {
   return icon;
 }
 
-function joinString(...parts: (string|null)[]) {
-  const sep = parts.pop()!;
+function joinString(parts: (string|null|undefined)[], sep: string) {
   return parts.map(s => s && s.trim()).filter(s => !!s).join(sep).trim();
 }

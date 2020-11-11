@@ -6,15 +6,7 @@ const sanitizeAttr = function (text: string) {
   return sanitize(text).replace(/"/g, '&quot;');
 };
 
-const htmlSanitize = function (type?: string, textOrType?: string, url?: string) {
-  let text: string;
-  if (!textOrType) {
-    text = type!;
-    type = '';
-  } else {
-    text = textOrType;
-  }
-
+const htmlSanitize = function (type: string, text: string, url?: string) {
   switch (type) {
     case '':
       return sanitize(text);

@@ -36,18 +36,12 @@ const StreamsStruct = s.type({
 });
 
 class Twitch implements ServiceInterface {
-  main: Main;
-  id: string;
-  name: string;
-  batchSize: number;
-  noCachePreview: boolean;
-  constructor(main: Main) {
-    this.main = main;
-    this.id = 'twitch';
-    this.name = 'Twitch';
-    this.batchSize = 100;
-    this.noCachePreview = true;
-  }
+  id = 'twitch';
+  name = 'Twitch';
+  batchSize = 100;
+  noCachePreview = true;
+
+  constructor(public main: Main) {}
 
   match(url: string) {
     return [

@@ -21,7 +21,7 @@ import arrayByPart from "./tools/arrayByPart";
 import promiseTry from "./tools/promiseTry";
 import Main from "./main";
 import {IChannel, IChat, IChatWithChannel} from "./db";
-import {getButtonText, getString} from "./tools/streamToString";
+import {getStreamAsButtonText, getStreamAsText} from "./tools/streamToString";
 import ChatSender from "./chatSender";
 import parallel from "./tools/parallel";
 import TimeCache from "./tools/timeCache";
@@ -399,7 +399,7 @@ class Chat {
               const {title, url} = channel;
               message = this.main.locale.getMessage('channelAdded')
                 .replace('{channelName}', htmlSanitize('a', title, url))
-                .replace('{serviceName}', htmlSanitize(service.name));
+                .replace('{serviceName}', htmlSanitize('', service.name));
             }
             return editOrSendNewMessage(req.chatId, messageId, message, {
               disable_web_page_preview: true,
@@ -784,14 +784,14 @@ class Chat {
         if (!streams.length){
           message = this.main.locale.getMessage('offline');
         } else {
-          message = streams.map(stream => getString(stream)).join('\n\n');
+          message = streams.map(stream => getStreamAsText(stream)).join('\n\n');
         }
 
         const buttons: TInlineKeyboardButton[][] = [];
         streams.forEach((stream) => {
           if (!stream.isOffline && !stream.isTimeout) {
             buttons.push([{
-              text: getButtonText(stream),
+              text: getStreamAsButtonText(stream),
               callback_data: `/watch/${stream.id}`
             }]);
           }

@@ -2,7 +2,7 @@ import Main from "./main";
 import {IChat, IMessage, IStream, IStreamWithChannel} from "./db";
 import promiseTry from "./tools/promiseTry";
 import ErrorWithCode from "./tools/errorWithCode";
-import {getCaption, getDescription} from "./tools/streamToString";
+import {getStreamAsCaption, getDescription} from "./tools/streamToString";
 import {ServiceInterface} from "./checker";
 import {TMessage} from "./router";
 import appendQueryParam from "./tools/appendQueryParam";
@@ -125,9 +125,9 @@ class ChatSender {
     return this.main.sender.provideStream(message.streamId, (stream) => {
       let text: string;
       if (message.type === 'text') {
-        text = getDescription(stream);
+        text = getDescription(stream, this.main.getServiceById(stream.channel.service)!);
       } else {
-        text = getCaption(stream);
+        text = getStreamAsCaption(stream, this.main.getServiceById(stream.channel.service)!);
       }
 
       return promiseTry(() => {
@@ -256,7 +256,7 @@ class ChatSender {
   }
 
   sendStreamAsText(stream: IStreamWithChannel, isFallback?: boolean): Promise<SentMessage> {
-    const text = getDescription(stream);
+    const text = getDescription(stream, this.main.getServiceById(stream.channel.service)!);
     return this.main.bot.sendMessage(this.chat.id, text, {
       parse_mode: 'HTML'
     }).then((message: TMessage) => {
@@ -286,7 +286,7 @@ class ChatSender {
 
   sendStreamAsPhoto(stream: IStreamWithChannel): Promise<SentMessage> {
     if (stream.telegramPreviewFileId) {
-      const caption = getCaption(stream);
+      const caption = getStreamAsCaption(stream, this.main.getServiceById(stream.channel.service)!);
       return this.main.bot.sendPhotoQuote(this.chat.id, stream.telegramPreviewFileId, {caption}).then((message: TMessage) => {
         this.main.tracker.track(this.chat.id, {
           ec: 'bot',
@@ -360,7 +360,7 @@ class ChatSender {
       if (service.noCachePreview) {
         url = appendQueryParam(url, '_', stream.updatedAt.getTime());
       }
-      const caption = getCaption(stream);
+      const caption = getStreamAsCaption(stream, this.main.getServiceById(stream.channel.service)!);
       return this.main.bot.sendPhoto(this.chat.id, url, {caption}).then((message: TMessage) => {
         this.main.sender.log.write(`[send photo as url] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`);
         this.main.tracker.track(this.chat.id, {

@@ -41,18 +41,12 @@ const StreamsStruct = s.type({
 });
 
 class Goodgame implements ServiceInterface {
-  main: Main;
-  id: string;
-  name: string;
-  batchSize: number;
-  noCachePreview: boolean;
-  constructor(main: Main) {
-    this.main = main;
-    this.id = 'goodgame';
-    this.name = 'Goodgame';
-    this.batchSize = 25;
-    this.noCachePreview = true;
-  }
+  id = 'goodgame';
+  name = 'Goodgame';
+  batchSize = 25;
+  noCachePreview = true;
+
+  constructor(public main: Main) {}
 
   match(url: string) {
     return [

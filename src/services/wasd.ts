@@ -49,18 +49,13 @@ const ChannelStruct = s.type({
 });
 
 class Wasd implements ServiceInterface {
-  main: Main;
-  id: string;
-  name: string;
-  batchSize: number;
-  noCachePreview: boolean;
-  constructor(main: Main) {
-    this.main = main;
-    this.id = 'wasd';
-    this.name = 'Wasd';
-    this.batchSize = 100;
-    this.noCachePreview = true;
-  }
+  id = 'wasd';
+  name = 'Wasd';
+  batchSize = 100;
+  noCachePreview = true;
+  streamUrlWithoutChannelName = true;
+
+  constructor(public main: Main) {}
 
   match(url: string) {
     return [

@@ -95,16 +95,12 @@ const VideosResponseStruct = s.type({
 });
 
 class Youtube implements ServiceInterface {
-  main: Main;
-  id: string;
-  name: string;
-  batchSize: number;
-  constructor(main: Main) {
-    this.main = main;
-    this.id = 'youtube';
-    this.name = 'Youtube';
-    this.batchSize = 50;
-  }
+  id = 'youtube';
+  name = 'Youtube';
+  batchSize = 50;
+  streamUrlWithoutChannelName = true;
+
+  constructor(public main: Main) {}
 
   match(url: string) {
     return [
