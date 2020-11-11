@@ -2,7 +2,7 @@ import Main from "./main";
 import {IChat, IMessage, IStream, IStreamWithChannel} from "./db";
 import promiseTry from "./tools/promiseTry";
 import ErrorWithCode from "./tools/errorWithCode";
-import {getStreamAsCaption, getDescription} from "./tools/streamToString";
+import {getStreamAsCaption, getStreamAsDescription} from "./tools/streamToString";
 import {ServiceInterface} from "./checker";
 import {TMessage} from "./router";
 import appendQueryParam from "./tools/appendQueryParam";
@@ -125,7 +125,7 @@ class ChatSender {
     return this.main.sender.provideStream(message.streamId, (stream) => {
       let text: string;
       if (message.type === 'text') {
-        text = getDescription(stream, this.main.getServiceById(stream.channel.service)!);
+        text = getStreamAsDescription(stream, this.main.getServiceById(stream.channel.service)!);
       } else {
         text = getStreamAsCaption(stream, this.main.getServiceById(stream.channel.service)!);
       }
@@ -256,7 +256,7 @@ class ChatSender {
   }
 
   sendStreamAsText(stream: IStreamWithChannel, isFallback?: boolean): Promise<SentMessage> {
-    const text = getDescription(stream, this.main.getServiceById(stream.channel.service)!);
+    const text = getStreamAsDescription(stream, this.main.getServiceById(stream.channel.service)!);
     return this.main.bot.sendMessage(this.chat.id, text, {
       parse_mode: 'HTML'
     }).then((message: TMessage) => {

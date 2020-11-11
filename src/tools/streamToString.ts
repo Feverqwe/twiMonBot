@@ -9,7 +9,7 @@ const icons = {
   record: '📽️',
 };
 
-export function getDescription(stream: IStreamWithChannel, service: ServiceInterface) {
+export function getStreamAsDescription(stream: IStreamWithChannel, service: ServiceInterface) {
   const icon = getIcon(stream);
   const channelName = service.streamUrlWithoutChannelName ? stream.channel.title : '';
 
