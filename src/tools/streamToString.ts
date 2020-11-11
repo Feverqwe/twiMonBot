@@ -20,10 +20,13 @@ export function getStreamAsDescription(stream: IStreamWithChannel, service: Serv
 
   return joinString([
     joinString([
-      joinString([icon, htmlSanitize('', stream.title)], ' '),
-      htmlSanitize('', game),
-    ], ' — '),
-    htmlSanitize('', joinString([stream.url, channelName], ' – ')),
+      joinString([
+        joinString([icon, htmlSanitize('', stream.title)], ' '),
+        htmlSanitize('', game),
+      ], ' — '),
+      channelName
+    ], ' – '),
+    htmlSanitize('', stream.url),
   ], '\n');
 }
 
@@ -38,10 +41,13 @@ export function getStreamAsCaption(stream: IStreamWithChannel, service: ServiceI
 
   return joinString([
     joinString([
-      joinString([icon, stream.title], ' '),
-      game,
-    ], ' — '),
-    joinString([stream.url, channelName], ' – '),
+      joinString([
+        joinString([icon, stream.title], ' '),
+        game,
+      ], ' — '),
+      channelName
+    ], ' – '),
+    stream.url,
   ], '\n');
 }
 
