@@ -11,8 +11,12 @@ const icons = {
 
 export function getDescription(stream: IStreamWithChannel, service: ServiceInterface) {
   const icon = getIcon(stream);
-  const game = stream.game || '';
   const channelName = service.streamUrlWithoutChannelName ? stream.channel.title : '';
+
+  let game = stream.game || '';
+  if (isSameString(game, stream.title)) {
+    game = '';
+  }
 
   return joinString([
     joinString([
@@ -25,8 +29,12 @@ export function getDescription(stream: IStreamWithChannel, service: ServiceInter
 
 export function getStreamAsCaption(stream: IStreamWithChannel, service: ServiceInterface) {
   const icon = getIcon(stream);
-  const game = stream.game || '';
   const channelName = service.streamUrlWithoutChannelName ? stream.channel.title : '';
+
+  let game = stream.game || '';
+  if (isSameString(game, stream.title)) {
+    game = '';
+  }
 
   return joinString([
     joinString([
@@ -39,8 +47,12 @@ export function getStreamAsCaption(stream: IStreamWithChannel, service: ServiceI
 
 export function getStreamAsText(stream: IStreamWithChannel) {
   const icon = getIcon(stream, true);
-  const game = stream.game || '';
   const viewers = typeof stream.viewers === 'number' ? String(stream.viewers) : '';
+
+  let game = stream.game || '';
+  if (isSameString(game, stream.title)) {
+    game = '';
+  }
 
   return joinString([
     joinString([
@@ -76,4 +88,8 @@ function getIcon(stream: IStream, withOnline?: boolean) {
 
 function joinString(parts: (string|null|undefined)[], sep: string) {
   return parts.map(s => s && s.trim()).filter(s => !!s).join(sep).trim();
+}
+
+function isSameString(a: string, b: string) {
+  return a.toLowerCase().trim() === b.toLowerCase().trim();
 }
