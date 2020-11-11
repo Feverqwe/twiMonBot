@@ -24,7 +24,7 @@ export function getStreamAsDescription(stream: IStreamWithChannel, service: Serv
         joinString([icon, htmlSanitize('', stream.title)], ' '),
         htmlSanitize('', game),
       ], ' — '),
-      channelName
+      htmlSanitize('', channelName),
     ], ' – '),
     htmlSanitize('', stream.url),
   ], '\n');
