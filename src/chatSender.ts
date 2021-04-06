@@ -457,6 +457,7 @@ class ChatSender {
 }
 
 const blockedErrors = [
+  /group chat was deactivated/,
   /group chat is deactivated/,
   /chat not found/,
   /channel not found/,
