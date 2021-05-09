@@ -21,7 +21,7 @@ class PromiseQueue {
    */
   add(callback: () => any) {
     let resolve = noop;
-    const promise = new Promise((_resolve) => {
+    const promise = new Promise<void>((_resolve) => {
       resolve = _resolve;
     });
     if (this.activeCount < this.limit) {

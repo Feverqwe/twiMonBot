@@ -13,36 +13,36 @@ const {CookieJar} = require('tough-cookie');
 
 const cookieJar = new CookieJar();
 
-const StreamStruct = s.type({
+const StreamStruct = s.object({
   media_container_id: s.number(),
   media_container_name: s.string(),
   media_container_status: s.string(),
   channel_id: s.number(),
-  media_container_streams: s.array(s.type({
+  media_container_streams: s.array(s.object({
     stream_id: s.number(),
     stream_current_viewers: s.number(),
-    stream_media: s.array(s.type({
+    stream_media: s.array(s.object({
       media_id: s.number(),
       media_status: s.string(), // RUNNING
-      media_meta: s.type({
+      media_meta: s.object({
         media_preview_url: s.string()
       })
     })),
   })),
-  media_container_user: s.type({
+  media_container_user: s.object({
     channel_id: s.number(),
   }),
-  media_container_channel: s.type({
+  media_container_channel: s.object({
     channel_name: s.string(),
   }),
 });
 
-const StreamListStruct = s.type({
+const StreamListStruct = s.object({
   result: s.array(StreamStruct),
 });
 
-const ChannelStruct = s.type({
-  result: s.type({
+const ChannelStruct = s.object({
+  result: s.object({
     channel_id: s.number(),
     channel_name: s.string(),
   })
@@ -83,7 +83,7 @@ class Wasd implements ServiceInterface {
           });
         });
       }).then(({body}) => {
-        const streamList = s.coerce(body, StreamListStruct).result;
+        const streamList = s.mask(body, StreamListStruct).result;
 
         streamList.forEach((result) => {
           const {
@@ -163,7 +163,7 @@ class Wasd implements ServiceInterface {
         return this.requestChannelByQuery(query);
       });
     }).then(({body}) => {
-      const channel = s.coerce(body, ChannelStruct).result;
+      const channel = s.mask(body, ChannelStruct).result;
       const id = channel.channel_id;
       const title = channel.channel_name;
       const url = getChannelUrl(id);

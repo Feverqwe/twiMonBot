@@ -53,7 +53,7 @@ class YtPubSub {
       this.handleFeed(data);
     });
 
-    return new Promise((resolve) => {
+    return new Promise<void>((resolve) => {
       this.server = this.app.listen(this.port, this.host, resolve);
     }).then(() => {
       this.startUpdateInterval();

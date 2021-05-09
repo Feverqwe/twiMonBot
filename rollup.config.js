@@ -1,4 +1,3 @@
-import babel from 'rollup-plugin-babel';
 import typescript from 'rollup-plugin-typescript';
 import run from '@rollup/plugin-run';
 
@@ -12,15 +11,10 @@ export default {
   },
   plugins: [
     typescript(),
-    babel({
-      plugins: [
-        ['@babel/plugin-proposal-class-properties', { "loose": true }]
-      ]
-    }),
-    isWatch && run({
+    isWatch && run(/*{
       options: {
         execArgv: ['--inspect']
       }
-    }),
+    }*/),
   ]
 };

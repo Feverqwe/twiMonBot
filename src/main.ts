@@ -111,30 +111,21 @@ class Main extends Events {
 
     this.bot = this.initBot();
     this.chat = new Chat(this);
-
-
-    this.init();
   }
 
-  init() {
-    return this.db.init().then(() => {
-      return Promise.all([
-        this.ytPubSub.init(),
-        this.checker.init(),
-        this.sender.init(),
-        this.bot.getMe().then((user: TUser) => {
-          if (!user.username) throw new Error('Bot name is empty');
+  async init() {
+    await this.db.init();
+    await Promise.all([
+      this.ytPubSub.init(),
+      this.bot.getMe().then((user: TUser) => {
+        if (!user.username) throw new Error('Bot name is empty');
 
-          this.botName = user.username;
-          return this.bot.startPolling();
-        }),
-      ]);
-    }).then(() => {
-      debug('ready');
-    }, (err: any) => {
-      debug('init error', err);
-      process.exit(1);
-    });
+        this.botName = user.username;
+        return this.bot.startPolling();
+      }),
+    ]);
+    this.checker.init();
+    this.sender.init();
   }
 
   initBot() {
@@ -160,5 +151,11 @@ class Main extends Events {
 }
 
 const main = new Main();
+main.init().then(() => {
+  debug('ready');
+}, (err: any) => {
+  debug('init error', err);
+  process.exit(1);
+});
 
 export default Main;

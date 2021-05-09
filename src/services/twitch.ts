@@ -8,8 +8,8 @@ import fetchRequest, {HTTPError} from "../tools/fetchRequest";
 
 const debug = require('debug')('app:Twitch');
 
-const ChannelsStruct = s.type({
-  channels: s.array(s.type({
+const ChannelsStruct = s.object({
+  channels: s.array(s.object({
     _id: s.number(),
     name: s.string(),
     display_name: s.string(),
@@ -17,15 +17,15 @@ const ChannelsStruct = s.type({
   })),
 });
 
-const StreamsStruct = s.type({
-  streams: s.array(s.type({
+const StreamsStruct = s.object({
+  streams: s.array(s.object({
     _id: s.number(),
     stream_type: s.string(),
     preview: s.record(s.string(), s.string()),
     viewers: s.number(),
     game: s.string(),
     created_at: s.string(),
-    channel: s.type({
+    channel: s.object({
       _id: s.number(),
       name: s.string(),
       display_name: s.string(),
@@ -67,7 +67,7 @@ class Twitch implements ServiceInterface {
         keepAlive: true,
         responseType: 'json',
       }).then(({body}) => {
-        const result = s.coerce(body, StreamsStruct);
+        const result = s.mask(body, StreamsStruct);
         const streams = result.streams;
 
         streams.forEach((stream) => {
@@ -164,7 +164,7 @@ class Twitch implements ServiceInterface {
       keepAlive: true,
       responseType: 'json',
     }).then(({body}) => {
-      const channels = s.coerce(body, ChannelsStruct).channels;
+      const channels = s.mask(body, ChannelsStruct).channels;
       if (!channels.length) {
         throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
       }

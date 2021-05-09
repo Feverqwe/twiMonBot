@@ -8,31 +8,31 @@ import fetchRequest, {HTTPError} from "../tools/fetchRequest";
 
 const debug = require('debug')('app:Goodgame');
 
-const StreamStrict = s.type({
+const StreamStrict = s.object({
   id: s.number(),
   key: s.string(),
   url: s.string(),
-  channel: s.type({
+  channel: s.object({
     id: s.number(),
     key: s.string(),
     url: s.string(),
   }),
 });
 
-const StreamsStruct = s.type({
-  _embedded: s.type({
-    streams: s.array(s.type({
+const StreamsStruct = s.object({
+  _embedded: s.object({
+    streams: s.array(s.object({
       key: s.string(),
       status: s.string(),
       id: s.number(),
       viewers: s.string(),
-      channel: s.type({
+      channel: s.object({
         id: s.number(),
         key: s.string(),
         title: s.string(),
         url: s.string(),
         thumb: s.string(),
-        games: s.array(s.type({
+        games: s.array(s.object({
           title: s.nullable(s.string())
         })),
       })
@@ -71,7 +71,7 @@ class Goodgame implements ServiceInterface {
         keepAlive: true,
         responseType: 'json',
       }).then(({body}) => {
-        const streams = s.coerce(body, StreamsStruct)._embedded.streams;
+        const streams = s.mask(body, StreamsStruct)._embedded.streams;
 
         streams.forEach((stream) => {
           if (stream.status !== 'Live') return;
@@ -156,7 +156,7 @@ class Goodgame implements ServiceInterface {
       keepAlive: true,
       responseType: 'json',
     }).then(({body}) => {
-      const stream = s.coerce(body, StreamStrict);
+      const stream = s.mask(body, StreamStrict);
       const id = stream.channel.id;
       const url = stream.channel.url;
       const title = stream.channel.key;

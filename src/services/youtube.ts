@@ -4,24 +4,23 @@ import RateLimit from "../tools/rateLimit";
 import parallel from "../tools/parallel";
 import ErrorWithCode from "../tools/errorWithCode";
 import * as s from "superstruct";
-import {StructType} from "superstruct";
+import {Infer} from "superstruct";
 import arrayByPart from "../tools/arrayByPart";
 import promiseTry from "../tools/promiseTry";
 import fetchRequest, {HTTPError} from "../tools/fetchRequest";
+import {decode as decodeHtmlEntity} from "html-entities";
 
 const debug = require('debug')('app:Youtube');
-const XmlEntities = require('html-entities/lib/xml-entities').XmlEntities;
 
 const limit = new RateLimit(1000);
 const fetchRequestLimited = limit.wrap(fetchRequest) as typeof fetchRequest;
-const xmlEntities = new XmlEntities();
 
-const VideosItemsSnippetStruct = s.type({
-  items: s.array(s.type({
-    snippet: s.type({
+const VideosItemsSnippetStruct = s.object({
+  items: s.array(s.object({
+    snippet: s.object({
       channelId: s.string()
     }),
-    liveStreamingDetails: s.optional(s.type({
+    liveStreamingDetails: s.optional(s.object({
       scheduledStartTime: s.optional(s.string()),
       actualStartTime: s.optional(s.string()),
       actualEndTime: s.optional(s.string()),
@@ -30,40 +29,40 @@ const VideosItemsSnippetStruct = s.type({
   }))
 });
 
-const ChannelsItemsIdStruct = s.type({
-  items: s.optional(s.array(s.type({
+const ChannelsItemsIdStruct = s.object({
+  items: s.optional(s.array(s.object({
     id: s.string()
   }))),
   nextPageToken: s.optional(s.string())
 });
 
-const SearchItemsIdStruct = s.type({
-  items: s.array(s.type({
-    id: s.type({
+const SearchItemsIdStruct = s.object({
+  items: s.array(s.object({
+    id: s.object({
       channelId: s.string()
     })
   }))
 });
 
-const SearchItemsIdVideoIdStruct = s.type({
-  items: s.array(s.type({
-    id: s.type({
+const SearchItemsIdVideoIdStruct = s.object({
+  items: s.array(s.object({
+    id: s.object({
       videoId: s.string()
     })
   }))
 });
 
-const SearchItemsSnippetStruct = s.type({
-  items: s.array(s.type({
-    snippet: s.type({
+const SearchItemsSnippetStruct = s.object({
+  items: s.array(s.object({
+    snippet: s.object({
       channelId: s.string(),
       channelTitle: s.string()
     })
   }))
 });
 
-type SearchVideoResponseSnippet = StructType<typeof SearchVideoResponseSnippetStruct>;
-const SearchVideoResponseSnippetStruct = s.type({
+type SearchVideoResponseSnippet = Infer<typeof SearchVideoResponseSnippetStruct>;
+const SearchVideoResponseSnippetStruct = s.object({
   title: s.string(),
   liveBroadcastContent: s.string(),
   publishedAt: s.string(),
@@ -71,9 +70,9 @@ const SearchVideoResponseSnippetStruct = s.type({
   channelId: s.string(),
 });
 
-const SearchVideoResponseStruct = s.type({
-  items: s.array(s.type({
-    id: s.type({
+const SearchVideoResponseStruct = s.object({
+  items: s.array(s.object({
+    id: s.object({
       videoId: s.string(),
     }),
     snippet: SearchVideoResponseSnippetStruct,
@@ -81,10 +80,10 @@ const SearchVideoResponseStruct = s.type({
   nextPageToken: s.optional(s.string())
 });
 
-const VideosResponseStruct = s.type({
-  items: s.array(s.type({
+const VideosResponseStruct = s.object({
+  items: s.array(s.object({
     id: s.string(),
-    liveStreamingDetails: s.optional(s.type({
+    liveStreamingDetails: s.optional(s.object({
       scheduledStartTime: s.optional(s.string()),
       actualStartTime: s.optional(s.string()),
       actualEndTime: s.optional(s.string()),
@@ -170,12 +169,12 @@ class Youtube implements ServiceInterface {
         keepAlive: true,
         responseType: 'json',
       }).then(({body}) => {
-        const result = s.coerce(body, SearchVideoResponseStruct);
+        const result = s.mask(body, SearchVideoResponseStruct);
 
         result.items.forEach((item) => {
           idSnippet.set(item.id.videoId, item.snippet);
           // api bug for /search, quote in title is escaped
-          item.snippet.title = xmlEntities.decode(item.snippet.title);
+          item.snippet.title = decodeHtmlEntity(item.snippet.title, {level: 'xml'});
         });
 
         return result.nextPageToken;
@@ -198,7 +197,7 @@ class Youtube implements ServiceInterface {
           keepAlive: true,
           responseType: 'json',
         }).then(({body}) => {
-          const videosResponse = s.coerce(body, VideosResponseStruct);
+          const videosResponse = s.mask(body, VideosResponseStruct);
 
           videosResponse.items.forEach((item) => {
             if (!item.liveStreamingDetails) return;
@@ -249,7 +248,7 @@ class Youtube implements ServiceInterface {
           keepAlive: true,
           responseType: 'json',
         }).then(({body}) => {
-          const channelsItemsId = s.coerce(body, ChannelsItemsIdStruct);
+          const channelsItemsId = s.mask(body, ChannelsItemsIdStruct);
           if (channelsItemsId.items) {
             channelsItemsId.items.forEach((item) => {
               resultChannelIds.push(item.id);
@@ -303,7 +302,7 @@ class Youtube implements ServiceInterface {
         keepAlive: true,
         responseType: 'json',
       }).then(({body}) => {
-        const searchItemsSnippet = s.coerce(body, SearchItemsSnippetStruct);
+        const searchItemsSnippet = s.mask(body, SearchItemsSnippetStruct);
         if (!searchItemsSnippet.items.length) {
           throw new ErrorWithCode('Channel is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
         }
@@ -370,7 +369,7 @@ class Youtube implements ServiceInterface {
       keepAlive: true,
       responseType: 'json',
     }).then(({body}) => {
-      const videosItemsSnippet = s.coerce(body, VideosItemsSnippetStruct);
+      const videosItemsSnippet = s.mask(body, VideosItemsSnippetStruct);
       if (!videosItemsSnippet.items.length) {
         throw new ErrorWithCode('Video by id is not found', 'CHANNEL_BY_VIDEO_ID_IS_NOT_FOUND');
       }
@@ -418,7 +417,7 @@ class Youtube implements ServiceInterface {
       keepAlive: true,
       responseType: 'json',
     }).then(({body}) => {
-      const channelsItemsId = s.coerce(body, ChannelsItemsIdStruct);
+      const channelsItemsId = s.mask(body, ChannelsItemsIdStruct);
       if (!channelsItemsId.items || !channelsItemsId.items.length) {
         throw new ErrorWithCode('Channel by user is not found', 'CHANNEL_BY_USER_IS_NOT_FOUND');
       }
@@ -444,7 +443,7 @@ class Youtube implements ServiceInterface {
       keepAlive: true,
       responseType: 'json',
     }).then(({body}) => {
-      const searchItemsId = s.coerce(body, SearchItemsIdStruct);
+      const searchItemsId = s.mask(body, SearchItemsIdStruct);
       if (!searchItemsId.items.length) {
         throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
       }
@@ -469,7 +468,7 @@ class Youtube implements ServiceInterface {
         },
         keepAlive: true,
         responseType: 'json',
-      }).then(({body}) => s.coerce(body, SearchItemsIdVideoIdStruct));
+      }).then(({body}) => s.mask(body, SearchItemsIdVideoIdStruct));
 
       if (result.items.length) {
         return true;
