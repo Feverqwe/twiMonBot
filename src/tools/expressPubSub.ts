@@ -1,12 +1,15 @@
 import {Express} from "express";
 import fetchRequest from "./fetchRequest";
+import RateLimit from "./rateLimit";
 
 const Events = require('events');
 const crypto = require('crypto');
 const express = require('express');
 const qs = require('querystring');
+const rateLimit = new RateLimit(1000);
 
 const debug = require('debug')('app:ExpressPubSub');
+const fetchRequestLimited = rateLimit.wrap(fetchRequest);
 
 class ExpressPubSub extends Events {
   private path: string;
@@ -178,7 +181,7 @@ class ExpressPubSub extends Events {
         .digest('hex');
     }
 
-    return fetchRequest(hub, {
+    return fetchRequestLimited(hub, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
