@@ -33,6 +33,7 @@ const config = {
   gaId: '',
   ytToken: '',
   twitchToken: '',
+  twitchSecret: '',
   emitCheckChannelsEveryMinutes: 5,
   checkChannelIfLastSyncLessThenMinutes: 2.5,
   channelSyncTimeoutMinutes: 2.5,

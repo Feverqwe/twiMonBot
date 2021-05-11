@@ -4,35 +4,39 @@ import parallel from "../tools/parallel";
 import ErrorWithCode from "../tools/errorWithCode";
 import * as s from "superstruct";
 import arrayByPart from "../tools/arrayByPart";
-import fetchRequest, {HTTPError} from "../tools/fetchRequest";
+import fetchRequest, {FetchRequestOptions, HTTPError} from "../tools/fetchRequest";
+import getNow from "../tools/getNow";
+import promiseTry from "../tools/promiseTry";
 
 const debug = require('debug')('app:Twitch');
 
 const ChannelsStruct = s.object({
-  channels: s.array(s.object({
-    _id: s.number(),
-    name: s.string(),
+  data: s.array(s.object({
+    id: s.string(),
+    broadcaster_login: s.string(),
     display_name: s.string(),
-    url: s.string(),
   })),
+  pagination: s.object({
+    cursor: s.optional(s.string()),
+  }),
 });
 
 const StreamsStruct = s.object({
-  streams: s.array(s.object({
-    _id: s.number(),
-    stream_type: s.string(),
-    preview: s.record(s.string(), s.string()),
-    viewers: s.number(),
-    game: s.string(),
-    created_at: s.string(),
-    channel: s.object({
-      _id: s.number(),
-      name: s.string(),
-      display_name: s.string(),
-      status: s.string(),
-      url: s.string(),
-    })
-  }))
+  data: s.array(s.object({
+    id: s.string(),
+    type: s.string(),
+    thumbnail_url: s.string(),
+    viewer_count: s.number(),
+    game_name: s.string(),
+    started_at: s.string(),
+    user_id: s.string(),
+    user_login: s.string(),
+    user_name: s.string(),
+    title: s.string(),
+  })),
+  pagination: s.object({
+    cursor: s.optional(s.string()),
+  }),
 });
 
 class Twitch implements ServiceInterface {
@@ -54,45 +58,38 @@ class Twitch implements ServiceInterface {
     const skippedChannelIds: number[] = [];
     const removedChannelIds: number[] = [];
     return parallel(10, arrayByPart(channelIds, 100), (channelIds) => {
-      return fetchRequest('https://api.twitch.tv/kraken/streams', {
+      return this.signFetchRequest('https://api.twitch.tv/helix/streams', {
         searchParams: {
-          limit: 100,
-          channel: channelIds.join(','),
-          stream_type: 'all'
-        },
-        headers: {
-          'Accept': 'application/vnd.twitchtv.v5+json',
-          'Client-ID': this.main.config.twitchToken
+          user_id: channelIds,
+          first: 100,
         },
         keepAlive: true,
         responseType: 'json',
       }).then(({body}) => {
         const result = s.mask(body, StreamsStruct);
-        const streams = result.streams;
+        const streams = result.data;
 
         streams.forEach((stream) => {
-          const previews: string[] = [];
-          ['template', 'large', 'medium'/*, 'small'*/].forEach((size) => {
-            let url = stream.preview[size];
-            if (url) {
-              if (size === 'template') {
-                url = url.replace('{width}', '1920').replace('{height}', '1080')
-              }
-              previews.push(url);
-            }
-          });
+          const previews: string[] = [
+            stream.thumbnail_url.replace('{width}', '1920').replace('{height}', '1080'),
+          ];
+
+          const idInt = parseInt(stream.id, 10);
+          const channelIdInt = parseInt(stream.user_id, 10);
+
+          const url = getChannelUrl(stream.user_login);
 
           resultStreams.push({
-            id: stream._id,
-            url: stream.channel.url,
-            title: stream.channel.status,
-            game: stream.game,
-            isRecord: stream.stream_type !== 'live',
+            id: idInt,
+            url: url,
+            title: stream.title,
+            game: stream.game_name,
+            isRecord: stream.type !== 'live',
             previews: previews,
-            viewers: stream.viewers,
-            channelId: stream.channel._id,
-            channelTitle: stream.channel.display_name,
-            channelUrl: stream.channel.url,
+            viewers: stream.viewer_count,
+            channelId: channelIdInt,
+            channelTitle: stream.user_name,
+            channelUrl: url,
           });
         });
       }).catch((err: any) => {
@@ -121,10 +118,9 @@ class Twitch implements ServiceInterface {
   }
 
   requestChannelById(channelId: number) {
-    return fetchRequest('https://api.twitch.tv/kraken/channels/' + channelId, {
-      headers: {
-        'Accept': 'application/vnd.twitchtv.v5+json',
-        'Client-ID': this.main.config.twitchToken
+    return this.signFetchRequest('https://api.twitch.tv/helix/channels', {
+      searchParams: {
+        broadcaster_id: channelId,
       },
       keepAlive: true,
     }).catch((err: HTTPError) => {
@@ -147,28 +143,27 @@ class Twitch implements ServiceInterface {
     }).then(({query, isName}) => {
       return this.requestChannelByQuery(query, isName);
     }).then((channel) => {
-      const id = channel._id;
+      const id = parseInt(channel.id, 10);
       const title = channel.display_name;
-      const url = channel.url;
+      const url = getChannelUrl(channel.broadcaster_login);
       return {id, title, url};
     });
   }
 
   requestChannelByQuery(query: string, isName: boolean) {
-    return fetchRequest('https://api.twitch.tv/kraken/search/channels', {
-      searchParams: {query: isName ? JSON.stringify(query) : query, limit: 100},
-      headers: {
-        'Accept': 'application/vnd.twitchtv.v5+json',
-        'Client-ID': this.main.config.twitchToken
+    return this.signFetchRequest('https://api.twitch.tv/helix/search/channels', {
+      searchParams: {
+        query: isName ? JSON.stringify(query) : query,
+        first: 100,
       },
       keepAlive: true,
       responseType: 'json',
     }).then(({body}) => {
-      const channels = s.mask(body, ChannelsStruct).channels;
+      const channels = s.mask(body, ChannelsStruct).data;
       if (!channels.length) {
         throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
       }
-      let result = channels.find((channel) => channel.name === query);
+      let result = channels.find((channel) => channel.broadcaster_login === query);
       if (!result) {
         result = channels[0];
       }
@@ -195,6 +190,62 @@ class Twitch implements ServiceInterface {
 
     return channelName;
   }
+
+  token: null | {
+    accessToken: string,
+    expiresAt: number,
+  } = null;
+
+  lastAccessTokenRequest: Promise<string> | undefined;
+  async getAccessToken() {
+    if (this.token && this.token.expiresAt > getNow()) {
+      return this.token.accessToken;
+    }
+
+    if (this.lastAccessTokenRequest) {
+      return this.lastAccessTokenRequest;
+    }
+
+    return this.lastAccessTokenRequest = promiseTry(async () => {
+      const {body} = await fetchRequest('https://id.twitch.tv/oauth2/token', {
+        method: 'POST',
+        searchParams: {
+          client_id: this.main.config.twitchToken,
+          client_secret: this.main.config.twitchSecret,
+          grant_type: 'client_credentials',
+        },
+        responseType: 'json',
+      });
+
+      s.assert(body, s.type({
+        access_token: s.string(),
+        expires_in: s.number(),
+      }));
+
+      const expiresAt = Date.now() + body.expires_in * 1000;
+      this.token = {
+        expiresAt,
+        accessToken: body.access_token,
+      };
+
+      return this.token.accessToken;
+    }).finally(() => {
+      this.lastAccessTokenRequest = undefined;
+    });
+  }
+
+  async signFetchRequest(url: string, options: FetchRequestOptions) {
+    options.headers = Object.assign({
+      Authorization: 'Bearer ' + await this.getAccessToken(),
+      'Client-Id': this.main.config.twitchToken,
+    }, options.headers);
+
+    return fetchRequest(url, options);
+  }
+}
+
+function getChannelUrl(userLogin: string) {
+  return 'https://twitch.tv/' + encodeURIComponent(userLogin);
 }
 
 export default Twitch;
