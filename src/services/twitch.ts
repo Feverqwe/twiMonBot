@@ -137,15 +137,15 @@ class Twitch implements ServiceInterface {
 
   findChannel(query: string) {
     return this.getChannelNameByUrl(query).then((name) => {
-      return JSON.stringify(name);
+      return {query: name, isName: true};
     }).catch((err: any) => {
       if (err.code === 'IS_NOT_CHANNEL_URL') {
-        return query;
+        return {query, isName: false};
       } else {
         throw err;
       }
-    }).then((query) => {
-      return this.requestChannelByQuery(query);
+    }).then(({query, isName}) => {
+      return this.requestChannelByQuery(query, isName);
     }).then((channel) => {
       const id = channel._id;
       const title = channel.display_name;
@@ -154,9 +154,9 @@ class Twitch implements ServiceInterface {
     });
   }
 
-  requestChannelByQuery(query: string) {
+  requestChannelByQuery(query: string, isName: boolean) {
     return fetchRequest('https://api.twitch.tv/kraken/search/channels', {
-      searchParams: {query},
+      searchParams: {query: isName ? JSON.stringify(query) : query, limit: 100},
       headers: {
         'Accept': 'application/vnd.twitchtv.v5+json',
         'Client-ID': this.main.config.twitchToken
@@ -168,7 +168,11 @@ class Twitch implements ServiceInterface {
       if (!channels.length) {
         throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
       }
-      return channels[0];
+      let result = channels.find((channel) => channel.name === query);
+      if (!result) {
+        result = channels[0];
+      }
+      return result;
     });
   }
 
