@@ -7,7 +7,7 @@ const fetch = require('node-fetch');
 const qs = require('querystring');
 const AbortController = require('abort-controller');
 
-interface FetchRequestOptions {
+export interface FetchRequestOptions {
   method?: 'GET' | 'HEAD' | 'POST';
   responseType?: 'text' | 'json' | 'buffer',
   headers?: Record<string, string | string[] | undefined>,

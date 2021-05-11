@@ -34,6 +34,7 @@ class Tracker {
   }
 
   track(chatId: number|string, params: {[s: string]: string|number}) {
+    if (!this.tid) return;
     const cid = this.getUuid(chatId);
 
     this.queue.push([Date.now(), Object.assign({cid}, this.defaultParams, params)]);
