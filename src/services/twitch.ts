@@ -191,7 +191,7 @@ class Twitch implements ServiceInterface {
     ].some((re) => {
       const m = re.exec(url);
       if (m) {
-        channelName = m[1];
+        channelName = m[1].toLowerCase();
         return true;
       }
       return false;
