@@ -53,10 +53,10 @@ class Twitch implements ServiceInterface {
     ].some(re => re.test(url));
   }
 
-  getStreams(channelIds: number[]) {
+  getStreams(channelIds: (number | string)[]) {
     const resultStreams: ServiceStream[] = [];
-    const skippedChannelIds: number[] = [];
-    const removedChannelIds: number[] = [];
+    const skippedChannelIds: (number | string)[] = [];
+    const removedChannelIds: (number | string)[] = [];
     return parallel(10, arrayByPart(channelIds, 100), (channelIds) => {
       return this.signFetchRequest('https://api.twitch.tv/helix/streams', {
         searchParams: {
@@ -109,8 +109,8 @@ class Twitch implements ServiceInterface {
     });
   }
 
-  getExistsChannelIds(ids: number[]) {
-    const resultChannelIds: number[] = [];
+  getExistsChannelIds(ids: (number | string)[]) {
+    const resultChannelIds: (number | string)[] = [];
     return parallel(10, ids, (channelId) => {
       return this.requestChannelById(channelId).then(() => {
         resultChannelIds.push(channelId);
@@ -125,7 +125,7 @@ class Twitch implements ServiceInterface {
     }).then(() => resultChannelIds);
   }
 
-  requestChannelById(channelId: number) {
+  requestChannelById(channelId: number | string) {
     return this.signFetchRequest('https://api.twitch.tv/helix/channels', {
       searchParams: {
         broadcaster_id: channelId,
