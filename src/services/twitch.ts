@@ -74,13 +74,20 @@ class Twitch implements ServiceInterface {
             stream.thumbnail_url.replace('{width}', '1920').replace('{height}', '1080'),
           ];
 
-          const idInt = parseInt(stream.id, 10);
-          const channelIdInt = parseInt(stream.user_id, 10);
+          let id: number | string = stream.id;
+          let channelId: number | string = stream.user_id;
+          // fallback api v3
+          if (/^\d+$/.test(stream.id)) {
+            id = parseInt(stream.id, 10);
+          }
+          if (/^\d+$/.test(stream.user_id)) {
+            channelId = parseInt(stream.user_id, 10);
+          }
 
           const url = getChannelUrl(stream.user_login);
 
           resultStreams.push({
-            id: idInt,
+            id: id,
             url: url,
             title: stream.title,
             game: stream.game_name,
@@ -88,7 +95,7 @@ class Twitch implements ServiceInterface {
             isRecord: false, // stream.type !== 'live',
             previews: previews,
             viewers: stream.viewer_count,
-            channelId: channelIdInt,
+            channelId: channelId,
             channelTitle: stream.user_name,
             channelUrl: url,
           });
@@ -144,7 +151,12 @@ class Twitch implements ServiceInterface {
     }).then(({query, isName}) => {
       return this.requestChannelByQuery(query, isName);
     }).then((channel) => {
-      const id = parseInt(channel.id, 10);
+      let id: number | string = channel.id;
+      // fallback api v3
+      if (/^\d+$/.test(channel.id)) {
+        id = parseInt(channel.id, 10);
+      }
+
       const title = channel.display_name;
       const url = getChannelUrl(channel.broadcaster_login);
       return {id, title, url};
