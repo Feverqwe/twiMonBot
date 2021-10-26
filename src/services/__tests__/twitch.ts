@@ -22,6 +22,18 @@ test('findChannel', async () => {
   });
 });
 
+test('findChannel2', async () => {
+  const twitch = new Twitch(main);
+
+  const channel = await twitch.findChannel('https://www.twitch.tv/karmikkoala');
+
+  expect(channel).toEqual({
+    id: 54742538,
+    title: 'KarmikKoala',
+    url: 'https://twitch.tv/karmikkoala',
+  });
+});
+
 test('getExistsChannelIds', async () => {
   const twitch = new Twitch(main);
 

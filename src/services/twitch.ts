@@ -166,7 +166,7 @@ class Twitch implements ServiceInterface {
   requestChannelByQuery(query: string, isName: boolean) {
     return this.signFetchRequest('https://api.twitch.tv/helix/search/channels', {
       searchParams: {
-        query: isName ? JSON.stringify(query) : query,
+        query: query,
         first: 100,
       },
       keepAlive: true,
