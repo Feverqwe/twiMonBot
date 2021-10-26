@@ -2,7 +2,7 @@ import promiseTry from "./promiseTry";
 
 const getProvider = <I, T, R>(requestDataById: (id: I) => Promise<T>, keepAlive = 0): (id: I, callback: (result: T) => R) => Promise<R> => {
   const idCacheMap = new Map();
-  const inflightCache: {[s: string]: Promise<{useCount: number, result: T}>} = {};
+  const inflightCache: Partial<Record<string, Promise<{useCount: number, result: T}>>> = {};
 
   return (id, callback) => {
     const key = `key-${id}`;

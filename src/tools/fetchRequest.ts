@@ -111,7 +111,7 @@ function fetchRequest(url: string, options?: FetchRequestOptions) {
         } else {
           fetchResponse.rawBody = await rawResponse.text();
         }
-      } catch (err) {
+      } catch (err: Error & any) {
         if (err.name === 'AbortError' && err.type === 'aborted' && isTimeout) {
           throw new TimeoutError(err);
         } else {

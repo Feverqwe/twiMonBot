@@ -176,7 +176,7 @@ class YtPubSub {
         this.feeds.push(feed);
         this.emitFeedsChangesThrottled();
       }
-    } catch (err) {
+    } catch (err: Error & any) {
       if (err.code === 'ENTRY_IS_DELETED') {
         // pass
       } else {

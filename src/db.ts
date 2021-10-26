@@ -892,6 +892,7 @@ class Db {
       where: {
         chatId,
         hasChanges: true,
+        // @ts-ignore
         streamId: {[Op.not]: null}
       },
       order: ['createdAt'],
@@ -1058,6 +1059,7 @@ class Db {
       where: {
         channelId: channelIds,
         isStream: true,
+        // @ts-ignore
         actualStartAt: {[Op.not]: null},
         actualEndAt: null,
       }
