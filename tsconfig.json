@@ -4,8 +4,9 @@
     "allowJs": true,
     "strict": true,
     "noEmit": true,
-    "target": "ES2019",
+    "target": "ES2020",
     "moduleResolution": "Node",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "esModuleInterop": true
   }
 }

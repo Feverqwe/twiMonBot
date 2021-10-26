@@ -1,5 +1,6 @@
 FROM node:14-alpine as node
 ENV NO_UPDATE_NOTIFIER true
+RUN npm i -g npm@^8
 
 FROM node as base
 WORKDIR /opt/backend

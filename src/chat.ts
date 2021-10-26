@@ -1147,7 +1147,7 @@ function getOptions(chat: IChatWithChannel) {
     }]);
   }
 
-  if (chat.isMutedRecords) {
+  /*if (chat.isMutedRecords) {
     btnList.push([{
       text: 'Unmute records',
       callback_data: '/options/isMutedRecords/false'
@@ -1157,7 +1157,7 @@ function getOptions(chat: IChatWithChannel) {
       text: 'Mute records',
       callback_data: '/options/isMutedRecords/true'
     }]);
-  }
+  }*/
 
   if (chat.isEnabledAutoClean) {
     btnList.push([{
