@@ -1,4 +1,4 @@
-import typescript from 'rollup-plugin-typescript';
+import typescript from '@rollup/plugin-typescript';
 import run from '@rollup/plugin-run';
 
 const isWatch = process.argv.includes('-w');
