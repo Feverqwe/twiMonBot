@@ -10,8 +10,7 @@ RUN chown -R nobody:nobody ./ && \
 USER nobody:nobody
 COPY ./package.json .
 COPY ./package-lock.json .
-RUN npm audit --production && \
-    npm ci --production
+RUN npm ci --production
 
 FROM base as build
 WORKDIR /opt/backend
