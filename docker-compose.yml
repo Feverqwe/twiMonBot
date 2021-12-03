@@ -3,9 +3,6 @@
   "services": {
     "bot": {
       "build": ".",
-      "ports": [
-        "1339:1339"
-      ],
       "volumes": [
           "./log:/opt/backend/log"
       ],
