@@ -1,6 +1,6 @@
 import promiseTry from "./promiseTry";
 import http from "http";
-import https from "http";
+import https from "https";
 import qs from "querystring";
 import AbortController from "abort-controller";
 
