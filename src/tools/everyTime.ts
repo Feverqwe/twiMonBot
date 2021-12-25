@@ -3,11 +3,6 @@ const minuteMs = 60 * secondMs;
 const hourMs = 60 * minuteMs;
 const dayMs = 24 * hourMs;
 
-/**
- * @param {number|{[offset]:number,ms:number}} ms
- * @param {function} callback
- * @return {Function}
- */
 const everyTime = (ms: number|{ms: number, offset?: number}, callback: () => any): () => void => {
   let _ms = 0;
   let _offset: number | undefined = 0;

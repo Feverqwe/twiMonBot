@@ -1,9 +1,8 @@
-const resolvePath = <T>(scope: T, path: string): {scope: T, endPoint: string} => {
+const resolvePath = <T extends Record<string, any>>(scope: T, path: string): {scope: T, endPoint: string} => {
   const parts = path.split('.');
   const endPoint = parts.pop()!;
   while (parts.length) {
-    // @ts-ignore
-    scope = scope[parts.shift()];
+    scope = scope[parts.shift()!];
   }
   return {scope, endPoint};
 };

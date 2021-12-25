@@ -1,7 +1,7 @@
 import {ServiceInterface} from "../checker";
 
 const serviceId = {
-  wrap(service: ServiceInterface, id: string | number): string {
+  wrap(service: ServiceInterface, id: string | number) {
     return [service.id.substr(0, 2), JSON.stringify(id)].join(':');
   },
   unwrap(sid: string): string|number {

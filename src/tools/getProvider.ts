@@ -1,8 +1,10 @@
 import promiseTry from "./promiseTry";
 
+type Cache<T> = {useCount: number, result: T, timerId?: NodeJS.Timeout};
+
 const getProvider = <I, T, R>(requestDataById: (id: I) => Promise<T>, keepAlive = 0): (id: I, callback: (result: T) => R) => Promise<R> => {
-  const idCacheMap = new Map();
-  const inflightCache: Partial<Record<string, Promise<{useCount: number, result: T}>>> = {};
+  const idCacheMap = new Map<I, Cache<T>>();
+  const inflightCache: Partial<Record<string, Promise<Cache<T>>>> = {};
 
   return (id, callback) => {
     const key = `key-${id}`;
@@ -13,12 +15,13 @@ const getProvider = <I, T, R>(requestDataById: (id: I) => Promise<T>, keepAlive 
         return cache;
       }
 
-      if (inflightCache[key]) {
-        return inflightCache[key];
+      const inflightPromise = inflightCache[key];
+      if (inflightPromise) {
+        return inflightPromise;
       }
 
       return inflightCache[key] = requestDataById(id).then((result) => {
-        const cache = {useCount: 0, result};
+        const cache: Cache<T> = {useCount: 0, result};
         idCacheMap.set(id, cache);
         return cache;
       }).finally(() => {
@@ -28,7 +31,7 @@ const getProvider = <I, T, R>(requestDataById: (id: I) => Promise<T>, keepAlive 
       cache.useCount++;
       return promiseTry(() => callback(cache.result)).finally(() => {
         cache.useCount--;
-        clearTimeout(cache.timerId);
+        cache.timerId && clearTimeout(cache.timerId);
         cache.timerId = setTimeout(() => {
           if (!cache.useCount) {
             idCacheMap.delete(id);

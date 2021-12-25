@@ -1,11 +1,12 @@
 import promiseTry from "./promiseTry";
+import http from "http";
+import https from "https";
+import qs from "querystring";
+import AbortController from "abort-controller";
+
+const fetch = require('node-fetch');
 
 const debug = require('debug')('app:fetchRequest');
-const http = require('http');
-const https = require('https');
-const fetch = require('node-fetch');
-const qs = require('querystring');
-const AbortController = require('abort-controller');
 
 export interface FetchRequestOptions {
   method?: 'GET' | 'HEAD' | 'POST';

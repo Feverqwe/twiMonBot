@@ -1,7 +1,7 @@
 const QuickLRU = require('quick-lru');
 
 class TimeCache<KeyType extends unknown, ValueType extends unknown> extends QuickLRU {
-  private ttl: number;
+  private readonly ttl: number;
   constructor(options: typeof QuickLRU.Options) {
     super(options);
     this.ttl = options.ttl;
