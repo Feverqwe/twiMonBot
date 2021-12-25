@@ -37,12 +37,5 @@
     "callbackUrl": "",
     "leaseSeconds": 300
   },
-  "adminIds": [],
-  "proxy": {
-    "checkOnRun": true,
-    "testUrls": [
-      "https://ya.ru"
-    ],
-    "list": []
-  }
+  "adminIds": []
 }
