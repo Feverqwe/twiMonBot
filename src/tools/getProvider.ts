@@ -9,7 +9,7 @@ const getProvider = <I, T, R>(requestDataById: (id: I) => Promise<T>, keepAlive 
   return (id, callback) => {
     const key = `key-${id}`;
 
-    return promiseTry(async () => {
+    return promiseTry(() => {
       const cache = idCacheMap.get(id);
       if (cache) {
         return cache;
