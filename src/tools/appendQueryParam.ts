@@ -1,4 +1,6 @@
-const appendQueryParam = (url: string, key: string|number, value: string|number):string => {
+type UriComponent = Parameters<typeof encodeURIComponent>[0];
+
+const appendQueryParam = (url: string, key: UriComponent, value: UriComponent):string => {
   return url + (/\?/.test(url) ? '&' : '?') + encodeURIComponent(key) + '=' + encodeURIComponent(value);
 };
 

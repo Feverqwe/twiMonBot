@@ -1,21 +1,20 @@
-import {Express} from "express";
+import express, {Express} from "express";
 import fetchRequest from "./fetchRequest";
 import RateLimit from "./rateLimit";
+import {EventEmitter} from "events";
+import crypto from "crypto";
+import qs from "querystring";
 
-const Events = require('events');
-const crypto = require('crypto');
-const express = require('express');
-const qs = require('querystring');
 const rateLimit = new RateLimit(500);
 
 const debug = require('debug')('app:ExpressPubSub');
 const fetchRequestLimited = rateLimit.wrap(fetchRequest);
 
-class ExpressPubSub extends Events {
-  private path: string;
-  private secret: string;
-  private callbackUrl: string;
-  private leaseSeconds: number;
+class ExpressPubSub extends EventEmitter {
+  private readonly path: string;
+  private readonly secret: string;
+  private readonly callbackUrl: string;
+  private readonly leaseSeconds: number;
   constructor(options: { path: string; secret: string; callbackUrl: string; leaseSeconds: number; }) {
     super();
 
@@ -85,7 +84,7 @@ class ExpressPubSub extends Events {
         setTopicHub(url, rel);
       }
 
-      if (!topic) {
+      if (!topic || typeof topic !== "string") {
         debug('post skip, cause: topic is empty');
         return res.sendStatus(400);
       }
@@ -163,7 +162,7 @@ class ExpressPubSub extends Events {
         '&hub=' + encodeURIComponent(hub);
     }
 
-    const body: {[s: string]: any} = {
+    const body: {[s: string]: string | number} = {
       'hub.callback': callbackUrl,
       'hub.mode': mode,
       'hub.topic': topic,
@@ -191,7 +190,9 @@ class ExpressPubSub extends Events {
     }).then((res) => {
       if (![202, 204].includes(res.statusCode)) {
         const err = new Error(`Invalid response status ${res.statusCode}`);
-        (err as any).response = res;
+        Object.assign(err, {
+          response: res,
+        });
         throw err;
       }
       return res.body;

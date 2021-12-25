@@ -1,4 +1,4 @@
-function arrayUniq<T>(arr: T[]): T[] {
+function arrayUniq<T>(arr: T[]) {
  return [...new Set(arr)];
 }
 

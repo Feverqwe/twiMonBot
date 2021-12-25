@@ -7,21 +7,15 @@ class PromiseQueue {
   queue: [() => any, Function][];
   activeCount: number;
 
-  /**@param {number} limit*/
   constructor(limit: number) {
     this.limit = limit;
     this.queue = [];
     this.activeCount = 0;
   }
 
-  /**
-   * @template T
-   * @param {function:T} callback
-   * @return {Promise<T>}
-   */
-  add(callback: () => any) {
-    let resolve = noop;
-    const promise = new Promise<void>((_resolve) => {
+  add<T>(callback: () => T | PromiseLike<T>) {
+    let resolve!: (result: T) => void;
+    const promise = new Promise<T>((_resolve) => {
       resolve = _resolve;
     });
     if (this.activeCount < this.limit) {
@@ -35,11 +29,6 @@ class PromiseQueue {
     return promise;
   }
 
-  /**
-   * @param {function|Promise} callbackOrPromise
-   * @param {Error} [err]
-   * @return {boolean}
-   */
   remove(callbackOrPromise: Promise<any>|(() => any), err?: Error) {
     const item = itemWeakMap.get(callbackOrPromise);
     if (item && removeFromArray(this.queue, item)) {
@@ -75,7 +64,5 @@ function removeFromArray(arr: Array<any>, item: any) {
   }
   return false;
 }
-
-function noop() {}
 
 export default PromiseQueue;

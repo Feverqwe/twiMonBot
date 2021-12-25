@@ -1,11 +1,5 @@
 import promiseTry from "./promiseTry";
 
-/**
- * @param {number} limit
- * @param {Array} items
- * @param {function(*, number, Array)} callback
- * @return {Promise<Array>}
- */
 const parallel = <T, F>(limit: number, items: T[], callback:(item: T, index: number, array: T[]) => F):Promise<F[]> => {
   limit = Math.min(limit, items.length);
   let index = 0;
