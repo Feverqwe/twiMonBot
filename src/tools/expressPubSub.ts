@@ -5,7 +5,7 @@ import {EventEmitter} from "events";
 import crypto from "crypto";
 import qs from "querystring";
 
-const rateLimit = new RateLimit(500);
+const rateLimit = new RateLimit(250);
 
 const debug = require('debug')('app:ExpressPubSub');
 const fetchRequestLimited = rateLimit.wrap(fetchRequest);
