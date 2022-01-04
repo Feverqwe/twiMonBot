@@ -3,7 +3,7 @@ import fetchRequest from "./fetchRequest";
 import RateLimit from "./rateLimit";
 import {EventEmitter} from "events";
 import crypto from "crypto";
-import qs from "querystring";
+import qs from "qs";
 
 const rateLimit = new RateLimit(500);
 

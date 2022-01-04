@@ -1,7 +1,7 @@
 import promiseTry from "./promiseTry";
 import http from "http";
 import https from "https";
-import qs from "querystring";
+import qs from "qs";
 import AbortController from "abort-controller";
 
 const fetch = require('node-fetch');
