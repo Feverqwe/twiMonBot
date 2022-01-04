@@ -14,7 +14,7 @@
     "html-entities": "^2.3.2",
     "json-stringify-pretty-compact": "^3.0.0",
     "lodash.throttle": "^4.1.1",
-    "mysql2": "^2.2.5",
+    "mariadb": "^2.5.5",
     "node-fetch": "^2.6.1",
     "node-telegram-bot-api": "^0.56.0",
     "quick-lru": "^5.1.1",
