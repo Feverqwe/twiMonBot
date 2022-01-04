@@ -5,7 +5,6 @@ import Tracker from "./tracker";
 import Sender from "./sender";
 import Chat from "./chat";
 import Checker, {ServiceInterface} from "./checker";
-import RateLimit from "./tools/rateLimit";
 import Goodgame from "./services/goodgame";
 import Twitch from "./services/twitch";
 import Youtube from "./services/youtube";
@@ -14,6 +13,7 @@ import YtPubSub from "./ytPubSub";
 import Wasd from "./services/wasd";
 import Events from "events";
 import path from "path";
+import RateLimit2 from "./tools/rateLimit2";
 
 Object.assign(process.env, {
   NTBA_FIX_319: true,
@@ -142,7 +142,7 @@ class Main extends Events {
       debug('pollingError %s', err.message);
     });
 
-    const limit = new RateLimit(30);
+    const limit = new RateLimit2(30);
     bot.sendMessage = limit.wrap(bot.sendMessage.bind(bot)) as (chatId: number, text: string) => Promise<unknown>;
     bot.sendPhotoQuote = limit.wrap(bot.sendPhoto.bind(bot));
 

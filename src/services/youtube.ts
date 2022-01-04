@@ -1,6 +1,5 @@
 import {ServiceInterface, ServiceStream} from "../checker";
 import Main from "../main";
-import RateLimit from "../tools/rateLimit";
 import parallel from "../tools/parallel";
 import ErrorWithCode from "../tools/errorWithCode";
 import * as s from "superstruct";
@@ -9,11 +8,12 @@ import arrayByPart from "../tools/arrayByPart";
 import promiseTry from "../tools/promiseTry";
 import fetchRequest, {HTTPError} from "../tools/fetchRequest";
 import {decode as decodeHtmlEntity} from "html-entities";
+import RateLimit2 from "../tools/rateLimit2";
 
 const debug = require('debug')('app:Youtube');
 
-const limit = new RateLimit(1000);
-const fetchRequestLimited = limit.wrap(fetchRequest) as typeof fetchRequest;
+const limit = new RateLimit2(1000);
+const fetchRequestLimited = limit.wrap(fetchRequest);
 
 const VideosItemsSnippetStruct = s.object({
   items: s.array(s.object({
