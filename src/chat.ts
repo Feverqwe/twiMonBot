@@ -20,23 +20,23 @@ import ensureMap from "./tools/ensureMap";
 import arrayByPart from "./tools/arrayByPart";
 import promiseTry from "./tools/promiseTry";
 import Main from "./main";
-import {IChannel, IChat, IChatWithChannel} from "./db";
+import {ChannelModel, ChatModel, ChatModelWithChannel, ChatModelWithOptionalChannel} from "./db";
 import {getStreamAsButtonText, getStreamAsText} from "./tools/streamToString";
 import ChatSender from "./chatSender";
 import parallel from "./tools/parallel";
 import TimeCache from "./tools/timeCache";
 import assertType from "./tools/assertType";
+import fs from "fs";
 
 const debug = require('debug')('app:Chat');
 const jsonStringifyPretty = require("json-stringify-pretty-compact");
-const fs = require('fs');
 
 interface WithChat {
-  chat: IChatWithChannel;
+  chat: ChatModel;
 }
 
 interface WithChannels {
-  channels: IChannel[];
+  channels: ChannelModel[];
 }
 
 class Chat {
@@ -107,7 +107,7 @@ class Chat {
             return adminIds;
           });
         }).then((adminIds: number[]) => {
-          if (adminIds.includes(req.fromId as number)) {
+          if (adminIds.includes(req.fromId!)) {
             next();
           }
         });
@@ -386,12 +386,12 @@ class Chat {
             }
             return service.findChannel(query);
           }).then((serviceChannel) => {
-            return this.main.db.ensureChannel(service, serviceChannel).then((channel: IChannel) => {
-              return this.main.db.putChatIdChannelId('' + req.chatId, channel.id).then((created: boolean) => {
+            return this.main.db.ensureChannel(service, serviceChannel).then((channel) => {
+              return this.main.db.putChatIdChannelId('' + req.chatId, channel.id).then((created) => {
                 return {channel, created};
               });
             });
-          }).then(({channel, created}: {channel: IChannel, created: boolean}) => {
+          }).then(({channel, created}) => {
             let message = null;
             if (!created) {
               message = this.main.locale.getMessage('channelExists');
@@ -695,7 +695,7 @@ class Chat {
 
       const {optionsType, key, value} = req.params;
       return promiseTry(() => {
-        const changes: {[s: string]: any} = {};
+        const changes: Partial<ChatModel> = {};
         switch (key) {
           case 'isHidePreview': {
             changes.isHidePreview = value === 'true';
@@ -729,8 +729,7 @@ class Chat {
             return req.chat.save();
           }
           case 'channelOptions': {
-            assertType<IChat & {channel: IChat}>(req.chat);
-
+            assertType<ChatModelWithChannel>(req.chat);
             Object.assign(req.chat.channel, changes);
             return req.chat.channel.save();
           }
@@ -854,8 +853,8 @@ class Chat {
       assertType<(RouterCallbackQueryReq | RouterTextReq) & WithChannels>(req);
 
       const serviceIds: string[] = [];
-      const serviceIdChannels: Map<string, IChannel[]> = new Map();
-      req.channels.forEach((channel: IChannel) => {
+      const serviceIdChannels: Map<string, ChannelModel[]> = new Map();
+      req.channels.forEach((channel) => {
         if (!serviceIdChannels.has(channel.service)) {
           serviceIds.push(channel.service);
         }
@@ -1038,6 +1037,7 @@ class Chat {
           throw new ErrorWithCode('Method is not found', 'METHOD_IS_NOT_FOUND');
         }
         const {scope, endPoint} = resolvePath(this.main, command);
+        // @ts-ignore
         return scope[endPoint].call(scope);
       }).then((result) => {
         const resultStr = jsonStringifyPretty({result}, {
@@ -1058,7 +1058,7 @@ class Chat {
       type Button = {text: string, callback_data: string};
       return this.main.bot.sendMessage(req.chatId, 'Admin menu', {
         reply_markup: JSON.stringify({
-          inline_keyboard: commands.reduce((menu, {name, method}, index) => {
+          inline_keyboard: commands.reduce<Button[][]>((menu, {name, method}, index) => {
             const buttons: Button[] = index % 2 ? menu.pop()! : [];
             buttons.push({
               text: name || method,
@@ -1066,8 +1066,8 @@ class Chat {
             });
             menu.push(buttons);
             return menu;
-          }, [] as Button[][])
-        })
+          }, []),
+        }),
       }).catch((err: any) => {
         debug('%j error %o', req.command, err);
       });
@@ -1132,7 +1132,7 @@ function getMenu(page: number) {
   return menu;
 }
 
-function getOptions(chat: IChatWithChannel) {
+function getOptions(chat: ChatModel | ChatModelWithOptionalChannel) {
   const btnList = [];
 
   if (chat.isHidePreview) {
@@ -1197,7 +1197,7 @@ function getOptions(chat: IChatWithChannel) {
     }
   }
 
-  if (chat.channel) {
+  if ('channel' in chat && chat.channel) {
     if (chat.channel.isHidePreview) {
       btnList.push([{
         text: 'Show preview for channel',

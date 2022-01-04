@@ -1,5 +1,4 @@
 import Main from "./main";
-import {IChat, IMessage, IStream, IStreamWithChannel} from "./db";
 import promiseTry from "./tools/promiseTry";
 import ErrorWithCode from "./tools/errorWithCode";
 import {getStreamAsCaption, getStreamAsDescription} from "./tools/streamToString";
@@ -8,6 +7,7 @@ import {TMessage} from "./router";
 import appendQueryParam from "./tools/appendQueryParam";
 import inlineInspect from "./tools/inlineInspect";
 import fetchRequest from "./tools/fetchRequest";
+import {ChatModel, MessageModel, StreamModelWithChannel} from "./db";
 
 const debug = require('debug')('app:ChatSender');
 const request = require('request');
@@ -21,18 +21,13 @@ interface SentMessage {
 }
 
 class ChatSender {
-  main: Main;
-  chat: IChat;
   private streamIds: string[]|null;
-  private messages: IMessage[]|null;
+  private messages: MessageModel[]|null;
   private methods: string[];
   private methodIndex: number;
   startAt: number;
   lastActivityAt: number;
-  constructor(main: Main, chat: IChat) {
-    this.main = main;
-    this.chat = chat;
-
+  constructor(private main: Main, public chat: ChatModel) {
     this.startAt = Date.now();
     this.lastActivityAt = Date.now();
 
@@ -234,7 +229,7 @@ class ChatSender {
     throw err;
   };
 
-  sendStream(stream: IStreamWithChannel) {
+  sendStream(stream: StreamModelWithChannel) {
     return promiseTry(() => {
       if (this.chat.isHidePreview || !stream.previews.length) {
         return this.sendStreamAsText(stream);
@@ -255,12 +250,12 @@ class ChatSender {
     }, this.onSendMessageError);
   }
 
-  sendStreamAsText(stream: IStreamWithChannel, isFallback?: boolean): Promise<SentMessage> {
+  sendStreamAsText(stream: StreamModelWithChannel, isFallback?: boolean): Promise<SentMessage> {
     const text = getStreamAsDescription(stream, this.main.getServiceById(stream.channel.service)!);
     return this.main.bot.sendMessage(this.chat.id, text, {
       parse_mode: 'HTML'
     }).then((message: TMessage) => {
-      let type = null;
+      let type;
       if (isFallback) {
         type = 'send message as fallback';
       } else {
@@ -284,7 +279,7 @@ class ChatSender {
     });
   }
 
-  sendStreamAsPhoto(stream: IStreamWithChannel): Promise<SentMessage> {
+  sendStreamAsPhoto(stream: StreamModelWithChannel): Promise<SentMessage> {
     if (stream.telegramPreviewFileId) {
       const caption = getStreamAsCaption(stream, this.main.getServiceById(stream.channel.service)!);
       return this.main.bot.sendPhotoQuote(this.chat.id, stream.telegramPreviewFileId, {caption}).then((message: TMessage) => {
@@ -319,7 +314,7 @@ class ChatSender {
     }
   }
 
-  requestAndSendPhoto(stream: IStreamWithChannel): Promise<SentMessage> {
+  requestAndSendPhoto(stream: StreamModelWithChannel): Promise<SentMessage> {
     let promise: Promise<SentMessage> = streamWeakMap.get(stream);
 
     if (!promise) {
@@ -352,7 +347,7 @@ class ChatSender {
     return promise;
   }
 
-  ensureTelegramPreviewFileId(stream: IStreamWithChannel): Promise<SentMessage> {
+  ensureTelegramPreviewFileId(stream: StreamModelWithChannel): Promise<SentMessage> {
     const service = this.main.getServiceById(stream.channel.service)!;
     const previews = !Array.isArray(stream.previews) ? JSON.parse(stream.previews) : stream.previews;
     return getValidPreviewUrl(previews, service).then(({url: _url, contentType}) => {
@@ -412,7 +407,7 @@ class ChatSender {
     });
   }
 
-  updateStreamMessage(type: string, chatId: string, messageId: string, stream: IStream, text: string) {
+  updateStreamMessage(type: string, chatId: string, messageId: string, stream: StreamModelWithChannel, text: string) {
     switch (type) {
       case 'text': {
         return this.main.bot.editMessageText(text, {
@@ -501,7 +496,7 @@ async function getValidPreviewUrl(urls: string[], service: ServiceInterface) {
     }
   }
   const err = new ErrorWithCode(`Previews is invalid`, 'INVALID_PREVIEWS');
-  (err as any).original = lastError;
+  Object.assign(err, {original: lastError});
   throw err;
 }
 

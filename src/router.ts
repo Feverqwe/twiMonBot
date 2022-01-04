@@ -1,8 +1,8 @@
 import ErrorWithCode from "./tools/errorWithCode";
 import Main from "./main";
+import qs from "qs";
 
 const debug = require('debug')('app:router');
-const qs = require('querystring');
 
 type MessageTypesArr = typeof messageTypes;
 type MessageTypes = MessageTypesArr[number];
@@ -363,7 +363,7 @@ export class RouterReq {
           }
           array.push({
             type: entity.type,
-            value: text.substr(entity.offset, entity.length),
+            value: text.substring(entity.offset, entity.offset + entity.length),
             url: entity.url,
             user: entity.user
           });
@@ -427,14 +427,14 @@ function getCommands(event: string, data: TMessage|TCallbackQuery, botNameRe: Re
         entities.forEach((entity) => {
           if (entity.type === 'bot_command') {
             let botName = null;
-            let command = text.substr(entity.offset, entity.length);
+            let command = text.substring(entity.offset, entity.offset + entity.length);
             const m = /([^@]+)(?:@(.+))?/.exec(command);
             if (m) {
               command = m[1];
               botName = m[2];
             }
             const start = entity.offset + entity.length;
-            const args = text.substr(start, end - start);
+            const args = text.substring(start, end);
             if (args) {
               command += args;
             }

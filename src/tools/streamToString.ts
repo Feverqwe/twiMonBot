@@ -1,6 +1,6 @@
-import {IStream, IStreamWithChannel} from "../db";
 import htmlSanitize from "./htmlSanitize";
 import {ServiceInterface} from "../checker";
+import {StreamModel, StreamModelWithChannel} from "../db";
 
 const icons = {
   timeout: '⏳',
@@ -9,7 +9,7 @@ const icons = {
   record: '📽️',
 };
 
-export function getStreamAsDescription(stream: IStreamWithChannel, service: ServiceInterface) {
+export function getStreamAsDescription(stream: StreamModelWithChannel, service: ServiceInterface) {
   const icon = getIcon(stream);
   const channelName = service.streamUrlWithoutChannelName ? stream.channel.title : '';
 
@@ -30,7 +30,7 @@ export function getStreamAsDescription(stream: IStreamWithChannel, service: Serv
   ], '\n');
 }
 
-export function getStreamAsCaption(stream: IStreamWithChannel, service: ServiceInterface) {
+export function getStreamAsCaption(stream: StreamModelWithChannel, service: ServiceInterface) {
   const icon = getIcon(stream);
   const channelName = service.streamUrlWithoutChannelName ? stream.channel.title : '';
 
@@ -51,7 +51,7 @@ export function getStreamAsCaption(stream: IStreamWithChannel, service: ServiceI
   ], '\n');
 }
 
-export function getStreamAsText(stream: IStreamWithChannel) {
+export function getStreamAsText(stream: StreamModelWithChannel) {
   const icon = getIcon(stream, true);
   const viewers = typeof stream.viewers === 'number' ? String(stream.viewers) : '';
 
@@ -69,13 +69,13 @@ export function getStreamAsText(stream: IStreamWithChannel) {
   ], '\n');
 }
 
-export function getStreamAsButtonText(stream: IStreamWithChannel) {
+export function getStreamAsButtonText(stream: StreamModelWithChannel) {
   return joinString([
     stream.channel.title, stream.title
   ], ' — ');
 }
 
-function getIcon(stream: IStream, withOnline?: boolean) {
+function getIcon(stream: StreamModel, withOnline?: boolean) {
   let icon = null;
   if (stream.isTimeout) {
     icon = icons.timeout;

@@ -3,7 +3,7 @@ import {everyMinutes} from "./tools/everyTime";
 import serviceId from "./tools/serviceId";
 import ensureMap from "./tools/ensureMap";
 import arrayDifference from "./tools/arrayDifference";
-import {Channel, IChannel, Stream} from "./db";
+import {Channel, Stream} from "./db";
 import LogFile from "./logFile";
 import getInProgress from "./tools/getInProgress";
 import parallel from "./tools/parallel";
@@ -52,7 +52,7 @@ interface ThreadSession {
   startAt: number,
   lastActivityAt: number,
   service: ServiceInterface,
-  thread?: Promise<any>
+  thread?: Promise<void>
 }
 
 class Checker {
@@ -135,7 +135,7 @@ class Checker {
     const sessionId = session.id;
     while (true) {
       session.lastActivityAt = Date.now();
-      const channels: IChannel[] = await this.main.db.getServiceChannelsForSync(service.id, service.batchSize);
+      const channels = await this.main.db.getServiceChannelsForSync(service.id, service.batchSize);
       if (!channels.length) {
         break;
       }
@@ -159,7 +159,7 @@ class Checker {
 
         const streamIds: string[] = [];
         const streamIdStream: Map<string, Stream> = new Map();
-        const channelIdsChanges:{[s: string]: {[s: string]: any}} = {};
+        const channelIdsChanges:{[s: string]: Channel} = {};
         const channelIdStreamIds:Map<string, string[]> = new Map();
 
         checkedChannelIds.forEach((id: string) => {

@@ -4,20 +4,19 @@ import parallel from "./tools/parallel";
 import serviceId from "./tools/serviceId";
 import ErrorWithCode from "./tools/errorWithCode";
 import arrayDifference from "./tools/arrayDifference";
-import {IYtPubSubChannel, YtPubSubChannel, YtPubSubFeed} from "./db";
+import {YtPubSubChannel, YtPubSubChannelModel, YtPubSubFeed} from "./db";
 import LogFile from "./logFile";
 import arrayByPart from "./tools/arrayByPart";
 import ExpressPubSub from "./tools/expressPubSub";
-import {Express} from "express";
+import express, {Express} from "express";
 import promiseLimit from "./tools/promiseLimit";
+import {Server} from "http";
+import qs from "qs";
 
 const debug = require('debug')('app:YtPubSub');
-const express = require('express');
 const {XmlDocument} = require("xmldoc");
-const qs = require('querystring');
 const oneLimit = promiseLimit(1);
 const throttle = require('lodash.throttle');
-const {Server} = require('http');
 
 class YtPubSub {
   main: Main;
@@ -27,7 +26,7 @@ class YtPubSub {
   private expressPubSub: ExpressPubSub;
   private host: string;
   private port: number;
-  private server: typeof Server;
+  private server: Server | undefined;
   constructor(main: Main) {
     this.main = main;
     this.log = new LogFile('ytPubSub');
@@ -211,7 +210,7 @@ class YtPubSub {
     return parallel(1, arrayByPart(channelIdsForSync, 50), async (channelIdsForSync) => {
       const channels = await this.main.db.getYtPubSubChannelsByIds(channelIdsForSync);
 
-      const channelIdChannel: Map<string, IYtPubSubChannel> = new Map();
+      const channelIdChannel: Map<string, YtPubSubChannelModel> = new Map();
       channels.forEach((channel) => {
         channelIdChannel.set(channel.id, channel);
       });

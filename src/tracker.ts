@@ -3,11 +3,11 @@ import arrayByPart from "./tools/arrayByPart";
 import Main from "./main";
 import promiseLimit from "./tools/promiseLimit";
 import fetchRequest from "./tools/fetchRequest";
+import qs from "qs";
+import {v4 as uuidV4} from "uuid";
+import QuickLRU from "quick-lru";
 
 const debug = require('debug')('app:tracker');
-const qs = require('querystring');
-const uuidV4 = require('uuid').v4;
-const QuickLRU = require('quick-lru');
 const throttle = require('lodash.throttle');
 
 const oneLimit = promiseLimit(1);
@@ -15,13 +15,13 @@ const oneLimit = promiseLimit(1);
 class Tracker {
   main: Main;
   tid: string;
-  lru: typeof QuickLRU;
+  lru: QuickLRU<string | number, string>;
   defaultParams: {[s: string]: string|number};
   queue: [number, {[s: string]: string|number}][];
   constructor(main: Main) {
     this.main = main;
     this.tid = main.config.gaId;
-    this.lru = new QuickLRU({maxSize: 100});
+    this.lru = new QuickLRU<string | number, string>({maxSize: 100});
 
     this.defaultParams = {
       v: 1,

@@ -1,7 +1,6 @@
-import {WriteStream} from "fs";
+import fs, {WriteStream} from "fs";
+import path from "path";
 
-const fs = require('fs');
-const path = require('path');
 const debug = require('debug')('app:LogFile');
 
 class LogFile {

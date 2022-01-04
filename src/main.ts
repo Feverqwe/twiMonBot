@@ -12,6 +12,8 @@ import Youtube from "./services/youtube";
 import {TUser} from "./router";
 import YtPubSub from "./ytPubSub";
 import Wasd from "./services/wasd";
+import Events from "events";
+import path from "path";
 
 Object.assign(process.env, {
   NTBA_FIX_319: true,
@@ -19,8 +21,6 @@ Object.assign(process.env, {
 });
 
 const TelegramBot = require('node-telegram-bot-api');
-const Events = require('events');
-const path = require('path');
 
 const debug = require('debug')('app:Main');
 
