@@ -460,7 +460,8 @@ const blockedErrors = [
   /have no rights to send a message/,
   /need administrator rights in the channel chat/,
   /CHAT_WRITE_FORBIDDEN/,
-  /CHAT_SEND_MEDIA_FORBIDDEN/
+  /CHAT_SEND_MEDIA_FORBIDDEN/,
+  /CHAT_RESTRICTED/,
 ];
 
 const sendUrlErrors = [
