@@ -1,6 +1,6 @@
 import ErrorWithCode from "./tools/errorWithCode";
 import Main from "./main";
-import qs from "qs";
+import qs from "querystring";
 
 const debug = require('debug')('app:router');
 

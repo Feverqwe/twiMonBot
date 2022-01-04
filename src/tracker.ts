@@ -3,7 +3,7 @@ import arrayByPart from "./tools/arrayByPart";
 import Main from "./main";
 import promiseLimit from "./tools/promiseLimit";
 import fetchRequest from "./tools/fetchRequest";
-import qs from "qs";
+import qs from "querystring";
 import {v4 as uuidV4} from "uuid";
 import QuickLRU from "quick-lru";
 

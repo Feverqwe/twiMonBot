@@ -11,7 +11,7 @@ import ExpressPubSub from "./tools/expressPubSub";
 import express, {Express} from "express";
 import promiseLimit from "./tools/promiseLimit";
 import {Server} from "http";
-import qs from "qs";
+import qs from "querystring";
 
 const debug = require('debug')('app:YtPubSub');
 const {XmlDocument} = require("xmldoc");
