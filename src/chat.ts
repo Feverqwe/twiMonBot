@@ -1,6 +1,7 @@
 import Router, {
   RouterCallbackQueryReq,
-  RouterReq, RouterReqWithAnyMessage,
+  RouterReq,
+  RouterReqWithAnyMessage,
   RouterRes,
   RouterTextReq,
   TCallbackQuery,

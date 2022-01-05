@@ -8,11 +8,11 @@ import arrayByPart from "../tools/arrayByPart";
 import promiseTry from "../tools/promiseTry";
 import fetchRequest, {HTTPError} from "../tools/fetchRequest";
 import {decode as decodeHtmlEntity} from "html-entities";
-import RateLimit from "../tools/rateLimit";
+import RateLimit2 from "../tools/rateLimit2";
 
 const debug = require('debug')('app:Youtube');
 
-const limit = new RateLimit(1000);
+const limit = new RateLimit2(1000);
 const fetchRequestLimited = limit.wrap(fetchRequest);
 
 const VideosItemsSnippetStruct = s.object({

@@ -23,7 +23,12 @@ class RateLimit2 {
       fns.forEach(cb => cb());
     }
     if (this.queue.length) {
-      const delay = this.interval - (now - this.timeArr[lastIndex]);
+      let delay;
+      if (lastIndex === 0) {
+        delay = this.interval;
+      } else {
+        delay = this.timeArr[lastIndex - 1] - this.timeArr[lastIndex];
+      }
       if (this.lastTimeoutId !== null) {
         clearTimeout(this.lastTimeoutId);
       }
