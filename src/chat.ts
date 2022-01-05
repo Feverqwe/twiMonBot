@@ -1,6 +1,6 @@
 import Router, {
   RouterCallbackQueryReq,
-  RouterReq,
+  RouterReq, RouterReqWithAnyMessage,
   RouterRes,
   RouterTextReq,
   TCallbackQuery,
@@ -951,7 +951,7 @@ class Chat {
       });
     };
 
-    const editOrSendNewMessage = (chatId: number, messageId: number|undefined, text: string, form?: object) => {
+    const editOrSendNewMessage = (chatId: number, messageId: number|undefined, text: string, form?: object): Promise<TMessage> => {
       return promiseTry(() => {
         if (!messageId) {
           throw new ErrorWithCode('messageId is empty', 'MESSAGE_ID_IS_EMPTY');
@@ -975,7 +975,7 @@ class Chat {
   }
 
   admin() {
-    const isAdmin = (req: RouterTextReq | RouterCallbackQueryReq, res: RouterRes, next: () => void) => {
+    const isAdmin = <T extends RouterReqWithAnyMessage>(req: T, res: RouterRes, next: () => void) => {
       const adminIds = this.main.config.adminIds || [];
       if (adminIds.includes(req.chatId)) {
         next();

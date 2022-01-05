@@ -51,7 +51,7 @@ export interface RouterCallbackQueryReq extends RouterReqWithAnyMessage {
   fromId: number;
 }
 
-interface RouterReqWithAnyMessage extends RouterReqCallback {
+export interface RouterReqWithAnyMessage extends RouterReqCallback {
   messageId: number;
   chatId: number;
   chatType: string;
