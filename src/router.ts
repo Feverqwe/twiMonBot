@@ -18,7 +18,7 @@ const messageTypes = [
 
 type RouterMethodCallback = (req: RouterReq, res: RouterRes, next: () => void) => void;
 
-type RouterMethodArgs = [RegExp|RouterMethodCallback, ...RouterMethodCallback[]];
+type RouterMethodArgs = [RegExp, ...RouterMethodCallback[]] | RouterMethodCallback[];
 interface RouterMethod {
   (...callbacks: RouterMethodArgs): void
 }
@@ -63,21 +63,21 @@ interface RouterReqCallback extends RouterReq {
 }
 
 const RouterImpl = class MessageTypesImpl implements MessageTypesObj {
-  audio!: RouterMethod;
-  contact!: RouterMethod;
-  delete_chat_photo!: RouterMethod;
-  document!: RouterMethod;
-  group_chat_created!: RouterMethod;
-  left_chat_participant!: RouterMethod;
-  location!: RouterMethod;
-  new_chat_participant!: RouterMethod;
-  new_chat_photo!: RouterMethod;
-  new_chat_title!: RouterMethod;
-  photo!: RouterMethod;
-  sticker!: RouterMethod;
-  text!: RouterMethod;
-  video!: RouterMethod;
-  voice!: RouterMethod;
+  declare audio: RouterMethod;
+  declare contact: RouterMethod;
+  declare delete_chat_photo: RouterMethod;
+  declare document: RouterMethod;
+  declare group_chat_created: RouterMethod;
+  declare left_chat_participant: RouterMethod;
+  declare location: RouterMethod;
+  declare new_chat_participant: RouterMethod;
+  declare new_chat_photo: RouterMethod;
+  declare new_chat_title: RouterMethod;
+  declare photo: RouterMethod;
+  declare sticker: RouterMethod;
+  declare text: RouterMethod;
+  declare video: RouterMethod;
+  declare voice: RouterMethod;
 
   stack: RouterRoute[] = [];
   constructor() {
