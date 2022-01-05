@@ -16,11 +16,11 @@ const messageTypes = [
   'new_chat_photo', 'delete_chat_photo', 'group_chat_created'
 ] as const;
 
-type RouterMethodCallback = (req: RouterReq, res: RouterRes, next: () => void) => void;
+type RouterMethodCallback<I = RouterReq, O = RouterRes> = (req: I, res: O, next: () => void) => void;
 
-type RouterMethodArgs = [RegExp, ...RouterMethodCallback[]] | RouterMethodCallback[];
-interface RouterMethod {
-  (...callbacks: RouterMethodArgs): void
+export type RouterMethodArgs<I = RouterReq, O = RouterRes> = [RegExp, ...RouterMethodCallback<I, O>[]] | RouterMethodCallback<I, O>[];
+interface RouterMethod<I = RouterReq, O = RouterRes> {
+  (...callbacks: RouterMethodArgs<I, O>): void
 }
 
 interface WaitResponseDetails extends RouterRouteDetails {
@@ -75,14 +75,14 @@ const RouterImpl = class MessageTypesImpl implements MessageTypesObj {
   declare new_chat_title: RouterMethod;
   declare photo: RouterMethod;
   declare sticker: RouterMethod;
-  declare text: RouterMethod;
+  declare text: RouterMethod<RouterTextReq>;
   declare video: RouterMethod;
   declare voice: RouterMethod;
 
   stack: RouterRoute[] = [];
   constructor() {
     for (const type of messageTypes) {
-      this[type] = (...callbacks: RouterMethodArgs) => {
+      this[type] = (...callbacks: RouterMethodArgs<any>) => {
         const {re, callbackList} = prepareArgs(callbacks);
 
         callbackList.forEach((callback) => {
@@ -99,7 +99,7 @@ const RouterImpl = class MessageTypesImpl implements MessageTypesObj {
 class Router extends RouterImpl {
   _botNameRe: RegExp | null = null;
 
-  textOrCallbackQuery = this.custom(['text', 'callback_query']);
+  textOrCallbackQuery = this.custom<RouterTextReq | RouterCallbackQueryReq>(['text', 'callback_query']);
 
   constructor(public main: Main) {
     super();
@@ -147,7 +147,7 @@ class Router extends RouterImpl {
     });
   }
 
-  message(...callbacks: RouterMethodArgs) {
+  message(...callbacks: RouterMethodArgs<RouterMessageReq>) {
     const {re, callbackList} = prepareArgs(callbacks);
 
     callbackList.forEach((callback) => {
@@ -157,7 +157,7 @@ class Router extends RouterImpl {
     });
   }
 
-  callback_query(...callbacks: RouterMethodArgs) {
+  callback_query<I = RouterCallbackQueryReq, O = RouterRes>(...callbacks: RouterMethodArgs<I, O>) {
     const {re, callbackList} = prepareArgs(callbacks);
 
     callbackList.forEach((callback) => {
@@ -167,16 +167,16 @@ class Router extends RouterImpl {
     });
   }
 
-  custom(methods: (keyof Router)[]): RouterMethod {
-    return (...callbacks: RouterMethodArgs) => {
+  custom<I = RouterReq, O = RouterRes>(methods: (keyof Router)[]) {
+    return <I2 = I, O2 = O>(...callbacks: RouterMethodArgs<I2, O2>) => {
       methods.forEach((method) => {
-        (this[method] as RouterMethod).apply(this, callbacks);
+        (this[method] as RouterMethod<any, any>).apply(this, callbacks);
       });
     };
   }
 
-  waitResponse(re: RegExp|null, details: WaitResponseDetails, timeoutSec: number): Promise<{
-    req: RouterReq, res: RouterRes, next: () => void
+  waitResponse<I = RouterReq, O = RouterRes>(re: RegExp|null, details: WaitResponseDetails, timeoutSec: number): Promise<{
+    req: I, res: O, next: () => void
   }> {
     return new Promise((resolve, reject) => {
       const timeoutTimer = setTimeout(() => {
@@ -404,7 +404,7 @@ export class RouterRes {
   }
 }
 
-function prepareArgs(callbacks: RouterMethodArgs) {
+function prepareArgs(callbacks: RouterMethodArgs<any, any>) {
   let re = null;
   if (typeof callbacks[0] !== 'function') {
     re = callbacks.shift() as RegExp;
