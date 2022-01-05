@@ -507,9 +507,7 @@ class Chat {
       });
     });
 
-    this.router.textOrCallbackQuery<
-        (RouterTextReq | RouterCallbackQueryReq) & WithChannels
-      >(/\/delete/, provideChannels, withChannels, (req, res) => {
+    this.router.textOrCallbackQuery<RouterCQOrTextReqWithChannels>(/\/delete/, provideChannels, withChannels, (req, res) => {
       const channels = req.channels.map((channel) => {
         const service = this.main.getServiceById(channel.service)!;
         return [{
