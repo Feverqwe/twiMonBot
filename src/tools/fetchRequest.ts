@@ -3,6 +3,7 @@ import http from "http";
 import https from "https";
 import qs from "querystring";
 import AbortController from "abort-controller";
+import {Error} from "sequelize";
 
 const fetch = require('node-fetch');
 
@@ -151,12 +152,11 @@ export class RequestError extends Error {
   stack!: string;
   declare readonly response?: FetchResponse;
 
-  constructor(message: string, error: Partial<Error & {code?: string}>, response?: FetchResponse | undefined) {
+  constructor(message: string, error: {} | Error & {code?: string}, response?: FetchResponse | undefined) {
     super(message);
-    Error.captureStackTrace(this, this.constructor);
 
     this.name = 'RequestError';
-    if (error.code) {
+    if ('code' in error) {
       this.code = error.code;
     }
 
@@ -167,17 +167,12 @@ export class RequestError extends Error {
       });
     }
 
-    if (typeof error.stack !== "undefined") {
-      const indexOfMessage = this.stack.indexOf(this.message) + this.message.length;
-      const thisStackTrace = this.stack.slice(indexOfMessage).split('\n').reverse();
-      const errorStackTrace = error.stack.slice(error.stack.indexOf(error.message!) + error.message!.length).split('\n').reverse();
+    if (this.constructor === RequestError) {
+      Error.captureStackTrace(this, this.constructor);
 
-      // Remove duplicated traces
-      while (errorStackTrace.length !== 0 && errorStackTrace[0] === thisStackTrace[0]) {
-        thisStackTrace.shift();
+      if ('name' in error) {
+        transformStack(this, error);
       }
-
-      this.stack = `${this.stack.slice(0, indexOfMessage)}${thisStackTrace.reverse().join('\n')}${errorStackTrace.reverse().join('\n')}`;
     }
   }
 }
@@ -189,6 +184,8 @@ export class HTTPError extends RequestError {
     super(`Response code ${response.statusCode} (${response.statusMessage!})`, {}, response);
 
     this.name = 'HTTPError';
+
+    Error.captureStackTrace(this, this.constructor);
   }
 }
 
@@ -197,8 +194,11 @@ export class TimeoutError extends RequestError {
 
   constructor(error: Error) {
     super(error.message, error, undefined);
-
     this.name = 'TimeoutError';
+
+    Error.captureStackTrace(this, this.constructor);
+
+    transformStack(this, error);
   }
 }
 
@@ -208,6 +208,25 @@ export class ReadError extends RequestError {
   constructor(error: Error, response: FetchResponse) {
     super(error.message, error, response);
     this.name = 'ReadError';
+
+    Error.captureStackTrace(this, this.constructor);
+
+    transformStack(this, error);
+  }
+}
+
+function transformStack(err: Error & {stack: string}, origError: Error) {
+  if (typeof origError.stack !== "undefined") {
+    const indexOfMessage = err.stack.indexOf(err.message) + err.message.length;
+    const thisStackTrace = err.stack.slice(indexOfMessage).split('\n').reverse();
+    const errorStackTrace = origError.stack.slice(origError.stack.indexOf(origError.message!) + origError.message!.length).split('\n').reverse();
+
+    // Remove duplicated traces
+    while (errorStackTrace.length !== 0 && errorStackTrace[0] === thisStackTrace[0]) {
+      thisStackTrace.shift();
+    }
+
+    err.stack = `${err.stack.slice(0, indexOfMessage)}${thisStackTrace.reverse().join('\n')}${errorStackTrace.reverse().join('\n')}`;
   }
 }
 
