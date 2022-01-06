@@ -3,10 +3,21 @@ import qs from "querystring";
 import FormData from "form-data";
 import {Stream} from "stream";
 import * as Buffer from "buffer";
+import {Module} from "module";
 
 const {BaseError, FatalError, ParseError, TelegramError} = require('node-telegram-bot-api/src/errors');
 
 const debug = require('debug')('app:replaceBotRequest');
+
+(Module as any)._resolveFilename = ((origFn) => {
+  return (...args: any[]) => {
+    const path: string = args[0];
+    if (['request', 'request-promise'].includes(path)) {
+      args[0] = 'debug';
+    }
+    return origFn.apply(Module, args);
+  };
+})((Module as any)._resolveFilename);
 
 interface RequestOptions {
   qs?: Record<string, any>,
