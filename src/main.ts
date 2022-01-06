@@ -146,6 +146,9 @@ class Main extends Events {
     bot.sendMessage = limit.wrap(bot.sendMessage.bind(bot)) as (chatId: number, text: string) => Promise<unknown>;
     bot.sendPhotoQuote = limit.wrap(bot.sendPhoto.bind(bot));
 
+    const chatActionLimit = new RateLimit2(30);
+    bot.sendChatAction = chatActionLimit.wrap(bot.sendChatAction.bind(bot));
+
     return bot;
   }
 
