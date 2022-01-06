@@ -14,6 +14,7 @@ import Wasd from "./services/wasd";
 import Events from "events";
 import path from "path";
 import RateLimit2 from "./tools/rateLimit2";
+import replaceBotRequest from "./tools/replaceBotRequest";
 
 Object.assign(process.env, {
   NTBA_FIX_319: true,
@@ -133,6 +134,8 @@ class Main extends Events {
   }
 
   initBot() {
+    replaceBotRequest(TelegramBot.prototype);
+
     const bot = new TelegramBot(this.config.token, {
       polling: {
         autoStart: false

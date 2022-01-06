@@ -4,6 +4,7 @@ import https from "https";
 import qs from "querystring";
 import AbortController from "abort-controller";
 import {Error} from "sequelize";
+import FormData from "form-data";
 
 const fetch = require('node-fetch');
 
@@ -16,11 +17,12 @@ export interface FetchRequestOptions {
   searchParams?: Record<string, any>,
   timeout?: number,
   keepAlive?: boolean,
-  body?: string | URLSearchParams,
+  body?: string | URLSearchParams | FormData,
   cookieJar?: {
     setCookie: (rawCookie: string, url: string) => Promise<unknown>,
     getCookieString: (url: string) => Promise<string>,
   },
+  throwHttpErrors?: boolean,
 }
 
 interface FetchResponse<T = any> {
@@ -35,7 +37,7 @@ interface FetchResponse<T = any> {
 }
 
 function fetchRequest<T = any>(url: string, options?: FetchRequestOptions) {
-  const {responseType, keepAlive, searchParams, cookieJar, timeout = 60 * 1000, ...fetchOptions} = options || {};
+  const {responseType, keepAlive, searchParams, cookieJar, throwHttpErrors = true, timeout = 60 * 1000, ...fetchOptions} = options || {};
 
   let timeoutId: NodeJS.Timeout | null = null;
   let setCookiePromise: Promise<unknown[]> | null = null;
@@ -139,7 +141,7 @@ function fetchRequest<T = any>(url: string, options?: FetchRequestOptions) {
       }
     }
 
-    if (!rawResponse.ok) {
+    if (throwHttpErrors && !rawResponse.ok) {
       if (responseType === 'stream') {
         fetchResponse.rawBody.destroy();
       }
