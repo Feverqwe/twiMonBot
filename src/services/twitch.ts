@@ -14,6 +14,7 @@ const debug = require('debug')('app:Twitch');
 const rateLimit = new RateLimit2(800, 60 * 1000);
 
 const limitedFetchRequest = rateLimit.wrap(fetchRequest);
+const requestSingleChannelLimit = new RateLimit2(400, 60 * 1000);
 
 const ChannelsStruct = s.object({
   data: s.array(s.object({
@@ -117,7 +118,9 @@ class Twitch implements ServiceInterface {
   getExistsChannelIds(ids: (number | string)[]) {
     const resultChannelIds: (number | string)[] = [];
     return parallel(10, ids, (channelId) => {
-      return this.requestChannelById(channelId).then(() => {
+      return requestSingleChannelLimit.run(() => {
+        return this.requestChannelById(channelId);
+      }).then(() => {
         resultChannelIds.push(channelId);
       }, (err: any) => {
         if (err.code === 'CHANNEL_BY_ID_IS_NOT_FOUND') {

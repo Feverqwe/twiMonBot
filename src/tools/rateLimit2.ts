@@ -50,19 +50,23 @@ class RateLimit2 {
 
   wrap<T, A extends any[]>(fn: (...args: A) => T | Promise<T>) {
     return (...args: A) => {
-      return new Promise<T>((resolve, reject) => {
-        this.queue.push(() => {
-          try {
-            resolve(fn.apply(null, args));
-          } catch (err) {
-            reject(err);
-          }
-        });
-        if (this.lastTimeoutId === null) {
-          this.callQueue();
+      return this.run(() => fn.apply(null, args));
+    };
+  }
+
+  run<T>(fn: () => T | Promise<T>) {
+    return new Promise<T>((resolve, reject) => {
+      this.queue.push(() => {
+        try {
+          resolve(fn());
+        } catch (err) {
+          reject(err);
         }
       });
-    };
+      if (this.lastTimeoutId === null) {
+        this.callQueue();
+      }
+    });
   }
 }
 
