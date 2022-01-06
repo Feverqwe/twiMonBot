@@ -156,7 +156,9 @@ export class RequestError extends Error {
     Error.captureStackTrace(this, this.constructor);
 
     this.name = 'RequestError';
-    this.code = error.code;
+    if (error.code) {
+      this.code = error.code;
+    }
 
     if (response) {
       Object.defineProperty(this, 'response', {
