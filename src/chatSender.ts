@@ -10,7 +10,6 @@ import fetchRequest from "./tools/fetchRequest";
 import {ChatModel, MessageModel, StreamModelWithChannel} from "./db";
 
 const debug = require('debug')('app:ChatSender');
-const request = require('request');
 
 const streamWeakMap = new WeakMap();
 
@@ -376,7 +375,11 @@ class ChatSender {
             debug('Content-type is empty, set default content-type %s', url);
             contentType = 'image/jpeg';
           }
-          return this.main.bot.sendPhoto(this.chat.id, request(url), {caption}, {contentType}).then((message: TMessage) => {
+          return fetchRequest<ReadableStream>(url, {responseType: 'stream'}).then((response) => {
+            const imageStream = response.body;
+            Object.assign(imageStream, {path: '/'});
+            return this.main.bot.sendPhoto(this.chat.id, imageStream, {contentType}, {caption});
+          }).then((message: TMessage) => {
             this.main.sender.log.write(`[send photo as file] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`);
             this.main.tracker.track(this.chat.id, {
               ec: 'bot',

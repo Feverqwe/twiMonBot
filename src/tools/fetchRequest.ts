@@ -11,7 +11,7 @@ const debug = require('debug')('app:fetchRequest');
 
 export interface FetchRequestOptions {
   method?: 'GET' | 'HEAD' | 'POST';
-  responseType?: 'text' | 'json' | 'buffer',
+  responseType?: 'text' | 'json' | 'buffer' | 'stream',
   headers?: Record<string, string | string[] | undefined>,
   searchParams?: Record<string, any>,
   timeout?: number,
@@ -23,17 +23,18 @@ export interface FetchRequestOptions {
   },
 }
 
-interface FetchResponse {
+interface FetchResponse<T = any> {
+  ok: boolean,
   url: string,
   method: string,
   statusCode: number,
   statusMessage: string,
   rawBody: any,
-  body: any,
+  body: T,
   headers: Record<string, string | string[]>,
 }
 
-function fetchRequest(url: string, options?: FetchRequestOptions) {
+function fetchRequest<T = any>(url: string, options?: FetchRequestOptions) {
   const {responseType, keepAlive, searchParams, cookieJar, timeout = 60 * 1000, ...fetchOptions} = options || {};
 
   let timeoutId: NodeJS.Timeout | null = null;
@@ -84,7 +85,8 @@ function fetchRequest(url: string, options?: FetchRequestOptions) {
       }
     });
 
-    const fetchResponse: FetchResponse = {
+    const fetchResponse: FetchResponse<T> = {
+      ok: rawResponse.ok,
       url: rawResponse.url,
       method: fetchOptions.method,
       statusCode: rawResponse.status,
@@ -108,6 +110,9 @@ function fetchRequest(url: string, options?: FetchRequestOptions) {
 
     if (fetchOptions.method !== 'HEAD') {
       try {
+        if (responseType === 'stream') {
+          fetchResponse.rawBody = rawResponse.body;
+        } else
         if (responseType === 'buffer') {
           fetchResponse.rawBody = await rawResponse.buffer();
         } else {
@@ -135,6 +140,9 @@ function fetchRequest(url: string, options?: FetchRequestOptions) {
     }
 
     if (!rawResponse.ok) {
+      if (responseType === 'stream') {
+        fetchResponse.rawBody.destroy();
+      }
       throw new HTTPError(fetchResponse);
     }
 
