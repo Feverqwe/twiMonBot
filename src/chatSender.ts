@@ -375,7 +375,7 @@ class ChatSender {
             debug('Content-type is empty, set default content-type %s', url);
             contentType = 'image/jpeg';
           }
-          return fetchRequest<ReadableStream>(url, {responseType: 'stream'}).then((response) => {
+          return fetchRequest<ReadableStream>(url, {responseType: 'stream', keepAlive: true}).then((response) => {
             const imageStream = response.body;
             Object.assign(imageStream, {path: '/'});
             return this.main.bot.sendPhoto(this.chat.id, imageStream, {contentType}, {caption});
