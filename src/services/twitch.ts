@@ -7,8 +7,13 @@ import arrayByPart from "../tools/arrayByPart";
 import fetchRequest, {FetchRequestOptions, HTTPError} from "../tools/fetchRequest";
 import getNow from "../tools/getNow";
 import promiseTry from "../tools/promiseTry";
+import RateLimit2 from "../tools/rateLimit2";
 
 const debug = require('debug')('app:Twitch');
+
+const rateLimit = new RateLimit2(800, 60 * 1000);
+
+const limitedFetchRequest = rateLimit.wrap(fetchRequest);
 
 const ChannelsStruct = s.object({
   data: s.array(s.object({
@@ -253,7 +258,7 @@ class Twitch implements ServiceInterface {
       'Client-Id': this.main.config.twitchToken,
     }, options.headers);
 
-    return fetchRequest(url, options);
+    return limitedFetchRequest(url, options);
   }
 }
 
