@@ -96,7 +96,9 @@ function replaceBotRequest(botProto: Bot) {
       try {
         data = resp.body = JSON.parse(resp.body);
       } catch (err) {
-        throw new ParseError(`Error parsing response: ${resp.body}`, resp);
+        const error = new ParseError(`Error parsing response: ${resp.body}`, resp);
+        hideResponse(error);
+        throw error;
       }
 
       // debug('response %j', data);
@@ -105,13 +107,24 @@ function replaceBotRequest(botProto: Bot) {
         return data.result;
       }
 
-      throw new TelegramError(`${data.error_code} ${data.description}`, resp);
+      const err = new TelegramError(`${data.error_code} ${data.description}`, resp);
+      hideResponse(err);
+      throw err;
     }).catch(error => {
       // TODO: why can't we do `error instanceof errors.BaseError`?
       if (error.response) throw error;
       throw new FatalError(error);
     });
   };
+}
+
+function hideResponse(err: Error & {response: any}) {
+  const response = err.response;
+  delete err.response;
+  Object.defineProperty(err, 'response', {
+    enumerable: false,
+    value: response
+  });
 }
 
 export default replaceBotRequest;
