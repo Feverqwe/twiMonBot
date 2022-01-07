@@ -154,14 +154,13 @@ class Checker {
 
       const syncAt = new Date();
       const channelIdsParts = arrayByPart(channelIds, 30);
-      const [streamsResultParts, existsStreamsResultParts] = await Promise.all([
-        this.getStreams(service, channelIds, rawChannelIds, sessionId).then((streamsResult) => {
-          return getStreamsResultByParts(streamsResult, channelIdsParts);
-        }),
+      const [streamsResult, existsStreamsResultParts] = await Promise.all([
+        this.getStreams(service, channelIds, rawChannelIds, sessionId),
         parallel(10, channelIdsParts, (channelIdsPart) => {
           return this.getExistsStreams(channelIdsPart);
         }),
       ]);
+      const streamsResultParts = getStreamsResultByParts(streamsResult, channelIdsParts);
 
       while (streamsResultParts.length) {
         const streamsResultPart = streamsResultParts.shift()!;
