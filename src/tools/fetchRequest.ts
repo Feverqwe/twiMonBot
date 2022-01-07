@@ -3,7 +3,6 @@ import http from "http";
 import https from "https";
 import qs from "querystring";
 import AbortController from "abort-controller";
-import {Error} from "sequelize";
 import FormData from "form-data";
 
 const fetch = require('node-fetch');
