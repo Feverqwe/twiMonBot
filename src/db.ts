@@ -771,6 +771,9 @@ class Db {
     return this.sequelize.transaction({
       isolationLevel: ISOLATION_LEVELS.REPEATABLE_READ,
     }, async (transaction) => {
+      await this.sequelize.query('set innodb_lock_wait_timeout=120', {
+        transaction,
+      });
       await Promise.all([
         bulk(channelsChanges, (channelsChanges) => {
           return ChannelModel.bulkCreate(channelsChanges, {

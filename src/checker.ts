@@ -7,7 +7,6 @@ import {Channel, Stream} from "./db";
 import LogFile from "./logFile";
 import getInProgress from "./tools/getInProgress";
 import parallel from "./tools/parallel";
-import arrayByPart from "./tools/arrayByPart";
 
 const debug = require('debug')('app:Checker');
 
@@ -55,8 +54,6 @@ interface ThreadSession {
   service: ServiceInterface,
   thread?: Promise<void>
 }
-
-type GotStream = Stream & { channelTitle: string; channelUrl: string; };
 
 class Checker {
   main: Main;
@@ -153,20 +150,11 @@ class Checker {
       });
 
       const syncAt = new Date();
-      const channelIdsParts = arrayByPart(channelIds, 30);
-      const [streamsResult, existsStreamsResultParts] = await Promise.all([
+      await Promise.all([
         this.getStreams(service, channelIds, rawChannelIds, sessionId),
-        parallel(10, channelIdsParts, (channelIdsPart) => {
-          return this.getExistsStreams(channelIdsPart);
-        }),
-      ]);
-      const streamsResultParts = getStreamsResultByParts(streamsResult, channelIdsParts);
-
-      while (streamsResultParts.length) {
-        const streamsResultPart = streamsResultParts.shift()!;
-        const existsStreamsResult = existsStreamsResultParts.shift()!;
-
-        const {streams, checkedChannelIds, skippedChannelIds, removedChannelIds} = streamsResultPart;
+        this.getExistsStreams(channelIds)
+      ]).then(([streamsResult, existsStreamsResult]) => {
+        const {streams, checkedChannelIds, skippedChannelIds, removedChannelIds} = streamsResult;
         const {existsStreams, existsStreamIds, existsStreamIdStream} = existsStreamsResult;
 
         const streamIds: string[] = [];
@@ -302,7 +290,7 @@ class Checker {
           }
         });
 
-        await this.getChatIdStreamIdChanges(streamIdStream, newStreamIds).then((chatIdStreamIdChanges) => {
+        return this.getChatIdStreamIdChanges(streamIdStream, newStreamIds).then((chatIdStreamIdChanges) => {
           const channelsChanges = Object.values(channelIdsChanges);
           const migratedStreamsIdCouple = Array.from(migratedStreamFromIdToId.entries());
           const syncStreams: Stream[] = [
@@ -381,18 +369,18 @@ class Checker {
             removed: removedStreamIds.length,
           };
         });
-      }
+      });
     }
   }
 
   getStreams(service: ServiceInterface, channelIds: string[], rawChannelIds: (string|number)[], sessionId: string): Promise<{
-    streams: GotStream[],
+    streams: (Stream & { channelTitle: string; channelUrl: string; })[],
     checkedChannelIds: string[], skippedChannelIds: string[], removedChannelIds: string[]
   }> {
     return this.main.db.setChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
       return service.getStreams(rawChannelIds);
     }).then(({streams: rawStreams, skippedChannelIds: skippedRawChannelIds, removedChannelIds: removedRawChannelIds}) => {
-      const streams: GotStream[] = [];
+      const streams: (Stream & { channelTitle: string; channelUrl: string; })[] = [];
 
       const checkedChannelIds = channelIds.slice(0);
       const onMapRawChannel = (rawId: string|number) => {
@@ -554,60 +542,6 @@ function findSimilarStream<T extends Stream>(streams: T[], target: T): T|null {
 function setStreamUpdatedAt(stream: Stream, date: Date):Stream {
   stream.updatedAt = date;
   return stream;
-}
-
-type StreamResultsFragment = {
-  streams: GotStream[],
-  checkedChannelIds: string[],
-  skippedChannelIds: string[],
-  removedChannelIds: string[],
-}
-
-function getStreamsResultByParts(streamsResult: StreamResultsFragment, parts: string[][]): StreamResultsFragment[] {
-  const channelIdStreams = new Map<string, GotStream[]>();
-
-  streamsResult.streams.forEach((stream) => {
-    let streams = channelIdStreams.get(stream.channelId);
-    if (!streams) {
-      channelIdStreams.set(stream.channelId, streams = []);
-    }
-    streams.push(stream);
-  });
-
-  const streamsResultParts: StreamResultsFragment[] = [];
-  while (parts.length) {
-    const ids = parts.shift()!;
-
-    const streamsResultPart: StreamResultsFragment = {
-      streams: [],
-      checkedChannelIds: [],
-      skippedChannelIds: [],
-      removedChannelIds: [],
-    };
-    streamsResultParts.push(streamsResultPart);
-
-    while (ids.length) {
-      const id = ids.shift()!;
-      const streams = channelIdStreams.get(id);
-      if (streams) {
-        streamsResultPart.streams.push(...streams);
-      }
-
-      [
-        [streamsResult.checkedChannelIds, streamsResultPart.checkedChannelIds],
-        [streamsResult.skippedChannelIds, streamsResultPart.skippedChannelIds],
-        [streamsResult.removedChannelIds, streamsResultPart.removedChannelIds]
-      ].forEach(([a, b]) => {
-        const pos = a.indexOf(id);
-        if (pos !== -1) {
-          a.splice(pos, 1);
-          b.push(id);
-        }
-      });
-    }
-  }
-
-  return streamsResultParts;
 }
 
 export default Checker;
