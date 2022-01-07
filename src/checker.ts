@@ -379,7 +379,7 @@ class Checker {
   }> {
     return this.main.db.setChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
       return service.getStreams(rawChannelIds);
-    }).then(({streams: rawStreams, skippedChannelIds: skippedRawChannelIds, removedChannelIds: removedRawChannelIds}: ServiceGetStreamsResult) => {
+    }).then(({streams: rawStreams, skippedChannelIds: skippedRawChannelIds, removedChannelIds: removedRawChannelIds}) => {
       const streams: (Stream & { channelTitle: string; channelUrl: string; })[] = [];
 
       const checkedChannelIds = channelIds.slice(0);
