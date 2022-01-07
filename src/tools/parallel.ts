@@ -1,6 +1,6 @@
-import promiseTry from "./promiseTry";
+import promiseTry, {Resolvable} from "./promiseTry";
 
-const parallel = <T, F>(limit: number, items: T[], callback:(item: T, index: number, array: T[]) => F):Promise<F[]> => {
+const parallel = <T, F>(limit: number, items: T[], callback:(item: T, index: number, array: T[]) => Resolvable<F>):Promise<F[]> => {
   limit = Math.min(limit, items.length);
   let index = 0;
   let canceled = false;
