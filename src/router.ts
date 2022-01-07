@@ -157,7 +157,7 @@ class Router extends RouterImpl {
     });
   }
 
-  callback_query<I = RouterCallbackQueryReq, O = RouterRes>(...callbacks: RouterMethodArgs<I, O>) {
+  callback_query(...callbacks: RouterMethodArgs<RouterCallbackQueryReq, RouterRes>) {
     const {re, callbackList} = prepareArgs(callbacks);
 
     callbackList.forEach((callback) => {
