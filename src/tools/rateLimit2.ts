@@ -3,7 +3,6 @@ class RateLimit2 {
   private timeArr: number[] = [];
   private countArr: number[] = [];
   private lastTimeoutId: NodeJS.Timeout | null = null;
-  private cleanCount = this.interval * 2;
 
   constructor(private limit: number, private interval = 1000) {}
 
@@ -12,12 +11,8 @@ class RateLimit2 {
     const {count, lastIndex} = this.getAvailableCount(now);
     if (count > 0) {
       if (this.timeArr[0] !== now) {
-        const len = this.timeArr.unshift(now);
+        this.timeArr.unshift(now);
         this.countArr.unshift(0);
-        if (len > this.cleanCount) {
-          this.timeArr.splice(this.interval);
-          this.countArr.splice(this.interval);
-        }
       }
       const fns = this.queue.splice(0, count);
       this.countArr[0] += fns.length;
@@ -41,7 +36,11 @@ class RateLimit2 {
     let lastIndex = 0;
     for (let i = 0, len = this.timeArr.length; i < len; i++) {
       const time = this.timeArr[i];
-      if (time < end) break;
+      if (time < end) {
+        this.timeArr.splice(1);
+        this.countArr.splice(i);
+        break;
+      }
       count += this.countArr[i];
       lastIndex = i;
     }
