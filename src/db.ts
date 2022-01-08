@@ -840,7 +840,7 @@ class Db {
 
     const startAt = Date.now();
     return doTry().finally(() => {
-      debug('putStreams ms: %s (tryCount: %s)', Date.now() - startAt, tryCount);
+      debug('putStreams tryCount: %s, ms: %s', tryCount, Date.now() - startAt);
     });
   }
 
