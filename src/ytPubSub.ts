@@ -19,31 +19,22 @@ const oneLimit = promiseLimit(1);
 const throttle = require('lodash.throttle');
 
 class YtPubSub {
-  main: Main;
-  private hubUrl: string;
-  private log: LogFile;
-  private app!: Express;
-  private expressPubSub: ExpressPubSub;
-  private host: string;
-  private port: number;
+  private log = new LogFile('ytPubSub');
+  private hubUrl = 'https://pubsubhubbub.appspot.com/subscribe';
+  private host = this.main.config.push.host || 'localhost';
+  private port = this.main.config.push.port;
+  private expressPubSub = new ExpressPubSub({
+    path: this.main.config.push.path,
+    secret: this.main.config.push.secret,
+    callbackUrl: this.main.config.push.callbackUrl,
+    leaseSeconds: this.main.config.push.leaseSeconds,
+  });
   private server: Server | undefined;
-  constructor(main: Main) {
-    this.main = main;
-    this.log = new LogFile('ytPubSub');
-    this.hubUrl = 'https://pubsubhubbub.appspot.com/subscribe';
-    this.host = main.config.push.host || 'localhost';
-    this.port = main.config.push.port;
-    this.expressPubSub = new ExpressPubSub({
-      path: main.config.push.path,
-      secret: main.config.push.secret,
-      callbackUrl: main.config.push.callbackUrl,
-      leaseSeconds: main.config.push.leaseSeconds,
-    });
-  }
+  private app = express();
+
+  constructor(private main: Main) {}
 
   init() {
-    this.app = express();
-
     this.expressPubSub.bind(this.app);
     this.expressPubSub.on('denied', (data: any) => {
       debug('Denied %o', data);

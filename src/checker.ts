@@ -56,10 +56,8 @@ interface ThreadSession {
 }
 
 class Checker {
-  main: Main;
   log: LogFile;
-  constructor(main: Main) {
-    this.main = main;
+  constructor(private main: Main) {
     this.log = new LogFile('checker');
   }
 
