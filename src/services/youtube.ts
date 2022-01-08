@@ -8,12 +8,14 @@ import arrayByPart from "../tools/arrayByPart";
 import promiseTry from "../tools/promiseTry";
 import fetchRequest, {HTTPError} from "../tools/fetchRequest";
 import {decode as decodeHtmlEntity} from "html-entities";
-import RateLimit2 from "../tools/rateLimit2";
+import {RateLimiter} from "limiter";
 
 const debug = require('debug')('app:Youtube');
 
-const limit = new RateLimit2(1000);
-const fetchRequestLimited = limit.wrap(fetchRequest);
+const queriesPerMinute = new RateLimiter({
+  tokensPerInterval: 18000000,
+  interval: "minute",
+});
 
 const VideosItemsSnippetStruct = s.object({
   items: s.array(s.object({
@@ -143,7 +145,7 @@ class Youtube implements ServiceInterface {
 
   getStreamIdSnippetByChannelId(channelId: string, isUpcoming = false) {
     const idSnippet: Map<string, SearchVideoResponseSnippet> = new Map();
-    return iterPages((pageToken?) => {
+    return iterPages(async (pageToken?) => {
       const query: Record<string, any> = {
         part: 'snippet',
         channelId: channelId,
@@ -164,7 +166,8 @@ class Youtube implements ServiceInterface {
         query.publishedAfter = minDate.toISOString();
       }
 
-      return fetchRequestLimited('https://www.googleapis.com/youtube/v3/search', {
+      await queriesPerMinute.removeTokens(100);
+      return fetchRequest('https://www.googleapis.com/youtube/v3/search', {
         searchParams: query,
         keepAlive: true,
         responseType: 'json',
@@ -185,8 +188,9 @@ class Youtube implements ServiceInterface {
   getStreamIdLiveDetaildByIds(ids: string[]) {
     const idStreamInfo: Map<string, {scheduledStartAt: Date|null, actualStartAt: Date|null, actualEndAt: Date|null, viewers: number|null}> = new Map();
     return parallel(10, arrayByPart(ids, 50), (videoIds) => {
-      return iterPages((pageToken?) => {
-        return fetchRequestLimited('https://www.googleapis.com/youtube/v3/videos', {
+      return iterPages(async (pageToken?) => {
+        await queriesPerMinute.removeTokens(1);
+        return fetchRequest('https://www.googleapis.com/youtube/v3/videos', {
           searchParams: {
             part: 'liveStreamingDetails',
             id: videoIds.join(','),
@@ -235,8 +239,9 @@ class Youtube implements ServiceInterface {
   getExistsChannelIds(ids: string[]) {
     const resultChannelIds: string[] = [];
     return parallel(10, arrayByPart(ids, 50), (ids) => {
-      return iterPages((pageToken?) => {
-        return fetchRequestLimited('https://www.googleapis.com/youtube/v3/channels', {
+      return iterPages(async (pageToken?) => {
+        await queriesPerMinute.removeTokens(1);
+        return fetchRequest('https://www.googleapis.com/youtube/v3/channels', {
           searchParams: {
             part: 'id',
             id: ids.join(','),
@@ -290,8 +295,9 @@ class Youtube implements ServiceInterface {
       }
 
       return this.channelHasBroadcasts(channelId).then(() => channelId);
-    }).then((channelId) => {
-      return fetchRequestLimited('https://www.googleapis.com/youtube/v3/search', {
+    }).then(async (channelId) => {
+      await queriesPerMinute.removeTokens(100);
+      return fetchRequest('https://www.googleapis.com/youtube/v3/search', {
         searchParams: {
           part: 'snippet',
           channelId: channelId,
@@ -358,7 +364,8 @@ class Youtube implements ServiceInterface {
       throw new ErrorWithCode('Is not video url', 'IS_NOT_VIDEO_URL');
     }
 
-    return fetchRequestLimited('https://www.googleapis.com/youtube/v3/videos', {
+    await queriesPerMinute.removeTokens(1);
+    return fetchRequest('https://www.googleapis.com/youtube/v3/videos', {
       searchParams: {
         part: 'snippet,liveStreamingDetails',
         id: videoId,
@@ -406,7 +413,8 @@ class Youtube implements ServiceInterface {
       throw new ErrorWithCode('Incorrect username', 'INCORRECT_USERNAME');
     }
 
-    return fetchRequestLimited('https://www.googleapis.com/youtube/v3/channels', {
+    await queriesPerMinute.removeTokens(1);
+    return fetchRequest('https://www.googleapis.com/youtube/v3/channels', {
       searchParams: {
         part: 'snippet',
         forUsername: username,
@@ -431,7 +439,8 @@ class Youtube implements ServiceInterface {
       throw new ErrorWithCode('Query is empty', 'QUERY_IS_EMPTY')
     }
 
-    return fetchRequestLimited('https://www.googleapis.com/youtube/v3/search', {
+    await queriesPerMinute.removeTokens(100);
+    return fetchRequest('https://www.googleapis.com/youtube/v3/search', {
       searchParams: {
         part: 'snippet',
         q: query,
@@ -454,7 +463,8 @@ class Youtube implements ServiceInterface {
 
   async channelHasBroadcasts(channelId: string) {
     for (const type of ['completed', 'live', 'upcoming']) {
-      const result = await fetchRequestLimited('https://www.googleapis.com/youtube/v3/search', {
+      await queriesPerMinute.removeTokens(100);
+      const result = await fetchRequest('https://www.googleapis.com/youtube/v3/search', {
         searchParams: {
           part: 'snippet',
           channelId: channelId,
