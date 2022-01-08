@@ -189,10 +189,8 @@ export class YtPubSubFeedModel extends Sequelize.Model {
 }
 
 class Db {
-  main: Main;
   sequelize: Sequelize.Sequelize;
-  constructor(main: Main) {
-    this.main = main;
+  constructor(private main: Main) {
     this.sequelize = new Sequelize.Sequelize(main.config.db.database, main.config.db.user, main.config.db.password, {
       host: main.config.db.host,
       port: main.config.db.port,

@@ -14,12 +14,8 @@ const throttle = require('lodash.throttle');
 const oneLimit = promiseLimit(1);
 
 class Sender {
-  main: Main;
-  log: LogFile;
-  constructor(main: Main) {
-    this.main = main;
-    this.log = new LogFile('sender');
-  }
+  public log = new LogFile('sender');
+  constructor(private main: Main) {}
 
   init() {
     this.startCheckInterval();
