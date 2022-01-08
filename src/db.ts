@@ -768,66 +768,82 @@ class Db {
   }
 
   putStreams(channelsChanges: object[], removedChannelIds: string[], migratedStreamsIdCouple: [string, string][], syncStreams: Stream[], changedStreamIds: string[], removedStreamIds: string[], chatIdStreamIdChanges: object[]) {
-    return this.sequelize.transaction({
-      isolationLevel: ISOLATION_LEVELS.REPEATABLE_READ,
-    }, async (transaction) => {
-      await this.sequelize.query('set innodb_lock_wait_timeout=120', {
-        transaction,
-      });
-      await Promise.all([
-        bulk(channelsChanges, (channelsChanges) => {
-          return ChannelModel.bulkCreate(channelsChanges, {
-            updateOnDuplicate: ['lastStreamAt', 'lastSyncAt', 'title', 'url'],
-            transaction
-          });
-        }),
-        parallel(10, migratedStreamsIdCouple, ([fromId, id]) => {
-          return StreamModel.update({id}, {
-            where: {id: fromId},
-            transaction
-          });
-        })
-      ]);
+    let retry = 3;
+    let tryCount = 0;
 
-      await bulk(syncStreams, (syncStreams) => {
-        return StreamModel.bulkCreate(syncStreams, {
-          updateOnDuplicate: [
-            'url', 'title', 'game', 'isRecord', 'previews',
-            'viewers', 'channelId', 'telegramPreviewFileId',
-            'isOffline', 'offlineFrom', 'isTimeout', 'timeoutFrom', 'updatedAt'
-          ],
-          transaction
+    const doTry = (): Promise<void> => {
+      tryCount++;
+      return this.sequelize.transaction({
+        isolationLevel: ISOLATION_LEVELS.REPEATABLE_READ,
+      }, async (transaction) => {
+        await this.sequelize.query('set innodb_lock_wait_timeout=180', {
+          transaction,
         });
+        await Promise.all([
+          bulk(channelsChanges, (channelsChanges) => {
+            return ChannelModel.bulkCreate(channelsChanges, {
+              updateOnDuplicate: ['lastStreamAt', 'lastSyncAt', 'title', 'url'],
+              transaction
+            });
+          }),
+          parallel(10, migratedStreamsIdCouple, ([fromId, id]) => {
+            return StreamModel.update({id}, {
+              where: {id: fromId},
+              transaction
+            });
+          })
+        ]);
+
+        await bulk(syncStreams, (syncStreams) => {
+          return StreamModel.bulkCreate(syncStreams, {
+            updateOnDuplicate: [
+              'url', 'title', 'game', 'isRecord', 'previews',
+              'viewers', 'channelId', 'telegramPreviewFileId',
+              'isOffline', 'offlineFrom', 'isTimeout', 'timeoutFrom', 'updatedAt'
+            ],
+            transaction
+          });
+        });
+
+        await Promise.all([
+          bulk(chatIdStreamIdChanges, (chatIdStreamIdChanges) => {
+            return ChatIdStreamIdModel.bulkCreate(chatIdStreamIdChanges, {
+              transaction
+            });
+          }),
+          bulk(changedStreamIds, (changedStreamIds) => {
+            return MessageModel.update({hasChanges: true}, {
+              where: {streamId: changedStreamIds},
+              transaction
+            });
+          })
+        ]);
+
+        await Promise.all([
+          bulk(removedStreamIds, (removedStreamIds) => {
+            return StreamModel.destroy({
+              where: {id: removedStreamIds},
+              transaction
+            });
+          }),
+          bulk(removedChannelIds, (removedChannelIds) => {
+            return ChannelModel.destroy({
+              where: {id: removedChannelIds},
+              transaction
+            });
+          })
+        ]);
+      }).catch((err) => {
+        if (/Deadlock found when trying to get lock/.test(err.message) && --retry > 0) {
+          return new Promise(r => setTimeout(r, 250)).then(() => doTry());
+        }
+        throw err;
       });
+    };
 
-      await Promise.all([
-        bulk(chatIdStreamIdChanges, (chatIdStreamIdChanges) => {
-          return ChatIdStreamIdModel.bulkCreate(chatIdStreamIdChanges, {
-            transaction
-          });
-        }),
-        bulk(changedStreamIds, (changedStreamIds) => {
-          return MessageModel.update({hasChanges: true}, {
-            where: {streamId: changedStreamIds},
-            transaction
-          });
-        })
-      ]);
-
-      await Promise.all([
-        bulk(removedStreamIds, (removedStreamIds) => {
-          return StreamModel.destroy({
-            where: {id: removedStreamIds},
-            transaction
-          });
-        }),
-        bulk(removedChannelIds, (removedChannelIds) => {
-          return ChannelModel.destroy({
-            where: {id: removedChannelIds},
-            transaction
-          });
-        })
-      ]);
+    const startAt = Date.now();
+    return doTry().finally(() => {
+      debug('putStreams ms: %s (tryCount: %s)', Date.now() - startAt, tryCount);
     });
   }
 
