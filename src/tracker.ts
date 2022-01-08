@@ -13,25 +13,16 @@ const throttle = require('lodash.throttle');
 const oneLimit = promiseLimit(1);
 
 class Tracker {
-  main: Main;
-  tid: string;
-  lru: QuickLRU<string | number, string>;
-  defaultParams: {[s: string]: string|number};
-  queue: [number, {[s: string]: string|number}][];
-  constructor(main: Main) {
-    this.main = main;
-    this.tid = main.config.gaId;
-    this.lru = new QuickLRU<string | number, string>({maxSize: 100});
-
-    this.defaultParams = {
-      v: 1,
-      tid: this.tid,
-      an: 'bot',
-      aid: 'bot'
-    };
-
-    this.queue = [];
-  }
+  tid = this.main.config.gaId;
+  lru = new QuickLRU<string | number, string>({maxSize: 100});
+  defaultParams = {
+    v: 1,
+    tid: this.tid,
+    an: 'bot',
+    aid: 'bot'
+  };
+  queue: [number, {[s: string]: string|number}][] = [];
+  constructor(private main: Main) {}
 
   track(chatId: number|string, params: {[s: string]: string|number}) {
     if (!this.tid) return;

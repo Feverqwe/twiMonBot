@@ -40,17 +40,10 @@ interface WithChannels {
 }
 
 class Chat {
-  main: Main;
-  log: LogFile;
-  private router: Router;
-  private chatIdAdminIdsCache: TimeCache<number, number[]>;
-  constructor(/**Main*/main: Main) {
-    this.main = main;
-    this.log = new LogFile('chat');
-    this.chatIdAdminIdsCache = new TimeCache<number, number[]>({maxSize: 100, ttl: 5 * 60 * 1000});
-
-    this.router = new Router(main);
-
+  public log = new LogFile('chat');
+  private chatIdAdminIdsCache = new TimeCache<number, number[]>({maxSize: 100, ttl: 5 * 60 * 1000});
+  private router = new Router(this.main);
+  constructor(private main: Main) {
     this.main.bot.on('message', (message: TMessage) => {
       this.router.handle('message', message);
     });
