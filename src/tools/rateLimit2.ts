@@ -37,7 +37,7 @@ class RateLimit2 {
     for (let i = 0, len = this.timeArr.length; i < len; i++) {
       const time = this.timeArr[i];
       if (time < end) {
-        this.timeArr.splice(1);
+        this.timeArr.splice(i);
         this.countArr.splice(i);
         break;
       }
