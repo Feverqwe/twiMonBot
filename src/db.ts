@@ -767,10 +767,8 @@ class Db {
 
   putStreams(channelsChanges: object[], removedChannelIds: string[], migratedStreamsIdCouple: [string, string][], syncStreams: Stream[], changedStreamIds: string[], removedStreamIds: string[], chatIdStreamIdChanges: object[]) {
     let retry = 3;
-    let tryCount = 0;
 
     const doTry = (): Promise<void> => {
-      tryCount++;
       return this.sequelize.transaction({
         isolationLevel: ISOLATION_LEVELS.REPEATABLE_READ,
       }, async (transaction) => {
@@ -836,10 +834,7 @@ class Db {
       });
     };
 
-    const startAt = Date.now();
-    return doTry().finally(() => {
-      debug('putStreams tryCount: %s, ms: %s', tryCount, Date.now() - startAt);
-    });
+    return doTry();
   }
 
   getStreamsWithChannelByChannelIds(channelIds: string[]) {
