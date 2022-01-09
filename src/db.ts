@@ -74,6 +74,12 @@ export class ChatIdStreamIdModel extends Sequelize.Model {
   declare streamId: string;
   declare createdAt: Date;
 }
+export interface NewChatIdStreamId {
+  id?: number;
+  chatId: string;
+  streamId: string;
+  createdAt?: Date;
+}
 
 export interface Stream {
   id: string,
@@ -776,7 +782,7 @@ class Db {
     });
   }
 
-  putStreams(channelsChanges: object[], removedChannelIds: string[], migratedStreamsIdCouple: [string, string][], syncStreams: Stream[], changedStreamIds: string[], removedStreamIds: string[], chatIdStreamIdChanges: object[]) {
+  putStreams(channelsChanges: Channel[], removedChannelIds: string[], migratedStreamsIdCouple: [string, string][], syncStreams: Stream[], changedStreamIds: string[], removedStreamIds: string[], chatIdStreamIdChanges: NewChatIdStreamId[]) {
     let retry = 3;
 
     const doTry = (): Promise<void> => {

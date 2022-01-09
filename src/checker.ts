@@ -3,21 +3,15 @@ import {everyMinutes} from "./tools/everyTime";
 import serviceId from "./tools/serviceId";
 import ensureMap from "./tools/ensureMap";
 import arrayDifference from "./tools/arrayDifference";
-import {Channel, Stream} from "./db";
+import {Channel, NewChatIdStreamId, Stream} from "./db";
 import LogFile from "./logFile";
 import getInProgress from "./tools/getInProgress";
 import parallel from "./tools/parallel";
 
 const debug = require('debug')('app:Checker');
 
-export interface ServiceStream {
+export interface ServiceStream extends Omit<Stream, 'id' | 'channelId'> {
   id: string|number,
-  url: string,
-  title: string,
-  game: string|null,
-  isRecord: boolean,
-  previews: string[],
-  viewers: number|null,
   channelId: string|number,
   channelTitle: string,
   channelUrl: string,
@@ -392,7 +386,7 @@ class Checker {
       const skippedChannelIds = skippedRawChannelIds.map(onMapRawChannel);
       const removedChannelIds = removedRawChannelIds.map(onMapRawChannel);
 
-      rawStreams.forEach((rawStream: ServiceStream) => {
+      rawStreams.forEach((rawStream) => {
         const stream = Object.assign({}, rawStream, {
           id: serviceId.wrap(service, rawStream.id),
           channelId: serviceId.wrap(service, rawStream.channelId),
@@ -433,9 +427,7 @@ class Checker {
     });
   }
 
-  getChatIdStreamIdChanges(streamIdStream: Map<string, Stream>, newStreamIds: string[]): Promise<{
-    chatId: string; streamId: string;
-  }[]> {
+  getChatIdStreamIdChanges(streamIdStream: Map<string, Stream>, newStreamIds: string[]): Promise<NewChatIdStreamId[]> {
     const channelIdNewStreamIds: Map<string, string[]> = new Map();
     newStreamIds.forEach((id) => {
       const stream = streamIdStream.get(id)!;
