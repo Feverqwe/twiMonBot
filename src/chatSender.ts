@@ -376,9 +376,7 @@ class ChatSender {
             contentType = 'image/jpeg';
           }
           return fetchRequest<ReadableStream>(url, {responseType: 'stream', keepAlive: true}).then((response) => {
-            const imageStream = response.body;
-            Object.assign(imageStream, {path: '/'});
-            return this.main.bot.sendPhoto(this.chat.id, imageStream, {caption}, {contentType});
+            return this.main.bot.sendPhoto(this.chat.id, response.body, {caption}, {contentType, filename: '-'});
           }).then((message: TMessage) => {
             this.main.sender.log.write(`[send photo as file] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`);
             this.main.tracker.track(this.chat.id, {
