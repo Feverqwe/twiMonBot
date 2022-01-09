@@ -20,7 +20,7 @@ import ensureMap from "./tools/ensureMap";
 import arrayByPart from "./tools/arrayByPart";
 import promiseTry from "./tools/promiseTry";
 import Main from "./main";
-import {ChannelModel, ChatModel, ChatModelWithOptionalChannel} from "./db";
+import {ChannelModel, ChatModel, ChatModelWithOptionalChannel, NewChat} from "./db";
 import {getStreamAsButtonText, getStreamAsText} from "./tools/streamToString";
 import ChatSender from "./chatSender";
 import parallel from "./tools/parallel";
@@ -540,6 +540,9 @@ class Chat {
       assertType<typeof req & WithChat>(req);
 
       return promiseTry(() => {
+        if (!req.chat.channelId) {
+          throw new Error('ChannelId is not set');
+        }
         return this.main.db.deleteChatById(req.chat.channelId);
       }).then(() => {
         return this.main.bot.editMessageReplyMarkup(JSON.stringify({
@@ -660,7 +663,7 @@ class Chat {
 
       const {optionsType, key, value} = req.params;
       return promiseTry(() => {
-        const changes: Partial<ChatModel> = {};
+        const changes: Partial<NewChat> = {};
         switch (key) {
           case 'isHidePreview': {
             changes.isHidePreview = value === 'true';

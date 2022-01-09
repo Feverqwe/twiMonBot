@@ -12,16 +12,28 @@ import assertType from "./tools/assertType";
 const debug = require('debug')('app:db');
 const ISOLATION_LEVELS = Transaction.ISOLATION_LEVELS;
 
+export interface NewChat {
+  id: string;
+  channelId?: string | null;
+  isHidePreview?: boolean;
+  isMutedRecords?: boolean;
+  isEnabledAutoClean?: boolean;
+  isMuted?: boolean;
+  sendTimeoutExpiresAt?: Date;
+  parentChatId?: string|null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export class ChatModel extends Sequelize.Model {
   declare id: string;
-  declare channelId: string;
+  declare channelId: string | null;
   declare isHidePreview: boolean;
   declare isMutedRecords: boolean;
   declare isEnabledAutoClean: boolean;
   declare isMuted: boolean;
   declare sendTimeoutExpiresAt: Date;
   declare parentChatId: string|null;
-
   declare createdAt: Date;
   declare updatedAt: Date;
 }
@@ -39,7 +51,7 @@ export interface Channel {
   service: string,
   title: string,
   url: string,
-  lastStreamAt?: Date,
+  lastStreamAt?: Date | null,
   lastSyncAt?: Date,
   syncTimeoutExpiresAt?: Date,
   createdAt?: Date,
@@ -50,10 +62,9 @@ export class ChannelModel extends Sequelize.Model {
   declare service: string;
   declare title: string;
   declare url: string;
-  declare lastSyncAt?: Date;
-  declare syncTimeoutExpiresAt?: Date;
-
-  declare lastStreamAt: Date;
+  declare lastStreamAt: Date | null;
+  declare lastSyncAt: Date;
+  declare syncTimeoutExpiresAt: Date;
   declare createdAt: Date;
 }
 
@@ -68,16 +79,16 @@ export interface Stream {
   id: string,
   url: string,
   title: string,
-  game: string|null,
-  isRecord: boolean,
+  game?: string|null,
+  isRecord?: boolean,
   previews: string[],
-  viewers: number|null,
+  viewers?: number|null,
   channelId: string,
-  telegramPreviewFileId: string|null,
-  offlineFrom: Date|null,
-  isOffline: boolean,
-  timeoutFrom: Date|null,
-  isTimeout: boolean,
+  telegramPreviewFileId?: string|null,
+  isOffline?: boolean,
+  offlineFrom?: Date|null,
+  isTimeout?: boolean,
+  timeoutFrom?: Date|null,
   createdAt?: Date,
   updatedAt?: Date,
 }
@@ -92,10 +103,10 @@ export class StreamModel extends Sequelize.Model {
   declare viewers: number|null;
   declare channelId: string;
   declare telegramPreviewFileId: string|null;
-  declare offlineFrom: Date|null;
   declare isOffline: boolean;
-  declare timeoutFrom: Date|null;
+  declare offlineFrom: Date|null;
   declare isTimeout: boolean;
+  declare timeoutFrom: Date|null;
   declare createdAt: Date;
   declare updatedAt: Date;
 }
@@ -131,7 +142,7 @@ export class MessageModel extends Sequelize.Model {
   declare streamId: string;
   declare type: string;
   declare text: string;
-  declare hasChanges?: boolean;
+  declare hasChanges: boolean;
   declare createdAt: Date;
   declare updatedAt: Date;
 }
@@ -150,11 +161,11 @@ export interface YtPubSubChannel {
 export class YtPubSubChannelModel extends Sequelize.Model {
   declare id: string;
   declare channelId: string;
-  declare isUpcomingChecked?: boolean;
-  declare lastSyncAt?: Date;
-  declare syncTimeoutExpiresAt?: Date;
-  declare subscriptionExpiresAt?: Date;
-  declare subscriptionTimeoutExpiresAt?: Date;
+  declare isUpcomingChecked: boolean;
+  declare lastSyncAt: Date;
+  declare syncTimeoutExpiresAt: Date;
+  declare subscriptionExpiresAt: Date;
+  declare subscriptionTimeoutExpiresAt: Date;
   declare createdAt: Date;
 }
 
@@ -164,10 +175,10 @@ export interface YtPubSubFeed {
   channelId: string,
   channelTitle: string,
   isStream?: boolean | null,
-  scheduledStartAt?: Date,
-  actualStartAt?: Date,
-  actualEndAt?: Date,
-  viewers?: number,
+  scheduledStartAt?: Date | null,
+  actualStartAt?: Date | null,
+  actualEndAt?: Date | null,
+  viewers?: number | null,
   syncTimeoutExpiresAt?: Date,
   createdAt?: Date,
   updatedAt?: Date,
@@ -178,12 +189,12 @@ export class YtPubSubFeedModel extends Sequelize.Model {
   declare title: string;
   declare channelId: string;
   declare channelTitle: string;
-  declare isStream?: boolean | null;
-  declare scheduledStartAt?: Date;
-  declare actualStartAt?: Date;
-  declare actualEndAt?: Date;
-  declare viewers?: number;
-  declare syncTimeoutExpiresAt?: Date;
+  declare isStream: boolean | null;
+  declare scheduledStartAt: Date | null;
+  declare actualStartAt: Date | null;
+  declare actualEndAt: Date | null;
+  declare viewers: number | null;
+  declare syncTimeoutExpiresAt: Date;
   declare createdAt: Date;
   declare updatedAt: Date;
 }
