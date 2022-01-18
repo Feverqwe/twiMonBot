@@ -97,6 +97,8 @@ class Chat {
           if (adminIds.includes(req.fromId!)) {
             next();
           }
+        }, (err) => {
+          debug('getChatAdministrators error %s %j error %o', req.chatId, req.message, err);
         });
       } else {
         next();
