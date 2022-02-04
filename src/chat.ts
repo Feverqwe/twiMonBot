@@ -320,7 +320,7 @@ class Chat {
 
         const messageText = this.main.locale.getMessage('enterChannelName').replace('{example}', this.main.config.defaultChannelName);
         const cancelText = this.main.locale.getMessage('commandCanceled').replace('{command}', 'add');
-        return requestData(req.chatId, req.fromId, messageText, cancelText).then(({req, msg}) => {
+        return requestData(req, messageText, cancelText).then(({req, msg}) => {
           const messageText = req.message.text || '';
           requestedData = messageText;
           this.main.tracker.track(req.chatId, {
@@ -581,7 +581,7 @@ class Chat {
 
         const messageText = this.main.locale.getMessage('telegramChannelEnter');
         const cancelText = this.main.locale.getMessage('commandCanceled').replace('{command}', '\/setChannel');
-        return requestData(req.chatId, req.fromId, messageText, cancelText).then(({req, msg}) => {
+        return requestData(req, messageText, cancelText).then(({req, msg}) => {
           const messageText = req.message.text || '';
           requestedData = messageText;
           this.main.tracker.track(req.chatId, {
@@ -898,15 +898,22 @@ class Chat {
       });
     });
 
-    const requestData = (chatId: number, fromId: number | null, messageText: string, cancelText: string): Promise<{
+    const requestData = (req: RouterTextReq | RouterCallbackQueryReq, messageText: string, cancelText: string): Promise<{
       req: RouterTextReq, msg: TMessage
     }> => {
+      const {chatId, fromId} = req;
       const options: {[s: string]: any} = {};
       let msgText = messageText;
       if (chatId < 0) {
         msgText += this.main.locale.getMessage('groupNote');
+        if (req.callback_query) {
+          msgText = '@' + req.callback_query.from.username + ' ' + messageText;
+        } else {
+          options.reply_to_message_id = req.messageId;
+        }
         options.reply_markup = JSON.stringify({
-          force_reply: true
+          force_reply: true,
+          selective: true,
         });
       }
 
