@@ -8,7 +8,7 @@ import {YtPubSubChannel, YtPubSubChannelModel, YtPubSubFeed} from "./db";
 import LogFile from "./logFile";
 import arrayByPart from "./tools/arrayByPart";
 import ExpressPubSub from "./tools/expressPubSub";
-import express, {Express} from "express";
+import express from "express";
 import promiseLimit from "./tools/promiseLimit";
 import {Server} from "http";
 import qs from "querystring";

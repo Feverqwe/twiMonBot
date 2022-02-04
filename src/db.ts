@@ -570,7 +570,7 @@ class Db {
 
     return ChannelModel.findOrCreate({
       where: {id},
-      defaults: Object.assign({}, rawChannel, {id, service: service.id})
+      defaults: Object.assign({}, rawChannel, {id, service: service.id}) as any,
     }).then(([channel, isCreated]) => {
       return channel;
     });
@@ -791,7 +791,7 @@ class Db {
       }, async (transaction) => {
         await Promise.all([
           bulk(channelsChanges, (channelsChanges) => {
-            return ChannelModel.bulkCreate(channelsChanges, {
+            return ChannelModel.bulkCreate(channelsChanges as any, {
               updateOnDuplicate: ['lastStreamAt', 'lastSyncAt', 'title', 'url'],
               transaction
             });
@@ -805,7 +805,7 @@ class Db {
         ]);
 
         await bulk(syncStreams, (syncStreams) => {
-          return StreamModel.bulkCreate(syncStreams, {
+          return StreamModel.bulkCreate(syncStreams as any, {
             updateOnDuplicate: [
               'url', 'title', 'game', 'isRecord', 'previews',
               'viewers', 'channelId', 'telegramPreviewFileId',
@@ -817,7 +817,7 @@ class Db {
 
         await Promise.all([
           bulk(chatIdStreamIdChanges, (chatIdStreamIdChanges) => {
-            return ChatIdStreamIdModel.bulkCreate(chatIdStreamIdChanges, {
+            return ChatIdStreamIdModel.bulkCreate(chatIdStreamIdChanges as any, {
               transaction
             });
           }),
@@ -940,7 +940,7 @@ class Db {
   }
 
   putMessage(message: Message) {
-    return MessageModel.create(message);
+    return MessageModel.create(message as any);
   }
 
   getDistinctMessagesChatIds() {
@@ -1006,7 +1006,7 @@ class Db {
   }
 
   ensureYtPubSubChannels(channels: YtPubSubChannel[]) {
-    return YtPubSubChannelModel.bulkCreate(channels, {
+    return YtPubSubChannelModel.bulkCreate(channels as any, {
       updateOnDuplicate: ['id']
     });
   }
@@ -1148,7 +1148,7 @@ class Db {
 
   putFeeds(feeds: YtPubSubFeed[]) {
     return bulk(feeds, (feeds) => {
-      return YtPubSubFeedModel.bulkCreate(feeds, {
+      return YtPubSubFeedModel.bulkCreate(feeds as any, {
         updateOnDuplicate: ['title', 'channelTitle', 'isStream']
       });
     });
@@ -1156,7 +1156,7 @@ class Db {
 
   updateFeeds(feeds: YtPubSubFeed[]) {
     return bulk(feeds, (feeds) => {
-      return YtPubSubFeedModel.bulkCreate(feeds, {
+      return YtPubSubFeedModel.bulkCreate(feeds as any, {
         updateOnDuplicate: ['isStream', 'scheduledStartAt', 'actualStartAt', 'actualEndAt', 'viewers']
       });
     });
