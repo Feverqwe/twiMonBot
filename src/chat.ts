@@ -270,7 +270,9 @@ class Chat {
         next();
       }, (err) => {
         debug('ensureChat error! %o', err);
-        this.main.bot.sendMessage(req.chatId, 'Oops something went wrong...');
+        this.main.bot.sendMessage(req.chatId, 'Oops something went wrong...').catch((err: any) => {
+          debug('provideChat sendMessage error! %o', err);
+        });
       });
     };
 
@@ -280,7 +282,9 @@ class Chat {
         next();
       }, (err: any) => {
         debug('ensureChannels error! %o', err);
-        this.main.bot.sendMessage(req.chatId, 'Oops something went wrong...');
+        this.main.bot.sendMessage(req.chatId, 'Oops something went wrong...').catch((err: any) => {
+          debug('provideChannels sendMessage error! %o', err);
+        });
       });
     };
 
@@ -290,7 +294,9 @@ class Chat {
       if (req.channels.length) {
         next();
       } else {
-        this.main.bot.sendMessage(req.chatId, this.main.locale.getMessage('emptyServiceList'));
+        this.main.bot.sendMessage(req.chatId, this.main.locale.getMessage('emptyServiceList')).catch((err: any) => {
+          debug('withChannels sendMessage error! %o', err);
+        });
       }
     };
 
@@ -991,7 +997,9 @@ class Chat {
       if (adminIds.includes(req.chatId)) {
         next();
       } else {
-        this.main.bot.sendMessage(req.chatId, `Access denied for you (${req.chatId})`);
+        this.main.bot.sendMessage(req.chatId, `Access denied for you (${req.chatId})`).catch((err: any) => {
+          debug('isAdmin sendMessage error: %o', err);
+        });
       }
     };
 
