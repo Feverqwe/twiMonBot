@@ -84,6 +84,11 @@ class Chat {
 
     this.router.textOrCallbackQuery((req, res, next) => {
       if (['group', 'supergroup'].includes(req.chatType)) {
+        const message = req.message || req.callback_query.message;
+        if (message && message.chat.all_members_are_administrators) {
+          return next();
+        }
+
         return promiseTry(() => {
           const adminIds = this.chatIdAdminIdsCache.get(req.chatId);
           if (adminIds) return adminIds;
