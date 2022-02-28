@@ -760,7 +760,8 @@ class Db {
     ]);
   }
 
-  removeChannelByIds(ids: string[]) {
+  async removeChannelByIds(ids: string[]) {
+    if (!ids.length) return;
     return ChannelModel.destroy({where: {id: ids}});
   }
 
