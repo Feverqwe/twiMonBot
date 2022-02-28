@@ -471,6 +471,8 @@ class Db {
   init() {
     return this.sequelize.authenticate().then(() => {
       return this.sequelize.sync();
+    }).then(() => {
+      return this.removeChannelByIds(this.main.config.channelBlackList);
     });
   }
 
@@ -565,8 +567,12 @@ class Db {
     });
   }
 
-  ensureChannel(service: ServiceInterface, rawChannel: ServiceChannel) {
+  async ensureChannel(service: ServiceInterface, rawChannel: ServiceChannel) {
     const id = serviceId.wrap(service, rawChannel.id);
+
+    if (this.main.config.channelBlackList.includes(id)) {
+      throw new ErrorWithCode('Channel in black list', 'CHANNEL_IN_BLACK_LIST');
+    }
 
     return ChannelModel.findOrCreate({
       where: {id},

@@ -412,14 +412,14 @@ class Chat {
               'CHANNEL_BY_VIDEO_ID_IS_NOT_FOUND',
               'INCORRECT_USERNAME', 'CHANNEL_BY_USER_IS_NOT_FOUND',
               'QUERY_IS_EMPTY', 'CHANNEL_BY_QUERY_IS_NOT_FOUND',
-              'CHANNEL_BY_ID_IS_NOT_FOUND'
+              'CHANNEL_BY_ID_IS_NOT_FOUND',
             ].includes(err.code)) {
               isResolved = true;
               message = this.main.locale.getMessage('channelIsNotFound')
                 .replace('{channelName}', query)
                 .replace('{serviceName}', service.name);
             } else
-            if (err.code === 'CHANNELS_LIMIT') {
+            if (['CHANNEL_IN_BLACK_LIST', 'CHANNELS_LIMIT'].includes(err.code)) {
               isResolved = true;
               message = err.message;
             } else {

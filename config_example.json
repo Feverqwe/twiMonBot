@@ -37,5 +37,6 @@
     "callbackUrl": "",
     "leaseSeconds": 300
   },
-  "adminIds": []
+  "adminIds": [],
+  "channelBlackList": []
 }
