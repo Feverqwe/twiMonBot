@@ -4,6 +4,7 @@
   "ytToken": "",
   "twitchToken": "",
   "twitchSecret": "",
+  "trovoClientId": "",
   "emitCheckChannelsEveryMinutes": 5,
   "checkChannelIfLastSyncLessThenMinutes": 2.5,
   "channelSyncTimeoutMinutes": 2.5,
