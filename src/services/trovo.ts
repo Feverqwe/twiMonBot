@@ -181,8 +181,7 @@ class Trovo implements ServiceInterface {
     }).then((name) => {
       return this.requestUserByUsername(name);
     }).then((user) => {
-      let id = user.channel_id;
-
+      const id = user.channel_id;
       const title = user.nickname;
       const url = getChannelUrl(user.username);
       return {id, title, url};
