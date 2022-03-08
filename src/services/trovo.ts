@@ -93,8 +93,12 @@ class Trovo implements ServiceInterface {
           channelUrl: channel.channel_url,
         });
       }).catch((err: any) => {
-        debug(`getStreams for channels (%j) skip, cause: %o`, channelIds, err);
-        skippedChannelIds.push(...channelIds);
+        debug(`getStreams for channel (%s) skip, cause: %o`, channelId, err);
+        if (err.code === 'CHANNEL_BY_ID_IS_NOT_FOUND') {
+          removedChannelIds.push(channelId);
+        } else {
+          skippedChannelIds.push(channelId);
+        }
       });
     }).then(() => {
       return {streams: resultStreams, skippedChannelIds, removedChannelIds};
@@ -133,12 +137,10 @@ class Trovo implements ServiceInterface {
       responseType: 'json',
     }).then(({body}) => {
       s.assert(body, ChannelStruct);
-      return body;
-    }).catch((err: HTTPError) => {
-      if (err.name === 'HTTPError' && err.response.statusCode === 400) {
-        throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
+      if (!body.username) {
+        throw new ErrorWithCode('Channel username is empty', 'CHANNEL_BY_ID_IS_NOT_FOUND');
       }
-      throw err;
+      return body;
     });
   }
 
@@ -157,13 +159,13 @@ class Trovo implements ServiceInterface {
     }).then(({body}) => {
       s.assert(body, UsersStruct);
       if (!body.users.length) {
-        throw new ErrorWithCode('Channel by username not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
+        throw new ErrorWithCode('Channel by username is not found', 'CHANNEL_BY_USER_IS_NOT_FOUND');
       }
       const user = body.users[0];
       return user;
     }).catch((err: HTTPError) => {
       if (err.name === 'HTTPError' && err.response.statusCode === 400) {
-        throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
+        throw new ErrorWithCode('Get channels by username error', 'CHANNEL_BY_USER_IS_NOT_FOUND');
       }
       throw err;
     });
