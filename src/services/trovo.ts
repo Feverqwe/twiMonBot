@@ -172,7 +172,13 @@ class Trovo implements ServiceInterface {
   }
 
   findChannel(query: string) {
-    return this.getChannelNameByUrl(query).then(async (name) => {
+    return this.getChannelNameByUrl(query).catch((err) => {
+      if (err.code === 'IS_NOT_CHANNEL_URL') {
+        return query;
+      } else {
+        throw err;
+      }
+    }).then(async (name) => {
       return this.requestUserByUsername(name);
     }).then((user) => {
       let id = user.channel_id;
