@@ -129,7 +129,7 @@ class Sender {
   }, 100);
 
   checkChatsExistsInProgress = getInProgress();
-  checkChatsExists() {
+  checkChatsExists = () => {
     return this.checkChatsExistsInProgress(async () => {
       let offset = 0;
       let limit = 100;

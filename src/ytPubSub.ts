@@ -71,7 +71,7 @@ class YtPubSub {
     });
   }
 
-  updateSubscribes() {
+  updateSubscribes = () => {
     return oneLimit(async () => {
       let subscribeCount = 0;
       let errorCount = 0;
@@ -101,7 +101,7 @@ class YtPubSub {
     });
   }
 
-  async clean() {
+  clean = async () => {
     return oneLimit(() => {
       return this.main.db.cleanYtPubSub().then((count) => {
         return {removedVideoIds: count};

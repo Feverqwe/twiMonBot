@@ -467,7 +467,7 @@ class Checker {
   }
 
   checkChannelsExistsInProgress = getInProgress();
-  async checkChannelsExists() {
+  checkChannelsExists = async () => {
     return this.checkChannelsExistsInProgress(() => {
       return parallel(1, this.main.services, async (service) => {
         const result = {
@@ -501,7 +501,7 @@ class Checker {
   }
 
   cleanInProgress = getInProgress();
-  clean() {
+  clean = () => {
     return this.cleanInProgress(() => {
       return this.main.db.cleanChats().then((chatsCount) => {
         return this.main.db.cleanChannels().then((channelsCount) => {

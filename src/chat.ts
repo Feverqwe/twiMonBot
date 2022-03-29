@@ -14,7 +14,6 @@ import htmlSanitize from "./tools/htmlSanitize";
 import ErrorWithCode from "./tools/errorWithCode";
 import pageBtnList from "./tools/pageBtnList";
 import splitTextByPages from "./tools/splitTextByPages";
-import resolvePath from "./tools/resolvePath";
 import LogFile from "./logFile";
 import ensureMap from "./tools/ensureMap";
 import arrayByPart from "./tools/arrayByPart";
@@ -1004,33 +1003,32 @@ class Chat {
     };
 
     const commands = [
-      {name: 'Check chats exists', method: 'sender.checkChatsExists'},
-      {name: 'Check channels exists', method: 'checker.checkChannelsExists'},
-      {name: 'Check channels', method: 'checker.check'},
-      {name: 'Sender check', method: 'sender.check'},
-      {name: 'Active checker threads', method: 'checker.getActiveThreads'},
-      {name: 'Active sender threads', method: 'sender.getActiveThreads'},
-      {name: 'Update pubsub subscriptions', method: 'ytPubSub.updateSubscribes'},
-      {name: 'Clean chats & channels', method: 'checker.clean'},
-      {name: 'Clean pubsub feeds', method: 'ytPubSub.clean'},
+      {name: 'Check chats exists', method: this.main.sender.checkChatsExists},
+      {name: 'Check channels exists', method: this.main.checker.checkChannelsExists},
+      {name: 'Check channels', method: this.main.checker.check},
+      {name: 'Sender check', method: this.main.sender.check},
+      {name: 'Active checker threads', method: this.main.checker.getActiveThreads},
+      {name: 'Active sender threads', method: this.main.sender.getActiveThreads},
+      {name: 'Update pubsub subscriptions', method: this.main.ytPubSub.updateSubscribes},
+      {name: 'Clean chats & channels', method: this.main.checker.clean},
+      {name: 'Clean pubsub feeds', method: this.main.ytPubSub.clean},
     ];
 
-    this.router.callback_query(/\/admin\/(?<command>.+)/, isAdmin, (req, res) => {
-      const command = req.params.command;
-      return promiseTry(() => {
-        if (!commands.some(({method}) => method === command)) {
+    this.router.callback_query(/\/admin\/(?<commandIndex>.+)/, isAdmin, (req, res) => {
+      const commandIndex = parseInt(req.params.commandIndex, 10);
+      const command = commands[commandIndex];
+      return promiseTry((): any => {
+        if (!command) {
           throw new ErrorWithCode('Method is not found', 'METHOD_IS_NOT_FOUND');
         }
-        const {scope, endPoint} = resolvePath(this.main, command);
-        // @ts-ignore
-        return scope[endPoint].call(scope);
+        return command.method();
       }).then((result) => {
         const resultStr = jsonStringifyPretty({result}, {
           indent: 2
         });
-        return this.main.bot.sendMessage(req.chatId, `${command} complete!\n${resultStr}`);
+        return this.main.bot.sendMessage(req.chatId, `${command.name} complete!\n${resultStr}`);
       }, async (err) => {
-        await this.main.bot.sendMessage(req.chatId, `${command} error!`);
+        await this.main.bot.sendMessage(req.chatId, `${command.name} error!`);
         throw err;
       }).catch((err) => {
         debug('%j error %o', req.command, err);
@@ -1044,8 +1042,8 @@ class Chat {
           inline_keyboard: commands.reduce<Button[][]>((menu, {name, method}, index) => {
             const buttons: Button[] = index % 2 ? menu.pop()! : [];
             buttons.push({
-              text: name || method,
-              callback_data: `/admin/${method}`
+              text: name || method.name,
+              callback_data: `/admin/${index}`
             });
             menu.push(buttons);
             return menu;
