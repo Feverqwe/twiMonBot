@@ -194,6 +194,8 @@ export class HTTPError extends RequestError {
 
     this.name = 'HTTPError';
 
+    Object.assign(this, {rawBody: response.rawBody});
+
     Error.captureStackTrace(this, this.constructor);
   }
 }
