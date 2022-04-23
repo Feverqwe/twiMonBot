@@ -13,7 +13,7 @@ import {RateLimiter} from "limiter";
 const debug = require('debug')('app:Youtube');
 
 const queriesPerMinute = new RateLimiter({
-  tokensPerInterval: 18000000,
+  tokensPerInterval: 180000,
   interval: "minute",
 });
 
