@@ -5,8 +5,12 @@ function getTimeGraph(size = 300) {
   function inc() {
     const now = Math.trunc(Date.now() / 1000);
     if (times[0] !== now) {
-      times.unshift(now);
+      const len = times.unshift(now);
       counts.unshift(0);
+      if (len > size) {
+        times.pop();
+        counts.pop();
+      }
     }
     counts[0]++;
   }
