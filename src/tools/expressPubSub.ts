@@ -1,14 +1,20 @@
 import express, {Express} from "express";
-import fetchRequest from "./fetchRequest";
+import fetchRequest, {HTTPError} from "./fetchRequest";
 import {EventEmitter} from "events";
 import crypto from "crypto";
 import qs from "querystring";
 import RateLimit2 from "./rateLimit2";
+import assertType from "./assertType";
+import getTimeGraph from "./timeGrapth";
 
-const rateLimit = new RateLimit2(10);
+const rateLimit = new RateLimit2(250);
 
 const debug = require('debug')('app:ExpressPubSub');
-const fetchRequestLimited = rateLimit.wrap(fetchRequest);
+const timeGraph = getTimeGraph();
+const fetchRequestLimited = rateLimit.wrap((...args: Parameters<typeof fetchRequest>) => {
+  timeGraph.inc();
+  return fetchRequest(...args);
+});
 
 class ExpressPubSub extends EventEmitter {
   private readonly path: string;
@@ -196,6 +202,13 @@ class ExpressPubSub extends EventEmitter {
         throw err;
       }
       return res.body;
+    }, (err) => {
+      if (err instanceof HTTPError) {
+        if (err.response.statusCode === 429) {
+          debug('graph, %o', timeGraph.history());
+        }
+      }
+      throw err;
     });
   }
 }
