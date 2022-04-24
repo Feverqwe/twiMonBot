@@ -5,7 +5,7 @@ import crypto from "crypto";
 import qs from "querystring";
 import RateLimit2 from "./rateLimit2";
 
-const rateLimit = new RateLimit2(250);
+const rateLimit = new RateLimit2(10);
 
 const debug = require('debug')('app:ExpressPubSub');
 const fetchRequestLimited = rateLimit.wrap(fetchRequest);
