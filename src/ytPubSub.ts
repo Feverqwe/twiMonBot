@@ -325,7 +325,7 @@ class YtPubSub {
       promises.push(
         this.main.youtube.getStreamIdSnippetByChannelId(channelId, true).catch((err) => {
           withUpcoming = false;
-          debug('Check upcoming stream error: %o', err);
+          debug('Get upcoming feeds error: %o', err);
           return null;
         }),
       );
