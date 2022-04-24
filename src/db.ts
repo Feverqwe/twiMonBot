@@ -1079,8 +1079,16 @@ class Db {
     });
   }
 
-  setYtPubSubChannelsLastSyncAt(ids: string[], syncAt: Date) {
-    return YtPubSubChannelModel.update({lastSyncAt: syncAt, isUpcomingChecked: true}, {
+  async setYtPubSubChannelsLastSyncAt(ids: string[], syncAt: Date) {
+    if (!ids.length) return;
+    return YtPubSubChannelModel.update({lastSyncAt: syncAt}, {
+      where: {id: ids}
+    });
+  }
+
+  async setYtPubSubChannelsUpcomingChecked(ids: string[]) {
+    if (!ids.length) return;
+    return YtPubSubChannelModel.update({isUpcomingChecked: true}, {
       where: {id: ids}
     });
   }

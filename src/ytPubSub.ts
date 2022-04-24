@@ -210,9 +210,13 @@ class YtPubSub {
       const syncAt = new Date();
       return this.main.db.setYtPubSubChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
         const feeds: YtPubSubFeed[] = [];
+        const channelIdsWithUpcoming: string[] = [];
         return parallel(10, channelIds, (channelId) => {
           const channel = channelIdChannel.get(channelId)!;
-          return this.requestFeedsByChannelId(channelId, channel.isUpcomingChecked).then((channelFeeds) => {
+          return this.requestFeedsByChannelId(channelId, channel.isUpcomingChecked).then(({withUpcoming, feeds: channelFeeds}) => {
+            if (withUpcoming) {
+              channelIdsWithUpcoming.push(channelId);
+            }
             feeds.push(...channelFeeds);
           }, (err) => {
             debug(`getStreams for channel (%s) skip, cause: %o`, channelId, err);
@@ -253,7 +257,8 @@ class YtPubSub {
 
           await Promise.all([
             this.main.db.putFeeds(feeds),
-            this.main.db.setYtPubSubChannelsLastSyncAt(channelIds, syncAt)
+            this.main.db.setYtPubSubChannelsLastSyncAt(channelIds, syncAt),
+            this.main.db.setYtPubSubChannelsUpcomingChecked(channelIdsWithUpcoming),
           ]);
 
           notExistFeeds.forEach((feed) => {
@@ -310,13 +315,19 @@ class YtPubSub {
     });
   }
 
-  requestFeedsByChannelId(channelId: string, isUpcomingChecked: boolean | undefined): Promise<YtPubSubFeed[]> {
+  requestFeedsByChannelId(channelId: string, isUpcomingChecked: boolean | undefined) {
     const feeds: YtPubSubFeed[] = [];
 
+    let withUpcoming: null | boolean = null;
     const promises = [];
     if (!isUpcomingChecked) {
+      withUpcoming = true;
       promises.push(
-        this.main.youtube.getStreamIdSnippetByChannelId(channelId, true)
+        this.main.youtube.getStreamIdSnippetByChannelId(channelId, true).catch((err) => {
+          withUpcoming = false;
+          debug('Check upcoming stream error: %o', err);
+          return null;
+        }),
       );
     }
     promises.push(
@@ -325,6 +336,8 @@ class YtPubSub {
 
     return Promise.all(promises).then((results) => {
       results.forEach((streamIdSnippet) => {
+        if (streamIdSnippet === null) return;
+
         streamIdSnippet.forEach((snippet, id) => {
           feeds.push({
             id,
@@ -334,7 +347,12 @@ class YtPubSub {
           });
         });
       });
-    }).then(() => feeds);
+    }).then(() => {
+      return {
+        withUpcoming,
+        feeds,
+      };
+    });
   }
 }
 
