@@ -8,14 +8,11 @@ import arrayByPart from "../tools/arrayByPart";
 import promiseTry from "../tools/promiseTry";
 import fetchRequest, {HTTPError} from "../tools/fetchRequest";
 import {decode as decodeHtmlEntity} from "html-entities";
-import {RateLimiter} from "limiter";
+import ytCostCounter from "../tools/ytCostCounter";
 
 const debug = require('debug')('app:Youtube');
 
-const queriesPerMinute = new RateLimiter({
-  tokensPerInterval: 180000,
-  interval: "minute",
-});
+const costCounter = ytCostCounter(180000);
 
 const VideosItemsSnippetStruct = s.object({
   items: s.array(s.object({
@@ -166,7 +163,7 @@ class Youtube implements ServiceInterface {
         query.publishedAfter = minDate.toISOString();
       }
 
-      await queriesPerMinute.removeTokens(100);
+      await costCounter.inc(100);
       return fetchRequest('https://www.googleapis.com/youtube/v3/search', {
         searchParams: query,
         keepAlive: true,
@@ -189,7 +186,7 @@ class Youtube implements ServiceInterface {
     const idStreamInfo: Map<string, {scheduledStartAt: Date|null, actualStartAt: Date|null, actualEndAt: Date|null, viewers: number|null}> = new Map();
     return parallel(10, arrayByPart(ids, 50), (videoIds) => {
       return iterPages(async (pageToken?) => {
-        await queriesPerMinute.removeTokens(1);
+        await costCounter.inc(1);
         return fetchRequest('https://www.googleapis.com/youtube/v3/videos', {
           searchParams: {
             part: 'liveStreamingDetails',
@@ -240,7 +237,7 @@ class Youtube implements ServiceInterface {
     const resultChannelIds: string[] = [];
     return parallel(10, arrayByPart(ids, 50), (ids) => {
       return iterPages(async (pageToken?) => {
-        await queriesPerMinute.removeTokens(1);
+        await costCounter.inc(1);
         return fetchRequest('https://www.googleapis.com/youtube/v3/channels', {
           searchParams: {
             part: 'id',
@@ -296,7 +293,7 @@ class Youtube implements ServiceInterface {
 
       return this.channelHasBroadcasts(channelId).then(() => channelId);
     }).then(async (channelId) => {
-      await queriesPerMinute.removeTokens(100);
+      await costCounter.inc(100);
       return fetchRequest('https://www.googleapis.com/youtube/v3/search', {
         searchParams: {
           part: 'snippet',
@@ -364,7 +361,7 @@ class Youtube implements ServiceInterface {
       throw new ErrorWithCode('Is not video url', 'IS_NOT_VIDEO_URL');
     }
 
-    await queriesPerMinute.removeTokens(1);
+    await costCounter.inc(1);
     return fetchRequest('https://www.googleapis.com/youtube/v3/videos', {
       searchParams: {
         part: 'snippet,liveStreamingDetails',
@@ -413,7 +410,7 @@ class Youtube implements ServiceInterface {
       throw new ErrorWithCode('Incorrect username', 'INCORRECT_USERNAME');
     }
 
-    await queriesPerMinute.removeTokens(1);
+    await costCounter.inc(1);
     return fetchRequest('https://www.googleapis.com/youtube/v3/channels', {
       searchParams: {
         part: 'snippet',
@@ -439,7 +436,7 @@ class Youtube implements ServiceInterface {
       throw new ErrorWithCode('Query is empty', 'QUERY_IS_EMPTY')
     }
 
-    await queriesPerMinute.removeTokens(100);
+    await costCounter.inc(100);
     return fetchRequest('https://www.googleapis.com/youtube/v3/search', {
       searchParams: {
         part: 'snippet',
@@ -463,7 +460,7 @@ class Youtube implements ServiceInterface {
 
   async channelHasBroadcasts(channelId: string) {
     for (const type of ['completed', 'live', 'upcoming']) {
-      await queriesPerMinute.removeTokens(100);
+      await costCounter.inc(100);
       const result = await fetchRequest('https://www.googleapis.com/youtube/v3/search', {
         searchParams: {
           part: 'snippet',
