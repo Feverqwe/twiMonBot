@@ -1,4 +1,4 @@
-import {RateLimiter, Interval} from "limiter";
+import {Interval, RateLimiter} from "limiter";
 
 class RateLimit2 {
   private limiter: RateLimiter;
