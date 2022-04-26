@@ -5,7 +5,8 @@
     "clean": "del-cli ./dist",
     "build": "npm run clean && rollup -c ./rollup.config.js",
     "watch": "cross-env DEBUG=app:* npm run build -- -w",
-    "start": "cross-env DEBUG=app:* node ./dist/main.js"
+    "start": "cross-env DEBUG=app:* node ./dist/main.js",
+    "typescript:check": "tsc --noEmit"
   },
   "dependencies": {
     "abort-controller": "^3.0.0",
@@ -19,6 +20,7 @@
     "mariadb": "^3.0.0",
     "node-fetch": "^2.6.1",
     "node-telegram-bot-api": "^0.56.0",
+    "p-limit": "^3.1.0",
     "quick-lru": "^5.1.1",
     "sequelize": "^6.12.4",
     "superstruct": "^0.15.2",

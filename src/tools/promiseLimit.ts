@@ -1,10 +1,5 @@
-import PromiseQueue from "./promiseQueue";
+import pLimit from 'p-limit';
 
-const promiseLimit = (limit: number) => {
-  const queue = new PromiseQueue(limit);
-  return <T>(callback: () => T | PromiseLike<T>) => {
-    return queue.add<T>(callback);
-  };
-};
+const promiseLimit = pLimit;
 
 export default promiseLimit;
