@@ -1,4 +1,4 @@
-const ytCostCounter = (quota: number) => {
+const ytCostCounter = (quota: number, interval = 60 * 1000) => {
   const queue: (() => void)[] = [];
   let timeoutId: NodeJS.Timeout | null = null;
   let endAt = 0;
@@ -7,7 +7,7 @@ const ytCostCounter = (quota: number) => {
   function inc(cost: number, resolve: () => void) {
     const now = Date.now();
     if (now > endAt) {
-      endAt = now + 60 * 1000;
+      endAt = now + interval;
       used = 0;
     }
 
