@@ -12,7 +12,7 @@ import ytCostCounter from "../tools/ytCostCounter";
 
 const debug = require('debug')('app:Youtube');
 
-const costCounter = ytCostCounter(179000);
+const costCounter = ytCostCounter(170000);
 
 const VideosItemsSnippetStruct = s.object({
   items: s.array(s.object({
