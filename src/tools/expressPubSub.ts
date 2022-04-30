@@ -1,26 +1,14 @@
 import express, {Express} from "express";
-import fetchRequest, {HTTPError} from "./fetchRequest";
+import fetchRequest from "./fetchRequest";
 import {EventEmitter} from "events";
 import crypto from "crypto";
 import qs from "querystring";
 import RateLimit2 from "./rateLimit2";
-import getTimeGraph from "./timeGrapth";
 
 const rateLimit = new RateLimit2(5);
 
 const debug = require('debug')('app:ExpressPubSub');
-const timeGraph = getTimeGraph();
-const fetchRequestLimited = rateLimit.wrap((...args: Parameters<typeof fetchRequest>) => {
-  timeGraph.inc();
-  return fetchRequest(...args).catch((err) => {
-    if (err instanceof HTTPError) {
-      if (err.response.statusCode === 429) {
-        debug('graph, %o', timeGraph.history());
-      }
-    }
-    throw err;
-  });
-});
+const fetchRequestLimited = rateLimit.wrap(fetchRequest);
 
 class ExpressPubSub extends EventEmitter {
   private readonly path: string;
