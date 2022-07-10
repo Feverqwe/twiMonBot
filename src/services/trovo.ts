@@ -162,6 +162,9 @@ class Trovo implements ServiceInterface {
         throw new ErrorWithCode('Channel by username is not found', 'CHANNEL_BY_USER_IS_NOT_FOUND');
       }
       const user = body.users[0];
+      if (user.channel_id === '0') {
+        throw new ErrorWithCode('Channel id is incorrect', 'BROKEN_API_RESPONSE');
+      }
       return user;
     }).catch((err: HTTPError) => {
       if (err.name === 'HTTPError' && err.response.statusCode === 400) {
