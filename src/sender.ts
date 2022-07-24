@@ -55,9 +55,18 @@ class Sender {
             const existsThread = this.chatIdChatSender.get(chat.id);
             if (existsThread) {
               if (existsThread.lastActivityAt < Date.now() - 5 * 60 * 1000) {
-                debug('Thread lock', existsThread.chat.id);
+                existsThread.lockCount++;
+                if (existsThread.lockCount > 3) {
+                  existsThread.aborted = true;
+                  this.chatIdChatSender.delete(chat.id);
+                  debug('Drop locked thread', existsThread.chat.id);
+                } else {
+                  debug('Thread lock', existsThread.chat.id);
+                  return;
+                }
+              } else {
+                return;
               }
-              return;
             }
             const chatSender = new ChatSender(this.main, chat);
             this.chatIdChatSender.set(chat.id, chatSender);

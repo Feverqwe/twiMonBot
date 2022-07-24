@@ -22,8 +22,10 @@ interface SentMessage {
 class ChatSender {
   private streamIds: string[]|null;
   private messages: MessageModel[]|null;
-  private methods: string[];
+  private readonly methods: string[];
   private methodIndex: number;
+  aborted = false;
+  lockCount = 0;
   startAt: number;
   lastActivityAt: number;
   constructor(private main: Main, public chat: ChatModel) {
@@ -53,6 +55,7 @@ class ChatSender {
     let skipFromIndex: number | null = null;
     let startIndex = this.methodIndex;
     while (true) {
+      if (this.aborted) return;
       this.lastActivityAt = Date.now();
       const isDone = await promiseTry(() => {
         if (skipFromIndex !== null && this.methodIndex >= skipFromIndex) return true;
