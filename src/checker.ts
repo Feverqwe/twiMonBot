@@ -46,7 +46,9 @@ interface ThreadSession {
   startAt: number,
   lastActivityAt: number,
   service: ServiceInterface,
-  thread?: Promise<void>
+  thread?: Promise<void>,
+  aborted?: boolean;
+  lockCount: number;
 }
 
 class Checker {
@@ -86,9 +88,18 @@ class Checker {
       const existsThreadSession = this.serviceThread.get(service);
       if (existsThreadSession) {
         if (existsThreadSession.lastActivityAt < Date.now() - 5 * 60 * 1000) {
-          debug('Thread lock', existsThreadSession.id, existsThreadSession.service.id);
+          existsThreadSession.lockCount++
+          if (existsThreadSession.lockCount > 3) {
+            existsThreadSession.aborted = true;
+            this.serviceThread.delete(service);
+            debug('Drop locked thread', existsThreadSession.id, existsThreadSession.service.id);
+          } else {
+            debug('Thread lock', existsThreadSession.id, existsThreadSession.service.id);
+            return;
+          }
+        } else {
+          return;
         }
-        return;
       }
 
       const session: ThreadSession = {
@@ -96,6 +107,7 @@ class Checker {
         startAt: Date.now(),
         lastActivityAt: Date.now(),
         service: service,
+        lockCount: 0,
       };
       session.thread = this.runThread(service, session).finally(() => {
         this.serviceThread.delete(service);
@@ -111,9 +123,9 @@ class Checker {
   };
 
   getActiveThreads = async () => {
-    return Array.from(this.serviceThread.values()).map(({startAt, lastActivityAt, sessionId, service}) => {
+    return Array.from(this.serviceThread.values()).map(({startAt, lastActivityAt, id, service}) => {
       return {
-        sessionId,
+        sessionId: id,
         serviceId: service.id,
         startedMinAgo: ((Date.now() - startAt) / 60 / 1000).toFixed(2),
         lastActivityMinAgo: ((Date.now() - lastActivityAt) / 60 / 1000).toFixed(2),
@@ -121,11 +133,12 @@ class Checker {
     });
   };
 
-  serviceThread = new Map();
+  serviceThread = new Map<ServiceInterface, ThreadSession>();
 
   async runThread(service: ServiceInterface, session: ThreadSession) {
     const sessionId = session.id;
     while (true) {
+      if (session.aborted) return;
       session.lastActivityAt = Date.now();
       const channels = await this.main.db.getServiceChannelsForSync(service.id, service.batchSize);
       if (!channels.length) {
