@@ -8,7 +8,6 @@ import Sequelize, {Op, Transaction} from "sequelize";
 import arrayDifference from "./tools/arrayDifference";
 import promiseTry from "./tools/promiseTry";
 import assertType from "./tools/assertType";
-import {locale} from "./locale";
 
 const debug = require('debug')('app:db');
 const ISOLATION_LEVELS = Transaction.ISOLATION_LEVELS;

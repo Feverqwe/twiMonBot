@@ -1,8 +1,14 @@
 import en from "./locale/en";
 
 class Locale {
+  private dictionary: typeof en;
+
+  constructor(code: string) {
+    this.dictionary = languages[code as keyof typeof languages] || languages.en;
+  }
+
   getMessage(messageName: keyof typeof languages[keyof typeof languages], variables?: Record<string, number | string>) {
-    const message = languages.en[messageName];
+    const message = this.dictionary[messageName];
     return message.replace(/\{([^}]+)}/g, (text, variable) => {
       return String(variables && variables[variable] || variable);
     });
@@ -14,7 +20,5 @@ class Locale {
 const languages = {
   en,
 };
-
-export const locale = new Locale();
 
 export default Locale;

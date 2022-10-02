@@ -1,6 +1,7 @@
 import ErrorWithCode from "./tools/errorWithCode";
 import Main from "./main";
 import qs from "querystring";
+import Locale from "./locale";
 
 const debug = require('debug')('app:router');
 
@@ -294,8 +295,8 @@ export class RouterReq {
     }
   }
 
-  get fromId(): number | null {
-    return this._useCache('fromId', () => {
+  get from() {
+    return this._useCache('from', () => {
       let from = null;
       if (this.message) {
         from = this.message.from || null;
@@ -303,8 +304,16 @@ export class RouterReq {
       if (this.callback_query) {
         from = this.callback_query.from;
       }
-      return from && from.id;
+      return from;
     });
+  }
+
+  get languageCode() {
+    return this.from?.language_code;
+  }
+
+  get fromId(): number | null {
+    return this.from?.id || null;
   }
 
   get chatId(): number | null {
@@ -396,9 +405,11 @@ export class RouterReq {
 }
 
 export class RouterRes {
+  public locale: Locale;
   constructor(private bot: any, private req: RouterReq) {
     this.bot = bot;
     this.req = req;
+    this.locale = new Locale(req.languageCode || '');
   }
 }
 

@@ -1,5 +1,4 @@
 import loadConfig from "./tools/loadConfig";
-import Locale from "./locale";
 import Db from "./db";
 import Tracker from "./tracker";
 import Sender from "./sender";
@@ -80,7 +79,6 @@ loadConfig(path.join(__dirname, '..', 'config.json'), config);
 
 class Main extends Events {
   config = config;
-  locale: Locale;
   db: Db;
   twitch: Twitch;
   youtube: Youtube;
@@ -98,7 +96,6 @@ class Main extends Events {
   constructor() {
     super();
 
-    this.locale = new Locale();
     this.db = new Db(this);
 
     this.twitch = new Twitch(this);
