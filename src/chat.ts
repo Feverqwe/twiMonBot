@@ -351,7 +351,7 @@ class Chat {
         }).then(({service, messageId}) => {
           return this.main.db.getChannelCountByChatId('' + req.chatId).then((count) => {
             if (count >= 100) {
-              throw new ErrorWithCode(locale.m('alert_channel-limit-exceeded'), 'CHANNELS_LIMIT');
+              throw new ErrorWithCode('Channels limit exceeded', 'CHANNELS_LIMIT');
             }
             return service.findChannel(query);
           }).then((serviceChannel) => {
@@ -409,7 +409,14 @@ class Chat {
             } else
             if (['CHANNEL_IN_BLACK_LIST', 'CHANNELS_LIMIT'].includes(err.code)) {
               isResolved = true;
-              message = err.message;
+              if (err.code === 'CHANNEL_IN_BLACK_LIST') {
+                message = locale.m('alert_channel-in_blacklist');
+              } else
+              if (err.code === 'CHANNELS_LIMIT') {
+                message = locale.m('alert_channel-limit-exceeded');
+              } else {
+                message = err.message;
+              }
             } else {
               message = locale.m('alert_unexpected-error');
             }
@@ -591,15 +598,11 @@ class Chat {
       }).then(({channelId, messageId}: {channelId: string, messageId?: number}) => {
         return promiseTry(() => {
           if (!/^@\w+$/.test(channelId)) {
-            throw new ErrorWithCode(
-              locale.m('alert_incorrect-telegram-channel-name')
-              , 'INCORRECT_CHANNEL_NAME');
+            throw new ErrorWithCode('Incorrect channel name', 'INCORRECT_CHANNEL_NAME');
           }
 
           return this.main.db.getChatById(channelId).then((chat) => {
-            throw new ErrorWithCode(
-              locale.m('alert_telegram-channel-exists')
-              , 'CHANNEL_ALREADY_USED');
+            throw new ErrorWithCode('Channel already used', 'CHANNEL_ALREADY_USED');
           }, (err: any) => {
             if (err.code === 'CHAT_IS_NOT_FOUND') {
               // pass
@@ -610,7 +613,7 @@ class Chat {
             return this.main.bot.sendChatAction(channelId, 'typing').then(() => {
               return this.main.bot.getChat(channelId).then((chat: TChat) => {
                 if (chat.type !== 'channel') {
-                  throw new ErrorWithCode(locale.m('alert_telegram-chat-is-not-supported'), 'INCORRECT_CHAT_TYPE');
+                  throw new ErrorWithCode('This chat type is not supported', 'INCORRECT_CHAT_TYPE');
                 }
                 const channelId = '@' + chat.username;
                 return this.main.db.createChatChannel('' + req.chatId, channelId).then(() => channelId);
@@ -636,10 +639,20 @@ class Chat {
           });
         }, async (err) => {
           let isResolved = false;
-          let message = null;
+          let message: string;
           if (['INCORRECT_CHANNEL_NAME', 'CHANNEL_ALREADY_USED', 'INCORRECT_CHAT_TYPE'].includes(err.code)) {
             isResolved = true;
-            message = err.message;
+            if (err.code === 'INCORRECT_CHANNEL_NAME') {
+              message = locale.m('alert_incorrect-telegram-channel-name');
+            } else
+            if (err.code === 'CHANNEL_ALREADY_USED') {
+              message = locale.m('alert_telegram-channel-exists');
+            } else
+            if (err.code === 'INCORRECT_CHAT_TYPE') {
+              message = locale.m('alert_telegram-chat-is-not-supported');
+            } else {
+              message = err.message;
+            }
           } else
           if (err.code === 'ETELEGRAM' && /chat not found/.test(err.message)) {
             isResolved = true;
