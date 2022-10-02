@@ -8,6 +8,7 @@ import Sequelize, {Op, Transaction} from "sequelize";
 import arrayDifference from "./tools/arrayDifference";
 import promiseTry from "./tools/promiseTry";
 import assertType from "./tools/assertType";
+import {locale} from "./locale";
 
 const debug = require('debug')('app:db');
 const ISOLATION_LEVELS = Transaction.ISOLATION_LEVELS;
@@ -571,7 +572,7 @@ class Db {
     const id = serviceId.wrap(service, rawChannel.id);
 
     if (this.main.config.channelBlackList.includes(id)) {
-      throw new ErrorWithCode('Channel in black list', 'CHANNEL_IN_BLACK_LIST');
+      throw new ErrorWithCode(locale.m('alert_channel-in_blacklist'), 'CHANNEL_IN_BLACK_LIST');
     }
 
     return ChannelModel.findOrCreate({

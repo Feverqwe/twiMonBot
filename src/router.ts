@@ -396,9 +396,7 @@ export class RouterReq {
 }
 
 export class RouterRes {
-  bot: any;
-  req: RouterReq;
-  constructor(bot: any, req: RouterReq) {
+  constructor(private bot: any, private req: RouterReq) {
     this.bot = bot;
     this.req = req;
   }

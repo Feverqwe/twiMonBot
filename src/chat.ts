@@ -25,7 +25,7 @@ import ChatSender from "./chatSender";
 import parallel from "./tools/parallel";
 import TimeCache from "./tools/timeCache";
 import assertType from "./tools/assertType";
-import fs from "fs";
+import {locale} from "./locale";
 
 const debug = require('debug')('app:Chat');
 const jsonStringifyPretty = require("json-stringify-pretty-compact");
@@ -148,7 +148,10 @@ class Chat {
 
   menu() {
     const sendMenu = (chatId: number, page: number) => {
-      const help = this.main.locale.getMessage('help');
+      const help = this.main.locale.getMessage('alert_help', {
+        services: this.main.services.slice(0, -1).map(s => s.name).join(', '),
+        lestService: this.main.services.slice(-1)[0]?.name || '',
+      });
       return this.main.bot.sendMessage(chatId, help, {
         disable_web_page_preview: true,
         reply_markup: JSON.stringify({
@@ -198,9 +201,11 @@ class Chat {
       ]).then(([chatCount, channelCount, onlineCount, serviceTopChannelsList, serviceChannelCountList]) => {
         const lines = [];
 
-        lines.push(this.main.locale.getMessage('users').replace('{count}', '' + chatCount));
-        lines.push(this.main.locale.getMessage('channels').replace('{count}', '' + channelCount));
-        lines.push(this.main.locale.getMessage('online').replace('{count}', '' + onlineCount));
+        lines.push(
+          this.main.locale.getMessage('context-user-count', {count: chatCount}),
+          this.main.locale.getMessage('context-channel-count', {count: channelCount}),
+          this.main.locale.getMessage('context_online-count', {count: onlineCount}),
+        );
 
         const serviceCountMap = new Map();
         serviceChannelCountList.forEach((item) => {
@@ -235,27 +240,8 @@ class Chat {
       });
     });
 
-    let liveTime = '';
     this.router.textOrCallbackQuery(/\/about/, (req, res) => {
-      if (!liveTime) {
-        try {
-          liveTime = JSON.parse(fs.readFileSync('./liveTime.json', 'utf8')).message;
-        } catch (err) {
-          debug('Read liveTime.json error! %o', err);
-          liveTime = 'Here is nothing yet...';
-        }
-      }
-
-      const message = liveTime.replace(/\$remainFrom\(([^)]+)\)/, (str, date) => {
-        const m = /(\d{4}).(\d{2}).(\d{2})/.exec(date);
-        if (m) {
-          const endTime = (new Date(Number(m[1]), Number(m[2]), Number(m[3]))).getTime();
-          const month =Math.trunc((endTime - Date.now()) / 1000 / 60 / 60 / 24 / 30 * 10) / 10;
-          return `${month} months`;
-        }
-        return str;
-      });
-
+      const message = locale.m('context_about');
       return this.main.bot.sendMessage(req.chatId, message).catch((err: any) => {
         debug('%j error %o', req.command, err);
       });
@@ -293,7 +279,7 @@ class Chat {
       if (req.channels.length) {
         next();
       } else {
-        this.main.bot.sendMessage(req.chatId, this.main.locale.getMessage('emptyServiceList')).catch((err: any) => {
+        this.main.bot.sendMessage(req.chatId, this.main.locale.getMessage('alert_empty-channel-list')).catch((err: any) => {
           debug('withChannels sendMessage error! %o', err);
         });
       }
@@ -302,7 +288,7 @@ class Chat {
     this.router.callback_query(/\/cancel\/(?<command>[^\s]+)/, (req, res) => {
       const command = req.params.command;
 
-      const cancelText = this.main.locale.getMessage('commandCanceled').replace('{command}', command);
+      const cancelText = this.main.locale.getMessage('alert_command-canceled', {command: command});
       return this.main.bot.editMessageText(cancelText, {
         chat_id: req.chatId,
         message_id: req.messageId
@@ -323,8 +309,8 @@ class Chat {
           return {query: query.trim()};
         }
 
-        const messageText = this.main.locale.getMessage('enterChannelName').replace('{example}', this.main.config.defaultChannelName);
-        const cancelText = this.main.locale.getMessage('commandCanceled').replace('{command}', 'add');
+        const messageText = this.main.locale.getMessage('confirm_enter-channel-name', {example: this.main.config.defaultChannelName});
+        const cancelText = this.main.locale.getMessage('alert_command-canceled', {command: 'add'});
         return requestData(req, messageText, cancelText).then(({req, msg}) => {
           const messageText = req.message.text || '';
           requestedData = messageText;
@@ -343,8 +329,8 @@ class Chat {
             return {service, messageId};
           }
 
-          const messageText = this.main.locale.getMessage('enterService');
-          const cancelText = this.main.locale.getMessage('commandCanceled').replace('{command}', 'add');
+          const messageText = this.main.locale.getMessage('confirm_enter-service');
+          const cancelText = this.main.locale.getMessage('alert_command-canceled', {command: 'add'});
           const chooseKeyboard = [
             ...arrayByPart(this.main.services.map((service) => {
               return {
@@ -353,7 +339,7 @@ class Chat {
               };
             }), 2),
             [{
-              text: 'Cancel',
+              text: locale.m('action_cancel'),
               callback_data: '/choose/cancel'
             }]
           ];
@@ -365,7 +351,7 @@ class Chat {
         }).then(({service, messageId}) => {
           return this.main.db.getChannelCountByChatId('' + req.chatId).then((count) => {
             if (count >= 100) {
-              throw new ErrorWithCode('Channels limit exceeded', 'CHANNELS_LIMIT');
+              throw new ErrorWithCode(locale.m('alert_channel-limit-exceeded'), 'CHANNELS_LIMIT');
             }
             return service.findChannel(query);
           }).then((serviceChannel) => {
@@ -377,12 +363,13 @@ class Chat {
           }).then(({channel, created}) => {
             let message = null;
             if (!created) {
-              message = this.main.locale.getMessage('channelExists');
+              message = this.main.locale.getMessage('alert_channel-exists');
             } else {
               const {title, url} = channel;
-              message = this.main.locale.getMessage('channelAdded')
-                .replace('{channelName}', htmlSanitize('a', title, url))
-                .replace('{serviceName}', htmlSanitize('', service.name));
+              message = this.main.locale.getMessage('alert_channel-added', {
+                channelName: htmlSanitize('a', title, url),
+                serviceName: htmlSanitize('', service.name),
+              });
             }
             return editOrSendNewMessage(req.chatId, messageId, message, {
               disable_web_page_preview: true,
@@ -402,9 +389,10 @@ class Chat {
             let message = null;
             if (['CHANNEL_BROADCASTS_IS_NOT_FOUND'].includes(err.code)) {
               isResolved = true;
-              message = this.main.locale.getMessage('channelBroadcastsIsNotFound')
-                .replace('{channelName}', query)
-                .replace('{serviceName}', service.name);
+              message = this.main.locale.getMessage('alert_channel-broadcasts-not-found', {
+                channelName: query,
+                serviceName: service.name,
+              });
             } else
             if ([
               'INCORRECT_CHANNEL_ID',
@@ -414,15 +402,16 @@ class Chat {
               'CHANNEL_BY_ID_IS_NOT_FOUND',
             ].includes(err.code)) {
               isResolved = true;
-              message = this.main.locale.getMessage('channelIsNotFound')
-                .replace('{channelName}', query)
-                .replace('{serviceName}', service.name);
+              message = this.main.locale.getMessage('alert_channel-not-found', {
+                channelName: query,
+                serviceName: service.name,
+              });
             } else
             if (['CHANNEL_IN_BLACK_LIST', 'CHANNELS_LIMIT'].includes(err.code)) {
               isResolved = true;
               message = err.message;
             } else {
-              message = 'Unexpected error';
+              message = locale.m('alert_unexpected-error');
             }
             await editOrSendNewMessage(req.chatId, messageId, message, {
               disable_web_page_preview: true
@@ -444,7 +433,7 @@ class Chat {
     this.router.callback_query(/\/clear\/confirmed/, (req, res) => {
       return this.main.db.deleteChatById('' + req.chatId).then(() => {
         this.log.write(`[deleted] ${req.chatId}, cause: /clear`);
-        return this.main.bot.editMessageText(this.main.locale.getMessage('cleared'), {
+        return this.main.bot.editMessageText(this.main.locale.getMessage('alert_cleared'), {
           chat_id: req.chatId,
           message_id: req.messageId
         });
@@ -454,13 +443,13 @@ class Chat {
     });
 
     this.router.textOrCallbackQuery(/\/clear/, (req, res) => {
-      return this.main.bot.sendMessage(req.chatId, this.main.locale.getMessage('clearSure'), {
+      return this.main.bot.sendMessage(req.chatId, this.main.locale.getMessage('confirm_clear'), {
         reply_markup: JSON.stringify({
           inline_keyboard: [[{
-            text: 'Yes',
+            text: locale.m('action_yes'),
             callback_data: '/clear/confirmed'
           }, {
-            text: 'No',
+            text: locale.m('action_no'),
             callback_data: '/cancel/clear'
           }]]
         })
@@ -478,9 +467,11 @@ class Chat {
         });
       }).then(({channel, deleted}) => {
         const service = this.main.getServiceById(channel.service)!;
-        return this.main.bot.editMessageText(this.main.locale.getMessage('channelDeleted')
-          .replace('{channelName}', channel.title)
-          .replace('{serviceName}', service.name)
+        return this.main.bot.editMessageText(
+          this.main.locale.getMessage('alert_channel-deleted', {
+            channelName: channel.title,
+            serviceName: service.name,
+          })
           , {
           chat_id: req.chatId,
           message_id: req.messageId
@@ -490,9 +481,9 @@ class Chat {
         let message = null;
         if (err.code === 'CHANNEL_IS_NOT_FOUND') {
           isResolved = true;
-          message = this.main.locale.getMessage('channelDontExist');
+          message = this.main.locale.getMessage('alert_channel-not-exists');
         } else {
-          message = 'Unexpected error';
+          message = locale.m('alert_unexpected-error');
         }
         await this.main.bot.editMessageText(message, {
           chat_id: req.chatId,
@@ -537,7 +528,7 @@ class Chat {
             }
           });
         } else {
-          return this.main.bot.sendMessage(req.chatId, this.main.locale.getMessage('selectDelChannel'), {
+          return this.main.bot.sendMessage(req.chatId, this.main.locale.getMessage('context_select-delete-channel'), {
             reply_markup: JSON.stringify({
               inline_keyboard: page
             })
@@ -584,8 +575,8 @@ class Chat {
           return {channelId: channelId.trim()};
         }
 
-        const messageText = this.main.locale.getMessage('telegramChannelEnter');
-        const cancelText = this.main.locale.getMessage('commandCanceled').replace('{command}', '\/setChannel');
+        const messageText = this.main.locale.getMessage('confirm_enter-telegram-channel-name');
+        const cancelText = this.main.locale.getMessage('alert_command-canceled', {command: '\/setChannel'});
         return requestData(req, messageText, cancelText).then(({req, msg}) => {
           const messageText = req.message.text || '';
           requestedData = messageText;
@@ -600,11 +591,15 @@ class Chat {
       }).then(({channelId, messageId}: {channelId: string, messageId?: number}) => {
         return promiseTry(() => {
           if (!/^@\w+$/.test(channelId)) {
-            throw new ErrorWithCode('Incorrect channel name', 'INCORRECT_CHANNEL_NAME');
+            throw new ErrorWithCode(
+              locale.m('alert_incorrect-telegram-channel-name')
+              , 'INCORRECT_CHANNEL_NAME');
           }
 
           return this.main.db.getChatById(channelId).then((chat) => {
-            throw new ErrorWithCode('Channel already used', 'CHANNEL_ALREADY_USED');
+            throw new ErrorWithCode(
+              locale.m('alert_telegram-channel-exists')
+              , 'CHANNEL_ALREADY_USED');
           }, (err: any) => {
             if (err.code === 'CHAT_IS_NOT_FOUND') {
               // pass
@@ -615,7 +610,7 @@ class Chat {
             return this.main.bot.sendChatAction(channelId, 'typing').then(() => {
               return this.main.bot.getChat(channelId).then((chat: TChat) => {
                 if (chat.type !== 'channel') {
-                  throw new ErrorWithCode('This chat type is not supported', 'INCORRECT_CHAT_TYPE');
+                  throw new ErrorWithCode(locale.m('alert_telegram-chat-is-not-supported'), 'INCORRECT_CHAT_TYPE');
                 }
                 const channelId = '@' + chat.username;
                 return this.main.db.createChatChannel('' + req.chatId, channelId).then(() => channelId);
@@ -623,7 +618,7 @@ class Chat {
             });
           });
         }).then((channelId) => {
-          const message = this.main.locale.getMessage('telegramChannelSet').replace('{channelName}', channelId);
+          const message = this.main.locale.getMessage('alert_telegram-channel-set', {channelName: channelId});
           return editOrSendNewMessage(req.chatId, messageId, message).then(() => {
             if (req.callback_query) {
               return this.main.bot.editMessageReplyMarkup(JSON.stringify({
@@ -763,7 +758,7 @@ class Chat {
       return this.main.db.getStreamsWithChannelByChannelIds(channelIds).then((streams) => {
         let message: string;
         if (!streams.length){
-          message = this.main.locale.getMessage('offline');
+          message = this.main.locale.getMessage('alert_offline');
         } else {
           message = streams.map(stream => getStreamAsText(stream)).join('\n\n');
         }
@@ -781,7 +776,7 @@ class Chat {
         const buttonsPage = pageBtnList(req.query, buttons, '/online');
 
         buttonsPage.unshift([{
-          text: this.main.locale.getMessage('refresh'),
+          text: this.main.locale.getMessage('action_refresh'),
           callback_data: '/online'
         }]);
 
@@ -822,7 +817,7 @@ class Chat {
         return chatSender.sendStream(stream);
       }, (err) => {
         if (err.code === 'STREAM_IS_NOT_FOUND') {
-          const message = this.main.locale.getMessage('streamIsNotFound');
+          const message = this.main.locale.getMessage('action_stream-not-found');
           return this.main.bot.sendMessage(req.chatId, message);
         }
         throw err;
@@ -910,7 +905,7 @@ class Chat {
       const options: {[s: string]: any} = {};
       let msgText = messageText;
       if (chatId < 0) {
-        msgText += this.main.locale.getMessage('groupNote');
+        msgText += '\n' + this.main.locale.getMessage('context_group-note');
         if (req.callback_query) {
           msgText = '@' + req.callback_query.from.username + ' ' + messageText;
         } else {
@@ -996,7 +991,10 @@ class Chat {
       if (adminIds.includes(req.chatId)) {
         next();
       } else {
-        this.main.bot.sendMessage(req.chatId, `Access denied for you (${req.chatId})`).catch((err: any) => {
+        this.main.bot.sendMessage(
+          req.chatId,
+          locale.m('alert_access-denied', {chat: req.chatId}),
+        ).catch((err: any) => {
           debug('isAdmin sendMessage error: %o', err);
         });
       }
@@ -1026,9 +1024,9 @@ class Chat {
         const resultStr = jsonStringifyPretty({result}, {
           indent: 2
         });
-        return this.main.bot.sendMessage(req.chatId, `${command.name} complete!\n${resultStr}`);
+        return this.main.bot.sendMessage(req.chatId, `${locale.m('alert_command-complete', {command: command.name})}\n${resultStr}`);
       }, async (err) => {
-        await this.main.bot.sendMessage(req.chatId, `${command.name} error!`);
+        await this.main.bot.sendMessage(req.chatId, locale.m('alert_command-error', {command: command.name}));
         throw err;
       }).catch((err) => {
         debug('%j error %o', req.command, err);
@@ -1037,7 +1035,7 @@ class Chat {
 
     this.router.textOrCallbackQuery(/\/admin/, isAdmin, (req, res) => {
       type Button = {text: string, callback_data: string};
-      return this.main.bot.sendMessage(req.chatId, 'Admin menu', {
+      return this.main.bot.sendMessage(req.chatId, locale.m('title_admin-menu'), {
         reply_markup: JSON.stringify({
           inline_keyboard: commands.reduce<Button[][]>((menu, {name, method}, index) => {
             const buttons: Button[] = index % 2 ? menu.pop()! : [];
@@ -1062,21 +1060,21 @@ function getMenu(page: number) {
     menu = [
       [
         {
-          text: 'Options',
+          text: locale.m('action_options'),
           callback_data: '/options?rel=menu'
         }
       ],
       [
         {
-          text: '<',
+          text: locale.m('action_prev-page'),
           callback_data: '/menu'
         },
         {
-          text: 'Top 10',
+          text: locale.m('action_top'),
           callback_data: '/top'
         },
         {
-          text: 'About',
+          text: locale.m('action_about'),
           callback_data: '/about'
         }
       ]
@@ -1085,25 +1083,25 @@ function getMenu(page: number) {
     menu = [
       [
         {
-          text: 'Online',
+          text: locale.m('action_show-online'),
           callback_data: '/online?rel=menu'
         },
         {
-          text: 'Show the channel list',
+          text: locale.m('action_show-channels'),
           callback_data: '/list?rel=menu'
         }
       ],
       [
         {
-          text: 'Add channel',
+          text: locale.m('action_add_channel'),
           callback_data: '/add'
         },
         {
-          text: 'Delete channel',
+          text: locale.m('action_delete-channel'),
           callback_data: '/delete?rel=menu'
         },
         {
-          text: '>',
+          text: locale.m('action_next-page'),
           callback_data: '/menu/1'
         }
       ]
@@ -1118,12 +1116,12 @@ function getOptions(chat: ChatModel | ChatModelWithOptionalChannel) {
 
   if (chat.isHidePreview) {
     btnList.push([{
-      text: 'Show preview',
+      text: locale.m('action_show-preview'),
       callback_data: '/options/isHidePreview/false'
     }]);
   } else {
     btnList.push([{
-      text: 'Hide preview',
+      text: locale.m('action_hide-preview'),
       callback_data: '/options/isHidePreview/true'
     }]);
   }
@@ -1142,24 +1140,24 @@ function getOptions(chat: ChatModel | ChatModelWithOptionalChannel) {
 
   if (chat.isEnabledAutoClean) {
     btnList.push([{
-      text: `Don't remove messages`,
+      text: locale.m('action_disable-auto-clean'),
       callback_data: '/options/isEnabledAutoClean/false'
     }]);
   } else {
     btnList.push([{
-      text: 'Remove messages after 24h',
+      text: locale.m('action_enable-auto-clean'),
       callback_data: '/options/isEnabledAutoClean/true'
     }]);
   }
 
   if (chat.channelId) {
     btnList.push([{
-      text: 'Remove channel (' + chat.channelId + ')',
+      text: locale.m('action_remove-channel', {channel: chat.channelId}),
       callback_data: '/unsetChannel',
     }]);
   } else {
     btnList.push([{
-      text: 'Set channel',
+      text: locale.m('action_set-channel'),
       callback_data: '/setChannel',
     }]);
   }
@@ -1167,12 +1165,12 @@ function getOptions(chat: ChatModel | ChatModelWithOptionalChannel) {
   if (chat.channelId) {
     if (chat.isMuted) {
       btnList.push([{
-        text: 'Unmute this chat',
+        text: locale.m('action_unmute'),
         callback_data: '/options/isMuted/false'
       }]);
     } else {
       btnList.push([{
-        text: 'Mute this chat',
+        text: locale.m('action_mute'),
         callback_data: '/options/isMuted/true'
       }]);
     }
@@ -1181,24 +1179,24 @@ function getOptions(chat: ChatModel | ChatModelWithOptionalChannel) {
   if ('channel' in chat && chat.channel) {
     if (chat.channel.isHidePreview) {
       btnList.push([{
-        text: 'Show preview for channel',
+        text: locale.m('action_show-preview-for-channel'),
         callback_data: '/channelOptions/isHidePreview/false'
       }]);
     } else {
       btnList.push([{
-        text: 'Hide preview for channel',
+        text: locale.m('action_hide-preview-for-channel'),
         callback_data: '/channelOptions/isHidePreview/true'
       }]);
     }
 
     if (chat.isEnabledAutoClean) {
       btnList.push([{
-        text: `Don't remove messages for channel`,
+        text: locale.m('action_disable-auto-clean-for-channel'),
         callback_data: '/channelOptions/isEnabledAutoClean/false'
       }]);
     } else {
       btnList.push([{
-        text: 'Remove messages after 24h for channel',
+        text: locale.m('action_enable-auto-clean-for-channel'),
         callback_data: '/channelOptions/isEnabledAutoClean/true'
       }]);
     }
