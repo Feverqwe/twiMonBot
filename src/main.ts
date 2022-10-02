@@ -15,7 +15,6 @@ import Events from "events";
 import path from "path";
 import RateLimit2 from "./tools/rateLimit2";
 import replaceBotRequest from "./tools/replaceBotRequest";
-import Trovo from "./services/trovo";
 
 Object.assign(process.env, {
   NTBA_FIX_319: true,
@@ -87,7 +86,6 @@ class Main extends Events {
   youtube: Youtube;
   goodgame: Goodgame;
   wasd: Wasd;
-  trovo: Trovo;
   services: ServiceInterface[];
   serviceIdService: Map<string, ServiceInterface>;
   tracker: Tracker;
@@ -107,8 +105,7 @@ class Main extends Events {
     this.youtube = new Youtube(this);
     this.goodgame = new Goodgame(this);
     this.wasd = new Wasd(this);
-    this.trovo = new Trovo(this);
-    this.services = [this.twitch, this.youtube, this.goodgame, this.wasd, this.trovo];
+    this.services = [this.twitch, this.youtube, this.goodgame, this.wasd];
     this.serviceIdService = this.services.reduce((map, service) => {
       map.set(service.id, service);
       return map;
