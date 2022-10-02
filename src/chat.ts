@@ -309,7 +309,7 @@ class Chat {
           return {query: query.trim()};
         }
 
-        const messageText = this.main.locale.getMessage('confirm_enter-channel-name', {example: this.main.config.defaultChannelName});
+        const messageText = this.main.locale.getMessage('context_enter-channel-name', {example: this.main.config.defaultChannelName});
         const cancelText = this.main.locale.getMessage('alert_command-canceled', {command: 'add'});
         return requestData(req, messageText, cancelText).then(({req, msg}) => {
           const messageText = req.message.text || '';
@@ -329,7 +329,7 @@ class Chat {
             return {service, messageId};
           }
 
-          const messageText = this.main.locale.getMessage('confirm_enter-service');
+          const messageText = this.main.locale.getMessage('context_enter-service');
           const cancelText = this.main.locale.getMessage('alert_command-canceled', {command: 'add'});
           const chooseKeyboard = [
             ...arrayByPart(this.main.services.map((service) => {
@@ -575,7 +575,7 @@ class Chat {
           return {channelId: channelId.trim()};
         }
 
-        const messageText = this.main.locale.getMessage('confirm_enter-telegram-channel-name');
+        const messageText = this.main.locale.getMessage('context_enter-telegram-channel-name');
         const cancelText = this.main.locale.getMessage('alert_command-canceled', {command: '\/setChannel'});
         return requestData(req, messageText, cancelText).then(({req, msg}) => {
           const messageText = req.message.text || '';
