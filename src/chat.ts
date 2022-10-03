@@ -57,10 +57,10 @@ class Chat {
   }
 
   base() {
-    this.router.message((req, res, next) => {
+    this.router.message(async (req, res, next) => {
       const {migrate_to_chat_id: targetChatId, migrate_from_chat_id: sourceChatId} = req.message;
       if (targetChatId || sourceChatId) {
-        return promiseTry(async () => {
+        try {
           if (targetChatId) {
             await this.main.db.changeChatId('' + req.chatId, '' + targetChatId);
             this.log.write(`[migrate msg] ${req.chatId} > ${targetChatId}`);
@@ -69,11 +69,12 @@ class Chat {
             await this.main.db.changeChatId('' + sourceChatId, '' + req.chatId);
             this.log.write(`[migrate msg] ${req.chatId} < ${sourceChatId}`);
           }
-        }).then(next, (err) => {
+          next();
+        } catch (err) {
           debug('Process message %s %j error %o', req.chatId, req.message, err);
-        });
+        }
       } else {
-        return next();
+        next();
       }
     });
 
@@ -81,29 +82,31 @@ class Chat {
       return this.main.bot.answerCallbackQuery(req.callback_query.id).then(next);
     });
 
-    this.router.textOrCallbackQuery((req, res, next) => {
+    this.router.textOrCallbackQuery(async (req, res, next) => {
       if (['group', 'supergroup'].includes(req.chatType)) {
         const message = req.message || req.callback_query.message;
         if (message && message.chat.all_members_are_administrators) {
           return next();
         }
 
-        return promiseTry(() => {
-          const adminIds = this.chatIdAdminIdsCache.get(req.chatId);
-          if (adminIds) return adminIds;
+        try {
+          const adminIds = await promiseTry(() => {
+            const adminIds = this.chatIdAdminIdsCache.get(req.chatId);
+            if (adminIds) return adminIds;
 
-          return this.main.bot.getChatAdministrators(req.chatId).then((chatMembers: TChatMember[]) => {
-            const adminIds = chatMembers.map(chatMember => chatMember.user.id);
-            this.chatIdAdminIdsCache.set(req.chatId, adminIds);
-            return adminIds;
+            return this.main.bot.getChatAdministrators(req.chatId).then((chatMembers: TChatMember[]) => {
+              const adminIds = chatMembers.map(chatMember => chatMember.user.id);
+              this.chatIdAdminIdsCache.set(req.chatId, adminIds);
+              return adminIds;
+            });
           });
-        }).then((adminIds: number[]) => {
+
           if (adminIds.includes(req.fromId!)) {
             next();
           }
-        }, (err) => {
+        } catch (err) {
           debug('getChatAdministrators error %s %j error %o', req.chatId, req.message, err);
-        });
+        }
       } else {
         next();
       }
@@ -139,10 +142,12 @@ class Chat {
       }
     });
 
-    this.router.text(/\/ping/, (req, res) => {
-      return this.main.bot.sendMessage(req.chatId, 'pong').catch((err: any) => {
+    this.router.text(/\/ping/, async (req, res) => {
+      try {
+        await this.main.bot.sendMessage(req.chatId, 'pong');
+      } catch (err) {
         debug('%j error %o', req.command, err);
-      });
+      }
     });
   }
 
@@ -160,11 +165,13 @@ class Chat {
       });
     };
 
-    this.router.text(/\/(start|menu|help)/, (req, res) => {
+    this.router.text(/\/(start|menu|help)/, async (req, res) => {
       const {locale} = res;
-      return sendMenu(locale, req.chatId, 0).catch((err: any) => {
+      try {
+        await sendMenu(locale, req.chatId, 0);
+      } catch (err) {
         debug('%j error %o', req.command, err);
-      });
+      }
     });
 
     this.router.callback_query(/\/menu(?:\/(?<page>\d+))?/, (req, res) => {
