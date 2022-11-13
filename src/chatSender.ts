@@ -467,6 +467,7 @@ const blockedErrors = [
   /CHAT_SEND_MEDIA_FORBIDDEN/,
   /CHAT_RESTRICTED/,
   /not enough rights to send text messages to the chat/,
+  /TOPIC_DELETED/,
 ];
 
 const sendUrlErrors = [
