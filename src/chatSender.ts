@@ -249,7 +249,13 @@ class ChatSender {
           text: sendMessage.text,
         }),
       ]);
-    }, this.onSendMessageError);
+    }, (err) => {
+      if (isSkipMessageError(err)) {
+        debug('skip message %s error: %o', this.chat.id, err);
+        return this.main.db.deleteChatIdStreamId(this.chat.id, stream.id);
+      }
+      return this.onSendMessageError(err);
+    });
   }
 
   sendStreamAsText(stream: StreamModelWithChannel, isFallback?: boolean): Promise<SentMessage> {
@@ -470,6 +476,11 @@ const blockedErrors = [
   /TOPIC_DELETED/,
 ];
 
+const skipMsgErrors = [
+  /TOPIC_DELETED/,
+  /TOPIC_CLOSED/,
+];
+
 const sendUrlErrors = [
   /failed to get HTTP URL content/,
   /wrong type of the web page content/,
@@ -517,6 +528,15 @@ export function isBlockedError(err: any) {
     }
 
     return isBlocked;
+  }
+  return false;
+}
+
+export function isSkipMessageError(err: any) {
+  if (err.code === 'ETELEGRAM') {
+    const body = err.response.body;
+
+    return skipMsgErrors.some(re => re.test(body.description));
   }
   return false;
 }
