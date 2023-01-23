@@ -43,6 +43,13 @@ class YtPubSub {
       this.handleFeed(data);
     });
 
+    this.app.get('/isLive/:channelId', async (req, res) => {
+      const {channelId} = req.params;
+      const streams = (await this.main.db.getStreamsByChannelIds([channelId]))
+        .filter(stream => !stream.isOffline);
+      res.json({channelId, streams});
+    });
+
     return new Promise<void>((resolve) => {
       this.server = this.app.listen(this.port, this.host, resolve);
     }).then(() => {
