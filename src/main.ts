@@ -38,6 +38,7 @@ const config = {
   twitchToken: '',
   twitchSecret: '',
   trovoClientId: '',
+  wasdToken: '',
   emitCheckChannelsEveryMinutes: 5,
   checkChannelIfLastSyncLessThenMinutes: 2.5,
   channelSyncTimeoutMinutes: 2.5,
