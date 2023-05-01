@@ -63,7 +63,9 @@ class Wasd implements ServiceInterface {
     ].some(re => re.test(url));
   }
 
-  getStreams(channelIds: number[]) {
+  async getStreams(channelIds: number[]) {
+    return {streams: [], skippedChannelIds: [], removedChannelIds: []};
+
     const resultStreams:ServiceStream[] = [];
     const skippedChannelIds:number[] = [];
     const removedChannelIds:number[] = [];
