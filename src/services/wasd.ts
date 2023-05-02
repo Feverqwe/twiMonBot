@@ -99,7 +99,7 @@ class Wasd implements ServiceInterface {
         });
       } catch (err) {
         debug(`getStream for channel (%j) skip, cause: %o`, channelId, err);
-        if ((err as ErrorWithCode).code === 'CHANNEL_BY_ID_IS_NOT_FOUND') {
+        if (['CHANNEL_IS_BANNED', 'CHANNEL_BY_ID_IS_NOT_FOUND'].includes((err as ErrorWithCode).code)) {
           removedChannelIds.push(channelId);
         } else {
           skippedChannelIds.push(channelId);
@@ -116,7 +116,7 @@ class Wasd implements ServiceInterface {
         await this.getChannelInfoById(channelId);
         resultChannelIds.push(channelId);
       } catch (err) {
-        if ((err as ErrorWithCode).code === 'CHANNEL_BY_ID_IS_NOT_FOUND') {
+        if (['CHANNEL_IS_BANNED', 'CHANNEL_BY_ID_IS_NOT_FOUND'].includes((err as ErrorWithCode).code)) {
           // pass
         } else {
           debug('requestChannelById (%s) error: %o', channelId, err);
@@ -170,8 +170,13 @@ class Wasd implements ServiceInterface {
       return s.mask(body, ChannelInfo).result;
     } catch (err) {
       const error = err as HTTPError;
-      if (error.name === 'HTTPError' && error.response.statusCode === 404) {
-        throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
+      if (error.name === 'HTTPError') {
+        if (error.response.statusCode === 404) {
+          throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
+        }
+        if (error.response.statusCode === 403) {
+          throw new ErrorWithCode('Channel is banned', 'CHANNEL_IS_BANNED');
+        }
       }
       throw err;
     }
