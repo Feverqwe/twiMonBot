@@ -78,9 +78,10 @@ class Wasd implements ServiceInterface {
           if (media_container_channel_id !== channel_id) return;
 
           const previews: string[] = [];
-          stream.stream_media.forEach((media) => {
+          stream.stream_media.some((media) => {
             if (media.media_status === 'RUNNING' && media.media_meta.media_preview_url) {
-              previews.push(media.media_meta.media_preview_url);
+              previews.push(String(media.media_meta.media_preview_url).slice(0, 1024));
+              return true;
             }
           });
 
