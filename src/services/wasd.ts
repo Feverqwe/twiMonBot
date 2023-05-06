@@ -92,7 +92,7 @@ class Wasd implements ServiceInterface {
             game: null,
             isRecord: false,
             previews: previews,
-            viewers: stream.stream_current_viewers,
+            viewers: Number(stream.stream_current_viewers),
             channelId: channel_id,
             channelTitle: channel_name,
             channelUrl: getChannelUrl(channel_name),
