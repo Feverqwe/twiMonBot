@@ -4,6 +4,11 @@ import * as s from "superstruct";
 import ErrorWithCode from "../tools/errorWithCode";
 import parallel from "../tools/parallel";
 import fetchRequest, {FetchRequestOptions, HTTPError} from "../tools/fetchRequest";
+import RateLimit2 from "../tools/rateLimit2";
+
+const rateLimit = new RateLimit2(10, "sec");
+
+const limitedFetchRequest = rateLimit.wrap(fetchRequest);
 
 const debug = require('debug')('app:Wasd');
 
@@ -164,7 +169,7 @@ class Wasd implements ServiceInterface {
   async getChannelInfo(payload: { channel_name: string } | { channel_id: number }) {
     const query = (new URLSearchParams(payload as Record<string, string>)).toString();
     try {
-      const {body} = await fetchRequest('https://wasd.tv/api/v2/broadcasts/public?' + query, this.sign({
+      const {body} = await limitedFetchRequest('https://wasd.tv/api/v2/broadcasts/public?' + query, this.sign({
         responseType: 'json',
         keepAlive: true,
       }));
@@ -172,9 +177,6 @@ class Wasd implements ServiceInterface {
     } catch (err) {
       const error = err as HTTPError;
       if (error.name === 'HTTPError') {
-        if (error.response.statusCode === 429) {
-          debug('429 info: %s %o', error.response.body, error.response.headers);
-        }
         if (error.response.statusCode === 404) {
           throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
         }
