@@ -172,6 +172,9 @@ class Wasd implements ServiceInterface {
     } catch (err) {
       const error = err as HTTPError;
       if (error.name === 'HTTPError') {
+        if (error.response.statusCode === 429) {
+          debug('429 info: %s %o', error.response.body, error.response.headers);
+        }
         if (error.response.statusCode === 404) {
           throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
         }
