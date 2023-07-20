@@ -1,7 +1,8 @@
-import fs, {WriteStream} from "fs";
-import path from "path";
+import fs, {WriteStream} from "node:fs";
+import path from "node:path";
+import {getDebug} from "./tools/getDebug";
 
-const debug = require('debug')('app:LogFile');
+const debug = getDebug('app:LogFile');
 
 class LogFile {
   name: string;
@@ -9,7 +10,7 @@ class LogFile {
   constructor(name: string) {
     this.name = name;
 
-    const place = path.join(__dirname, '..', 'log');
+    const place = path.join(process.cwd(), 'log');
     ensureDir(place);
 
     this.stream = fs.createWriteStream(path.join(place, `${name}.log`), {

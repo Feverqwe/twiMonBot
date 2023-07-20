@@ -1,13 +1,14 @@
 import express, {Express} from "express";
 import fetchRequest from "./fetchRequest";
-import {EventEmitter} from "events";
-import crypto from "crypto";
+import {EventEmitter} from "node:events";
+import crypto from "node:crypto";
 import qs from "querystring";
 import RateLimit2 from "./rateLimit2";
+import {getDebug} from "./getDebug";
 
 const rateLimit = new RateLimit2(5);
 
-const debug = require('debug')('app:ExpressPubSub');
+const debug = getDebug('app:ExpressPubSub');
 const fetchRequestLimited = rateLimit.wrap(fetchRequest);
 
 class ExpressPubSub extends EventEmitter {

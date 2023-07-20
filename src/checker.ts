@@ -7,8 +7,10 @@ import {Channel, NewChatIdStreamId, Stream} from "./db";
 import LogFile from "./logFile";
 import getInProgress from "./tools/getInProgress";
 import parallel from "./tools/parallel";
+import {appConfig} from "./appConfig";
+import {getDebug} from "./tools/getDebug";
 
-const debug = require('debug')('app:Checker');
+const debug = getDebug('app:Checker');
 
 export interface ServiceStream extends Omit<Stream, 'id' | 'channelId'> {
   id: string|number,
@@ -65,7 +67,7 @@ class Checker {
   updateTimer: (() => void) | null = null;
   startUpdateInterval() {
     this.updateTimer && this.updateTimer();
-    this.updateTimer = everyMinutes(this.main.config.emitCheckChannelsEveryMinutes, () => {
+    this.updateTimer = everyMinutes(appConfig.emitCheckChannelsEveryMinutes, () => {
       this.check().catch((err) => {
         debug('check error, cause: %o', err);
       });
@@ -75,7 +77,7 @@ class Checker {
   cleanTimer: (() => void) | null = null;
   startCleanInterval() {
     this.cleanTimer && this.cleanTimer();
-    this.cleanTimer = everyMinutes(this.main.config.emitCleanChatsAndChannelsEveryHours * 60, () => {
+    this.cleanTimer = everyMinutes(appConfig.emitCleanChatsAndChannelsEveryHours * 60, () => {
       this.clean().catch((err) => {
         debug('clean error, cause: %o', err);
       });
@@ -284,7 +286,7 @@ class Checker {
             changedStreamIds.push(id);
           } else {
             const minOfflineDate = new Date();
-            minOfflineDate.setMinutes(minOfflineDate.getMinutes() - this.main.config.removeStreamIfOfflineMoreThanMinutes);
+            minOfflineDate.setMinutes(minOfflineDate.getMinutes() - appConfig.removeStreamIfOfflineMoreThanMinutes);
             if (stream.offlineFrom!.getTime() < minOfflineDate.getTime()) {
               const pos = offlineStreamIds.indexOf(id);
               if (pos !== -1) {

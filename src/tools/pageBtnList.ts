@@ -1,8 +1,8 @@
-import {TInlineKeyboardButton} from "../router";
+import TelegramBot from "node-telegram-bot-api";
 
-const pageBtnList = (query: {[s: string]: any}, btnList: TInlineKeyboardButton[][], command: string, _middleBtn?: TInlineKeyboardButton|TInlineKeyboardButton[]) => {
+const pageBtnList = (query: {[s: string]: any}, btnList: TelegramBot.InlineKeyboardButton[][], command: string, _middleBtn?: TelegramBot.InlineKeyboardButton|TelegramBot.InlineKeyboardButton[]) => {
   const page = parseInt(query.page) || 0;
-  let middleBtns: TInlineKeyboardButton[]|null = _middleBtn as TInlineKeyboardButton[];
+  let middleBtns: TelegramBot.InlineKeyboardButton[]|null = _middleBtn as TelegramBot.InlineKeyboardButton[];
   if (middleBtns && !Array.isArray(middleBtns)) {
     middleBtns = [middleBtns];
   }

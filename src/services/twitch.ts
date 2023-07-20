@@ -8,8 +8,10 @@ import fetchRequest, {FetchRequestOptions, HTTPError} from "../tools/fetchReques
 import getNow from "../tools/getNow";
 import promiseTry from "../tools/promiseTry";
 import RateLimit2 from "../tools/rateLimit2";
+import {appConfig} from "../appConfig";
+import {getDebug} from "../tools/getDebug";
 
-const debug = require('debug')('app:Twitch');
+const debug = getDebug('app:Twitch');
 
 const rateLimit = new RateLimit2(800, 60 * 1000);
 
@@ -231,8 +233,8 @@ class Twitch implements ServiceInterface {
       const {body} = await fetchRequest('https://id.twitch.tv/oauth2/token', {
         method: 'POST',
         searchParams: {
-          client_id: this.main.config.twitchToken,
-          client_secret: this.main.config.twitchSecret,
+          client_id: appConfig.twitchToken,
+          client_secret: appConfig.twitchSecret,
           grant_type: 'client_credentials',
         },
         responseType: 'json',
@@ -258,7 +260,7 @@ class Twitch implements ServiceInterface {
   async signFetchRequest(url: string, options: FetchRequestOptions) {
     options.headers = Object.assign({
       Authorization: 'Bearer ' + await this.getAccessToken(),
-      'Client-Id': this.main.config.twitchToken,
+      'Client-Id': appConfig.twitchToken,
     }, options.headers);
 
     return limitedFetchRequest(url, options);

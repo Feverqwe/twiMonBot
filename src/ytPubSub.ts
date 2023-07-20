@@ -11,23 +11,26 @@ import ExpressPubSub from "./tools/expressPubSub";
 import express from "express";
 import promiseLimit from "./tools/promiseLimit";
 import {Server} from "http";
-import qs from "querystring";
+import qs from "node:querystring";
+import {appConfig} from "./appConfig";
+import {IncomingHttpHeaders} from "node:http";
+import {getDebug} from "./tools/getDebug";
+import {XmlDocument, XmlElement} from "xmldoc";
+import throttle from 'lodash.throttle';
 
-const debug = require('debug')('app:YtPubSub');
-const {XmlDocument} = require("xmldoc");
+const debug = getDebug('app:YtPubSub');
 const oneLimit = promiseLimit(1);
-const throttle = require('lodash.throttle');
 
 class YtPubSub {
   private log = new LogFile('ytPubSub');
   private hubUrl = 'https://pubsubhubbub.appspot.com/subscribe';
-  private host = this.main.config.push.host || 'localhost';
-  private port = this.main.config.push.port;
+  private host = appConfig.push.host || 'localhost';
+  private port = appConfig.push.port;
   private expressPubSub = new ExpressPubSub({
-    path: this.main.config.push.path,
-    secret: this.main.config.push.secret,
-    callbackUrl: this.main.config.push.callbackUrl,
-    leaseSeconds: this.main.config.push.leaseSeconds,
+    path: appConfig.push.path,
+    secret: appConfig.push.secret,
+    callbackUrl: appConfig.push.callbackUrl,
+    leaseSeconds: appConfig.push.leaseSeconds,
   });
   private server: Server | undefined;
   private app = express();
@@ -68,7 +71,7 @@ class YtPubSub {
   updateTimer: (() => void) | null = null;
   startUpdateInterval() {
     this.updateTimer && this.updateTimer();
-    this.updateTimer = everyMinutes(this.main.config.emitUpdateChannelPubSubSubscribeEveryMinutes, () => {
+    this.updateTimer = everyMinutes(appConfig.emitUpdateChannelPubSubSubscribeEveryMinutes, () => {
       this.updateSubscribes().catch((err: any) => {
         debug('updateSubscribes error', err);
       });
@@ -78,7 +81,7 @@ class YtPubSub {
   cleanTimer: (() => void) | null = null;
   startCleanInterval() {
     this.cleanTimer && this.cleanTimer();
-    this.cleanTimer = everyMinutes(this.main.config.emitCleanPubSubFeedEveryHours * 60, () => {
+    this.cleanTimer = everyMinutes(appConfig.emitCleanPubSubFeedEveryHours * 60, () => {
       this.clean().catch((err: any) => {
         debug('clean error', err);
       });
@@ -95,7 +98,7 @@ class YtPubSub {
 
         await this.main.db.setYtPubSubChannelsSubscriptionTimeoutExpiresAt(channelIds).then(() => {
           const expiresAt = new Date();
-          expiresAt.setSeconds(expiresAt.getSeconds() + this.main.config.push.leaseSeconds);
+          expiresAt.setSeconds(expiresAt.getSeconds() + appConfig.push.leaseSeconds);
 
           const subscribedChannelIds: string[] = [];
           return parallel(10, channelIds, (id) => {
@@ -375,7 +378,7 @@ interface PubSubFeed {
   hub: string|undefined,
   callback: string,
   feed: Buffer
-  headers: Headers
+  headers: IncomingHttpHeaders
 }
 
 interface Feed {
@@ -436,22 +439,15 @@ function getTopicUrl(channelId: string) {
   });
 }
 
-interface XmlElement {
-  name: string,
-  val: string,
-  children?: XmlElement[]
-}
-
-function getChildNode(root: XmlElement, name: string): XmlElement | null {
-  let el = null;
+function getChildNode(root: XmlElement | XmlDocument, name: string): XmlElement | null {
   if (root.children) {
-    for (let i = 0, node; node = root.children[i]; i++) {
-      if (node.name === name) {
+    for (let i = 0, node; (node = root.children[i]); i++) {
+      if ('name' in node && node.name === name) {
         return node;
       }
     }
   }
-  return el;
+  return null;
 }
 
 export default YtPubSub;

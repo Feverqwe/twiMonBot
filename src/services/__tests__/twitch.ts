@@ -1,14 +1,10 @@
 import Twitch from "../twitch";
 import Main from "../../main";
+import {getDebug} from "../../tools/getDebug";
 
-const debug = require('debug')('app:Twitch:test');
+const debug = getDebug('app:Twitch:test');
 
-const main = {
-  config: {
-    twitchToken: '',
-    twitchSecret: '',
-  },
-} as Main;
+const main = {} as Main;
 
 test('findChannel', async () => {
   const twitch = new Twitch(main);

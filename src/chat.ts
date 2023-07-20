@@ -1,15 +1,4 @@
-import Router, {
-  RouterCallbackQueryReq,
-  RouterReq,
-  RouterReqWithAnyMessage,
-  RouterRes,
-  RouterTextReq,
-  TCallbackQuery,
-  TChat,
-  TChatMember,
-  TInlineKeyboardButton,
-  TMessage
-} from "./router";
+import Router, {RouterCallbackQueryReq, RouterReq, RouterReqWithAnyMessage, RouterRes, RouterTextReq,} from "./router";
 import htmlSanitize from "./tools/htmlSanitize";
 import ErrorWithCode from "./tools/errorWithCode";
 import pageBtnList from "./tools/pageBtnList";
@@ -26,9 +15,13 @@ import parallel from "./tools/parallel";
 import TimeCache from "./tools/timeCache";
 import assertType from "./tools/assertType";
 import Locale from "./locale";
+import {appConfig} from "./appConfig";
+import {getDebug} from "./tools/getDebug";
+import jsonStringifyPretty from 'json-stringify-pretty-compact';
+import {tracker} from "./tracker";
+import TelegramBot, {ParseMode} from "node-telegram-bot-api";
 
-const debug = require('debug')('app:Chat');
-const jsonStringifyPretty = require("json-stringify-pretty-compact");
+const debug = getDebug('app:Chat');
 
 interface WithChat {
   chat: ChatModelWithOptionalChannel;
@@ -39,14 +32,16 @@ interface WithChannels {
 }
 
 class Chat {
-  public log = new LogFile('chat');
+  public log;
   private chatIdAdminIdsCache = new TimeCache<number, number[]>({maxSize: 100, ttl: 5 * 60 * 1000});
-  private router = new Router(this.main);
+  private router;
   constructor(private main: Main) {
-    this.main.bot.on('message', (message: TMessage) => {
+    this.log = new LogFile('chat');
+    this.router = new Router(this.main);
+    this.main.bot.on('message', (message) => {
       this.router.handle('message', message);
     });
-    this.main.bot.on('callback_query', (callbackQuery: TCallbackQuery) => {
+    this.main.bot.on('callback_query', (callbackQuery) => {
       this.router.handle('callback_query', callbackQuery);
     });
 
@@ -94,7 +89,7 @@ class Chat {
             const adminIds = this.chatIdAdminIdsCache.get(req.chatId);
             if (adminIds) return adminIds;
 
-            return this.main.bot.getChatAdministrators(req.chatId).then((chatMembers: TChatMember[]) => {
+            return this.main.bot.getChatAdministrators(req.chatId).then((chatMembers) => {
               const adminIds = chatMembers.map(chatMember => chatMember.user.id);
               this.chatIdAdminIdsCache.set(req.chatId, adminIds);
               return adminIds;
@@ -115,7 +110,7 @@ class Chat {
     this.router.textOrCallbackQuery(/(.+)/, (req, res, next) => {
       next();
       if (req.message) {
-        this.main.tracker.track(req.chatId, {
+        tracker.track(req.chatId, {
           ec: 'command',
           ea: req.command,
           el: req.message.text,
@@ -133,7 +128,7 @@ class Chat {
           text: data,
           from: req.callback_query.from
         });
-        this.main.tracker.track(msg.chat.id, {
+        tracker.track(msg.chat.id, {
           ec: 'command',
           ea: command,
           el: msg.text,
@@ -159,9 +154,9 @@ class Chat {
       });
       return this.main.bot.sendMessage(chatId, help, {
         disable_web_page_preview: true,
-        reply_markup: JSON.stringify({
+        reply_markup: {
           inline_keyboard: getMenu(locale, page)
-        })
+        }
       });
     };
 
@@ -177,9 +172,9 @@ class Chat {
     this.router.callback_query(/\/menu(?:\/(?<page>\d+))?/, (req, res) => {
       const {locale} = res;
       const page = parseInt(req.params.page || '0', 10);
-      return this.main.bot.editMessageReplyMarkup(JSON.stringify({
+      return this.main.bot.editMessageReplyMarkup({
         inline_keyboard: getMenu(locale, page)
-      }), {
+      }, {
         chat_id: req.chatId,
         message_id: req.messageId
       }).catch((err: any) => {
@@ -261,37 +256,46 @@ class Chat {
 
   user() {
     const provideChat = <I extends RouterReq, O extends RouterRes>(req: I, res: O, next: () => void) => {
-      return this.main.db.ensureChat('' + req.chatId).then((chat) => {
+      const chatId = req.chatId;
+      if (!chatId) return;
+
+      return this.main.db.ensureChat('' + chatId).then((chat) => {
         Object.assign(req, {chat});
         next();
       }, (err) => {
         debug('ensureChat error! %o', err);
-        this.main.bot.sendMessage(req.chatId, 'Oops something went wrong...').catch((err: any) => {
+        this.main.bot.sendMessage(chatId, 'Oops something went wrong...').catch((err: any) => {
           debug('provideChat sendMessage error! %o', err);
         });
       });
     };
 
     const provideChannels = <I extends RouterReq, O extends RouterRes>(req: I, res: O, next: () => void) => {
-      return this.main.db.getChannelsByChatId('' + req.chatId).then((channels) => {
+      const chatId = req.chatId;
+      if (!chatId) return;
+
+      return this.main.db.getChannelsByChatId('' + chatId).then((channels) => {
         Object.assign(req, {channels});
         next();
       }, (err: any) => {
         debug('ensureChannels error! %o', err);
-        this.main.bot.sendMessage(req.chatId, 'Oops something went wrong...').catch((err: any) => {
+        this.main.bot.sendMessage(chatId, 'Oops something went wrong...').catch((err: any) => {
           debug('provideChannels sendMessage error! %o', err);
         });
       });
     };
 
     const withChannels = <I extends RouterReq, O extends RouterRes>(req: I, res: O, next: () => void) => {
+      const chatId = req.chatId;
+      if (!chatId) return;
+
       const {locale} = res;
       assertType<typeof req & WithChannels>(req);
 
       if (req.channels.length) {
         next();
       } else {
-        this.main.bot.sendMessage(req.chatId, locale.m('alert_empty-channel-list')).catch((err: any) => {
+        this.main.bot.sendMessage(chatId, locale.m('alert_empty-channel-list')).catch((err: any) => {
           debug('withChannels sendMessage error! %o', err);
         });
       }
@@ -323,12 +327,12 @@ class Chat {
           return {query: query.trim()};
         }
 
-        const messageText = locale.m('context_enter-channel-name', {example: this.main.config.defaultChannelName});
+        const messageText = locale.m('context_enter-channel-name', {example: appConfig.defaultChannelName});
         const cancelText = locale.m('alert_command-canceled', {command: 'add'});
         return requestData(locale, req, messageText, cancelText).then(({req, msg}) => {
           const messageText = req.message.text || '';
           requestedData = messageText;
-          this.main.tracker.track(req.chatId, {
+          tracker.track(req.chatId, {
             ec: 'command',
             ea: '/add',
             el: messageText,
@@ -357,10 +361,10 @@ class Chat {
               callback_data: '/choose/cancel'
             }]
           ];
-          return requestChoose(req.chatId, req.fromId, messageId, messageText, cancelText, chooseKeyboard).then(({req, msg}) => {
+          return requestChoose(req.chatId, req.fromId, messageId, messageText, cancelText, chooseKeyboard).then(({req, msgId}) => {
             requestedService = req.params.value;
             const service = this.main.getServiceById(req.params.value)!;
-            return {service, messageId: msg.message_id};
+            return {service, messageId: msgId};
           });
         }).then(({service, messageId}) => {
           return this.main.db.getChannelCountByChatId('' + req.chatId).then((count) => {
@@ -467,7 +471,7 @@ class Chat {
     this.router.textOrCallbackQuery(/\/clear/, (req, res) => {
       const {locale} = res;
       return this.main.bot.sendMessage(req.chatId, locale.m('confirm_clear'), {
-        reply_markup: JSON.stringify({
+        reply_markup: {
           inline_keyboard: [[{
             text: locale.m('action_yes'),
             callback_data: '/clear/confirmed'
@@ -475,7 +479,7 @@ class Chat {
             text: locale.m('action_no'),
             callback_data: '/cancel/clear'
           }]]
-        })
+        }
       }).catch((err: any) => {
         debug('%j error %o', req.command, err);
       });
@@ -540,9 +544,9 @@ class Chat {
 
       return promiseTry(() => {
         if (req.callback_query && !req.query.rel) {
-          return this.main.bot.editMessageReplyMarkup(JSON.stringify({
+          return this.main.bot.editMessageReplyMarkup({
             inline_keyboard: page
-          }), {
+          }, {
             chat_id: req.chatId,
             message_id: req.messageId
           }).catch((err: any) => {
@@ -554,9 +558,9 @@ class Chat {
           });
         } else {
           return this.main.bot.sendMessage(req.chatId, locale.m('context_select-delete-channel'), {
-            reply_markup: JSON.stringify({
+            reply_markup: {
               inline_keyboard: page
-            })
+            }
           });
         }
       }).catch((err) => {
@@ -574,9 +578,9 @@ class Chat {
         }
         return this.main.db.deleteChatById(req.chat.channelId);
       }).then(() => {
-        return this.main.bot.editMessageReplyMarkup(JSON.stringify({
+        return this.main.bot.editMessageReplyMarkup({
           inline_keyboard: getOptions(locale, req.chat)
-        }), {
+        }, {
           chat_id: req.chatId,
           message_id: req.messageId
         }).catch((err: any) => {
@@ -607,7 +611,7 @@ class Chat {
         return requestData(locale, req, messageText, cancelText).then(({req, msg}) => {
           const messageText = req.message.text || '';
           requestedData = messageText;
-          this.main.tracker.track(req.chatId, {
+          tracker.track(req.chatId, {
             ec: 'command',
             ea: '/setChannel',
             el: messageText,
@@ -631,7 +635,7 @@ class Chat {
             }
           }).then(() => {
             return this.main.bot.sendChatAction(channelId, 'typing').then(() => {
-              return this.main.bot.getChat(channelId).then((chat: TChat) => {
+              return this.main.bot.getChat(channelId).then((chat) => {
                 if (chat.type !== 'channel') {
                   throw new ErrorWithCode('This chat type is not supported', 'INCORRECT_CHAT_TYPE');
                 }
@@ -644,9 +648,9 @@ class Chat {
           const message = locale.m('alert_telegram-channel-set', {channelName: channelId});
           return editOrSendNewMessage(req.chatId, messageId, message).then(() => {
             if (req.callback_query) {
-              return this.main.bot.editMessageReplyMarkup(JSON.stringify({
+              return this.main.bot.editMessageReplyMarkup({
                 inline_keyboard: getOptions(locale, req.chat)
-              }), {
+              }, {
                 chat_id: req.chatId,
                 message_id: req.messageId
               }).catch((err: any) => {
@@ -746,9 +750,9 @@ class Chat {
           }
         }
       }).then(() => {
-        return this.main.bot.editMessageReplyMarkup(JSON.stringify({
+        return this.main.bot.editMessageReplyMarkup({
           inline_keyboard: getOptions(locale, req.chat)
-        }), {
+        }, {
           chat_id: req.chatId,
           message_id: req.messageId
         }).catch((err: any) => {
@@ -768,17 +772,17 @@ class Chat {
 
       return promiseTry(() => {
         if (req.callback_query && !req.query.rel) {
-          return this.main.bot.editMessageReplyMarkup(JSON.stringify({
+          return this.main.bot.editMessageReplyMarkup({
             inline_keyboard: getOptions(locale, req.chat)
-          }), {
+          }, {
             chat_id: req.chatId,
             message_id: req.messageId
           });
         } else {
           return this.main.bot.sendMessage(req.chatId, 'Options:', {
-            reply_markup: JSON.stringify({
+            reply_markup: {
               inline_keyboard: getOptions(locale, req.chat)
-            })
+            }
           });
         }
       }).catch((err) => {
@@ -799,7 +803,7 @@ class Chat {
           message = streams.map(stream => getStreamAsText(stream)).join('\n\n');
         }
 
-        const buttons: TInlineKeyboardButton[][] = [];
+        const buttons: TelegramBot.InlineKeyboardButton[][] = [];
         streams.forEach((stream) => {
           if (!stream.isOffline && !stream.isTimeout) {
             buttons.push([{
@@ -818,18 +822,19 @@ class Chat {
 
         const options = {
           disable_web_page_preview: true,
-          parse_mode: 'HTML',
-          reply_markup: JSON.stringify({
+          parse_mode: 'HTML' as ParseMode,
+          reply_markup: {
             inline_keyboard: buttonsPage
-          })
+          }
         };
 
         return promiseTry(() => {
           if (req.callback_query && !req.query.rel) {
-            return this.main.bot.editMessageText(message, Object.assign(options, {
+            return this.main.bot.editMessageText(message, {
+              ...options,
               chat_id: req.chatId,
               message_id: req.messageId,
-            })).catch((err: any) => {
+            }).catch((err: any) => {
               if (err.code === 'ETELEGRAM' && /message is not modified/.test(err.response.body.description)) {
                 return; // pass
               }
@@ -897,7 +902,7 @@ class Chat {
       const pageIndex = parseInt(req.query.page || 0);
       const pages = splitTextByPages(body);
       const prevPages = pages.splice(0, pageIndex);
-      const pageText = pages.shift() || prevPages.shift();
+      const pageText = pages.shift() || prevPages.shift() || '';
 
       const pageControls = [];
       if (pageIndex > 0) {
@@ -915,18 +920,19 @@ class Chat {
 
       const options = {
         disable_web_page_preview: true,
-        parse_mode: 'HTML',
-        reply_markup: JSON.stringify({
+        parse_mode: 'HTML' as ParseMode,
+        reply_markup: {
           inline_keyboard: [pageControls]
-        })
+        }
       };
 
       return promiseTry(() => {
         if (req.callback_query && !req.query.rel) {
-          return this.main.bot.editMessageText(pageText, Object.assign(options, {
+          return this.main.bot.editMessageText(pageText, {
+            ...options,
             chat_id: req.chatId,
             message_id: req.messageId,
-          }));
+          });
         } else {
           return this.main.bot.sendMessage(req.chatId, pageText, options);
         }
@@ -936,7 +942,7 @@ class Chat {
     });
 
     const requestData = (locale: Locale, req: RouterTextReq | RouterCallbackQueryReq, messageText: string, cancelText: string): Promise<{
-      req: RouterTextReq, msg: TMessage
+      req: RouterTextReq, msg: TelegramBot.Message
     }> => {
       const {chatId, fromId} = req;
       const options: {[s: string]: any} = {};
@@ -954,7 +960,7 @@ class Chat {
         });
       }
 
-      return this.main.bot.sendMessage(chatId, msgText, options).then((msg: TMessage) => {
+      return this.main.bot.sendMessage(chatId, msgText, options).then((msg: TelegramBot.Message) => {
         return this.router.waitResponse<RouterTextReq>(null, {
           event: 'message',
           type: 'text',
@@ -972,12 +978,14 @@ class Chat {
       });
     };
 
-    const requestChoose = (chatId: number, fromId: number | null, messageId: number | undefined, messageText: string, cancelText: string, inline_keyboard: TInlineKeyboardButton[][]): Promise<{
-      req: RouterCallbackQueryReq, msg: TMessage
+    const requestChoose = (chatId: number, fromId: number | undefined, messageId: number | undefined, messageText: string, cancelText: string, inline_keyboard: TelegramBot.InlineKeyboardButton[][]): Promise<{
+      req: RouterCallbackQueryReq, msgId: number
     }> => {
       return editOrSendNewMessage(chatId, messageId, messageText, {
-        reply_markup: JSON.stringify({inline_keyboard})
+        reply_markup: {inline_keyboard}
       }).then((msg) => {
+        // todo: fix me
+        const msgId = messageId || (msg as TelegramBot.Message).message_id;
         return this.router.waitResponse<RouterCallbackQueryReq>(/\/choose\/(?<value>.+)/, {
           event: 'callback_query',
           chatId: chatId,
@@ -985,21 +993,21 @@ class Chat {
         }, 3 * 60).then(({req, res, next}) => {
           return this.main.bot.answerCallbackQuery(req.callback_query.id).then(async () => {
             if (req.params.value === 'cancel') {
-              await editOrSendNewMessage(chatId, msg.message_id, cancelText);
+              await editOrSendNewMessage(chatId, msgId, cancelText);
               throw new ErrorWithCode('Response cancel', 'RESPONSE_CANCEL');
             }
-            return {req, msg};
+            return {req, msgId};
           });
         }, async (err) => {
           if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
-            await editOrSendNewMessage(chatId, msg.message_id, cancelText);
+            await editOrSendNewMessage(chatId, msgId, cancelText);
           }
           throw err;
         });
       });
     };
 
-    const editOrSendNewMessage = (chatId: number, messageId: number|undefined, text: string, form?: object): Promise<TMessage> => {
+    const editOrSendNewMessage = (chatId: number, messageId: number|undefined, text: string, form?: object): Promise<TelegramBot.Message | boolean> => {
       return promiseTry(() => {
         if (!messageId) {
           throw new ErrorWithCode('messageId is empty', 'MESSAGE_ID_IS_EMPTY');
@@ -1025,7 +1033,7 @@ class Chat {
   admin() {
     const isAdmin = <T extends RouterReqWithAnyMessage>(req: T, res: RouterRes, next: () => void) => {
       const {locale} = res;
-      const adminIds = this.main.config.adminIds || [];
+      const adminIds = appConfig.adminIds;
       if (adminIds.includes(req.chatId)) {
         next();
       } else {
@@ -1076,7 +1084,7 @@ class Chat {
       const {locale} = res;
       type Button = {text: string, callback_data: string};
       return this.main.bot.sendMessage(req.chatId, locale.m('title_admin-menu'), {
-        reply_markup: JSON.stringify({
+        reply_markup: {
           inline_keyboard: commands.reduce<Button[][]>((menu, {name, method}, index) => {
             const buttons: Button[] = index % 2 ? menu.pop()! : [];
             buttons.push({
@@ -1086,7 +1094,7 @@ class Chat {
             menu.push(buttons);
             return menu;
           }, []),
-        }),
+        },
       }).catch((err: any) => {
         debug('%j error %o', req.command, err);
       });

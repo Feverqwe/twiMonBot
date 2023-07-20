@@ -5,12 +5,14 @@ import ErrorWithCode from "../tools/errorWithCode";
 import parallel from "../tools/parallel";
 import fetchRequest, {FetchRequestOptions, HTTPError} from "../tools/fetchRequest";
 import RateLimit2 from "../tools/rateLimit2";
+import {appConfig} from "../appConfig";
+import {getDebug} from "../tools/getDebug";
 
 const rateLimit = new RateLimit2(10, "sec");
 
 const limitedFetchRequest = rateLimit.wrap(fetchRequest);
 
-const debug = require('debug')('app:Wasd');
+const debug = getDebug('app:Wasd');
 
 const ChannelInfo = s.object({
   result: s.object({
@@ -229,7 +231,7 @@ class Wasd implements ServiceInterface {
       ...options,
       headers: {
         ...options.headers,
-        Authorization: `Token ${this.main.config.wasdToken}`,
+        Authorization: `Token ${appConfig.wasdToken}`,
       }
     };
   }

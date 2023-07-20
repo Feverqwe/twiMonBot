@@ -9,8 +9,10 @@ import promiseTry from "../tools/promiseTry";
 import fetchRequest, {HTTPError} from "../tools/fetchRequest";
 import {decode as decodeHtmlEntity} from "html-entities";
 import ytCostCounter from "../tools/ytCostCounter";
+import {appConfig} from "../appConfig";
+import {getDebug} from "../tools/getDebug";
 
-const debug = require('debug')('app:Youtube');
+const debug = getDebug('app:Youtube');
 
 const costCounter = ytCostCounter(150000);
 
@@ -153,7 +155,7 @@ class Youtube implements ServiceInterface {
         safeSearch: 'none',
         type: 'video',
         fields: 'items(id/videoId,snippet),nextPageToken',
-        key: this.main.config.ytToken,
+        key: appConfig.ytToken,
       };
 
       if (isUpcoming) {
@@ -193,7 +195,7 @@ class Youtube implements ServiceInterface {
             id: videoIds.join(','),
             pageToken: pageToken,
             fields: 'items(id,liveStreamingDetails),nextPageToken',
-            key: this.main.config.ytToken
+            key: appConfig.ytToken
           },
           keepAlive: true,
           responseType: 'json',
@@ -245,7 +247,7 @@ class Youtube implements ServiceInterface {
             pageToken: pageToken,
             maxResults: 50,
             fields: 'items/id,nextPageToken',
-            key: this.main.config.ytToken
+            key: appConfig.ytToken
           },
           keepAlive: true,
           responseType: 'json',
@@ -300,7 +302,7 @@ class Youtube implements ServiceInterface {
           channelId: channelId,
           maxResults: 1,
           fields: 'items/snippet',
-          key: this.main.config.ytToken
+          key: appConfig.ytToken
         },
         keepAlive: true,
         responseType: 'json',
@@ -368,7 +370,7 @@ class Youtube implements ServiceInterface {
         id: videoId,
         maxResults: 1,
         fields: 'items(snippet/channelId,liveStreamingDetails)',
-        key: this.main.config.ytToken
+        key: appConfig.ytToken
       },
       keepAlive: true,
       responseType: 'json',
@@ -417,7 +419,7 @@ class Youtube implements ServiceInterface {
         forUsername: username,
         maxResults: 1,
         fields: 'items/id',
-        key: this.main.config.ytToken
+        key: appConfig.ytToken
       },
       keepAlive: true,
       responseType: 'json',
@@ -449,7 +451,7 @@ class Youtube implements ServiceInterface {
         type: 'channel',
         maxResults: 1,
         fields: 'items(id)',
-        key: this.main.config.ytToken
+        key: appConfig.ytToken
       },
       keepAlive: true,
       responseType: 'json',
@@ -476,7 +478,7 @@ class Youtube implements ServiceInterface {
           safeSearch: 'none',
           type: 'video',
           fields: 'items(id/videoId)',
-          key: this.main.config.ytToken
+          key: appConfig.ytToken
         },
         keepAlive: true,
         responseType: 'json',

@@ -5,8 +5,9 @@ import parallel from "../tools/parallel";
 import arrayByPart from "../tools/arrayByPart";
 import {ServiceInterface, ServiceStream} from "../checker";
 import fetchRequest, {HTTPError} from "../tools/fetchRequest";
+import {getDebug} from "../tools/getDebug";
 
-const debug = require('debug')('app:Goodgame');
+const debug = getDebug('app:Goodgame');
 
 const StreamStrict = s.object({
   id: s.number(),

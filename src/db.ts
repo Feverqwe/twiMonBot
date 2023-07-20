@@ -4,11 +4,13 @@ import serviceId from "./tools/serviceId";
 import Main from "./main";
 import parallel from "./tools/parallel";
 import {ServiceChannel, ServiceInterface} from "./checker";
-import Sequelize, {Op, Transaction} from "sequelize";
+import Sequelize, {Op} from "sequelize";
 import arrayDifference from "./tools/arrayDifference";
 import assertType from "./tools/assertType";
+import {appConfig} from "./appConfig";
+import {getDebug} from "./tools/getDebug";
 
-const debug = require('debug')('app:db');
+const debug = getDebug('app:db');
 
 export interface NewChat {
   id: string;
@@ -206,9 +208,9 @@ export class YtPubSubFeedModel extends Sequelize.Model {
 class Db {
   sequelize: Sequelize.Sequelize;
   constructor(private main: Main) {
-    this.sequelize = new Sequelize.Sequelize(main.config.db.database, main.config.db.user, main.config.db.password, {
-      host: main.config.db.host,
-      port: main.config.db.port,
+    this.sequelize = new Sequelize.Sequelize(appConfig.db.database, appConfig.db.user, appConfig.db.password, {
+      host: appConfig.db.host,
+      port: appConfig.db.port,
       dialect: 'mariadb',
       omitNull: true,
       logging: false,
@@ -469,7 +471,7 @@ class Db {
   async init() {
     await this.sequelize.authenticate();
     await this.sequelize.sync();
-    await this.removeChannelByIds(this.main.config.channelBlackList);
+    await this.removeChannelByIds(appConfig.channelBlackList);
   }
 
   async ensureChat(id: string) {
@@ -531,7 +533,7 @@ class Db {
 
   async setChatSendTimeoutExpiresAt(ids: string[]) {
     const date = new Date();
-    date.setSeconds(date.getSeconds() + this.main.config.chatSendTimeoutAfterErrorMinutes * 60);
+    date.setSeconds(date.getSeconds() + appConfig.chatSendTimeoutAfterErrorMinutes * 60);
     return ChatModel.update({sendTimeoutExpiresAt: date}, {
       where: {id: ids}
     });
@@ -561,7 +563,7 @@ class Db {
   async ensureChannel(service: ServiceInterface, rawChannel: ServiceChannel) {
     const id = serviceId.wrap(service, rawChannel.id);
 
-    if (this.main.config.channelBlackList.includes(id)) {
+    if (appConfig.channelBlackList.includes(id)) {
       throw new ErrorWithCode('Channel in black list', 'CHANNEL_IN_BLACK_LIST');
     }
 
@@ -680,7 +682,7 @@ class Db {
 
   async getServiceChannelsForSync(serviceId: string, limit: number) {
     const date = new Date();
-    date.setSeconds(date.getSeconds() - this.main.config.checkChannelIfLastSyncLessThenMinutes * 60);
+    date.setSeconds(date.getSeconds() - appConfig.checkChannelIfLastSyncLessThenMinutes * 60);
     return ChannelModel.findAll({
       where: {
         service: serviceId,
@@ -703,10 +705,10 @@ class Db {
 
   async setChannelsSyncTimeoutExpiresAt(ids: string[]) {
     const aliveTimeout = new Date();
-    aliveTimeout.setSeconds(aliveTimeout.getSeconds() + this.main.config.channelSyncTimeoutMinutes * 60);
+    aliveTimeout.setSeconds(aliveTimeout.getSeconds() + appConfig.channelSyncTimeoutMinutes * 60);
 
     const deadTimeout = new Date();
-    deadTimeout.setSeconds(deadTimeout.getSeconds() + this.main.config.deadChannelSyncTimeoutMinutes * 60);
+    deadTimeout.setSeconds(deadTimeout.getSeconds() + appConfig.deadChannelSyncTimeoutMinutes * 60);
 
     const channelIsDeadFromDate = new Date();
     channelIsDeadFromDate.setMonth(channelIsDeadFromDate.getMonth() - 3);
@@ -992,7 +994,7 @@ class Db {
 
   async getYtPubSubChannelIdsForSync(channelIds: string[]) {
     const date = new Date();
-    date.setMinutes(date.getMinutes() - this.main.config.checkPubSubChannelIfLastSyncLessThenMinutes);
+    date.setMinutes(date.getMinutes() - appConfig.checkPubSubChannelIfLastSyncLessThenMinutes);
     const results: Pick<YtPubSubChannelModel, 'id'>[] = await YtPubSubChannelModel.findAll({
       where: {
         id: channelIds,
@@ -1013,7 +1015,7 @@ class Db {
 
   async setYtPubSubChannelsSyncTimeoutExpiresAt(ids: string[]) {
     const date = new Date();
-    date.setSeconds(date.getSeconds() + this.main.config.channelSyncTimeoutMinutes * 60);
+    date.setSeconds(date.getSeconds() + appConfig.channelSyncTimeoutMinutes * 60);
     return YtPubSubChannelModel.update({
       syncTimeoutExpiresAt: date
     }, {
@@ -1023,7 +1025,7 @@ class Db {
 
   async getYtPubSubChannelIdsWithExpiresSubscription(limit = 50) {
     const date = new Date();
-    date.setMinutes(date.getMinutes() + this.main.config.updateChannelPubSubSubscribeIfExpiresLessThenMinutes);
+    date.setMinutes(date.getMinutes() + appConfig.updateChannelPubSubSubscribeIfExpiresLessThenMinutes);
     const results: Pick<YtPubSubChannelModel, 'id'>[] = await YtPubSubChannelModel.findAll({
       where: {
         subscriptionExpiresAt: {[Op.lt]: date},
@@ -1037,7 +1039,7 @@ class Db {
 
   async setYtPubSubChannelsSubscriptionTimeoutExpiresAt(ids: string[]) {
     const date = new Date();
-    date.setSeconds(date.getSeconds() + this.main.config.channelPubSubSubscribeTimeoutMinutes * 60);
+    date.setSeconds(date.getSeconds() + appConfig.channelPubSubSubscribeTimeoutMinutes * 60);
     return YtPubSubChannelModel.update({subscriptionTimeoutExpiresAt: date}, {
       where: {id: ids}
     });
@@ -1120,7 +1122,7 @@ class Db {
 
   async setFeedsSyncTimeoutExpiresAt(ids: string[]) {
     const date = new Date();
-    date.setSeconds(date.getSeconds() + this.main.config.feedSyncTimeoutMinutes * 60);
+    date.setSeconds(date.getSeconds() + appConfig.feedSyncTimeoutMinutes * 60);
     return YtPubSubFeedModel.update({
       syncTimeoutExpiresAt: date
     }, {

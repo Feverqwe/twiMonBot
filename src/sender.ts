@@ -7,9 +7,11 @@ import arrayUniq from "./tools/arrayUniq";
 import parallel from "./tools/parallel";
 import getInProgress from "./tools/getInProgress";
 import promiseLimit from "./tools/promiseLimit";
+import {appConfig} from "./appConfig";
+import {getDebug} from "./tools/getDebug";
+import throttle from 'lodash.throttle';
 
-const debug = require('debug')('app:Sender');
-const throttle = require('lodash.throttle');
+const debug = getDebug('app:Sender');
 
 const oneLimit = promiseLimit(1);
 
@@ -25,7 +27,7 @@ class Sender {
   checkTimer: (() => void) | null = null;
   startCheckInterval() {
     this.checkTimer && this.checkTimer();
-    this.checkTimer = everyMinutes(this.main.config.emitSendMessagesEveryMinutes, () => {
+    this.checkTimer = everyMinutes(appConfig.emitSendMessagesEveryMinutes, () => {
       this.check().catch((err: any) => {
         debug('check error', err);
       });
@@ -35,7 +37,7 @@ class Sender {
   cleanTimer: (() => void) | null = null;
   startCleanInterval() {
     this.cleanTimer && this.cleanTimer();
-    this.cleanTimer = everyMinutes(this.main.config.emitCheckExistsChatsEveryHours * 60, () => {
+    this.cleanTimer = everyMinutes(appConfig.emitCheckExistsChatsEveryHours * 60, () => {
       this.checkChatsExists().catch((err) => {
         debug('checkChatsExists error', err);
       });

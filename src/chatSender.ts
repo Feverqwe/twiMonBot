@@ -3,20 +3,23 @@ import promiseTry from "./tools/promiseTry";
 import ErrorWithCode from "./tools/errorWithCode";
 import {getStreamAsCaption, getStreamAsDescription} from "./tools/streamToString";
 import {ServiceInterface} from "./checker";
-import {TMessage} from "./router";
 import appendQueryParam from "./tools/appendQueryParam";
 import inlineInspect from "./tools/inlineInspect";
 import fetchRequest from "./tools/fetchRequest";
 import {ChatModel, MessageModel, StreamModelWithChannel} from "./db";
+import {getDebug} from "./tools/getDebug";
+import TelegramBot from "node-telegram-bot-api";
+import {tracker} from "./tracker";
+import ReadableStream = NodeJS.ReadableStream;
 
-const debug = require('debug')('app:ChatSender');
+const debug = getDebug('app:ChatSender');
 
 const streamWeakMap = new WeakMap();
 
 interface SentMessage {
   type: string,
   text: string,
-  message: TMessage
+  message: TelegramBot.Message
 }
 
 class ChatSender {
@@ -117,7 +120,8 @@ class ChatSender {
       return true;
     }
 
-    const message = this.messages.shift()!;
+    const message = this.messages.shift();
+    if (!message) return true;
 
     return this.main.sender.provideStream(message.streamId, (stream) => {
       let text: string;
@@ -130,7 +134,7 @@ class ChatSender {
       return promiseTry(() => {
         if (message.text === text) return;
 
-        return this.updateStreamMessage(message.type, message.chatId, message.id, stream, text).catch((err: any) => {
+        return this.updateStreamMessage(message.type, message.chatId, Number(message.id), stream, text).catch((err: any) => {
           if (err.code === 'ETELEGRAM' && /message is not modified/.test(err.response.body.description)) {
             return; // pass
           }
@@ -170,7 +174,7 @@ class ChatSender {
 
     return promiseTry(() => {
       if (this.chat.isEnabledAutoClean && message.createdAt.getTime() > minDeleteTime.getTime()) {
-        return this.deleteStreamMessage(message.chatId, message.id);
+        return this.deleteStreamMessage(message.chatId, Number(message.id));
       }
     }).catch((err) => {
       if (err.code === 'ETELEGRAM') {
@@ -262,7 +266,7 @@ class ChatSender {
     const text = getStreamAsDescription(stream, this.main.getServiceById(stream.channel.service)!);
     return this.main.bot.sendMessage(this.chat.id, text, {
       parse_mode: 'HTML'
-    }).then((message: TMessage) => {
+    }).then((message) => {
       let type;
       if (isFallback) {
         type = 'send message as fallback';
@@ -270,7 +274,7 @@ class ChatSender {
         type = 'send message';
       }
 
-      this.main.tracker.track(this.chat.id, {
+      tracker.track(this.chat.id, {
         ec: 'bot',
         ea: 'sendMsg',
         el: stream.channelId,
@@ -290,8 +294,8 @@ class ChatSender {
   sendStreamAsPhoto(stream: StreamModelWithChannel): Promise<SentMessage> {
     if (stream.telegramPreviewFileId) {
       const caption = getStreamAsCaption(stream, this.main.getServiceById(stream.channel.service)!);
-      return this.main.bot.sendPhotoQuote(this.chat.id, stream.telegramPreviewFileId, {caption}).then((message: TMessage) => {
-        this.main.tracker.track(this.chat.id, {
+      return this.main.bot.sendPhotoQuote(this.chat.id, stream.telegramPreviewFileId, {caption}).then((message) => {
+        tracker.track(this.chat.id, {
           ec: 'bot',
           ea: 'sendPhoto',
           el: stream.channelId,
@@ -364,9 +368,9 @@ class ChatSender {
         url = appendQueryParam(url, '_', stream.updatedAt.getTime());
       }
       const caption = getStreamAsCaption(stream, this.main.getServiceById(stream.channel.service)!);
-      return this.main.bot.sendPhoto(this.chat.id, url, {caption}).then((message: TMessage) => {
+      return this.main.bot.sendPhoto(this.chat.id, url, {caption}).then((message) => {
         this.main.sender.log.write(`[send photo as url] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`);
-        this.main.tracker.track(this.chat.id, {
+        tracker.track(this.chat.id, {
           ec: 'bot',
           ea: 'sendPhoto',
           el: stream.channelId,
@@ -386,9 +390,9 @@ class ChatSender {
           }
           return fetchRequest<ReadableStream>(url, {responseType: 'stream', keepAlive: true}).then((response) => {
             return this.main.bot.sendPhoto(this.chat.id, response.body, {caption}, {contentType, filename: '-'});
-          }).then((message: TMessage) => {
+          }).then((message) => {
             this.main.sender.log.write(`[send photo as file] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`);
-            this.main.tracker.track(this.chat.id, {
+            tracker.track(this.chat.id, {
               ec: 'bot',
               ea: 'sendPhoto',
               el: stream.channelId,
@@ -399,7 +403,7 @@ class ChatSender {
         }
 
         throw err;
-      }).then((message: TMessage) => {
+      }).then((message) => {
         const fileId = getPhotoFileIdFromMessage(message);
         if (!fileId) {
           throw new ErrorWithCode('File id if not found', 'FILE_ID_IS_NOT_FOUND');
@@ -417,16 +421,16 @@ class ChatSender {
     });
   }
 
-  updateStreamMessage(type: string, chatId: string, messageId: string, stream: StreamModelWithChannel, text: string) {
+  async updateStreamMessage(type: string, chatId: string, messageId: number, stream: StreamModelWithChannel, text: string) {
     switch (type) {
       case 'text': {
         return this.main.bot.editMessageText(text, {
           chat_id: chatId,
           message_id: messageId,
           parse_mode: 'HTML'
-        }).then((message: TMessage|boolean) => {
+        }).then((message: TelegramBot.Message|boolean) => {
           this.main.sender.log.write(`[update text] ${chatId} ${messageId} ${stream.channelId} ${stream.id}`);
-          this.main.tracker.track(chatId, {
+          tracker.track(chatId, {
             ec: 'bot',
             ea: 'updateText',
             el: stream.channelId,
@@ -439,9 +443,9 @@ class ChatSender {
         return this.main.bot.editMessageCaption(text, {
           chat_id: chatId,
           message_id: messageId
-        }).then((message: TMessage|boolean) => {
+        }).then((message: TelegramBot.Message|boolean) => {
           this.main.sender.log.write(`[update caption] ${chatId} ${messageId} ${stream.channelId} ${stream.id}`);
-          this.main.tracker.track(chatId, {
+          tracker.track(chatId, {
             ec: 'bot',
             ea: 'updatePhoto',
             el: stream.channelId,
@@ -453,7 +457,7 @@ class ChatSender {
     }
   }
 
-  deleteStreamMessage(chatId: string, messageId: string) {
+  deleteStreamMessage(chatId: string, messageId: number) {
     return this.main.bot.deleteMessage(chatId, messageId).then((isSuccess: boolean) => {
       this.main.sender.log.write(`[delete] ${chatId} ${messageId}`);
       return isSuccess;
@@ -488,9 +492,9 @@ const sendUrlErrors = [
   /FILE_REFERENCE_.+/,
 ];
 
-function getPhotoFileIdFromMessage(message: TMessage): string|null {
+function getPhotoFileIdFromMessage(message: TelegramBot.Message): string|null {
   let fileId = null;
-  message.photo!.slice(0).sort((a, b) => {
+  message.photo?.slice(0).sort((a, b) => {
     return a.file_size! > b.file_size! ? -1 : 1;
   }).some(item => fileId = item.file_id);
   return fileId;
