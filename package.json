@@ -11,7 +11,8 @@
     "prettier:fix": "npx prettier --write ./src"
   },
   "dependencies": {
-    "debug": "^4.2.0",
+    "debug": "^4.3.4",
+    "dotenv": "^16.3.1",
     "express": "^4.17.1",
     "form-data": "^4.0.0",
     "html-entities": "^2.3.2",
@@ -20,7 +21,7 @@
     "lodash.throttle": "^4.1.1",
     "mariadb": "^3.0.0",
     "node-fetch": "^2.6.1",
-    "node-telegram-bot-api": "^0.56.0",
+    "node-telegram-bot-api": "^0.61.0",
     "p-limit": "^3.1.0",
     "quick-lru": "^5.1.1",
     "sequelize": "^6.29.0",
