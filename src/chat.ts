@@ -38,11 +38,10 @@ interface WithChannels {
 }
 
 class Chat {
-  public log;
+  public log = new LogFile('chat');
   private chatIdAdminIdsCache = new TimeCache<number, number[]>({maxSize: 100, ttl: 5 * 60 * 1000});
-  private router;
+  private router: Router;
   constructor(private main: Main) {
-    this.log = new LogFile('chat');
     this.router = new Router(this.main);
     this.main.bot.on('message', (message) => {
       this.router.handle('message', message);
