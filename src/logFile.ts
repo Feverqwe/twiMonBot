@@ -1,6 +1,6 @@
-import fs, {WriteStream} from "node:fs";
-import path from "node:path";
-import {getDebug} from "./tools/getDebug";
+import fs, {WriteStream} from 'node:fs';
+import path from 'node:path';
+import {getDebug} from './tools/getDebug';
 
 const debug = getDebug('app:LogFile');
 
@@ -14,11 +14,11 @@ class LogFile {
     ensureDir(place);
 
     this.stream = fs.createWriteStream(path.join(place, `${name}.log`), {
-      flags: 'a+'
+      flags: 'a+',
     });
   }
 
-  write(...args: any[]):void {
+  write(...args: any[]): void {
     args.unshift(`[${clfdate(new Date())}]`);
     try {
       this.stream.write(args.join(' ') + '\n');
@@ -36,10 +36,19 @@ function ensureDir(place: string) {
   }
 }
 
-
 const CLF_MONTH = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 function clfdate(dateTime: Date): string {
@@ -51,9 +60,20 @@ function clfdate(dateTime: Date): string {
 
   const month = CLF_MONTH[dateTime.getUTCMonth()];
 
-  return pad2(date) + '/' + month + '/' + year +
-    ':' + pad2(hour) + ':' + pad2(mins) + ':' + pad2(secs) +
-    ' +0000';
+  return (
+    pad2(date) +
+    '/' +
+    month +
+    '/' +
+    year +
+    ':' +
+    pad2(hour) +
+    ':' +
+    pad2(mins) +
+    ':' +
+    pad2(secs) +
+    ' +0000'
+  );
 }
 
 function pad2(num: number): string {

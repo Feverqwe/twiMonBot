@@ -1,8 +1,11 @@
-import promiseTry from "./promiseTry";
+import promiseTry from './promiseTry';
 
-type Cache<T> = {useCount: number, result: T, timerId?: NodeJS.Timeout};
+type Cache<T> = {useCount: number; result: T; timerId?: NodeJS.Timeout};
 
-const getProvider = <I, T, R>(requestDataById: (id: I) => Promise<T>, keepAlive = 0): (id: I, callback: (result: T) => R) => Promise<R> => {
+const getProvider = <I, T, R>(
+  requestDataById: (id: I) => Promise<T>,
+  keepAlive = 0,
+): ((id: I, callback: (result: T) => R) => Promise<R>) => {
   const idCacheMap = new Map<I, Cache<T>>();
   const inflightCache: Partial<Record<string, Promise<Cache<T>>>> = {};
 
@@ -20,13 +23,15 @@ const getProvider = <I, T, R>(requestDataById: (id: I) => Promise<T>, keepAlive 
         return inflightPromise;
       }
 
-      return inflightCache[key] = requestDataById(id).then((result) => {
-        const cache: Cache<T> = {useCount: 0, result};
-        idCacheMap.set(id, cache);
-        return cache;
-      }).finally(() => {
-        delete inflightCache[key];
-      });
+      return (inflightCache[key] = requestDataById(id)
+        .then((result) => {
+          const cache: Cache<T> = {useCount: 0, result};
+          idCacheMap.set(id, cache);
+          return cache;
+        })
+        .finally(() => {
+          delete inflightCache[key];
+        }));
     }).then((cache) => {
       cache.useCount++;
       return promiseTry(() => callback(cache.result)).finally(() => {
@@ -39,7 +44,7 @@ const getProvider = <I, T, R>(requestDataById: (id: I) => Promise<T>, keepAlive 
         }, keepAlive);
       });
     });
-  }
+  };
 };
 
 export default getProvider;

@@ -1,25 +1,31 @@
-import Router, {RouterCallbackQueryReq, RouterReq, RouterReqWithAnyMessage, RouterRes, RouterTextReq,} from "./router";
-import htmlSanitize from "./tools/htmlSanitize";
-import ErrorWithCode from "./tools/errorWithCode";
-import pageBtnList from "./tools/pageBtnList";
-import splitTextByPages from "./tools/splitTextByPages";
-import LogFile from "./logFile";
-import ensureMap from "./tools/ensureMap";
-import arrayByPart from "./tools/arrayByPart";
-import promiseTry from "./tools/promiseTry";
-import Main from "./main";
-import {ChannelModel, ChatModel, ChatModelWithOptionalChannel, NewChat} from "./db";
-import {getStreamAsButtonText, getStreamAsText} from "./tools/streamToString";
-import ChatSender from "./chatSender";
-import parallel from "./tools/parallel";
-import TimeCache from "./tools/timeCache";
-import assertType from "./tools/assertType";
-import Locale from "./locale";
-import {appConfig} from "./appConfig";
-import {getDebug} from "./tools/getDebug";
+import Router, {
+  RouterCallbackQueryReq,
+  RouterReq,
+  RouterReqWithAnyMessage,
+  RouterRes,
+  RouterTextReq,
+} from './router';
+import htmlSanitize from './tools/htmlSanitize';
+import ErrorWithCode from './tools/errorWithCode';
+import pageBtnList from './tools/pageBtnList';
+import splitTextByPages from './tools/splitTextByPages';
+import LogFile from './logFile';
+import ensureMap from './tools/ensureMap';
+import arrayByPart from './tools/arrayByPart';
+import promiseTry from './tools/promiseTry';
+import Main from './main';
+import {ChannelModel, ChatModel, ChatModelWithOptionalChannel, NewChat} from './db';
+import {getStreamAsButtonText, getStreamAsText} from './tools/streamToString';
+import ChatSender from './chatSender';
+import parallel from './tools/parallel';
+import TimeCache from './tools/timeCache';
+import assertType from './tools/assertType';
+import Locale from './locale';
+import {appConfig} from './appConfig';
+import {getDebug} from './tools/getDebug';
 import jsonStringifyPretty from 'json-stringify-pretty-compact';
-import {tracker} from "./tracker";
-import TelegramBot, {ParseMode} from "node-telegram-bot-api";
+import {tracker} from './tracker';
+import TelegramBot, {ParseMode} from 'node-telegram-bot-api';
 
 const debug = getDebug('app:Chat');
 
@@ -90,7 +96,7 @@ class Chat {
             if (adminIds) return adminIds;
 
             return this.main.bot.getChatAdministrators(req.chatId).then((chatMembers) => {
-              const adminIds = chatMembers.map(chatMember => chatMember.user.id);
+              const adminIds = chatMembers.map((chatMember) => chatMember.user.id);
               this.chatIdAdminIdsCache.set(req.chatId, adminIds);
               return adminIds;
             });
@@ -116,8 +122,7 @@ class Chat {
           el: req.message.text,
           t: 'event',
         });
-      } else
-      if (req.callback_query) {
+      } else if (req.callback_query) {
         const data = req.callback_query.data;
         let command = '';
         let m = /(\/[^?\s]+)/.exec(data);
@@ -126,7 +131,7 @@ class Chat {
         }
         const msg = Object.assign({}, req.callback_query.message, {
           text: data,
-          from: req.callback_query.from
+          from: req.callback_query.from,
         });
         tracker.track(msg.chat.id, {
           ec: 'command',
@@ -149,14 +154,17 @@ class Chat {
   menu() {
     const sendMenu = (locale: Locale, chatId: number, page: number) => {
       const help = locale.m('alert_help', {
-        services: this.main.services.slice(0, -1).map(s => s.name).join(', '),
+        services: this.main.services
+          .slice(0, -1)
+          .map((s) => s.name)
+          .join(', '),
         lestService: this.main.services.slice(-1)[0]?.name || '',
       });
       return this.main.bot.sendMessage(chatId, help, {
         disable_web_page_preview: true,
         reply_markup: {
-          inline_keyboard: getMenu(locale, page)
-        }
+          inline_keyboard: getMenu(locale, page),
+        },
       });
     };
 
@@ -172,23 +180,28 @@ class Chat {
     this.router.callback_query(/\/menu(?:\/(?<page>\d+))?/, (req, res) => {
       const {locale} = res;
       const page = parseInt(req.params.page || '0', 10);
-      return this.main.bot.editMessageReplyMarkup({
-        inline_keyboard: getMenu(locale, page)
-      }, {
-        chat_id: req.chatId,
-        message_id: req.messageId
-      }).catch((err: any) => {
-        if (/message to edit not found/.test(err.message)) {
-          return sendMenu(locale, req.chatId, page);
-        } else
-        if (/message is not modified/.test(err.message)) {
-          // pass
-        } else {
-          throw err;
-        }
-      }).catch((err: any) => {
-        debug('%j error %o', req.command, err);
-      });
+      return this.main.bot
+        .editMessageReplyMarkup(
+          {
+            inline_keyboard: getMenu(locale, page),
+          },
+          {
+            chat_id: req.chatId,
+            message_id: req.messageId,
+          },
+        )
+        .catch((err: any) => {
+          if (/message to edit not found/.test(err.message)) {
+            return sendMenu(locale, req.chatId, page);
+          } else if (/message is not modified/.test(err.message)) {
+            // pass
+          } else {
+            throw err;
+          }
+        })
+        .catch((err: any) => {
+          debug('%j error %o', req.command, err);
+        });
     });
 
     this.router.textOrCallbackQuery(/\/top/, (req, res) => {
@@ -197,52 +210,66 @@ class Chat {
         this.main.db.getChatIdChannelIdChatIdCount(),
         this.main.db.getChatIdChannelIdChannelIdCount(),
         this.main.db.getOnlineStreamCount(),
-        Promise.all(this.main.services.map((service) => {
-          return this.main.db.getChatIdChannelIdTop10ByServiceId(service.id);
-        })),
-        Promise.all(this.main.services.map((service) => {
-          return this.main.db.getServiceIdChannelCount(service.id);
-        })),
-      ]).then(([chatCount, channelCount, onlineCount, serviceTopChannelsList, serviceChannelCountList]) => {
-        const lines = [];
+        Promise.all(
+          this.main.services.map((service) => {
+            return this.main.db.getChatIdChannelIdTop10ByServiceId(service.id);
+          }),
+        ),
+        Promise.all(
+          this.main.services.map((service) => {
+            return this.main.db.getServiceIdChannelCount(service.id);
+          }),
+        ),
+      ])
+        .then(
+          ([
+            chatCount,
+            channelCount,
+            onlineCount,
+            serviceTopChannelsList,
+            serviceChannelCountList,
+          ]) => {
+            const lines = [];
 
-        lines.push(
-          locale.m('context-user-count', {count: chatCount}),
-          locale.m('context-channel-count', {count: channelCount}),
-          locale.m('context_online-count', {count: onlineCount}),
-        );
+            lines.push(
+              locale.m('context-user-count', {count: chatCount}),
+              locale.m('context-channel-count', {count: channelCount}),
+              locale.m('context_online-count', {count: onlineCount}),
+            );
 
-        const serviceCountMap = new Map();
-        serviceChannelCountList.forEach((item) => {
-          const {service, channelCount} = item;
-          serviceCountMap.set(service, channelCount);
-        });
-
-        serviceTopChannelsList.sort((aa, bb) => {
-          const a = aa.length;
-          const b = bb.length;
-          return a === b ? 0 : a > b ? -1 : 1;
-        });
-
-        serviceTopChannelsList.forEach((serviceTopChannels) => {
-          if (serviceTopChannels.length) {
-            const service = this.main.getServiceById(serviceTopChannels[0].service)!;
-            const channelCount = serviceCountMap.get(serviceTopChannels[0].service);
-            const name = service.name;
-            lines.push('');
-            lines.push(`${name} (${channelCount}):`);
-            serviceTopChannels.forEach(({title, chatCount}, index) => {
-              lines.push(chatCount + ' - ' + title);
+            const serviceCountMap = new Map();
+            serviceChannelCountList.forEach((item) => {
+              const {service, channelCount} = item;
+              serviceCountMap.set(service, channelCount);
             });
-          }
-        });
 
-        return this.main.bot.sendMessage(req.chatId, lines.join('\n'), {
-          disable_web_page_preview: true
+            serviceTopChannelsList.sort((aa, bb) => {
+              const a = aa.length;
+              const b = bb.length;
+              return a === b ? 0 : a > b ? -1 : 1;
+            });
+
+            serviceTopChannelsList.forEach((serviceTopChannels) => {
+              if (serviceTopChannels.length) {
+                const service = this.main.getServiceById(serviceTopChannels[0].service)!;
+                const channelCount = serviceCountMap.get(serviceTopChannels[0].service);
+                const name = service.name;
+                lines.push('');
+                lines.push(`${name} (${channelCount}):`);
+                serviceTopChannels.forEach(({title, chatCount}, index) => {
+                  lines.push(chatCount + ' - ' + title);
+                });
+              }
+            });
+
+            return this.main.bot.sendMessage(req.chatId, lines.join('\n'), {
+              disable_web_page_preview: true,
+            });
+          },
+        )
+        .catch((err) => {
+          debug('%j error %o', req.command, err);
         });
-      }).catch((err) => {
-        debug('%j error %o', req.command, err);
-      });
     });
 
     this.router.textOrCallbackQuery(/\/about/, (req, res) => {
@@ -255,37 +282,55 @@ class Chat {
   }
 
   user() {
-    const provideChat = <I extends RouterReq, O extends RouterRes>(req: I, res: O, next: () => void) => {
+    const provideChat = <I extends RouterReq, O extends RouterRes>(
+      req: I,
+      res: O,
+      next: () => void,
+    ) => {
       const chatId = req.chatId;
       if (!chatId) return;
 
-      return this.main.db.ensureChat('' + chatId).then((chat) => {
-        Object.assign(req, {chat});
-        next();
-      }, (err) => {
-        debug('ensureChat error! %o', err);
-        this.main.bot.sendMessage(chatId, 'Oops something went wrong...').catch((err: any) => {
-          debug('provideChat sendMessage error! %o', err);
-        });
-      });
+      return this.main.db.ensureChat('' + chatId).then(
+        (chat) => {
+          Object.assign(req, {chat});
+          next();
+        },
+        (err) => {
+          debug('ensureChat error! %o', err);
+          this.main.bot.sendMessage(chatId, 'Oops something went wrong...').catch((err: any) => {
+            debug('provideChat sendMessage error! %o', err);
+          });
+        },
+      );
     };
 
-    const provideChannels = <I extends RouterReq, O extends RouterRes>(req: I, res: O, next: () => void) => {
+    const provideChannels = <I extends RouterReq, O extends RouterRes>(
+      req: I,
+      res: O,
+      next: () => void,
+    ) => {
       const chatId = req.chatId;
       if (!chatId) return;
 
-      return this.main.db.getChannelsByChatId('' + chatId).then((channels) => {
-        Object.assign(req, {channels});
-        next();
-      }, (err: any) => {
-        debug('ensureChannels error! %o', err);
-        this.main.bot.sendMessage(chatId, 'Oops something went wrong...').catch((err: any) => {
-          debug('provideChannels sendMessage error! %o', err);
-        });
-      });
+      return this.main.db.getChannelsByChatId('' + chatId).then(
+        (channels) => {
+          Object.assign(req, {channels});
+          next();
+        },
+        (err: any) => {
+          debug('ensureChannels error! %o', err);
+          this.main.bot.sendMessage(chatId, 'Oops something went wrong...').catch((err: any) => {
+            debug('provideChannels sendMessage error! %o', err);
+          });
+        },
+      );
     };
 
-    const withChannels = <I extends RouterReq, O extends RouterRes>(req: I, res: O, next: () => void) => {
+    const withChannels = <I extends RouterReq, O extends RouterRes>(
+      req: I,
+      res: O,
+      next: () => void,
+    ) => {
       const chatId = req.chatId;
       if (!chatId) return;
 
@@ -295,9 +340,11 @@ class Chat {
       if (req.channels.length) {
         next();
       } else {
-        this.main.bot.sendMessage(chatId, locale.m('alert_empty-channel-list')).catch((err: any) => {
-          debug('withChannels sendMessage error! %o', err);
-        });
+        this.main.bot
+          .sendMessage(chatId, locale.m('alert_empty-channel-list'))
+          .catch((err: any) => {
+            debug('withChannels sendMessage error! %o', err);
+          });
       }
     };
 
@@ -306,12 +353,14 @@ class Chat {
       const command = req.params.command;
 
       const cancelText = locale.m('alert_command-canceled', {command: command});
-      return this.main.bot.editMessageText(cancelText, {
-        chat_id: req.chatId,
-        message_id: req.messageId
-      }).catch((err: any) => {
-        debug('%j error %o', req.command, err);
-      });
+      return this.main.bot
+        .editMessageText(cancelText, {
+          chat_id: req.chatId,
+          message_id: req.messageId,
+        })
+        .catch((err: any) => {
+          debug('%j error %o', req.command, err);
+        });
     });
 
     this.router.textOrCallbackQuery(/\/add(?:\s+(?<query>.+$))?/, provideChat, (req, res) => {
@@ -327,7 +376,9 @@ class Chat {
           return {query: query.trim()};
         }
 
-        const messageText = locale.m('context_enter-channel-name', {example: appConfig.defaultChannelName});
+        const messageText = locale.m('context_enter-channel-name', {
+          example: appConfig.defaultChannelName,
+        });
         const cancelText = locale.m('alert_command-canceled', {command: 'add'});
         return requestData(locale, req, messageText, cancelText).then(({req, msg}) => {
           const messageText = req.message.text || '';
@@ -336,193 +387,237 @@ class Chat {
             ec: 'command',
             ea: '/add',
             el: messageText,
-            t: 'event'
+            t: 'event',
           });
           return {query: messageText.trim(), messageId: msg.message_id};
         });
-      }).then(({query, messageId}: {query: string, messageId?: number}) => {
-        return promiseTry(() => {
-          const service = this.main.services.find((service) => service.match(query));
-          if (service) {
-            return {service, messageId};
-          }
+      })
+        .then(({query, messageId}: {query: string; messageId?: number}) => {
+          return promiseTry(() => {
+            const service = this.main.services.find((service) => service.match(query));
+            if (service) {
+              return {service, messageId};
+            }
 
-          const messageText = locale.m('context_enter-service');
-          const cancelText = locale.m('alert_command-canceled', {command: 'add'});
-          const chooseKeyboard = [
-            ...arrayByPart(this.main.services.map((service) => {
-              return {
-                text: service.name,
-                callback_data: '/choose/' + service.id
-              };
-            }), 2),
-            [{
-              text: locale.m('action_cancel'),
-              callback_data: '/choose/cancel'
-            }]
-          ];
-          return requestChoose(req.chatId, req.fromId, messageId, messageText, cancelText, chooseKeyboard).then(({req, msgId}) => {
-            requestedService = req.params.value;
-            const service = this.main.getServiceById(req.params.value)!;
-            return {service, messageId: msgId};
-          });
-        }).then(({service, messageId}) => {
-          return this.main.db.getChannelCountByChatId('' + req.chatId).then((count) => {
-            if (count >= 100) {
-              throw new ErrorWithCode('Channels limit exceeded', 'CHANNELS_LIMIT');
-            }
-            return service.findChannel(query);
-          }).then((serviceChannel) => {
-            return this.main.db.ensureChannel(service, serviceChannel).then((channel) => {
-              return this.main.db.putChatIdChannelId('' + req.chatId, channel.id).then((created) => {
-                return {channel, created};
-              });
+            const messageText = locale.m('context_enter-service');
+            const cancelText = locale.m('alert_command-canceled', {command: 'add'});
+            const chooseKeyboard = [
+              ...arrayByPart(
+                this.main.services.map((service) => {
+                  return {
+                    text: service.name,
+                    callback_data: '/choose/' + service.id,
+                  };
+                }),
+                2,
+              ),
+              [
+                {
+                  text: locale.m('action_cancel'),
+                  callback_data: '/choose/cancel',
+                },
+              ],
+            ];
+            return requestChoose(
+              req.chatId,
+              req.fromId,
+              messageId,
+              messageText,
+              cancelText,
+              chooseKeyboard,
+            ).then(({req, msgId}) => {
+              requestedService = req.params.value;
+              const service = this.main.getServiceById(req.params.value)!;
+              return {service, messageId: msgId};
             });
-          }).then(({channel, created}) => {
-            let message = null;
-            if (!created) {
-              message = locale.m('alert_channel-exists');
-            } else {
-              const {title, url} = channel;
-              message = locale.m('alert_channel-added', {
-                channelName: htmlSanitize('a', title, url),
-                serviceName: htmlSanitize('', service.name),
-              });
-            }
-            return editOrSendNewMessage(req.chatId, messageId, message, {
-              disable_web_page_preview: true,
-              parse_mode: 'HTML'
-            }).then(() => {
-              return this.main.db.getStreamsWithChannelByChannelIds([channel.id]).then((streams) => {
-                const chatSender = new ChatSender(this.main, req.chat);
-                return parallel(1, streams, (stream) => {
-                  if (!stream.isOffline && !stream.isTimeout) {
-                    return chatSender.sendStream(stream);
-                  }
+          }).then(({service, messageId}) => {
+            return this.main.db
+              .getChannelCountByChatId('' + req.chatId)
+              .then((count) => {
+                if (count >= 100) {
+                  throw new ErrorWithCode('Channels limit exceeded', 'CHANNELS_LIMIT');
+                }
+                return service.findChannel(query);
+              })
+              .then((serviceChannel) => {
+                return this.main.db.ensureChannel(service, serviceChannel).then((channel) => {
+                  return this.main.db
+                    .putChatIdChannelId('' + req.chatId, channel.id)
+                    .then((created) => {
+                      return {channel, created};
+                    });
                 });
-              });
-            });
-          }, async (err: any) => {
-            let isResolved = false;
-            let message = null;
-            if (['CHANNEL_BROADCASTS_IS_NOT_FOUND'].includes(err.code)) {
-              isResolved = true;
-              message = locale.m('alert_channel-broadcasts-not-found', {
-                channelName: query,
-                serviceName: service.name,
-              });
-            } else
-            if ([
-              'INCORRECT_CHANNEL_ID',
-              'CHANNEL_BY_VIDEO_ID_IS_NOT_FOUND',
-              'INCORRECT_USERNAME', 'CHANNEL_BY_USER_IS_NOT_FOUND',
-              'QUERY_IS_EMPTY', 'CHANNEL_BY_QUERY_IS_NOT_FOUND',
-              'CHANNEL_BY_ID_IS_NOT_FOUND',
-            ].includes(err.code)) {
-              isResolved = true;
-              message = locale.m('alert_channel-not-found', {
-                channelName: query,
-                serviceName: service.name,
-              });
-            } else
-            if (['CHANNEL_IN_BLACK_LIST', 'CHANNELS_LIMIT'].includes(err.code)) {
-              isResolved = true;
-              if (err.code === 'CHANNEL_IN_BLACK_LIST') {
-                message = locale.m('alert_channel-in_blacklist');
-              } else
-              if (err.code === 'CHANNELS_LIMIT') {
-                message = locale.m('alert_channel-limit-exceeded');
-              } else {
-                message = err.message;
-              }
-            } else {
-              message = locale.m('alert_unexpected-error');
-            }
-            await editOrSendNewMessage(req.chatId, messageId, message, {
-              disable_web_page_preview: true
-            });
-            if (!isResolved) {
-              throw err;
-            }
+              })
+              .then(
+                ({channel, created}) => {
+                  let message = null;
+                  if (!created) {
+                    message = locale.m('alert_channel-exists');
+                  } else {
+                    const {title, url} = channel;
+                    message = locale.m('alert_channel-added', {
+                      channelName: htmlSanitize('a', title, url),
+                      serviceName: htmlSanitize('', service.name),
+                    });
+                  }
+                  return editOrSendNewMessage(req.chatId, messageId, message, {
+                    disable_web_page_preview: true,
+                    parse_mode: 'HTML',
+                  }).then(() => {
+                    return this.main.db
+                      .getStreamsWithChannelByChannelIds([channel.id])
+                      .then((streams) => {
+                        const chatSender = new ChatSender(this.main, req.chat);
+                        return parallel(1, streams, (stream) => {
+                          if (!stream.isOffline && !stream.isTimeout) {
+                            return chatSender.sendStream(stream);
+                          }
+                        });
+                      });
+                  });
+                },
+                async (err: any) => {
+                  let isResolved = false;
+                  let message = null;
+                  if (['CHANNEL_BROADCASTS_IS_NOT_FOUND'].includes(err.code)) {
+                    isResolved = true;
+                    message = locale.m('alert_channel-broadcasts-not-found', {
+                      channelName: query,
+                      serviceName: service.name,
+                    });
+                  } else if (
+                    [
+                      'INCORRECT_CHANNEL_ID',
+                      'CHANNEL_BY_VIDEO_ID_IS_NOT_FOUND',
+                      'INCORRECT_USERNAME',
+                      'CHANNEL_BY_USER_IS_NOT_FOUND',
+                      'QUERY_IS_EMPTY',
+                      'CHANNEL_BY_QUERY_IS_NOT_FOUND',
+                      'CHANNEL_BY_ID_IS_NOT_FOUND',
+                    ].includes(err.code)
+                  ) {
+                    isResolved = true;
+                    message = locale.m('alert_channel-not-found', {
+                      channelName: query,
+                      serviceName: service.name,
+                    });
+                  } else if (['CHANNEL_IN_BLACK_LIST', 'CHANNELS_LIMIT'].includes(err.code)) {
+                    isResolved = true;
+                    if (err.code === 'CHANNEL_IN_BLACK_LIST') {
+                      message = locale.m('alert_channel-in_blacklist');
+                    } else if (err.code === 'CHANNELS_LIMIT') {
+                      message = locale.m('alert_channel-limit-exceeded');
+                    } else {
+                      message = err.message;
+                    }
+                  } else {
+                    message = locale.m('alert_unexpected-error');
+                  }
+                  await editOrSendNewMessage(req.chatId, messageId, message, {
+                    disable_web_page_preview: true,
+                  });
+                  if (!isResolved) {
+                    throw err;
+                  }
+                },
+              );
           });
+        })
+        .catch((err: any) => {
+          if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT', 'RESPONSE_CANCEL'].includes(err.code)) {
+            // pass
+          } else {
+            debug('%j %j %j error %o', req.command, requestedData, requestedService, err);
+          }
         });
-      }).catch((err: any) => {
-        if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT', 'RESPONSE_CANCEL'].includes(err.code)) {
-          // pass
-        } else {
-          debug('%j %j %j error %o', req.command, requestedData, requestedService, err);
-        }
-      });
     });
 
     this.router.callback_query(/\/clear\/confirmed/, (req, res) => {
       const {locale} = res;
-      return this.main.db.deleteChatById('' + req.chatId).then(() => {
-        this.log.write(`[deleted] ${req.chatId}, cause: /clear`);
-        return this.main.bot.editMessageText(locale.m('alert_cleared'), {
-          chat_id: req.chatId,
-          message_id: req.messageId
+      return this.main.db
+        .deleteChatById('' + req.chatId)
+        .then(() => {
+          this.log.write(`[deleted] ${req.chatId}, cause: /clear`);
+          return this.main.bot.editMessageText(locale.m('alert_cleared'), {
+            chat_id: req.chatId,
+            message_id: req.messageId,
+          });
+        })
+        .catch((err: any) => {
+          debug('%j error %o', req.command, err);
         });
-      }).catch((err: any) => {
-        debug('%j error %o', req.command, err);
-      });
     });
 
     this.router.textOrCallbackQuery(/\/clear/, (req, res) => {
       const {locale} = res;
-      return this.main.bot.sendMessage(req.chatId, locale.m('confirm_clear'), {
-        reply_markup: {
-          inline_keyboard: [[{
-            text: locale.m('action_yes'),
-            callback_data: '/clear/confirmed'
-          }, {
-            text: locale.m('action_no'),
-            callback_data: '/cancel/clear'
-          }]]
-        }
-      }).catch((err: any) => {
-        debug('%j error %o', req.command, err);
-      });
+      return this.main.bot
+        .sendMessage(req.chatId, locale.m('confirm_clear'), {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: locale.m('action_yes'),
+                  callback_data: '/clear/confirmed',
+                },
+                {
+                  text: locale.m('action_no'),
+                  callback_data: '/cancel/clear',
+                },
+              ],
+            ],
+          },
+        })
+        .catch((err: any) => {
+          debug('%j error %o', req.command, err);
+        });
     });
 
     this.router.callback_query(/\/delete\/(?<channelId>.+)/, (req, res) => {
       const {locale} = res;
       const channelId = req.params.channelId;
 
-      return this.main.db.getChannelById(channelId).then((channel) => {
-        return this.main.db.deleteChatIdChannelId('' + req.chatId, channelId).then((count) => {
-          return {channel, deleted: !!count};
+      return this.main.db
+        .getChannelById(channelId)
+        .then((channel) => {
+          return this.main.db.deleteChatIdChannelId('' + req.chatId, channelId).then((count) => {
+            return {channel, deleted: !!count};
+          });
+        })
+        .then(
+          ({channel, deleted}) => {
+            const service = this.main.getServiceById(channel.service)!;
+            return this.main.bot.editMessageText(
+              locale.m('alert_channel-deleted', {
+                channelName: channel.title,
+                serviceName: service.name,
+              }),
+              {
+                chat_id: req.chatId,
+                message_id: req.messageId,
+              },
+            );
+          },
+          async (err: any) => {
+            let isResolved = false;
+            let message = null;
+            if (err.code === 'CHANNEL_IS_NOT_FOUND') {
+              isResolved = true;
+              message = locale.m('alert_channel-not-exists');
+            } else {
+              message = locale.m('alert_unexpected-error');
+            }
+            await this.main.bot.editMessageText(message, {
+              chat_id: req.chatId,
+              message_id: req.messageId,
+            });
+            if (!isResolved) {
+              throw err;
+            }
+          },
+        )
+        .catch((err: any) => {
+          debug('%j error %o', req.command, err);
         });
-      }).then(({channel, deleted}) => {
-        const service = this.main.getServiceById(channel.service)!;
-        return this.main.bot.editMessageText(
-          locale.m('alert_channel-deleted', {
-            channelName: channel.title,
-            serviceName: service.name,
-          })
-          , {
-          chat_id: req.chatId,
-          message_id: req.messageId
-        });
-      }, async (err: any) => {
-        let isResolved = false;
-        let message = null;
-        if (err.code === 'CHANNEL_IS_NOT_FOUND') {
-          isResolved = true;
-          message = locale.m('alert_channel-not-exists');
-        } else {
-          message = locale.m('alert_unexpected-error');
-        }
-        await this.main.bot.editMessageText(message, {
-          chat_id: req.chatId,
-          message_id: req.messageId
-        });
-        if (!isResolved) {
-          throw err;
-        }
-      }).catch((err: any) => {
-        debug('%j error %o', req.command, err);
-      });
     });
 
     this.router.textOrCallbackQuery(/\/delete/, provideChannels, withChannels, (req, res) => {
@@ -531,36 +626,43 @@ class Chat {
 
       const channels = req.channels.map((channel) => {
         const service = this.main.getServiceById(channel.service)!;
-        return [{
-          text: `${channel.title} (${service.name})`,
-          callback_data: `/delete/${channel.id}`
-        }];
+        return [
+          {
+            text: `${channel.title} (${service.name})`,
+            callback_data: `/delete/${channel.id}`,
+          },
+        ];
       });
 
       const page = pageBtnList(req.query, channels, '/delete', {
         text: 'Cancel',
-        callback_data: '/cancel/delete'
+        callback_data: '/cancel/delete',
       });
 
       return promiseTry(() => {
         if (req.callback_query && !req.query.rel) {
-          return this.main.bot.editMessageReplyMarkup({
-            inline_keyboard: page
-          }, {
-            chat_id: req.chatId,
-            message_id: req.messageId
-          }).catch((err: any) => {
-            if (/message is not modified/.test(err.message)) {
-              // pass
-            } else {
-              throw err;
-            }
-          });
+          return this.main.bot
+            .editMessageReplyMarkup(
+              {
+                inline_keyboard: page,
+              },
+              {
+                chat_id: req.chatId,
+                message_id: req.messageId,
+              },
+            )
+            .catch((err: any) => {
+              if (/message is not modified/.test(err.message)) {
+                // pass
+              } else {
+                throw err;
+              }
+            });
         } else {
           return this.main.bot.sendMessage(req.chatId, locale.m('context_select-delete-channel'), {
             reply_markup: {
-              inline_keyboard: page
-            }
+              inline_keyboard: page,
+            },
           });
         }
       }).catch((err) => {
@@ -577,194 +679,248 @@ class Chat {
           throw new Error('ChannelId is not set');
         }
         return this.main.db.deleteChatById(req.chat.channelId);
-      }).then(() => {
-        return this.main.bot.editMessageReplyMarkup({
-          inline_keyboard: getOptions(locale, req.chat)
-        }, {
-          chat_id: req.chatId,
-          message_id: req.messageId
-        }).catch((err: any) => {
-          if (/message is not modified/.test(err.message)) {
-            return;
-          }
-          throw err;
+      })
+        .then(() => {
+          return this.main.bot
+            .editMessageReplyMarkup(
+              {
+                inline_keyboard: getOptions(locale, req.chat),
+              },
+              {
+                chat_id: req.chatId,
+                message_id: req.messageId,
+              },
+            )
+            .catch((err: any) => {
+              if (/message is not modified/.test(err.message)) {
+                return;
+              }
+              throw err;
+            });
+        })
+        .catch((err) => {
+          debug('%j error %o', req.command, err);
         });
-      }).catch((err) => {
-        debug('%j error %o', req.command, err);
-      });
     });
 
-    this.router.textOrCallbackQuery(/\/setChannel(?:\s+(?<channelId>.+))?/, provideChat, (req, res) => {
-      const {locale} = res;
-      assertType<typeof req & WithChat>(req);
+    this.router.textOrCallbackQuery(
+      /\/setChannel(?:\s+(?<channelId>.+))?/,
+      provideChat,
+      (req, res) => {
+        const {locale} = res;
+        assertType<typeof req & WithChat>(req);
 
-      const channelId = req.params.channelId;
-      let requestedData: string | null = null;
+        const channelId = req.params.channelId;
+        let requestedData: string | null = null;
 
-      return promiseTry(() => {
-        if (channelId) {
-          return {channelId: channelId.trim()};
-        }
-
-        const messageText = locale.m('context_enter-telegram-channel-name');
-        const cancelText = locale.m('alert_command-canceled', {command: '\/setChannel'});
-        return requestData(locale, req, messageText, cancelText).then(({req, msg}) => {
-          const messageText = req.message.text || '';
-          requestedData = messageText;
-          tracker.track(req.chatId, {
-            ec: 'command',
-            ea: '/setChannel',
-            el: messageText,
-            t: 'event'
-          });
-          return {channelId: messageText.trim(), messageId: msg.message_id};
-        });
-      }).then(({channelId, messageId}: {channelId: string, messageId?: number}) => {
         return promiseTry(() => {
-          if (!/^@\w+$/.test(channelId)) {
-            throw new ErrorWithCode('Incorrect channel name', 'INCORRECT_CHANNEL_NAME');
+          if (channelId) {
+            return {channelId: channelId.trim()};
           }
 
-          return this.main.db.getChatById(channelId).then((chat) => {
-            throw new ErrorWithCode('Channel already used', 'CHANNEL_ALREADY_USED');
-          }, (err: any) => {
-            if (err.code === 'CHAT_IS_NOT_FOUND') {
+          const messageText = locale.m('context_enter-telegram-channel-name');
+          const cancelText = locale.m('alert_command-canceled', {command: '/setChannel'});
+          return requestData(locale, req, messageText, cancelText).then(({req, msg}) => {
+            const messageText = req.message.text || '';
+            requestedData = messageText;
+            tracker.track(req.chatId, {
+              ec: 'command',
+              ea: '/setChannel',
+              el: messageText,
+              t: 'event',
+            });
+            return {channelId: messageText.trim(), messageId: msg.message_id};
+          });
+        })
+          .then(({channelId, messageId}: {channelId: string; messageId?: number}) => {
+            return promiseTry(() => {
+              if (!/^@\w+$/.test(channelId)) {
+                throw new ErrorWithCode('Incorrect channel name', 'INCORRECT_CHANNEL_NAME');
+              }
+
+              return this.main.db
+                .getChatById(channelId)
+                .then(
+                  (chat) => {
+                    throw new ErrorWithCode('Channel already used', 'CHANNEL_ALREADY_USED');
+                  },
+                  (err: any) => {
+                    if (err.code === 'CHAT_IS_NOT_FOUND') {
+                      // pass
+                    } else {
+                      throw err;
+                    }
+                  },
+                )
+                .then(() => {
+                  return this.main.bot.sendChatAction(channelId, 'typing').then(() => {
+                    return this.main.bot.getChat(channelId).then((chat) => {
+                      if (chat.type !== 'channel') {
+                        throw new ErrorWithCode(
+                          'This chat type is not supported',
+                          'INCORRECT_CHAT_TYPE',
+                        );
+                      }
+                      const channelId = '@' + chat.username;
+                      return this.main.db
+                        .createChatChannel('' + req.chatId, channelId)
+                        .then(() => channelId);
+                    });
+                  });
+                });
+            }).then(
+              (channelId) => {
+                const message = locale.m('alert_telegram-channel-set', {channelName: channelId});
+                return editOrSendNewMessage(req.chatId, messageId, message).then(() => {
+                  if (req.callback_query) {
+                    return this.main.bot
+                      .editMessageReplyMarkup(
+                        {
+                          inline_keyboard: getOptions(locale, req.chat),
+                        },
+                        {
+                          chat_id: req.chatId,
+                          message_id: req.messageId,
+                        },
+                      )
+                      .catch((err: any) => {
+                        if (/message is not modified/.test(err.message)) {
+                          return;
+                        }
+                        throw err;
+                      });
+                  }
+                });
+              },
+              async (err) => {
+                let isResolved = false;
+                let message: string;
+                if (
+                  [
+                    'INCORRECT_CHANNEL_NAME',
+                    'CHANNEL_ALREADY_USED',
+                    'INCORRECT_CHAT_TYPE',
+                  ].includes(err.code)
+                ) {
+                  isResolved = true;
+                  if (err.code === 'INCORRECT_CHANNEL_NAME') {
+                    message = locale.m('alert_incorrect-telegram-channel-name');
+                  } else if (err.code === 'CHANNEL_ALREADY_USED') {
+                    message = locale.m('alert_telegram-channel-exists');
+                  } else if (err.code === 'INCORRECT_CHAT_TYPE') {
+                    message = locale.m('alert_telegram-chat-is-not-supported');
+                  } else {
+                    message = err.message;
+                  }
+                } else if (err.code === 'ETELEGRAM' && /chat not found/.test(err.message)) {
+                  isResolved = true;
+                  message = 'Telegram chat is not found!';
+                } else if (
+                  err.code === 'ETELEGRAM' &&
+                  /bot is not a member of the/.test(err.message)
+                ) {
+                  isResolved = true;
+                  message = 'Bot is not a member of the channel!';
+                } else {
+                  message = 'Unexpected error';
+                }
+                await editOrSendNewMessage(req.chatId, req.messageId, message);
+                if (!isResolved) {
+                  throw err;
+                }
+              },
+            );
+          })
+          .catch((err: any) => {
+            if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
               // pass
             } else {
-              throw err;
+              debug('%j %j error %o', req.command, requestedData, err);
             }
-          }).then(() => {
-            return this.main.bot.sendChatAction(channelId, 'typing').then(() => {
-              return this.main.bot.getChat(channelId).then((chat) => {
-                if (chat.type !== 'channel') {
-                  throw new ErrorWithCode('This chat type is not supported', 'INCORRECT_CHAT_TYPE');
-                }
-                const channelId = '@' + chat.username;
-                return this.main.db.createChatChannel('' + req.chatId, channelId).then(() => channelId);
-              });
-            });
           });
-        }).then((channelId) => {
-          const message = locale.m('alert_telegram-channel-set', {channelName: channelId});
-          return editOrSendNewMessage(req.chatId, messageId, message).then(() => {
-            if (req.callback_query) {
-              return this.main.bot.editMessageReplyMarkup({
-                inline_keyboard: getOptions(locale, req.chat)
-              }, {
-                chat_id: req.chatId,
-                message_id: req.messageId
-              }).catch((err: any) => {
+      },
+    );
+
+    this.router.callback_query(
+      /\/(?<optionsType>options|channelOptions)\/(?<key>[^\/]+)\/(?<value>.+)/,
+      provideChat,
+      (req, res) => {
+        const {locale} = res;
+        assertType<typeof req & WithChat>(req);
+
+        const {optionsType, key, value} = req.params;
+        return promiseTry(() => {
+          const changes: Partial<NewChat> = {};
+          switch (key) {
+            case 'isHidePreview': {
+              changes.isHidePreview = value === 'true';
+              break;
+            }
+            case 'isMutedRecords': {
+              if (optionsType === 'channelOptions') {
+                throw new ErrorWithCode(
+                  'Option is not available for channel',
+                  'UNAVAILABLE_CHANNEL_OPTION',
+                );
+              }
+              changes.isMutedRecords = value === 'true';
+              break;
+            }
+            case 'isEnabledAutoClean': {
+              changes.isEnabledAutoClean = value === 'true';
+              break;
+            }
+            case 'isMuted': {
+              if (optionsType === 'channelOptions') {
+                throw new ErrorWithCode(
+                  'Option is not available for channel',
+                  'UNAVAILABLE_CHANNEL_OPTION',
+                );
+              }
+              changes.isMuted = value === 'true';
+              break;
+            }
+            default: {
+              throw new Error('Unknown option filed');
+            }
+          }
+          switch (optionsType) {
+            case 'options': {
+              Object.assign(req.chat, changes);
+              return req.chat.save();
+            }
+            case 'channelOptions': {
+              if (!req.chat.channel) {
+                throw new Error('Chat channel is empty');
+              }
+              Object.assign(req.chat.channel, changes);
+              return req.chat.channel.save();
+            }
+          }
+        })
+          .then(() => {
+            return this.main.bot
+              .editMessageReplyMarkup(
+                {
+                  inline_keyboard: getOptions(locale, req.chat),
+                },
+                {
+                  chat_id: req.chatId,
+                  message_id: req.messageId,
+                },
+              )
+              .catch((err: any) => {
                 if (/message is not modified/.test(err.message)) {
                   return;
                 }
                 throw err;
               });
-            }
+          })
+          .catch((err) => {
+            debug('%j error %o', req.command, err);
           });
-        }, async (err) => {
-          let isResolved = false;
-          let message: string;
-          if (['INCORRECT_CHANNEL_NAME', 'CHANNEL_ALREADY_USED', 'INCORRECT_CHAT_TYPE'].includes(err.code)) {
-            isResolved = true;
-            if (err.code === 'INCORRECT_CHANNEL_NAME') {
-              message = locale.m('alert_incorrect-telegram-channel-name');
-            } else
-            if (err.code === 'CHANNEL_ALREADY_USED') {
-              message = locale.m('alert_telegram-channel-exists');
-            } else
-            if (err.code === 'INCORRECT_CHAT_TYPE') {
-              message = locale.m('alert_telegram-chat-is-not-supported');
-            } else {
-              message = err.message;
-            }
-          } else
-          if (err.code === 'ETELEGRAM' && /chat not found/.test(err.message)) {
-            isResolved = true;
-            message = 'Telegram chat is not found!';
-          } else
-          if (err.code === 'ETELEGRAM' && /bot is not a member of the/.test(err.message)) {
-            isResolved = true;
-            message = 'Bot is not a member of the channel!';
-          } else {
-            message = 'Unexpected error';
-          }
-          await editOrSendNewMessage(req.chatId, req.messageId, message);
-          if (!isResolved) {
-            throw err;
-          }
-        });
-      }).catch((err: any) => {
-        if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
-          // pass
-        } else {
-          debug('%j %j error %o', req.command, requestedData, err);
-        }
-      });
-    });
-
-    this.router.callback_query(/\/(?<optionsType>options|channelOptions)\/(?<key>[^\/]+)\/(?<value>.+)/, provideChat, (req, res) => {
-      const {locale} = res;
-      assertType<typeof req & WithChat>(req);
-
-      const {optionsType, key, value} = req.params;
-      return promiseTry(() => {
-        const changes: Partial<NewChat> = {};
-        switch (key) {
-          case 'isHidePreview': {
-            changes.isHidePreview = value === 'true';
-            break;
-          }
-          case 'isMutedRecords': {
-            if (optionsType === 'channelOptions') {
-              throw new ErrorWithCode('Option is not available for channel', 'UNAVAILABLE_CHANNEL_OPTION');
-            }
-            changes.isMutedRecords = value === 'true';
-            break;
-          }
-          case 'isEnabledAutoClean': {
-            changes.isEnabledAutoClean = value === 'true';
-            break;
-          }
-          case 'isMuted': {
-            if (optionsType === 'channelOptions') {
-              throw new ErrorWithCode('Option is not available for channel', 'UNAVAILABLE_CHANNEL_OPTION');
-            }
-            changes.isMuted = value === 'true';
-            break;
-          }
-          default: {
-            throw new Error('Unknown option filed');
-          }
-        }
-        switch (optionsType) {
-          case 'options': {
-            Object.assign(req.chat, changes);
-            return req.chat.save();
-          }
-          case 'channelOptions': {
-            if (!req.chat.channel) {
-              throw new Error('Chat channel is empty');
-            }
-            Object.assign(req.chat.channel, changes);
-            return req.chat.channel.save();
-          }
-        }
-      }).then(() => {
-        return this.main.bot.editMessageReplyMarkup({
-          inline_keyboard: getOptions(locale, req.chat)
-        }, {
-          chat_id: req.chatId,
-          message_id: req.messageId
-        }).catch((err: any) => {
-          if (/message is not modified/.test(err.message)) {
-            return;
-          }
-          throw err;
-        });
-      }).catch((err) => {
-        debug('%j error %o', req.command, err);
-      });
-    });
+      },
+    );
 
     this.router.textOrCallbackQuery(/\/options/, provideChat, (req, res) => {
       const {locale} = res;
@@ -772,17 +928,20 @@ class Chat {
 
       return promiseTry(() => {
         if (req.callback_query && !req.query.rel) {
-          return this.main.bot.editMessageReplyMarkup({
-            inline_keyboard: getOptions(locale, req.chat)
-          }, {
-            chat_id: req.chatId,
-            message_id: req.messageId
-          });
+          return this.main.bot.editMessageReplyMarkup(
+            {
+              inline_keyboard: getOptions(locale, req.chat),
+            },
+            {
+              chat_id: req.chatId,
+              message_id: req.messageId,
+            },
+          );
         } else {
           return this.main.bot.sendMessage(req.chatId, 'Options:', {
             reply_markup: {
-              inline_keyboard: getOptions(locale, req.chat)
-            }
+              inline_keyboard: getOptions(locale, req.chat),
+            },
           });
         }
       }).catch((err) => {
@@ -794,59 +953,71 @@ class Chat {
       const {locale} = res;
       assertType<typeof req & WithChannels>(req);
 
-      const channelIds = req.channels.map(channel => channel.id);
-      return this.main.db.getStreamsWithChannelByChannelIds(channelIds).then((streams) => {
-        let message: string;
-        if (!streams.length){
-          message = locale.m('alert_offline');
-        } else {
-          message = streams.map(stream => getStreamAsText(stream)).join('\n\n');
-        }
-
-        const buttons: TelegramBot.InlineKeyboardButton[][] = [];
-        streams.forEach((stream) => {
-          if (!stream.isOffline && !stream.isTimeout) {
-            buttons.push([{
-              text: getStreamAsButtonText(stream),
-              callback_data: `/watch/${stream.id}`
-            }]);
-          }
-        });
-
-        const buttonsPage = pageBtnList(req.query, buttons, '/online');
-
-        buttonsPage.unshift([{
-          text: locale.m('action_refresh'),
-          callback_data: '/online'
-        }]);
-
-        const options = {
-          disable_web_page_preview: true,
-          parse_mode: 'HTML' as ParseMode,
-          reply_markup: {
-            inline_keyboard: buttonsPage
-          }
-        };
-
-        return promiseTry(() => {
-          if (req.callback_query && !req.query.rel) {
-            return this.main.bot.editMessageText(message, {
-              ...options,
-              chat_id: req.chatId,
-              message_id: req.messageId,
-            }).catch((err: any) => {
-              if (err.code === 'ETELEGRAM' && /message is not modified/.test(err.response.body.description)) {
-                return; // pass
-              }
-              throw err;
-            });
+      const channelIds = req.channels.map((channel) => channel.id);
+      return this.main.db
+        .getStreamsWithChannelByChannelIds(channelIds)
+        .then((streams) => {
+          let message: string;
+          if (!streams.length) {
+            message = locale.m('alert_offline');
           } else {
-            return this.main.bot.sendMessage(req.chatId, message, options);
+            message = streams.map((stream) => getStreamAsText(stream)).join('\n\n');
           }
+
+          const buttons: TelegramBot.InlineKeyboardButton[][] = [];
+          streams.forEach((stream) => {
+            if (!stream.isOffline && !stream.isTimeout) {
+              buttons.push([
+                {
+                  text: getStreamAsButtonText(stream),
+                  callback_data: `/watch/${stream.id}`,
+                },
+              ]);
+            }
+          });
+
+          const buttonsPage = pageBtnList(req.query, buttons, '/online');
+
+          buttonsPage.unshift([
+            {
+              text: locale.m('action_refresh'),
+              callback_data: '/online',
+            },
+          ]);
+
+          const options = {
+            disable_web_page_preview: true,
+            parse_mode: 'HTML' as ParseMode,
+            reply_markup: {
+              inline_keyboard: buttonsPage,
+            },
+          };
+
+          return promiseTry(() => {
+            if (req.callback_query && !req.query.rel) {
+              return this.main.bot
+                .editMessageText(message, {
+                  ...options,
+                  chat_id: req.chatId,
+                  message_id: req.messageId,
+                })
+                .catch((err: any) => {
+                  if (
+                    err.code === 'ETELEGRAM' &&
+                    /message is not modified/.test(err.response.body.description)
+                  ) {
+                    return; // pass
+                  }
+                  throw err;
+                });
+            } else {
+              return this.main.bot.sendMessage(req.chatId, message, options);
+            }
+          });
+        })
+        .catch((err) => {
+          debug('%j error %o', req.command, err);
         });
-      }).catch((err) => {
-        debug('%j error %o', req.command, err);
-      });
     });
 
     this.router.callback_query(/\/watch\/(?<streamId>.+)/, provideChat, (req, res) => {
@@ -854,18 +1025,24 @@ class Chat {
       assertType<typeof req & WithChat>(req);
 
       const {streamId} = req.params;
-      return this.main.db.getStreamWithChannelById(streamId).then((stream) => {
-        const chatSender = new ChatSender(this.main, req.chat);
-        return chatSender.sendStream(stream);
-      }, (err) => {
-        if (err.code === 'STREAM_IS_NOT_FOUND') {
-          const message = locale.m('action_stream-not-found');
-          return this.main.bot.sendMessage(req.chatId, message);
-        }
-        throw err;
-      }).catch((err: any) => {
-        debug('%j error %o', req.command, err);
-      });
+      return this.main.db
+        .getStreamWithChannelById(streamId)
+        .then(
+          (stream) => {
+            const chatSender = new ChatSender(this.main, req.chat);
+            return chatSender.sendStream(stream);
+          },
+          (err) => {
+            if (err.code === 'STREAM_IS_NOT_FOUND') {
+              const message = locale.m('action_stream-not-found');
+              return this.main.bot.sendMessage(req.chatId, message);
+            }
+            throw err;
+          },
+        )
+        .catch((err: any) => {
+          debug('%j error %o', req.command, err);
+        });
     });
 
     this.router.textOrCallbackQuery(/\/list/, provideChannels, withChannels, (req, res) => {
@@ -908,13 +1085,13 @@ class Chat {
       if (pageIndex > 0) {
         pageControls.push({
           text: '<',
-          callback_data: '/list' + '?page=' + (pageIndex - 1)
+          callback_data: '/list' + '?page=' + (pageIndex - 1),
         });
       }
       if (pages.length) {
         pageControls.push({
           text: '>',
-          callback_data: '/list' + '?page=' + (pageIndex + 1)
+          callback_data: '/list' + '?page=' + (pageIndex + 1),
         });
       }
 
@@ -922,8 +1099,8 @@ class Chat {
         disable_web_page_preview: true,
         parse_mode: 'HTML' as ParseMode,
         reply_markup: {
-          inline_keyboard: [pageControls]
-        }
+          inline_keyboard: [pageControls],
+        },
       };
 
       return promiseTry(() => {
@@ -941,8 +1118,14 @@ class Chat {
       });
     });
 
-    const requestData = (locale: Locale, req: RouterTextReq | RouterCallbackQueryReq, messageText: string, cancelText: string): Promise<{
-      req: RouterTextReq, msg: TelegramBot.Message
+    const requestData = (
+      locale: Locale,
+      req: RouterTextReq | RouterCallbackQueryReq,
+      messageText: string,
+      cancelText: string,
+    ): Promise<{
+      req: RouterTextReq;
+      msg: TelegramBot.Message;
     }> => {
       const {chatId, fromId} = req;
       const options: {[s: string]: any} = {};
@@ -960,63 +1143,99 @@ class Chat {
         });
       }
 
-      return this.main.bot.sendMessage(chatId, msgText, options).then((msg: TelegramBot.Message) => {
-        return this.router.waitResponse<RouterTextReq>(null, {
-          event: 'message',
-          type: 'text',
-          chatId: chatId,
-          fromId: fromId,
-          throwOnCommand: true
-        }, 3 * 60).then(({req, res, next}) => {
-          return {req, msg};
-        }, async (err) => {
-          if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
-            await editOrSendNewMessage(chatId, msg.message_id, cancelText);
-          }
-          throw err;
+      return this.main.bot
+        .sendMessage(chatId, msgText, options)
+        .then((msg: TelegramBot.Message) => {
+          return this.router
+            .waitResponse<RouterTextReq>(
+              null,
+              {
+                event: 'message',
+                type: 'text',
+                chatId: chatId,
+                fromId: fromId,
+                throwOnCommand: true,
+              },
+              3 * 60,
+            )
+            .then(
+              ({req, res, next}) => {
+                return {req, msg};
+              },
+              async (err) => {
+                if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
+                  await editOrSendNewMessage(chatId, msg.message_id, cancelText);
+                }
+                throw err;
+              },
+            );
         });
-      });
     };
 
-    const requestChoose = (chatId: number, fromId: number | undefined, messageId: number | undefined, messageText: string, cancelText: string, inline_keyboard: TelegramBot.InlineKeyboardButton[][]): Promise<{
-      req: RouterCallbackQueryReq, msgId: number
+    const requestChoose = (
+      chatId: number,
+      fromId: number | undefined,
+      messageId: number | undefined,
+      messageText: string,
+      cancelText: string,
+      inline_keyboard: TelegramBot.InlineKeyboardButton[][],
+    ): Promise<{
+      req: RouterCallbackQueryReq;
+      msgId: number;
     }> => {
       return editOrSendNewMessage(chatId, messageId, messageText, {
-        reply_markup: {inline_keyboard}
+        reply_markup: {inline_keyboard},
       }).then((msg) => {
         // todo: fix me
         const msgId = messageId || (msg as TelegramBot.Message).message_id;
-        return this.router.waitResponse<RouterCallbackQueryReq>(/\/choose\/(?<value>.+)/, {
-          event: 'callback_query',
-          chatId: chatId,
-          fromId: fromId,
-        }, 3 * 60).then(({req, res, next}) => {
-          return this.main.bot.answerCallbackQuery(req.callback_query.id).then(async () => {
-            if (req.params.value === 'cancel') {
-              await editOrSendNewMessage(chatId, msgId, cancelText);
-              throw new ErrorWithCode('Response cancel', 'RESPONSE_CANCEL');
-            }
-            return {req, msgId};
-          });
-        }, async (err) => {
-          if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
-            await editOrSendNewMessage(chatId, msgId, cancelText);
-          }
-          throw err;
-        });
+        return this.router
+          .waitResponse<RouterCallbackQueryReq>(
+            /\/choose\/(?<value>.+)/,
+            {
+              event: 'callback_query',
+              chatId: chatId,
+              fromId: fromId,
+            },
+            3 * 60,
+          )
+          .then(
+            ({req, res, next}) => {
+              return this.main.bot.answerCallbackQuery(req.callback_query.id).then(async () => {
+                if (req.params.value === 'cancel') {
+                  await editOrSendNewMessage(chatId, msgId, cancelText);
+                  throw new ErrorWithCode('Response cancel', 'RESPONSE_CANCEL');
+                }
+                return {req, msgId};
+              });
+            },
+            async (err) => {
+              if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
+                await editOrSendNewMessage(chatId, msgId, cancelText);
+              }
+              throw err;
+            },
+          );
       });
     };
 
-    const editOrSendNewMessage = (chatId: number, messageId: number|undefined, text: string, form?: object): Promise<TelegramBot.Message | boolean> => {
+    const editOrSendNewMessage = (
+      chatId: number,
+      messageId: number | undefined,
+      text: string,
+      form?: object,
+    ): Promise<TelegramBot.Message | boolean> => {
       return promiseTry(() => {
         if (!messageId) {
           throw new ErrorWithCode('messageId is empty', 'MESSAGE_ID_IS_EMPTY');
         }
 
-        return this.main.bot.editMessageText(text, Object.assign({}, form, {
-          chat_id: chatId,
-          message_id: messageId,
-        }));
+        return this.main.bot.editMessageText(
+          text,
+          Object.assign({}, form, {
+            chat_id: chatId,
+            message_id: messageId,
+          }),
+        );
       }).catch((err) => {
         if (
           err.code === 'MESSAGE_ID_IS_EMPTY' ||
@@ -1031,18 +1250,21 @@ class Chat {
   }
 
   admin() {
-    const isAdmin = <T extends RouterReqWithAnyMessage>(req: T, res: RouterRes, next: () => void) => {
+    const isAdmin = <T extends RouterReqWithAnyMessage>(
+      req: T,
+      res: RouterRes,
+      next: () => void,
+    ) => {
       const {locale} = res;
       const adminIds = appConfig.adminIds;
       if (adminIds.includes(req.chatId)) {
         next();
       } else {
-        this.main.bot.sendMessage(
-          req.chatId,
-          locale.m('alert_access-denied', {chat: req.chatId}),
-        ).catch((err: any) => {
-          debug('isAdmin sendMessage error: %o', err);
-        });
+        this.main.bot
+          .sendMessage(req.chatId, locale.m('alert_access-denied', {chat: req.chatId}))
+          .catch((err: any) => {
+            debug('isAdmin sendMessage error: %o', err);
+          });
       }
     };
 
@@ -1067,37 +1289,53 @@ class Chat {
           throw new ErrorWithCode('Method is not found', 'METHOD_IS_NOT_FOUND');
         }
         return command.method();
-      }).then((result) => {
-        const resultStr = jsonStringifyPretty({result}, {
-          indent: 2
+      })
+        .then(
+          (result) => {
+            const resultStr = jsonStringifyPretty(
+              {result},
+              {
+                indent: 2,
+              },
+            );
+            return this.main.bot.sendMessage(
+              req.chatId,
+              `${locale.m('alert_command-complete', {command: command.name})}\n${resultStr}`,
+            );
+          },
+          async (err) => {
+            await this.main.bot.sendMessage(
+              req.chatId,
+              locale.m('alert_command-error', {command: command.name}),
+            );
+            throw err;
+          },
+        )
+        .catch((err) => {
+          debug('%j error %o', req.command, err);
         });
-        return this.main.bot.sendMessage(req.chatId, `${locale.m('alert_command-complete', {command: command.name})}\n${resultStr}`);
-      }, async (err) => {
-        await this.main.bot.sendMessage(req.chatId, locale.m('alert_command-error', {command: command.name}));
-        throw err;
-      }).catch((err) => {
-        debug('%j error %o', req.command, err);
-      });
     });
 
     this.router.textOrCallbackQuery(/\/admin/, isAdmin, (req, res) => {
       const {locale} = res;
-      type Button = {text: string, callback_data: string};
-      return this.main.bot.sendMessage(req.chatId, locale.m('title_admin-menu'), {
-        reply_markup: {
-          inline_keyboard: commands.reduce<Button[][]>((menu, {name, method}, index) => {
-            const buttons: Button[] = index % 2 ? menu.pop()! : [];
-            buttons.push({
-              text: name || method.name,
-              callback_data: `/admin/${index}`
-            });
-            menu.push(buttons);
-            return menu;
-          }, []),
-        },
-      }).catch((err: any) => {
-        debug('%j error %o', req.command, err);
-      });
+      type Button = {text: string; callback_data: string};
+      return this.main.bot
+        .sendMessage(req.chatId, locale.m('title_admin-menu'), {
+          reply_markup: {
+            inline_keyboard: commands.reduce<Button[][]>((menu, {name, method}, index) => {
+              const buttons: Button[] = index % 2 ? menu.pop()! : [];
+              buttons.push({
+                text: name || method.name,
+                callback_data: `/admin/${index}`,
+              });
+              menu.push(buttons);
+              return menu;
+            }, []),
+          },
+        })
+        .catch((err: any) => {
+          debug('%j error %o', req.command, err);
+        });
     });
   }
 }
@@ -1109,50 +1347,50 @@ function getMenu(locale: Locale, page: number) {
       [
         {
           text: locale.m('action_options'),
-          callback_data: '/options?rel=menu'
-        }
+          callback_data: '/options?rel=menu',
+        },
       ],
       [
         {
           text: locale.m('action_prev-page'),
-          callback_data: '/menu'
+          callback_data: '/menu',
         },
         {
           text: locale.m('action_top'),
-          callback_data: '/top'
+          callback_data: '/top',
         },
         {
           text: locale.m('action_about'),
-          callback_data: '/about'
-        }
-      ]
+          callback_data: '/about',
+        },
+      ],
     ];
   } else {
     menu = [
       [
         {
           text: locale.m('action_show-online'),
-          callback_data: '/online?rel=menu'
+          callback_data: '/online?rel=menu',
         },
         {
           text: locale.m('action_show-channels'),
-          callback_data: '/list?rel=menu'
-        }
+          callback_data: '/list?rel=menu',
+        },
       ],
       [
         {
           text: locale.m('action_add_channel'),
-          callback_data: '/add'
+          callback_data: '/add',
         },
         {
           text: locale.m('action_delete-channel'),
-          callback_data: '/delete?rel=menu'
+          callback_data: '/delete?rel=menu',
         },
         {
           text: locale.m('action_next-page'),
-          callback_data: '/menu/1'
-        }
-      ]
+          callback_data: '/menu/1',
+        },
+      ],
     ];
   }
 
@@ -1163,15 +1401,19 @@ function getOptions(locale: Locale, chat: ChatModel | ChatModelWithOptionalChann
   const btnList = [];
 
   if (chat.isHidePreview) {
-    btnList.push([{
-      text: locale.m('action_show-preview'),
-      callback_data: '/options/isHidePreview/false'
-    }]);
+    btnList.push([
+      {
+        text: locale.m('action_show-preview'),
+        callback_data: '/options/isHidePreview/false',
+      },
+    ]);
   } else {
-    btnList.push([{
-      text: locale.m('action_hide-preview'),
-      callback_data: '/options/isHidePreview/true'
-    }]);
+    btnList.push([
+      {
+        text: locale.m('action_hide-preview'),
+        callback_data: '/options/isHidePreview/true',
+      },
+    ]);
   }
 
   /*if (chat.isMutedRecords) {
@@ -1187,66 +1429,86 @@ function getOptions(locale: Locale, chat: ChatModel | ChatModelWithOptionalChann
   }*/
 
   if (chat.isEnabledAutoClean) {
-    btnList.push([{
-      text: locale.m('action_disable-auto-clean'),
-      callback_data: '/options/isEnabledAutoClean/false'
-    }]);
+    btnList.push([
+      {
+        text: locale.m('action_disable-auto-clean'),
+        callback_data: '/options/isEnabledAutoClean/false',
+      },
+    ]);
   } else {
-    btnList.push([{
-      text: locale.m('action_enable-auto-clean'),
-      callback_data: '/options/isEnabledAutoClean/true'
-    }]);
+    btnList.push([
+      {
+        text: locale.m('action_enable-auto-clean'),
+        callback_data: '/options/isEnabledAutoClean/true',
+      },
+    ]);
   }
 
   if (chat.channelId) {
-    btnList.push([{
-      text: locale.m('action_remove-channel', {channel: chat.channelId}),
-      callback_data: '/unsetChannel',
-    }]);
+    btnList.push([
+      {
+        text: locale.m('action_remove-channel', {channel: chat.channelId}),
+        callback_data: '/unsetChannel',
+      },
+    ]);
   } else {
-    btnList.push([{
-      text: locale.m('action_set-channel'),
-      callback_data: '/setChannel',
-    }]);
+    btnList.push([
+      {
+        text: locale.m('action_set-channel'),
+        callback_data: '/setChannel',
+      },
+    ]);
   }
 
   if (chat.channelId) {
     if (chat.isMuted) {
-      btnList.push([{
-        text: locale.m('action_unmute'),
-        callback_data: '/options/isMuted/false'
-      }]);
+      btnList.push([
+        {
+          text: locale.m('action_unmute'),
+          callback_data: '/options/isMuted/false',
+        },
+      ]);
     } else {
-      btnList.push([{
-        text: locale.m('action_mute'),
-        callback_data: '/options/isMuted/true'
-      }]);
+      btnList.push([
+        {
+          text: locale.m('action_mute'),
+          callback_data: '/options/isMuted/true',
+        },
+      ]);
     }
   }
 
   if ('channel' in chat && chat.channel) {
     if (chat.channel.isHidePreview) {
-      btnList.push([{
-        text: locale.m('action_show-preview-for-channel'),
-        callback_data: '/channelOptions/isHidePreview/false'
-      }]);
+      btnList.push([
+        {
+          text: locale.m('action_show-preview-for-channel'),
+          callback_data: '/channelOptions/isHidePreview/false',
+        },
+      ]);
     } else {
-      btnList.push([{
-        text: locale.m('action_hide-preview-for-channel'),
-        callback_data: '/channelOptions/isHidePreview/true'
-      }]);
+      btnList.push([
+        {
+          text: locale.m('action_hide-preview-for-channel'),
+          callback_data: '/channelOptions/isHidePreview/true',
+        },
+      ]);
     }
 
     if (chat.isEnabledAutoClean) {
-      btnList.push([{
-        text: locale.m('action_disable-auto-clean-for-channel'),
-        callback_data: '/channelOptions/isEnabledAutoClean/false'
-      }]);
+      btnList.push([
+        {
+          text: locale.m('action_disable-auto-clean-for-channel'),
+          callback_data: '/channelOptions/isEnabledAutoClean/false',
+        },
+      ]);
     } else {
-      btnList.push([{
-        text: locale.m('action_enable-auto-clean-for-channel'),
-        callback_data: '/channelOptions/isEnabledAutoClean/true'
-      }]);
+      btnList.push([
+        {
+          text: locale.m('action_enable-auto-clean-for-channel'),
+          callback_data: '/channelOptions/isEnabledAutoClean/true',
+        },
+      ]);
     }
   }
 

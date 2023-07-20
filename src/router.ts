@@ -3,7 +3,7 @@ import Main from './main';
 import qs from 'node:querystring';
 import TelegramBot from 'node-telegram-bot-api';
 import {getDebug} from './tools/getDebug';
-import Locale from "./locale";
+import Locale from './locale';
 
 const debug = getDebug('app:router');
 
@@ -353,8 +353,7 @@ export class RouterReq {
       let from = null;
       if (this.message) {
         from = this.message.from || null;
-      } else
-      if (this.callback_query) {
+      } else if (this.callback_query) {
         from = this.callback_query.from;
       }
       return from;
@@ -366,7 +365,7 @@ export class RouterReq {
   }
 
   get fromId(): number | undefined {
-    return this.from?.id
+    return this.from?.id;
   }
 
   get chatId(): number | undefined {

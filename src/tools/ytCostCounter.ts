@@ -24,7 +24,7 @@ const ytCostCounter = (quota: number, interval = 60 * 1000) => {
 
   function onTimeout() {
     timeoutId = null;
-    queue.splice(0).forEach(cb => cb());
+    queue.splice(0).forEach((cb) => cb());
   }
 
   return {
@@ -37,6 +37,6 @@ const ytCostCounter = (quota: number, interval = 60 * 1000) => {
       return quota - used;
     },
   };
-}
+};
 
 export default ytCostCounter;

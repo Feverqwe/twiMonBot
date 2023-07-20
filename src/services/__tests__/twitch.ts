@@ -1,6 +1,6 @@
-import Twitch from "../twitch";
-import Main from "../../main";
-import {getDebug} from "../../tools/getDebug";
+import Twitch from '../twitch';
+import Main from '../../main';
+import {getDebug} from '../../tools/getDebug';
 
 const debug = getDebug('app:Twitch:test');
 
@@ -49,6 +49,3 @@ test('getStreams', async () => {
 
   debug(result);
 });
-
-
-

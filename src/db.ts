@@ -1,14 +1,14 @@
-import ErrorWithCode from "./tools/errorWithCode";
-import arrayByPart from "./tools/arrayByPart";
-import serviceId from "./tools/serviceId";
-import Main from "./main";
-import parallel from "./tools/parallel";
-import {ServiceChannel, ServiceInterface} from "./checker";
-import Sequelize, {Op} from "sequelize";
-import arrayDifference from "./tools/arrayDifference";
-import assertType from "./tools/assertType";
-import {appConfig} from "./appConfig";
-import {getDebug} from "./tools/getDebug";
+import ErrorWithCode from './tools/errorWithCode';
+import arrayByPart from './tools/arrayByPart';
+import serviceId from './tools/serviceId';
+import Main from './main';
+import parallel from './tools/parallel';
+import {ServiceChannel, ServiceInterface} from './checker';
+import Sequelize, {Op} from 'sequelize';
+import arrayDifference from './tools/arrayDifference';
+import assertType from './tools/assertType';
+import {appConfig} from './appConfig';
+import {getDebug} from './tools/getDebug';
 
 const debug = getDebug('app:db');
 
@@ -20,7 +20,7 @@ export interface NewChat {
   isEnabledAutoClean?: boolean;
   isMuted?: boolean;
   sendTimeoutExpiresAt?: Date;
-  parentChatId?: string|null;
+  parentChatId?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -33,28 +33,28 @@ export class ChatModel extends Sequelize.Model {
   declare isEnabledAutoClean: boolean;
   declare isMuted: boolean;
   declare sendTimeoutExpiresAt: Date;
-  declare parentChatId: string|null;
+  declare parentChatId: string | null;
   declare createdAt: Date;
   declare updatedAt: Date;
 }
 
 export interface ChatModelWithChannel extends ChatModel {
-  channel: ChatModel,
+  channel: ChatModel;
 }
 
 export interface ChatModelWithOptionalChannel extends ChatModel {
-  channel: ChatModel|null,
+  channel: ChatModel | null;
 }
 
 export interface Channel {
-  id: string,
-  service: string,
-  title: string,
-  url: string,
-  lastStreamAt?: Date | null,
-  lastSyncAt?: Date,
-  syncTimeoutExpiresAt?: Date,
-  createdAt?: Date,
+  id: string;
+  service: string;
+  title: string;
+  url: string;
+  lastStreamAt?: Date | null;
+  lastSyncAt?: Date;
+  syncTimeoutExpiresAt?: Date;
+  createdAt?: Date;
 }
 
 export class ChannelModel extends Sequelize.Model {
@@ -82,37 +82,37 @@ export interface NewChatIdStreamId {
 }
 
 export interface Stream {
-  id: string,
-  url: string,
-  title: string,
-  game?: string|null,
-  isRecord?: boolean,
-  previews: string[],
-  viewers?: number|null,
-  channelId: string,
-  telegramPreviewFileId?: string|null,
-  isOffline?: boolean,
-  offlineFrom?: Date|null,
-  isTimeout?: boolean,
-  timeoutFrom?: Date|null,
-  createdAt?: Date,
-  updatedAt?: Date,
+  id: string;
+  url: string;
+  title: string;
+  game?: string | null;
+  isRecord?: boolean;
+  previews: string[];
+  viewers?: number | null;
+  channelId: string;
+  telegramPreviewFileId?: string | null;
+  isOffline?: boolean;
+  offlineFrom?: Date | null;
+  isTimeout?: boolean;
+  timeoutFrom?: Date | null;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export class StreamModel extends Sequelize.Model {
   declare id: string;
   declare url: string;
   declare title: string;
-  declare game: string|null;
+  declare game: string | null;
   declare isRecord: boolean;
   declare previews: string[];
-  declare viewers: number|null;
+  declare viewers: number | null;
   declare channelId: string;
-  declare telegramPreviewFileId: string|null;
+  declare telegramPreviewFileId: string | null;
   declare isOffline: boolean;
-  declare offlineFrom: Date|null;
+  declare offlineFrom: Date | null;
   declare isTimeout: boolean;
-  declare timeoutFrom: Date|null;
+  declare timeoutFrom: Date | null;
   declare createdAt: Date;
   declare updatedAt: Date;
 }
@@ -126,19 +126,19 @@ export class ChatIdChannelIdModel extends Sequelize.Model {
   declare createdAt: Date;
 }
 export interface ChatIdChannelIdModelWithChannel extends ChatIdChannelIdModel {
-  channel: ChannelModel,
+  channel: ChannelModel;
 }
 
 export interface Message {
-  _id?: number,
-  id: string,
-  chatId: string,
-  streamId: string,
-  type: string,
-  text: string,
-  hasChanges?: boolean,
-  createdAt?: Date,
-  updatedAt?: Date,
+  _id?: number;
+  id: string;
+  chatId: string;
+  streamId: string;
+  type: string;
+  text: string;
+  hasChanges?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export class MessageModel extends Sequelize.Model {
@@ -154,14 +154,14 @@ export class MessageModel extends Sequelize.Model {
 }
 
 export interface YtPubSubChannel {
-  id: string,
-  channelId: string,
-  isUpcomingChecked?: boolean,
-  lastSyncAt?: Date,
-  syncTimeoutExpiresAt?: Date,
-  subscriptionExpiresAt?: Date,
-  subscriptionTimeoutExpiresAt?: Date,
-  createdAt?: Date,
+  id: string;
+  channelId: string;
+  isUpcomingChecked?: boolean;
+  lastSyncAt?: Date;
+  syncTimeoutExpiresAt?: Date;
+  subscriptionExpiresAt?: Date;
+  subscriptionTimeoutExpiresAt?: Date;
+  createdAt?: Date;
 }
 
 export class YtPubSubChannelModel extends Sequelize.Model {
@@ -176,18 +176,18 @@ export class YtPubSubChannelModel extends Sequelize.Model {
 }
 
 export interface YtPubSubFeed {
-  id: string,
-  title: string,
-  channelId: string,
-  channelTitle: string,
-  isStream?: boolean | null,
-  scheduledStartAt?: Date | null,
-  actualStartAt?: Date | null,
-  actualEndAt?: Date | null,
-  viewers?: number | null,
-  syncTimeoutExpiresAt?: Date,
-  createdAt?: Date,
-  updatedAt?: Date,
+  id: string;
+  title: string;
+  channelId: string;
+  channelTitle: string;
+  isStream?: boolean | null;
+  scheduledStartAt?: Date | null;
+  actualStartAt?: Date | null;
+  actualEndAt?: Date | null;
+  viewers?: number | null;
+  syncTimeoutExpiresAt?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export class YtPubSubFeedModel extends Sequelize.Model {
@@ -208,261 +208,408 @@ export class YtPubSubFeedModel extends Sequelize.Model {
 class Db {
   sequelize: Sequelize.Sequelize;
   constructor(private main: Main) {
-    this.sequelize = new Sequelize.Sequelize(appConfig.db.database, appConfig.db.user, appConfig.db.password, {
-      host: appConfig.db.host,
-      port: appConfig.db.port,
-      dialect: 'mariadb',
-      omitNull: true,
-      logging: false,
-      /*dialectOptions: {
+    this.sequelize = new Sequelize.Sequelize(
+      appConfig.db.database,
+      appConfig.db.user,
+      appConfig.db.password,
+      {
+        host: appConfig.db.host,
+        port: appConfig.db.port,
+        dialect: 'mariadb',
+        omitNull: true,
+        logging: false,
+        /*dialectOptions: {
         charset: 'utf8mb4',
         collate: 'utf8mb4_general_ci'
       },*/
-      define: {
-        charset: 'utf8mb4',
+        define: {
+          charset: 'utf8mb4',
+        },
+        pool: {
+          max: 30,
+          min: 0,
+          acquire: 30000,
+          idle: 10000,
+        },
       },
-      pool: {
-        max: 30,
-        min: 0,
-        acquire: 30000,
-        idle: 10000
-      }
+    );
+
+    ChatModel.init(
+      {
+        id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
+        channelId: {type: Sequelize.STRING(191), allowNull: true},
+        isHidePreview: {type: Sequelize.BOOLEAN, defaultValue: false},
+        isMutedRecords: {type: Sequelize.BOOLEAN, defaultValue: true},
+        isEnabledAutoClean: {type: Sequelize.BOOLEAN, defaultValue: true},
+        isMuted: {type: Sequelize.BOOLEAN, defaultValue: false},
+        sendTimeoutExpiresAt: {
+          type: Sequelize.DATE,
+          allowNull: false,
+          defaultValue: '1970-01-01 00:00:00',
+        },
+        parentChatId: {type: Sequelize.STRING(191), allowNull: true},
+      },
+      {
+        sequelize: this.sequelize,
+        modelName: 'chat',
+        tableName: 'chats',
+        timestamps: true,
+        indexes: [
+          {
+            name: 'channelId_UNIQUE',
+            unique: true,
+            fields: ['channelId'],
+          },
+          {
+            name: 'sendTimeoutExpiresAt_idx',
+            fields: ['sendTimeoutExpiresAt'],
+          },
+        ],
+      },
+    );
+    ChatModel.belongsTo(ChatModel, {
+      foreignKey: 'channelId',
+      targetKey: 'id',
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
+      as: 'channel',
+    });
+    ChatModel.belongsTo(ChatModel, {
+      foreignKey: 'parentChatId',
+      targetKey: 'id',
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
+      as: 'parentChat',
     });
 
-    ChatModel.init({
-      id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
-      channelId: {type: Sequelize.STRING(191), allowNull: true},
-      isHidePreview: {type: Sequelize.BOOLEAN, defaultValue: false},
-      isMutedRecords: {type: Sequelize.BOOLEAN, defaultValue: true},
-      isEnabledAutoClean: {type: Sequelize.BOOLEAN, defaultValue: true},
-      isMuted: {type: Sequelize.BOOLEAN, defaultValue: false},
-      sendTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
-      parentChatId: {type: Sequelize.STRING(191), allowNull: true},
-    }, {
-      sequelize: this.sequelize,
-      modelName: 'chat',
-      tableName: 'chats',
-      timestamps: true,
-      indexes: [{
-        name: 'channelId_UNIQUE',
-        unique: true,
-        fields: ['channelId']
-      }, {
-        name: 'sendTimeoutExpiresAt_idx',
-        fields: ['sendTimeoutExpiresAt']
-      }]
-    });
-    ChatModel.belongsTo(ChatModel, {foreignKey: 'channelId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'SET NULL', as: 'channel'});
-    ChatModel.belongsTo(ChatModel, {foreignKey: 'parentChatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE', as: 'parentChat'});
+    ChannelModel.init(
+      {
+        id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
+        service: {type: Sequelize.STRING(191), allowNull: false},
+        title: {type: Sequelize.TEXT, allowNull: true},
+        url: {type: Sequelize.TEXT, allowNull: false},
+        lastStreamAt: {type: Sequelize.DATE, allowNull: true},
+        lastSyncAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
+        syncTimeoutExpiresAt: {
+          type: Sequelize.DATE,
+          allowNull: false,
+          defaultValue: '1970-01-01 00:00:00',
+        },
+      },
+      {
+        sequelize: this.sequelize,
+        modelName: 'channel',
+        tableName: 'channels',
+        timestamps: true,
+        updatedAt: false,
+        indexes: [
+          {
+            name: 'service_idx',
+            fields: ['service'],
+          },
+          {
+            name: 'lastStreamAt_idx',
+            fields: ['lastStreamAt'],
+          },
+          {
+            name: 'lastSyncAt_idx',
+            fields: ['lastSyncAt'],
+          },
+          {
+            name: 'syncTimeoutExpiresAt_idx',
+            fields: ['syncTimeoutExpiresAt'],
+          },
+          {
+            name: 'service_syncTimeoutExpiresAt_lastSyncAt_idx',
+            fields: ['service', 'syncTimeoutExpiresAt', 'lastSyncAt'],
+          },
+        ],
+      },
+    );
 
-    ChannelModel.init({
-      id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
-      service: {type: Sequelize.STRING(191), allowNull: false},
-      title: {type: Sequelize.TEXT, allowNull: true},
-      url: {type: Sequelize.TEXT, allowNull: false},
-      lastStreamAt: {type: Sequelize.DATE, allowNull: true},
-      lastSyncAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
-      syncTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
-    }, {
-      sequelize: this.sequelize,
-      modelName: 'channel',
-      tableName: 'channels',
-      timestamps: true,
-      updatedAt: false,
-      indexes: [{
-        name: 'service_idx',
-        fields: ['service']
-      }, {
-        name: 'lastStreamAt_idx',
-        fields: ['lastStreamAt']
-      }, {
-        name: 'lastSyncAt_idx',
-        fields: ['lastSyncAt']
-      }, {
-        name: 'syncTimeoutExpiresAt_idx',
-        fields: ['syncTimeoutExpiresAt']
-      }, {
-        name: 'service_syncTimeoutExpiresAt_lastSyncAt_idx',
-        fields: ['service', 'syncTimeoutExpiresAt', 'lastSyncAt']
-      }]
+    ChatIdChannelIdModel.init(
+      {
+        chatId: {type: Sequelize.STRING(191), allowNull: false},
+        channelId: {type: Sequelize.STRING(191), allowNull: false},
+      },
+      {
+        sequelize: this.sequelize,
+        modelName: 'chatIdChannelId',
+        tableName: 'chatIdChannelId',
+        timestamps: true,
+        updatedAt: false,
+        indexes: [
+          {
+            name: 'chatId_channelId_UNIQUE',
+            unique: true,
+            fields: ['chatId', 'channelId'],
+          },
+          {
+            name: 'chatId_idx',
+            fields: ['chatId'],
+          },
+          {
+            name: 'channelId_idx',
+            fields: ['channelId'],
+          },
+          {
+            name: 'createdAt_idx',
+            fields: ['createdAt'],
+          },
+        ],
+      },
+    );
+    ChatIdChannelIdModel.belongsTo(ChatModel, {
+      foreignKey: 'chatId',
+      targetKey: 'id',
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
+    });
+    ChatIdChannelIdModel.belongsTo(ChannelModel, {
+      foreignKey: 'channelId',
+      targetKey: 'id',
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
     });
 
-    ChatIdChannelIdModel.init({
-      chatId: {type: Sequelize.STRING(191), allowNull: false},
-      channelId: {type: Sequelize.STRING(191), allowNull: false},
-    }, {
-      sequelize: this.sequelize,
-      modelName: 'chatIdChannelId',
-      tableName: 'chatIdChannelId',
-      timestamps: true,
-      updatedAt: false,
-      indexes: [{
-        name: 'chatId_channelId_UNIQUE',
-        unique: true,
-        fields: ['chatId', 'channelId']
-      }, {
-        name: 'chatId_idx',
-        fields: ['chatId']
-      }, {
-        name: 'channelId_idx',
-        fields: ['channelId']
-      }, {
-        name: 'createdAt_idx',
-        fields: ['createdAt']
-      }]
+    StreamModel.init(
+      {
+        id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
+        url: {type: Sequelize.STRING(191), allowNull: false},
+        title: {type: Sequelize.STRING(191), allowNull: false},
+        game: {type: Sequelize.STRING(191), allowNull: true},
+        isRecord: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
+        previews: {type: Sequelize.JSON, allowNull: false},
+        viewers: {type: Sequelize.INTEGER, allowNull: true},
+        channelId: {type: Sequelize.STRING(191), allowNull: false},
+        telegramPreviewFileId: {type: Sequelize.TEXT, allowNull: true},
+        isOffline: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
+        offlineFrom: {type: Sequelize.DATE, allowNull: true},
+        isTimeout: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
+        timeoutFrom: {type: Sequelize.DATE, allowNull: true},
+      },
+      {
+        sequelize: this.sequelize,
+        modelName: 'stream',
+        tableName: 'streams',
+        timestamps: true,
+        indexes: [
+          {
+            name: 'createdAt_idx',
+            fields: ['createdAt'],
+          },
+          {
+            name: 'isOffline_isRecord_idx',
+            fields: ['isOffline', 'isRecord'],
+          },
+        ],
+      },
+    );
+    StreamModel.belongsTo(ChannelModel, {
+      foreignKey: 'channelId',
+      targetKey: 'id',
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
     });
-    ChatIdChannelIdModel.belongsTo(ChatModel, {foreignKey: 'chatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
-    ChatIdChannelIdModel.belongsTo(ChannelModel, {foreignKey: 'channelId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
 
-    StreamModel.init({
-      id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
-      url: {type: Sequelize.STRING(191), allowNull: false},
-      title: {type: Sequelize.STRING(191), allowNull: false},
-      game: {type: Sequelize.STRING(191), allowNull: true},
-      isRecord: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
-      previews: {type: Sequelize.JSON, allowNull: false},
-      viewers: {type: Sequelize.INTEGER, allowNull: true},
-      channelId: {type: Sequelize.STRING(191), allowNull: false},
-      telegramPreviewFileId: {type: Sequelize.TEXT, allowNull: true},
-      isOffline: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
-      offlineFrom: {type: Sequelize.DATE, allowNull: true},
-      isTimeout: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
-      timeoutFrom: {type: Sequelize.DATE, allowNull: true},
-    }, {
-      sequelize: this.sequelize,
-      modelName: 'stream',
-      tableName: 'streams',
-      timestamps: true,
-      indexes: [{
-        name: 'createdAt_idx',
-        fields: ['createdAt']
-      }, {
-        name: 'isOffline_isRecord_idx',
-        fields: ['isOffline', 'isRecord']
-      }]
+    ChatIdStreamIdModel.init(
+      {
+        id: {type: Sequelize.INTEGER, allowNull: false, primaryKey: true, autoIncrement: true},
+        chatId: {type: Sequelize.STRING(191), allowNull: false},
+        streamId: {type: Sequelize.STRING(191), allowNull: false},
+      },
+      {
+        sequelize: this.sequelize,
+        modelName: 'chatIdStreamId',
+        tableName: 'chatIdStreamId',
+        timestamps: true,
+        updatedAt: false,
+        indexes: [
+          {
+            name: 'chatId_streamId_UNIQUE',
+            unique: true,
+            fields: ['chatId', 'streamId'],
+          },
+          {
+            name: 'chatId_idx',
+            fields: ['chatId'],
+          },
+          {
+            name: 'createdAt_idx',
+            fields: ['createdAt'],
+          },
+        ],
+      },
+    );
+    ChatIdStreamIdModel.belongsTo(ChatModel, {
+      foreignKey: 'chatId',
+      targetKey: 'id',
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
     });
-    StreamModel.belongsTo(ChannelModel, {foreignKey: 'channelId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
+    ChatIdStreamIdModel.belongsTo(StreamModel, {
+      foreignKey: 'streamId',
+      targetKey: 'id',
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
+    });
 
-    ChatIdStreamIdModel.init({
-      id: {type: Sequelize.INTEGER, allowNull: false, primaryKey: true, autoIncrement: true},
-      chatId: {type: Sequelize.STRING(191), allowNull: false},
-      streamId: {type: Sequelize.STRING(191), allowNull: false},
-    }, {
-      sequelize: this.sequelize,
-      modelName: 'chatIdStreamId',
-      tableName: 'chatIdStreamId',
-      timestamps: true,
-      updatedAt: false,
-      indexes: [{
-        name: 'chatId_streamId_UNIQUE',
-        unique: true,
-        fields: ['chatId', 'streamId']
-      }, {
-        name: 'chatId_idx',
-        fields: ['chatId']
-      }, {
-        name: 'createdAt_idx',
-        fields: ['createdAt']
-      }]
+    MessageModel.init(
+      {
+        _id: {type: Sequelize.INTEGER, allowNull: false, primaryKey: true, autoIncrement: true},
+        id: {type: Sequelize.STRING(191), allowNull: false},
+        chatId: {type: Sequelize.STRING(191), allowNull: false},
+        streamId: {type: Sequelize.STRING(191), allowNull: true},
+        type: {type: Sequelize.STRING(191), allowNull: false},
+        text: {type: Sequelize.TEXT, allowNull: false},
+        hasChanges: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
+      },
+      {
+        sequelize: this.sequelize,
+        modelName: 'message',
+        tableName: 'messages',
+        timestamps: true,
+        indexes: [
+          {
+            name: 'id_chatId_UNIQUE',
+            unique: true,
+            fields: ['id', 'chatId'],
+          },
+          {
+            name: 'createdAt_idx',
+            fields: ['createdAt'],
+          },
+          {
+            name: 'chatId_hasChanges_streamId_idx',
+            fields: ['chatId', 'hasChanges', 'streamId'],
+          },
+          {
+            name: 'chatId_hasChanges_createdAt_idx',
+            fields: ['chatId', 'hasChanges', 'createdAt'],
+          },
+        ],
+      },
+    );
+    MessageModel.belongsTo(ChatModel, {
+      foreignKey: 'chatId',
+      targetKey: 'id',
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
     });
-    ChatIdStreamIdModel.belongsTo(ChatModel, {foreignKey: 'chatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
-    ChatIdStreamIdModel.belongsTo(StreamModel, {foreignKey: 'streamId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
+    MessageModel.belongsTo(StreamModel, {
+      foreignKey: 'streamId',
+      targetKey: 'id',
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
+    });
 
-    MessageModel.init({
-      _id: {type: Sequelize.INTEGER, allowNull: false, primaryKey: true, autoIncrement: true},
-      id: {type: Sequelize.STRING(191), allowNull: false},
-      chatId: {type: Sequelize.STRING(191), allowNull: false},
-      streamId: {type: Sequelize.STRING(191), allowNull: true},
-      type: {type: Sequelize.STRING(191), allowNull: false},
-      text: {type: Sequelize.TEXT, allowNull: false},
-      hasChanges: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
-    }, {
-      sequelize: this.sequelize,
-      modelName: 'message',
-      tableName: 'messages',
-      timestamps: true,
-      indexes: [{
-        name: 'id_chatId_UNIQUE',
-        unique: true,
-        fields: ['id', 'chatId']
-      }, {
-        name: 'createdAt_idx',
-        fields: ['createdAt']
-      }, {
-        name: 'chatId_hasChanges_streamId_idx',
-        fields: ['chatId', 'hasChanges', 'streamId']
-      }, {
-        name: 'chatId_hasChanges_createdAt_idx',
-        fields: ['chatId', 'hasChanges', 'createdAt']
-      }]
+    YtPubSubChannelModel.init(
+      {
+        id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
+        channelId: {type: Sequelize.STRING(191), allowNull: false},
+        isUpcomingChecked: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
+        lastSyncAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
+        syncTimeoutExpiresAt: {
+          type: Sequelize.DATE,
+          allowNull: false,
+          defaultValue: '1970-01-01 00:00:00',
+        },
+        subscriptionExpiresAt: {
+          type: Sequelize.DATE,
+          allowNull: false,
+          defaultValue: '1970-01-01 00:00:00',
+        },
+        subscriptionTimeoutExpiresAt: {
+          type: Sequelize.DATE,
+          allowNull: false,
+          defaultValue: '1970-01-01 00:00:00',
+        },
+      },
+      {
+        sequelize: this.sequelize,
+        modelName: 'ytPubSubChannel',
+        tableName: 'ytPubSubChannels',
+        timestamps: true,
+        updatedAt: false,
+        indexes: [
+          {
+            name: 'lastSyncAt_idx',
+            fields: ['lastSyncAt'],
+          },
+          {
+            name: 'syncTimeoutExpiresAt_idx',
+            fields: ['syncTimeoutExpiresAt'],
+          },
+          {
+            name: 'subscriptionExpiresAt_subscriptionTimeoutExpiresAt_idx',
+            fields: ['subscriptionExpiresAt', 'subscriptionTimeoutExpiresAt'],
+          },
+        ],
+      },
+    );
+    YtPubSubChannelModel.belongsTo(ChannelModel, {
+      foreignKey: 'channelId',
+      targetKey: 'id',
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
     });
-    MessageModel.belongsTo(ChatModel, {foreignKey: 'chatId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
-    MessageModel.belongsTo(StreamModel, {foreignKey: 'streamId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'SET NULL'});
 
-    YtPubSubChannelModel.init({
-      id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
-      channelId: {type: Sequelize.STRING(191), allowNull: false},
-      isUpcomingChecked: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
-      lastSyncAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
-      syncTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
-      subscriptionExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
-      subscriptionTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
-    }, {
-      sequelize: this.sequelize,
-      modelName: 'ytPubSubChannel',
-      tableName: 'ytPubSubChannels',
-      timestamps: true,
-      updatedAt: false,
-      indexes: [{
-        name: 'lastSyncAt_idx',
-        fields: ['lastSyncAt']
-      }, {
-        name: 'syncTimeoutExpiresAt_idx',
-        fields: ['syncTimeoutExpiresAt']
-      }, {
-        name: 'subscriptionExpiresAt_subscriptionTimeoutExpiresAt_idx',
-        fields: ['subscriptionExpiresAt', 'subscriptionTimeoutExpiresAt']
-      }]
+    YtPubSubFeedModel.init(
+      {
+        id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
+        title: {type: Sequelize.STRING(191), allowNull: false},
+        channelId: {type: Sequelize.STRING(191), allowNull: false},
+        channelTitle: {type: Sequelize.STRING(191), allowNull: false},
+        isStream: {type: Sequelize.BOOLEAN, allowNull: true},
+        scheduledStartAt: {type: Sequelize.DATE, allowNull: true},
+        actualStartAt: {type: Sequelize.DATE, allowNull: true},
+        actualEndAt: {type: Sequelize.DATE, allowNull: true},
+        viewers: {type: Sequelize.INTEGER, allowNull: true},
+        syncTimeoutExpiresAt: {
+          type: Sequelize.DATE,
+          allowNull: false,
+          defaultValue: '1970-01-01 00:00:00',
+        },
+      },
+      {
+        sequelize: this.sequelize,
+        modelName: 'ytPubSubFeed',
+        tableName: 'ytPubSubFeeds',
+        timestamps: true,
+        indexes: [
+          {
+            name: 'isStream_idx',
+            fields: ['isStream'],
+          },
+          {
+            name: 'scheduledStartAt_idx',
+            fields: ['scheduledStartAt'],
+          },
+          {
+            name: 'actualStartAt_idx',
+            fields: ['actualStartAt'],
+          },
+          {
+            name: 'actualEndAt_idx',
+            fields: ['actualEndAt'],
+          },
+          {
+            name: 'syncTimeoutExpiresAt_idx',
+            fields: ['syncTimeoutExpiresAt'],
+          },
+          {
+            name: 'createdAt_idx',
+            fields: ['createdAt'],
+          },
+        ],
+      },
+    );
+    YtPubSubFeedModel.belongsTo(YtPubSubChannelModel, {
+      foreignKey: 'channelId',
+      targetKey: 'id',
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
     });
-    YtPubSubChannelModel.belongsTo(ChannelModel, {foreignKey: 'channelId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
-
-    YtPubSubFeedModel.init({
-      id: {type: Sequelize.STRING(191), allowNull: false, primaryKey: true},
-      title: {type: Sequelize.STRING(191), allowNull: false},
-      channelId: {type: Sequelize.STRING(191), allowNull: false},
-      channelTitle: {type: Sequelize.STRING(191), allowNull: false},
-      isStream: {type: Sequelize.BOOLEAN, allowNull: true},
-      scheduledStartAt: {type: Sequelize.DATE, allowNull: true},
-      actualStartAt: {type: Sequelize.DATE, allowNull: true},
-      actualEndAt: {type: Sequelize.DATE, allowNull: true},
-      viewers: {type: Sequelize.INTEGER, allowNull: true},
-      syncTimeoutExpiresAt: {type: Sequelize.DATE, allowNull: false, defaultValue: '1970-01-01 00:00:00'},
-    }, {
-      sequelize: this.sequelize,
-      modelName: 'ytPubSubFeed',
-      tableName: 'ytPubSubFeeds',
-      timestamps: true,
-      indexes: [{
-        name: 'isStream_idx',
-        fields: ['isStream']
-      }, {
-        name: 'scheduledStartAt_idx',
-        fields: ['scheduledStartAt']
-      }, {
-        name: 'actualStartAt_idx',
-        fields: ['actualStartAt']
-      }, {
-        name: 'actualEndAt_idx',
-        fields: ['actualEndAt']
-      }, {
-        name: 'syncTimeoutExpiresAt_idx',
-        fields: ['syncTimeoutExpiresAt']
-      }, {
-        name: 'createdAt_idx',
-        fields: ['createdAt']
-      }]
-    });
-    YtPubSubFeedModel.belongsTo(YtPubSubChannelModel, {foreignKey: 'channelId', targetKey: 'id', onUpdate: 'CASCADE', onDelete: 'CASCADE'});
   }
 
   /**
@@ -475,11 +622,9 @@ class Db {
   }
 
   async ensureChat(id: string) {
-     const [model, isCreated] = await ChatModel.findOrCreate({
+    const [model, isCreated] = await ChatModel.findOrCreate({
       where: {id},
-      include: [
-        {model: ChatModel, as: 'channel'}
-      ]
+      include: [{model: ChatModel, as: 'channel'}],
     });
     assertType<ChatModelWithOptionalChannel>(model);
     return model;
@@ -487,34 +632,43 @@ class Db {
 
   async createChatChannel(chatId: string, channelId: string) {
     return this.sequelize.transaction(async (transaction) => {
-      await ChatModel.create({
-        id: channelId,
-        parentChatId: chatId,
-      }, {
-        transaction
-      });
-      await ChatModel.upsert({
-        id: chatId,
-        channelId: channelId
-      }, {
-        transaction
-      })
+      await ChatModel.create(
+        {
+          id: channelId,
+          parentChatId: chatId,
+        },
+        {
+          transaction,
+        },
+      );
+      await ChatModel.upsert(
+        {
+          id: chatId,
+          channelId: channelId,
+        },
+        {
+          transaction,
+        },
+      );
     });
   }
 
   async changeChatId(id: string, newId: string) {
-    return ChatModel.update({id: newId}, {
-      where: {id}
-    });
+    return ChatModel.update(
+      {id: newId},
+      {
+        where: {id},
+      },
+    );
   }
 
   async getChatIds(offset: number, limit: number) {
     const chats: Pick<ChatModel, 'id'>[] = await ChatModel.findAll({
       offset,
       limit,
-      attributes: ['id']
+      attributes: ['id'],
     });
-    return chats.map(chat => chat.id);
+    return chats.map((chat) => chat.id);
   }
 
   async getChatById(id: string) {
@@ -534,20 +688,23 @@ class Db {
   async setChatSendTimeoutExpiresAt(ids: string[]) {
     const date = new Date();
     date.setSeconds(date.getSeconds() + appConfig.chatSendTimeoutAfterErrorMinutes * 60);
-    return ChatModel.update({sendTimeoutExpiresAt: date}, {
-      where: {id: ids}
-    });
+    return ChatModel.update(
+      {sendTimeoutExpiresAt: date},
+      {
+        where: {id: ids},
+      },
+    );
   }
 
   async deleteChatById(id: string) {
     return ChatModel.destroy({
-      where: {id}
+      where: {id},
     });
   }
 
   async deleteChatsByIds(ids: string[]) {
     return ChatModel.destroy({
-      where: {id: ids}
+      where: {id: ids},
     });
   }
 
@@ -555,8 +712,8 @@ class Db {
     return ChatModel.destroy({
       where: {
         id: {[Op.notIn]: Sequelize.literal(`(SELECT DISTINCT chatId FROM chatIdChannelId)`)},
-        parentChatId: null
-      }
+        parentChatId: null,
+      },
     });
   }
 
@@ -574,7 +731,7 @@ class Db {
     return channel;
   }
 
-  async hasChannelByServiceRawId(service: ServiceInterface, rawChannelId: string|number) {
+  async hasChannelByServiceRawId(service: ServiceInterface, rawChannelId: string | number) {
     const id = serviceId.wrap(service, rawChannelId);
 
     const channel: Pick<ChannelModel, 'id'> | null = await ChannelModel.findOne({
@@ -585,15 +742,21 @@ class Db {
   }
 
   async changeChannelId(id: string, newId: string) {
-    return ChannelModel.update({id: newId}, {
-      where: {id}
-    });
+    return ChannelModel.update(
+      {id: newId},
+      {
+        where: {id},
+      },
+    );
   }
 
   async getChatIdChannelIdChatIdCount() {
-    const results = await this.sequelize.query<{chatCount: number}>(`
+    const results = await this.sequelize.query<{chatCount: number}>(
+      `
       SELECT COUNT(DISTINCT(chatId)) as chatCount FROM chatIdChannelId
-    `, {type: Sequelize.QueryTypes.SELECT});
+    `,
+      {type: Sequelize.QueryTypes.SELECT},
+    );
 
     const result = results[0];
     if (!result) {
@@ -603,9 +766,12 @@ class Db {
   }
 
   async getChatIdChannelIdChannelIdCount() {
-    const results = await this.sequelize.query<{channelCount: number}>(`
+    const results = await this.sequelize.query<{channelCount: number}>(
+      `
       SELECT COUNT(DISTINCT(channelId)) as channelCount FROM chatIdChannelId
-    `, {type: Sequelize.QueryTypes.SELECT});
+    `,
+      {type: Sequelize.QueryTypes.SELECT},
+    );
 
     const result = results[0];
     if (!result) {
@@ -618,40 +784,47 @@ class Db {
     const monthAgo = new Date();
     monthAgo.setMonth(monthAgo.getMonth() - 1);
     return this.sequelize.query<{
-      channelId: string, service: string, chatCount: number, title: string
-    }>(`
+      channelId: string;
+      service: string;
+      chatCount: number;
+      title: string;
+    }>(
+      `
       SELECT channelId, COUNT(chatId) as chatCount, channels.service as service, channels.title as title FROM chatIdChannelId
       INNER JOIN channels ON channelId = channels.id
       WHERE channels.service = "${serviceId}" AND channels.lastStreamAt > "${dateToSql(monthAgo)}"
       GROUP BY channelId ORDER BY COUNT(chatId) DESC LIMIT 10
-    `, {type: Sequelize.QueryTypes.SELECT});
+    `,
+      {type: Sequelize.QueryTypes.SELECT},
+    );
   }
 
   async getServiceIdChannelCount(serviceId: string) {
-    const results = await this.sequelize.query<{service: string, channelCount: number}>(`
+    const results = await this.sequelize.query<{service: string; channelCount: number}>(
+      `
       SELECT service, COUNT(id) as channelCount FROM channels 
       WHERE service = "${serviceId}"
-    `, {type: Sequelize.QueryTypes.SELECT});
+    `,
+      {type: Sequelize.QueryTypes.SELECT},
+    );
 
     return results[0];
   }
 
   async getChannelsByChatId(chatId: string) {
     const chatIdChannelIdList: {}[] = await ChatIdChannelIdModel.findAll({
-      include: [
-        {model: ChannelModel, required: true}
-      ],
+      include: [{model: ChannelModel, required: true}],
       where: {chatId},
       attributes: [],
       order: ['createdAt'],
     });
     assertType<{channel: ChannelModel}[]>(chatIdChannelIdList);
-    return chatIdChannelIdList.map(chatIdChannelId => chatIdChannelId.channel);
+    return chatIdChannelIdList.map((chatIdChannelId) => chatIdChannelId.channel);
   }
 
   async getChannelsByIds(ids: string[]) {
     return ChannelModel.findAll({
-      where: {id: ids}
+      where: {id: ids},
     });
   }
 
@@ -665,7 +838,7 @@ class Db {
 
   async getChannelCountByChatId(chatId: string) {
     return ChatIdChannelIdModel.count({
-      where: {chatId}
+      where: {chatId},
     });
   }
 
@@ -676,7 +849,7 @@ class Db {
 
   async deleteChatIdChannelId(chatId: string, channelId: string) {
     return ChatIdChannelIdModel.destroy({
-      where: {chatId, channelId}
+      where: {chatId, channelId},
     });
   }
 
@@ -698,9 +871,10 @@ class Db {
     const channels: Pick<ChannelModel, 'id'>[] = await ChannelModel.findAll({
       where: {service},
       attributes: ['id'],
-      offset, limit,
+      offset,
+      limit,
     });
-    return channels.map(channel => channel.id);
+    return channels.map((channel) => channel.id);
   }
 
   async setChannelsSyncTimeoutExpiresAt(ids: string[]) {
@@ -714,34 +888,40 @@ class Db {
     channelIsDeadFromDate.setMonth(channelIsDeadFromDate.getMonth() - 3);
 
     return Promise.all([
-      ChannelModel.update({
-        syncTimeoutExpiresAt: aliveTimeout
-      }, {
-        where: {
-          id: ids,
-          [Op.or]: [
-            {lastStreamAt: {[Op.gt]: channelIsDeadFromDate}},
-            {
-              lastStreamAt: null,
-              createdAt: {[Op.gt]: channelIsDeadFromDate}
-            }
-          ]
-        }
-      }),
-      ChannelModel.update({
-        syncTimeoutExpiresAt: deadTimeout
-      }, {
-        where: {
-          id: ids,
-          [Op.or]: [
-            {lastStreamAt: {[Op.lte]: channelIsDeadFromDate}},
-            {
-              lastStreamAt: null,
-              createdAt: {[Op.lte]: channelIsDeadFromDate}
-            }
-          ]
+      ChannelModel.update(
+        {
+          syncTimeoutExpiresAt: aliveTimeout,
         },
-      }),
+        {
+          where: {
+            id: ids,
+            [Op.or]: [
+              {lastStreamAt: {[Op.gt]: channelIsDeadFromDate}},
+              {
+                lastStreamAt: null,
+                createdAt: {[Op.gt]: channelIsDeadFromDate},
+              },
+            ],
+          },
+        },
+      ),
+      ChannelModel.update(
+        {
+          syncTimeoutExpiresAt: deadTimeout,
+        },
+        {
+          where: {
+            id: ids,
+            [Op.or]: [
+              {lastStreamAt: {[Op.lte]: channelIsDeadFromDate}},
+              {
+                lastStreamAt: null,
+                createdAt: {[Op.lte]: channelIsDeadFromDate},
+              },
+            ],
+          },
+        },
+      ),
     ]);
   }
 
@@ -753,91 +933,121 @@ class Db {
   async cleanChannels() {
     return ChannelModel.destroy({
       where: {
-        id: {[Op.notIn]: Sequelize.literal(`(SELECT DISTINCT channelId FROM chatIdChannelId)`)}
-      }
+        id: {[Op.notIn]: Sequelize.literal(`(SELECT DISTINCT channelId FROM chatIdChannelId)`)},
+      },
     });
   }
 
   async getChatIdChannelIdByChannelIds(channelIds: string[]) {
     const results = await ChatIdChannelIdModel.findAll({
       where: {channelId: channelIds},
-      include: [{
-        model: ChatModel,
-        attributes: ['id', 'channelId', 'isMuted', 'isMutedRecords'],
-        required: true
-      }]
+      include: [
+        {
+          model: ChatModel,
+          attributes: ['id', 'channelId', 'isMuted', 'isMutedRecords'],
+          required: true,
+        },
+      ],
     });
-    assertType<(ChatIdChannelIdModel & {
-      chat: Pick<ChatModel, 'id' | 'channelId' | 'isMuted' | 'isMutedRecords'>,
-    })[]>(results);
+    assertType<
+      (ChatIdChannelIdModel & {
+        chat: Pick<ChatModel, 'id' | 'channelId' | 'isMuted' | 'isMutedRecords'>;
+      })[]
+    >(results);
     return results;
   }
 
-  async putStreams(channelsChanges: Channel[], removedChannelIds: string[], migratedStreamsIdCouple: [string, string][], syncStreams: Stream[], changedStreamIds: string[], removedStreamIds: string[], chatIdStreamIdChanges: NewChatIdStreamId[]) {
+  async putStreams(
+    channelsChanges: Channel[],
+    removedChannelIds: string[],
+    migratedStreamsIdCouple: [string, string][],
+    syncStreams: Stream[],
+    changedStreamIds: string[],
+    removedStreamIds: string[],
+    chatIdStreamIdChanges: NewChatIdStreamId[],
+  ) {
     let retry = 3;
 
     const doTry = (): Promise<void> => {
-      return this.sequelize.transaction(async (transaction) => {
-        await Promise.all([
-          bulk(channelsChanges, (channelsChanges) => {
-            return ChannelModel.bulkCreate(channelsChanges as any, {
-              updateOnDuplicate: ['lastStreamAt', 'lastSyncAt', 'title', 'url'],
-              transaction
-            });
-          }),
-          parallel(10, migratedStreamsIdCouple, ([fromId, id]) => {
-            return StreamModel.update({id}, {
-              where: {id: fromId},
-              transaction
-            });
-          })
-        ]);
+      return this.sequelize
+        .transaction(async (transaction) => {
+          await Promise.all([
+            bulk(channelsChanges, (channelsChanges) => {
+              return ChannelModel.bulkCreate(channelsChanges as any, {
+                updateOnDuplicate: ['lastStreamAt', 'lastSyncAt', 'title', 'url'],
+                transaction,
+              });
+            }),
+            parallel(10, migratedStreamsIdCouple, ([fromId, id]) => {
+              return StreamModel.update(
+                {id},
+                {
+                  where: {id: fromId},
+                  transaction,
+                },
+              );
+            }),
+          ]);
 
-        await bulk(syncStreams, (syncStreams) => {
-          return StreamModel.bulkCreate(syncStreams as any, {
-            updateOnDuplicate: [
-              'url', 'title', 'game', 'isRecord', 'previews',
-              'viewers', 'channelId', 'telegramPreviewFileId',
-              'isOffline', 'offlineFrom', 'isTimeout', 'timeoutFrom', 'updatedAt'
-            ],
-            transaction
+          await bulk(syncStreams, (syncStreams) => {
+            return StreamModel.bulkCreate(syncStreams as any, {
+              updateOnDuplicate: [
+                'url',
+                'title',
+                'game',
+                'isRecord',
+                'previews',
+                'viewers',
+                'channelId',
+                'telegramPreviewFileId',
+                'isOffline',
+                'offlineFrom',
+                'isTimeout',
+                'timeoutFrom',
+                'updatedAt',
+              ],
+              transaction,
+            });
           });
+
+          await Promise.all([
+            bulk(chatIdStreamIdChanges, (chatIdStreamIdChanges) => {
+              return ChatIdStreamIdModel.bulkCreate(chatIdStreamIdChanges as any, {
+                transaction,
+              });
+            }),
+            bulk(changedStreamIds, (changedStreamIds) => {
+              return MessageModel.update(
+                {hasChanges: true},
+                {
+                  where: {streamId: changedStreamIds},
+                  transaction,
+                },
+              );
+            }),
+          ]);
+
+          await Promise.all([
+            bulk(removedStreamIds, (removedStreamIds) => {
+              return StreamModel.destroy({
+                where: {id: removedStreamIds},
+                transaction,
+              });
+            }),
+            bulk(removedChannelIds, (removedChannelIds) => {
+              return ChannelModel.destroy({
+                where: {id: removedChannelIds},
+                transaction,
+              });
+            }),
+          ]);
+        })
+        .catch((err) => {
+          if (/Deadlock found when trying to get lock/.test(err.message) && --retry > 0) {
+            return new Promise((r) => setTimeout(r, 250)).then(() => doTry());
+          }
+          throw err;
         });
-
-        await Promise.all([
-          bulk(chatIdStreamIdChanges, (chatIdStreamIdChanges) => {
-            return ChatIdStreamIdModel.bulkCreate(chatIdStreamIdChanges as any, {
-              transaction
-            });
-          }),
-          bulk(changedStreamIds, (changedStreamIds) => {
-            return MessageModel.update({hasChanges: true}, {
-              where: {streamId: changedStreamIds},
-              transaction
-            });
-          })
-        ]);
-
-        await Promise.all([
-          bulk(removedStreamIds, (removedStreamIds) => {
-            return StreamModel.destroy({
-              where: {id: removedStreamIds},
-              transaction
-            });
-          }),
-          bulk(removedChannelIds, (removedChannelIds) => {
-            return ChannelModel.destroy({
-              where: {id: removedChannelIds},
-              transaction
-            });
-          })
-        ]);
-      }).catch((err) => {
-        if (/Deadlock found when trying to get lock/.test(err.message) && --retry > 0) {
-          return new Promise(r => setTimeout(r, 250)).then(() => doTry());
-        }
-        throw err;
-      });
     };
 
     return doTry();
@@ -846,10 +1056,8 @@ class Db {
   async getStreamsWithChannelByChannelIds(channelIds: string[]) {
     const results = await StreamModel.findAll({
       where: {channelId: channelIds},
-      include: [
-        {model: ChannelModel, required: true}
-      ],
-      order: ['createdAt']
+      include: [{model: ChannelModel, required: true}],
+      order: ['createdAt'],
     });
     assertType<StreamModelWithChannel[]>(results);
     return results;
@@ -857,7 +1065,7 @@ class Db {
 
   async getStreamsByChannelIds(channelIds: string[]) {
     return StreamModel.findAll({
-      where: {channelId: channelIds}
+      where: {channelId: channelIds},
     });
   }
 
@@ -865,36 +1073,37 @@ class Db {
     return StreamModel.count({
       where: {
         isOffline: false,
-        isRecord: false
-      }
+        isRecord: false,
+      },
     });
   }
 
   async getDistinctChatIdStreamIdChatIds() {
-    const results = await this.sequelize.query<{chatId: string}>(`
+    const results = await this.sequelize.query<{chatId: string}>(
+      `
       SELECT DISTINCT chatId FROM chatIdStreamId
       INNER JOIN chats ON chatIdStreamId.chatId = chats.id
       WHERE chats.sendTimeoutExpiresAt < "${dateToSql(new Date())}"
-    `,  { type: Sequelize.QueryTypes.SELECT});
-    return results.map(result => result.chatId);
+    `,
+      {type: Sequelize.QueryTypes.SELECT},
+    );
+    return results.map((result) => result.chatId);
   }
 
   async getStreamIdsByChatId(chatId: string, limit = 10) {
-    const results: Pick<ChatIdStreamIdModel, "streamId">[] = await ChatIdStreamIdModel.findAll({
+    const results: Pick<ChatIdStreamIdModel, 'streamId'>[] = await ChatIdStreamIdModel.findAll({
       where: {chatId},
       attributes: ['streamId'],
       order: ['createdAt'],
       limit: limit,
     });
-    return results.map(chatIdStreamId => chatIdStreamId.streamId);
+    return results.map((chatIdStreamId) => chatIdStreamId.streamId);
   }
 
   async getStreamWithChannelById(id: string) {
     const stream = await StreamModel.findOne({
       where: {id},
-      include: [
-        {model: ChannelModel, required: true}
-      ]
+      include: [{model: ChannelModel, required: true}],
     });
     if (!stream) {
       throw new ErrorWithCode('Stream is not found', 'STREAM_IS_NOT_FOUND');
@@ -906,9 +1115,7 @@ class Db {
   async getStreamById(id: string) {
     const stream = await StreamModel.findOne({
       where: {id},
-      include: [
-        {model: ChannelModel, required: true}
-      ]
+      include: [{model: ChannelModel, required: true}],
     });
     if (!stream) {
       throw new ErrorWithCode('Stream is not found', 'STREAM_IS_NOT_FOUND');
@@ -919,7 +1126,7 @@ class Db {
 
   async deleteChatIdStreamId(chatId: string, streamId: string) {
     return ChatIdStreamIdModel.destroy({
-      where: {chatId, streamId}
+      where: {chatId, streamId},
     });
   }
 
@@ -929,15 +1136,18 @@ class Db {
 
   async getDistinctMessagesChatIds() {
     const deletedBeforeDate = getDeletedBeforeDate();
-    const results = await this.sequelize.query<{chatId: string}>(`
+    const results = await this.sequelize.query<{chatId: string}>(
+      `
       SELECT DISTINCT chatId FROM messages
       INNER JOIN chats ON messages.chatId = chats.id
       WHERE (
         (messages.hasChanges = 1 AND messages.streamId IS NOT NULL) OR 
         (messages.streamId IS NULL AND messages.createdAt < "${dateToSql(deletedBeforeDate)}")
       ) AND chats.sendTimeoutExpiresAt < "${dateToSql(new Date())}"
-    `, { type: Sequelize.QueryTypes.SELECT});
-    return results.map(result => result.chatId);
+    `,
+      {type: Sequelize.QueryTypes.SELECT},
+    );
+    return results.map((result) => result.chatId);
   }
 
   async getMessagesByChatId(chatId: string, limit = 10) {
@@ -945,7 +1155,7 @@ class Db {
       where: {
         chatId,
         hasChanges: true,
-        streamId: {[Op.not]: null}
+        streamId: {[Op.not]: null},
       },
       order: ['createdAt'],
       limit: limit,
@@ -958,7 +1168,7 @@ class Db {
       where: {
         chatId,
         streamId: null,
-        createdAt: {[Op.lt]: deletedBeforeDate}
+        createdAt: {[Op.lt]: deletedBeforeDate},
       },
       order: ['createdAt'],
       limit: limit,
@@ -967,18 +1177,18 @@ class Db {
 
   async deleteMessageById(_id: number) {
     return MessageModel.destroy({
-      where: {_id}
+      where: {_id},
     });
   }
 
   async getExistsYtPubSubChannelIds(channelIds: string[]) {
     const results: Pick<YtPubSubChannelModel, 'id'>[] = await YtPubSubChannelModel.findAll({
       where: {
-        id: channelIds
+        id: channelIds,
       },
-      attributes: ['id']
+      attributes: ['id'],
     });
-    return results.map(item => item.id);
+    return results.map((item) => item.id);
   }
 
   async getNotExistsYtPubSubChannelIds(channelIds: string[]) {
@@ -988,7 +1198,7 @@ class Db {
 
   async ensureYtPubSubChannels(channels: YtPubSubChannel[]) {
     return YtPubSubChannelModel.bulkCreate(channels as any, {
-      updateOnDuplicate: ['id']
+      updateOnDuplicate: ['id'],
     });
   }
 
@@ -1009,60 +1219,77 @@ class Db {
 
   async getYtPubSubChannelsByIds(ids: string[]) {
     return YtPubSubChannelModel.findAll({
-      where: {id: ids}
+      where: {id: ids},
     });
   }
 
   async setYtPubSubChannelsSyncTimeoutExpiresAt(ids: string[]) {
     const date = new Date();
     date.setSeconds(date.getSeconds() + appConfig.channelSyncTimeoutMinutes * 60);
-    return YtPubSubChannelModel.update({
-      syncTimeoutExpiresAt: date
-    }, {
-      where: {id: ids}
-    });
+    return YtPubSubChannelModel.update(
+      {
+        syncTimeoutExpiresAt: date,
+      },
+      {
+        where: {id: ids},
+      },
+    );
   }
 
   async getYtPubSubChannelIdsWithExpiresSubscription(limit = 50) {
     const date = new Date();
-    date.setMinutes(date.getMinutes() + appConfig.updateChannelPubSubSubscribeIfExpiresLessThenMinutes);
+    date.setMinutes(
+      date.getMinutes() + appConfig.updateChannelPubSubSubscribeIfExpiresLessThenMinutes,
+    );
     const results: Pick<YtPubSubChannelModel, 'id'>[] = await YtPubSubChannelModel.findAll({
       where: {
         subscriptionExpiresAt: {[Op.lt]: date},
-        subscriptionTimeoutExpiresAt: {[Op.lt]: new Date()}
+        subscriptionTimeoutExpiresAt: {[Op.lt]: new Date()},
       },
       limit: limit,
-      attributes: ['id']
+      attributes: ['id'],
     });
-    return results.map(item => item.id);
+    return results.map((item) => item.id);
   }
 
   async setYtPubSubChannelsSubscriptionTimeoutExpiresAt(ids: string[]) {
     const date = new Date();
     date.setSeconds(date.getSeconds() + appConfig.channelPubSubSubscribeTimeoutMinutes * 60);
-    return YtPubSubChannelModel.update({subscriptionTimeoutExpiresAt: date}, {
-      where: {id: ids}
-    });
+    return YtPubSubChannelModel.update(
+      {subscriptionTimeoutExpiresAt: date},
+      {
+        where: {id: ids},
+      },
+    );
   }
 
   async setYtPubSubChannelsSubscriptionExpiresAt(ids: string[], expiresAt: Date) {
-    return YtPubSubChannelModel.update({subscriptionExpiresAt: expiresAt}, {
-      where: {id: ids}
-    });
+    return YtPubSubChannelModel.update(
+      {subscriptionExpiresAt: expiresAt},
+      {
+        where: {id: ids},
+      },
+    );
   }
 
   async setYtPubSubChannelsLastSyncAt(ids: string[], syncAt: Date) {
     if (!ids.length) return;
-    return YtPubSubChannelModel.update({lastSyncAt: syncAt}, {
-      where: {id: ids}
-    });
+    return YtPubSubChannelModel.update(
+      {lastSyncAt: syncAt},
+      {
+        where: {id: ids},
+      },
+    );
   }
 
   async setYtPubSubChannelsUpcomingChecked(ids: string[]) {
     if (!ids.length) return;
-    return YtPubSubChannelModel.update({isUpcomingChecked: true}, {
-      where: {id: ids}
-    });
+    return YtPubSubChannelModel.update(
+      {isUpcomingChecked: true},
+      {
+        where: {id: ids},
+      },
+    );
   }
 
   async getFeedIdsForSync(channelIds: string[]) {
@@ -1071,15 +1298,15 @@ class Db {
     const results: Pick<YtPubSubFeedModel, 'id'>[] = await YtPubSubFeedModel.findAll({
       where: {
         channelId: channelIds,
-        [Op.or]: [{
-          isStream: null
-        }, {
-          isStream: true,
-          [Op.or]: [
-            {actualEndAt: null},
-            {actualEndAt: {[Op.gt]: minEndTime}},
-          ]
-        }],
+        [Op.or]: [
+          {
+            isStream: null,
+          },
+          {
+            isStream: true,
+            [Op.or]: [{actualEndAt: null}, {actualEndAt: {[Op.gt]: minEndTime}}],
+          },
+        ],
         syncTimeoutExpiresAt: {[Op.lt]: new Date()},
       },
       attributes: ['id'],
@@ -1089,22 +1316,22 @@ class Db {
 
   async getFeedsByIds(ids: string[]) {
     return YtPubSubFeedModel.findAll({
-      where: {id: ids}
+      where: {id: ids},
     });
   }
 
   async getExistsFeedIds(ids: string[]) {
     const results: Pick<YtPubSubFeedModel, 'id'>[] = await YtPubSubFeedModel.findAll({
       where: {id: ids},
-      attributes: ['id']
+      attributes: ['id'],
     });
-    return results.map(result => result.id);
+    return results.map((result) => result.id);
   }
 
   async getExistsFeeds(ids: string[]) {
     const results: Pick<YtPubSubFeedModel, 'id' | 'isStream'>[] = await YtPubSubFeedModel.findAll({
       where: {id: ids},
-      attributes: ['id', 'isStream']
+      attributes: ['id', 'isStream'],
     });
     return results;
   }
@@ -1116,24 +1343,27 @@ class Db {
         isStream: true,
         actualStartAt: {[Op.not]: null},
         actualEndAt: null,
-      }
+      },
     });
   }
 
   async setFeedsSyncTimeoutExpiresAt(ids: string[]) {
     const date = new Date();
     date.setSeconds(date.getSeconds() + appConfig.feedSyncTimeoutMinutes * 60);
-    return YtPubSubFeedModel.update({
-      syncTimeoutExpiresAt: date
-    }, {
-      where: {id: ids}
-    });
+    return YtPubSubFeedModel.update(
+      {
+        syncTimeoutExpiresAt: date,
+      },
+      {
+        where: {id: ids},
+      },
+    );
   }
 
   async putFeeds(feeds: YtPubSubFeed[]) {
     return bulk(feeds, (feeds) => {
       return YtPubSubFeedModel.bulkCreate(feeds as any, {
-        updateOnDuplicate: ['title', 'channelTitle', 'isStream']
+        updateOnDuplicate: ['title', 'channelTitle', 'isStream'],
       });
     });
   }
@@ -1141,7 +1371,13 @@ class Db {
   async updateFeeds(feeds: YtPubSubFeed[]) {
     return bulk(feeds, (feeds) => {
       return YtPubSubFeedModel.bulkCreate(feeds as any, {
-        updateOnDuplicate: ['isStream', 'scheduledStartAt', 'actualStartAt', 'actualEndAt', 'viewers']
+        updateOnDuplicate: [
+          'isStream',
+          'scheduledStartAt',
+          'actualStartAt',
+          'actualEndAt',
+          'viewers',
+        ],
       });
     });
   }
@@ -1157,32 +1393,41 @@ class Db {
     minStreamCreatedAtDate.setDate(minStreamCreatedAtDate.getDate() - 7);
     return YtPubSubFeedModel.destroy({
       where: {
-        [Op.or]: [{
-          isStream: true,
-          [Op.or]: [{
-            actualEndAt: {[Op.lt]: minStreamEndAtDate}
-          }, {
-            actualStartAt: null,
-            actualEndAt: null,
-            [Op.or]: [{
-              scheduledStartAt: {[Op.lt]: minStreamScheduledStartAtDate},
-            }, {
-              scheduledStartAt: null,
-              createdAt: {[Op.lt]: minStreamCreatedAtDate}
-            }]
-          }]
-        }, {
-          isStream: false,
-          createdAt: {[Op.lt]: minCreatedAtDate}
-        }]
-      }
+        [Op.or]: [
+          {
+            isStream: true,
+            [Op.or]: [
+              {
+                actualEndAt: {[Op.lt]: minStreamEndAtDate},
+              },
+              {
+                actualStartAt: null,
+                actualEndAt: null,
+                [Op.or]: [
+                  {
+                    scheduledStartAt: {[Op.lt]: minStreamScheduledStartAtDate},
+                  },
+                  {
+                    scheduledStartAt: null,
+                    createdAt: {[Op.lt]: minStreamCreatedAtDate},
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            isStream: false,
+            createdAt: {[Op.lt]: minCreatedAtDate},
+          },
+        ],
+      },
     });
   }
 }
 
-function bulk<T, F>(results: T[], callback: (results: T[]) => F):Promise<F[]> {
+function bulk<T, F>(results: T[], callback: (results: T[]) => F): Promise<F[]> {
   const resultsParts = arrayByPart(results, 100);
-  return Promise.all(resultsParts.map(results => callback(results)));
+  return Promise.all(resultsParts.map((results) => callback(results)));
 }
 
 function getDeletedBeforeDate() {
@@ -1193,9 +1438,13 @@ function getDeletedBeforeDate() {
 
 function dateToSql(date: Date) {
   const [YYYY, MM, DD, HH, mm, ss] = [
-    date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate(),
-    date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds()
-  ].map(v => ((v < 10) ? '0' : '') + v);
+    date.getUTCFullYear(),
+    date.getUTCMonth() + 1,
+    date.getUTCDate(),
+    date.getUTCHours(),
+    date.getUTCMinutes(),
+    date.getUTCSeconds(),
+  ].map((v) => (v < 10 ? '0' : '') + v);
   return `${YYYY}-${MM}-${DD} ${HH}:${mm}:${ss}`;
 }
 

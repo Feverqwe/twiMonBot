@@ -1,16 +1,16 @@
-import Db from "./db";
-import Sender from "./sender";
-import Chat from "./chat";
-import Checker, {ServiceInterface} from "./checker";
-import Goodgame from "./services/goodgame";
-import Twitch from "./services/twitch";
-import Youtube from "./services/youtube";
-import YtPubSub from "./ytPubSub";
-import Wasd from "./services/wasd";
-import Events from "events";
-import {appConfig} from "./appConfig";
-import {getDebug} from "./tools/getDebug";
-import {getTelegramBot, TelegramBotWrapped} from "./tools/telegramBotApi";
+import Db from './db';
+import Sender from './sender';
+import Chat from './chat';
+import Checker, {ServiceInterface} from './checker';
+import Goodgame from './services/goodgame';
+import Twitch from './services/twitch';
+import Youtube from './services/youtube';
+import YtPubSub from './ytPubSub';
+import Wasd from './services/wasd';
+import Events from 'events';
+import {appConfig} from './appConfig';
+import {getDebug} from './tools/getDebug';
+import {getTelegramBot, TelegramBotWrapped} from './tools/telegramBotApi';
 
 const debug = getDebug('app:Main');
 
@@ -79,11 +79,14 @@ class Main extends Events {
 }
 
 const main = new Main();
-main.init().then(() => {
-  debug('ready');
-}, (err: any) => {
-  debug('init error', err);
-  process.exit(1);
-});
+main.init().then(
+  () => {
+    debug('ready');
+  },
+  (err: any) => {
+    debug('init error', err);
+    process.exit(1);
+  },
+);
 
 export default Main;

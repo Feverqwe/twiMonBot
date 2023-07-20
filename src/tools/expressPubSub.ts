@@ -1,10 +1,10 @@
-import express, {Express} from "express";
-import fetchRequest from "./fetchRequest";
-import {EventEmitter} from "node:events";
-import crypto from "node:crypto";
-import qs from "querystring";
-import RateLimit2 from "./rateLimit2";
-import {getDebug} from "./getDebug";
+import express, {Express} from 'express';
+import fetchRequest from './fetchRequest';
+import {EventEmitter} from 'node:events';
+import crypto from 'node:crypto';
+import qs from 'querystring';
+import RateLimit2 from './rateLimit2';
+import {getDebug} from './getDebug';
 
 const rateLimit = new RateLimit2(5);
 
@@ -16,7 +16,7 @@ class ExpressPubSub extends EventEmitter {
   private readonly secret: string;
   private readonly callbackUrl: string;
   private readonly leaseSeconds: number;
-  constructor(options: { path: string; secret: string; callbackUrl: string; leaseSeconds: number; }) {
+  constructor(options: {path: string; secret: string; callbackUrl: string; leaseSeconds: number}) {
     super();
 
     this.path = options.path;
@@ -26,9 +26,12 @@ class ExpressPubSub extends EventEmitter {
   }
 
   bind(app: Express) {
-    app.use(this.path, express.raw({
-      type: 'application/atom+xml'
-    }));
+    app.use(
+      this.path,
+      express.raw({
+        type: 'application/atom+xml',
+      }),
+    );
 
     const route = app.route(this.path);
 
@@ -48,7 +51,7 @@ class ExpressPubSub extends EventEmitter {
           const {hub, 'hub.challenge': challenge} = req.query;
           const data = {
             topic,
-            hub
+            hub,
           };
           res.send(challenge || 'ok');
 
@@ -59,9 +62,9 @@ class ExpressPubSub extends EventEmitter {
         case 'unsubscribe': {
           const {hub, 'hub.challenge': challenge, 'hub.lease_seconds': leaseSeconds} = req.query;
           const data = {
-            lease: Number(leaseSeconds|| 0) + Math.trunc(Date.now() / 1000),
+            lease: Number(leaseSeconds || 0) + Math.trunc(Date.now() / 1000),
             topic,
-            hub
+            hub,
           };
           res.send(challenge);
 
@@ -80,12 +83,12 @@ class ExpressPubSub extends EventEmitter {
       let {topic, hub} = req.query;
 
       const requestRels = /<([^>]+)>;\s*rel=(?:["'](?=.*["']))?([A-z]+)/gi.exec(req.get('link')!);
-      if(requestRels) {
+      if (requestRels) {
         const [, url, rel] = requestRels;
         setTopicHub(url, rel);
       }
 
-      if (!topic || typeof topic !== "string") {
+      if (!topic || typeof topic !== 'string') {
         debug('post skip, cause: topic is empty');
         return res.sendStatus(400);
       }
@@ -103,7 +106,10 @@ class ExpressPubSub extends EventEmitter {
         let hmac;
 
         try {
-          hmac = crypto.createHmac(algo, crypto.createHmac('sha1', this.secret).update(topic).digest('hex'));
+          hmac = crypto.createHmac(
+            algo,
+            crypto.createHmac('sha1', this.secret).update(topic).digest('hex'),
+          );
         } catch (err) {
           debug('post skip, cause: %o', err);
           return res.sendStatus(403);
@@ -124,7 +130,7 @@ class ExpressPubSub extends EventEmitter {
         hub,
         callback: req.protocol + '://' + req.hostname + req.originalUrl,
         feed: req.body,
-        headers: req.headers
+        headers: req.headers,
       });
 
       function setTopicHub(url: string, rel: string) {
@@ -156,18 +162,21 @@ class ExpressPubSub extends EventEmitter {
 
   setSubscription(mode: string, topic: string, hub: string, callbackUrl?: string): Promise<string> {
     if (!callbackUrl) {
-      callbackUrl = this.callbackUrl +
+      callbackUrl =
+        this.callbackUrl +
         (/\//.test(this.callbackUrl.replace(/^https?:\/\//i, '')) ? '' : '/') +
         (/\?/.test(this.callbackUrl) ? '&' : '?') +
-        'topic=' + encodeURIComponent(topic) +
-        '&hub=' + encodeURIComponent(hub);
+        'topic=' +
+        encodeURIComponent(topic) +
+        '&hub=' +
+        encodeURIComponent(hub);
     }
 
     const body: {[s: string]: string | number} = {
       'hub.callback': callbackUrl,
       'hub.mode': mode,
       'hub.topic': topic,
-      'hub.verify': 'async'
+      'hub.verify': 'async',
     };
 
     if (this.leaseSeconds > 0) {
@@ -175,10 +184,7 @@ class ExpressPubSub extends EventEmitter {
     }
 
     if (this.secret) {
-      body['hub.secret'] = crypto
-        .createHmac('sha1', this.secret)
-        .update(topic)
-        .digest('hex');
+      body['hub.secret'] = crypto.createHmac('sha1', this.secret).update(topic).digest('hex');
     }
 
     return fetchRequestLimited(hub, {

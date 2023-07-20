@@ -1,4 +1,4 @@
-import escapeTextForBrowser from "./escapeTextForBrowser";
+import escapeTextForBrowser from './escapeTextForBrowser';
 
 const htmlSanitize = function (type: string, text: string, url?: string) {
   switch (type) {
@@ -20,7 +20,7 @@ const htmlSanitize = function (type: string, text: string, url?: string) {
       return '<code>' + escapeTextForBrowser(text) + '</code>';
   }
 
-  throw new Error("htmlSanitize error");
+  throw new Error('htmlSanitize error');
 };
 
 export default htmlSanitize;

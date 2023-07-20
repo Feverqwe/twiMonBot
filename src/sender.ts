@@ -1,14 +1,14 @@
-import Main from "./main";
-import LogFile from "./logFile";
-import {everyMinutes} from "./tools/everyTime";
-import getProvider from "./tools/getProvider";
-import ChatSender, {isBlockedError} from "./chatSender";
-import arrayUniq from "./tools/arrayUniq";
-import parallel from "./tools/parallel";
-import getInProgress from "./tools/getInProgress";
-import promiseLimit from "./tools/promiseLimit";
-import {appConfig} from "./appConfig";
-import {getDebug} from "./tools/getDebug";
+import Main from './main';
+import LogFile from './logFile';
+import {everyMinutes} from './tools/everyTime';
+import getProvider from './tools/getProvider';
+import ChatSender, {isBlockedError} from './chatSender';
+import arrayUniq from './tools/arrayUniq';
+import parallel from './tools/parallel';
+import getInProgress from './tools/getInProgress';
+import promiseLimit from './tools/promiseLimit';
+import {appConfig} from './appConfig';
+import {getDebug} from './tools/getDebug';
 import throttle from 'lodash.throttle';
 
 const debug = getDebug('app:Sender');
@@ -51,7 +51,7 @@ class Sender {
         this.main.db.getDistinctMessagesChatIds(),
       ]).then((results) => {
         const chatIds = arrayUniq(([] as string[]).concat(...results));
-        const newChatIds = chatIds.filter(chatId => !this.chatIdChatSender.has(chatId));
+        const newChatIds = chatIds.filter((chatId) => !this.chatIdChatSender.has(chatId));
         return this.main.db.getChatsByIds(newChatIds).then((chats) => {
           chats.forEach((chat) => {
             const existsThread = this.chatIdChatSender.get(chat.id);
@@ -83,7 +83,7 @@ class Sender {
     });
   };
   checkThrottled = throttle(this.check, 1000, {
-    leading: false
+    leading: false,
   });
 
   getActiveThreads = async () => {
@@ -117,22 +117,25 @@ class Sender {
     const chatSender = suspended.shift()!;
     threads.push(chatSender);
 
-    return chatSender.next().catch(async (err: any) => {
-      debug('chatSender %s stopped, cause: %o', chatSender.chat.id, err);
-      await this.main.db.setChatSendTimeoutExpiresAt([chatSender.chat.id]);
-      return true;
-    }).then((isDone?: boolean|void) => {
-      const pos = threads.indexOf(chatSender);
-      if (pos !== -1) {
-        threads.splice(pos, 1);
-      }
-      if (isDone) {
-        chatIdChatSender.delete(chatSender.chat.id);
-      } else {
-        suspended.push(chatSender);
-      }
-      this.fillThreads();
-    });
+    return chatSender
+      .next()
+      .catch(async (err: any) => {
+        debug('chatSender %s stopped, cause: %o', chatSender.chat.id, err);
+        await this.main.db.setChatSendTimeoutExpiresAt([chatSender.chat.id]);
+        return true;
+      })
+      .then((isDone?: boolean | void) => {
+        const pos = threads.indexOf(chatSender);
+        if (pos !== -1) {
+          threads.splice(pos, 1);
+        }
+        if (isDone) {
+          chatIdChatSender.delete(chatSender.chat.id);
+        } else {
+          suspended.push(chatSender);
+        }
+        this.fillThreads();
+      });
   }
 
   provideStream = getProvider((id: string) => {
@@ -163,7 +166,11 @@ class Sender {
             if (isBlocked) {
               blockedChatIds.push(chatId);
               const body = err.response.body;
-              this.main.chat.log.write(`[deleted] ${chatId}, cause: (${body.error_code}) ${JSON.stringify(body.description)}`);
+              this.main.chat.log.write(
+                `[deleted] ${chatId}, cause: (${body.error_code}) ${JSON.stringify(
+                  body.description,
+                )}`,
+              );
             } else {
               debug('checkChatsExists sendChatAction typing to %s error, cause: %o', chatId, err);
               result.errorCount++;
@@ -178,7 +185,7 @@ class Sender {
       }
       return result;
     });
-  }
+  };
 }
 
 export default Sender;

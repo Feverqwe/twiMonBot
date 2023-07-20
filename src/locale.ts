@@ -1,4 +1,4 @@
-import en from "./locale/en";
+import en from './locale/en';
 
 class Locale {
   private dictionary: typeof en;
@@ -7,10 +7,13 @@ class Locale {
     this.dictionary = languages[code as keyof typeof languages] || languages.en;
   }
 
-  getMessage(messageName: keyof typeof languages[keyof typeof languages], variables?: Record<string, number | string>) {
+  getMessage(
+    messageName: keyof (typeof languages)[keyof typeof languages],
+    variables?: Record<string, number | string>,
+  ) {
     const message = this.dictionary[messageName];
     return message.replace(/\{([^}]+)}/g, (text, variable) => {
-      return String(variables && variables[variable] || variable);
+      return String((variables && variables[variable]) || variable);
     });
   }
 

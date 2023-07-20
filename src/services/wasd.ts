@@ -1,14 +1,14 @@
-import {ServiceChannel, ServiceInterface, ServiceStream} from "../checker";
-import Main from "../main";
-import * as s from "superstruct";
-import ErrorWithCode from "../tools/errorWithCode";
-import parallel from "../tools/parallel";
-import fetchRequest, {FetchRequestOptions, HTTPError} from "../tools/fetchRequest";
-import RateLimit2 from "../tools/rateLimit2";
-import {appConfig} from "../appConfig";
-import {getDebug} from "../tools/getDebug";
+import {ServiceChannel, ServiceInterface, ServiceStream} from '../checker';
+import Main from '../main';
+import * as s from 'superstruct';
+import ErrorWithCode from '../tools/errorWithCode';
+import parallel from '../tools/parallel';
+import fetchRequest, {FetchRequestOptions, HTTPError} from '../tools/fetchRequest';
+import RateLimit2 from '../tools/rateLimit2';
+import {appConfig} from '../appConfig';
+import {getDebug} from '../tools/getDebug';
 
-const rateLimit = new RateLimit2(10, "sec");
+const rateLimit = new RateLimit2(10, 'sec');
 
 const limitedFetchRequest = rateLimit.wrap(fetchRequest);
 
@@ -21,28 +21,34 @@ const ChannelInfo = s.object({
       channel_name: s.string(),
       channel_is_live: s.boolean(),
     }),
-    media_container: s.nullable(s.object({
-      media_container_id: s.number(),
-      media_container_name: s.string(),
-      media_container_status: s.string(), // RUNNING
-      channel_id: s.number(),
-      created_at: s.string(),
-      published_at: s.string(),
-      game: s.object({
-        game_name: s.string(),
-      }),
-      media_container_streams: s.array(s.object({
-        stream_id: s.number(),
-        stream_current_viewers: s.number(),
-        stream_media: s.array(s.object({
-          media_status: s.string(), // RUNNING
-          media_meta: s.object({
-            media_preview_url: s.string(),
+    media_container: s.nullable(
+      s.object({
+        media_container_id: s.number(),
+        media_container_name: s.string(),
+        media_container_status: s.string(), // RUNNING
+        channel_id: s.number(),
+        created_at: s.string(),
+        published_at: s.string(),
+        game: s.object({
+          game_name: s.string(),
+        }),
+        media_container_streams: s.array(
+          s.object({
+            stream_id: s.number(),
+            stream_current_viewers: s.number(),
+            stream_media: s.array(
+              s.object({
+                media_status: s.string(), // RUNNING
+                media_meta: s.object({
+                  media_preview_url: s.string(),
+                }),
+              }),
+            ),
           }),
-        })),
-      })),
-    }))
-  })
+        ),
+      }),
+    ),
+  }),
 });
 
 class Wasd implements ServiceInterface {
@@ -51,13 +57,10 @@ class Wasd implements ServiceInterface {
   batchSize = 100;
   noCachePreview = true;
 
-  constructor(public main: Main) {
-  }
+  constructor(public main: Main) {}
 
   match(url: string) {
-    return [
-      /wasd\.tv\/[^\/]+/i
-    ].some(re => re.test(url));
+    return [/wasd\.tv\/[^\/]+/i].some((re) => re.test(url));
   }
 
   async getStreams(channelIds: number[]) {
@@ -107,7 +110,9 @@ class Wasd implements ServiceInterface {
         });
       } catch (err) {
         debug(`getStream for channel (%j) skip, cause: %o`, channelId, err);
-        if (['CHANNEL_IS_BANNED', 'CHANNEL_BY_ID_IS_NOT_FOUND'].includes((err as ErrorWithCode).code)) {
+        if (
+          ['CHANNEL_IS_BANNED', 'CHANNEL_BY_ID_IS_NOT_FOUND'].includes((err as ErrorWithCode).code)
+        ) {
           removedChannelIds.push(channelId);
         } else {
           skippedChannelIds.push(channelId);
@@ -124,7 +129,9 @@ class Wasd implements ServiceInterface {
         await this.getChannelInfoById(channelId);
         resultChannelIds.push(channelId);
       } catch (err) {
-        if (['CHANNEL_IS_BANNED', 'CHANNEL_BY_ID_IS_NOT_FOUND'].includes((err as ErrorWithCode).code)) {
+        if (
+          ['CHANNEL_IS_BANNED', 'CHANNEL_BY_ID_IS_NOT_FOUND'].includes((err as ErrorWithCode).code)
+        ) {
           // pass
         } else {
           debug('requestChannelById (%s) error: %o', channelId, err);
@@ -136,23 +143,28 @@ class Wasd implements ServiceInterface {
   }
 
   async findChannel(query: string): Promise<ServiceChannel> {
-    const {channel} = await this.getChannelIdByUrl(query).then((channelId) => {
-      return this.getChannelInfoById(channelId);
-    }, (err) => {
-      if (err.code !== 'IS_NOT_CHANNEL_URL') {
-        throw err;
-      }
-
-      return this.getChannelNameByUrl(query).catch((err) => {
+    const {channel} = await this.getChannelIdByUrl(query).then(
+      (channelId) => {
+        return this.getChannelInfoById(channelId);
+      },
+      (err) => {
         if (err.code !== 'IS_NOT_CHANNEL_URL') {
           throw err;
         }
 
-        return query;
-      }).then((query) => {
-        return this.getChannelInfoByName(query);
-      });
-    });
+        return this.getChannelNameByUrl(query)
+          .catch((err) => {
+            if (err.code !== 'IS_NOT_CHANNEL_URL') {
+              throw err;
+            }
+
+            return query;
+          })
+          .then((query) => {
+            return this.getChannelInfoByName(query);
+          });
+      },
+    );
 
     const id = channel.channel_id;
     const title = channel.channel_name;
@@ -168,13 +180,16 @@ class Wasd implements ServiceInterface {
     return this.getChannelInfo({channel_name});
   }
 
-  async getChannelInfo(payload: { channel_name: string } | { channel_id: number }) {
-    const query = (new URLSearchParams(payload as Record<string, string>)).toString();
+  async getChannelInfo(payload: {channel_name: string} | {channel_id: number}) {
+    const query = new URLSearchParams(payload as Record<string, string>).toString();
     try {
-      const {body} = await limitedFetchRequest('https://wasd.tv/api/v2/broadcasts/public?' + query, this.sign({
-        responseType: 'json',
-        keepAlive: true,
-      }));
+      const {body} = await limitedFetchRequest(
+        'https://wasd.tv/api/v2/broadcasts/public?' + query,
+        this.sign({
+          responseType: 'json',
+          keepAlive: true,
+        }),
+      );
       return s.mask(body, ChannelInfo).result;
     } catch (err) {
       const error = err as HTTPError;
@@ -192,9 +207,7 @@ class Wasd implements ServiceInterface {
 
   async getChannelNameByUrl(url: string) {
     let channelId = '';
-    [
-      /wasd\.tv\/([^\/]+)/i
-    ].some((re) => {
+    [/wasd\.tv\/([^\/]+)/i].some((re) => {
       const m = re.exec(url);
       if (m) {
         channelId = m[1];
@@ -210,9 +223,7 @@ class Wasd implements ServiceInterface {
 
   async getChannelIdByUrl(url: string) {
     let channelId: number | null = null;
-    [
-      /wasd\.tv\/channel\/(\d+)/i
-    ].some((re) => {
+    [/wasd\.tv\/channel\/(\d+)/i].some((re) => {
       const m = re.exec(url);
       if (m) {
         channelId = parseInt(m[1], 10);
@@ -232,7 +243,7 @@ class Wasd implements ServiceInterface {
       headers: {
         ...options.headers,
         Authorization: `Token ${appConfig.wasdToken}`,
-      }
+      },
     };
   }
 }

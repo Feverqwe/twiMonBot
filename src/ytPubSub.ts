@@ -1,21 +1,21 @@
-import Main from "./main";
-import {everyMinutes} from "./tools/everyTime";
-import parallel from "./tools/parallel";
-import serviceId from "./tools/serviceId";
-import ErrorWithCode from "./tools/errorWithCode";
-import arrayDifference from "./tools/arrayDifference";
-import {YtPubSubChannel, YtPubSubChannelModel, YtPubSubFeed} from "./db";
-import LogFile from "./logFile";
-import arrayByPart from "./tools/arrayByPart";
-import ExpressPubSub from "./tools/expressPubSub";
-import express from "express";
-import promiseLimit from "./tools/promiseLimit";
-import {Server} from "http";
-import qs from "node:querystring";
-import {appConfig} from "./appConfig";
-import {IncomingHttpHeaders} from "node:http";
-import {getDebug} from "./tools/getDebug";
-import {XmlDocument, XmlElement} from "xmldoc";
+import Main from './main';
+import {everyMinutes} from './tools/everyTime';
+import parallel from './tools/parallel';
+import serviceId from './tools/serviceId';
+import ErrorWithCode from './tools/errorWithCode';
+import arrayDifference from './tools/arrayDifference';
+import {YtPubSubChannel, YtPubSubChannelModel, YtPubSubFeed} from './db';
+import LogFile from './logFile';
+import arrayByPart from './tools/arrayByPart';
+import ExpressPubSub from './tools/expressPubSub';
+import express from 'express';
+import promiseLimit from './tools/promiseLimit';
+import {Server} from 'http';
+import qs from 'node:querystring';
+import {appConfig} from './appConfig';
+import {IncomingHttpHeaders} from 'node:http';
+import {getDebug} from './tools/getDebug';
+import {XmlDocument, XmlElement} from 'xmldoc';
 import throttle from 'lodash.throttle';
 
 const debug = getDebug('app:YtPubSub');
@@ -48,15 +48,17 @@ class YtPubSub {
 
     this.app.get('/isLive/:channelId', async (req, res) => {
       const {channelId} = req.params;
-      const streams = (await this.main.db.getStreamsByChannelIds([channelId]))
-        .filter(stream => !stream.isOffline);
+      const streams = (await this.main.db.getStreamsByChannelIds([channelId])).filter(
+        (stream) => !stream.isOffline,
+      );
       res.json({channelId, streams});
     });
 
     this.app.post('/isLive', express.json(), async (req, res) => {
       const ids = req.body;
-      const streams = (await this.main.db.getStreamsByChannelIds(ids))
-        .filter(stream => !stream.isOffline);
+      const streams = (await this.main.db.getStreamsByChannelIds(ids)).filter(
+        (stream) => !stream.isOffline,
+      );
       res.json({streams});
     });
 
@@ -102,21 +104,27 @@ class YtPubSub {
 
           const subscribedChannelIds: string[] = [];
           return parallel(10, channelIds, (id) => {
-            return this.subscribe(id).then(() => {
-              subscribedChannelIds.push(id);
-              subscribeCount++;
-            }, (err: any) => {
-              debug('subscribe channel %s skip, cause: %o', id, err);
-              errorCount++;
-            });
+            return this.subscribe(id).then(
+              () => {
+                subscribedChannelIds.push(id);
+                subscribeCount++;
+              },
+              (err: any) => {
+                debug('subscribe channel %s skip, cause: %o', id, err);
+                errorCount++;
+              },
+            );
           }).then(() => {
-            return this.main.db.setYtPubSubChannelsSubscriptionExpiresAt(subscribedChannelIds, expiresAt);
+            return this.main.db.setYtPubSubChannelsSubscriptionExpiresAt(
+              subscribedChannelIds,
+              expiresAt,
+            );
           });
         });
       }
       return {subscribeCount, errorCount};
     });
-  }
+  };
 
   clean = async () => {
     return oneLimit(() => {
@@ -124,7 +132,7 @@ class YtPubSub {
         return {removedVideoIds: count};
       });
     });
-  }
+  };
 
   subscribe(channelId: string) {
     const topicUrl = getTopicUrl(channelId);
@@ -169,7 +177,7 @@ class YtPubSub {
     });
   };
   emitFeedsChangesThrottled = throttle(this.emitFeedsChanges, 1000, {
-    leading: false
+    leading: false,
   });
 
   handleFeed(data: PubSubFeed) {
@@ -193,24 +201,29 @@ class YtPubSub {
   }
 
   async getStreams(channelIds: string[], skippedChannelIds: string[]) {
-    return this.main.db.getNotExistsYtPubSubChannelIds(channelIds).then((newChannelIds) => {
-      if (!newChannelIds.length) return;
-      const newChannels: YtPubSubChannel[] = newChannelIds.map((id) => {
-        return {
-          id,
-          channelId: serviceId.wrap(this.main.youtube, id),
-        };
+    return this.main.db
+      .getNotExistsYtPubSubChannelIds(channelIds)
+      .then((newChannelIds) => {
+        if (!newChannelIds.length) return;
+        const newChannels: YtPubSubChannel[] = newChannelIds.map((id) => {
+          return {
+            id,
+            channelId: serviceId.wrap(this.main.youtube, id),
+          };
+        });
+        return this.main.db.ensureYtPubSubChannels(newChannels).then(() => {
+          return this.updateSubscribes();
+        });
+      })
+      .then(() => {
+        return this.syncChannels(channelIds, skippedChannelIds);
+      })
+      .then(() => {
+        return this.syncStreams(channelIds);
+      })
+      .then(() => {
+        return this.main.db.getStreamFeedsByChannelIds(channelIds);
       });
-      return this.main.db.ensureYtPubSubChannels(newChannels).then(() => {
-        return this.updateSubscribes();
-      });
-    }).then(() => {
-      return this.syncChannels(channelIds, skippedChannelIds);
-    }).then(() => {
-      return this.syncStreams(channelIds);
-    }).then(() => {
-      return this.main.db.getStreamFeedsByChannelIds(channelIds);
-    });
   }
 
   async syncChannels(channelIds: string[], skippedChannelIds: string[]) {
@@ -230,17 +243,20 @@ class YtPubSub {
         const channelIdsWithUpcoming: string[] = [];
         return parallel(10, channelIds, (channelId) => {
           const channel = channelIdChannel.get(channelId)!;
-          return this.requestFeedsByChannelId(channelId, channel.isUpcomingChecked).then(({withUpcoming, feeds: channelFeeds}) => {
-            if (withUpcoming) {
-              channelIdsWithUpcoming.push(channelId);
-            }
-            feeds.push(...channelFeeds);
-          }, (err) => {
-            debug(`getStreams for channel (%s) skip, cause: %o`, channelId, err);
-            skippedChannelIds.push(channelId);
-          });
+          return this.requestFeedsByChannelId(channelId, channel.isUpcomingChecked).then(
+            ({withUpcoming, feeds: channelFeeds}) => {
+              if (withUpcoming) {
+                channelIdsWithUpcoming.push(channelId);
+              }
+              feeds.push(...channelFeeds);
+            },
+            (err) => {
+              debug(`getStreams for channel (%s) skip, cause: %o`, channelId, err);
+              skippedChannelIds.push(channelId);
+            },
+          );
         }).then(async () => {
-          const feedIds = feeds.map(feed => feed.id);
+          const feedIds = feeds.map((feed) => feed.id);
           const existsFeeds = await this.main.db.getExistsFeeds(feedIds);
 
           const existsIsStreamTrueIds: string[] = [];
@@ -262,12 +278,10 @@ class YtPubSub {
           feeds.forEach((feed) => {
             if (!existsFeedIds.includes(feed.id)) {
               notExistFeeds.push(feed);
-            } else
-            if (existsIsStreamFalseIds.includes(feed.id)) {
+            } else if (existsIsStreamFalseIds.includes(feed.id)) {
               fixedIsStreamFeeds.push(feed);
               feed.isStream = null;
-            } else
-            if (existsIsStreamTrueIds.includes(feed.id)) {
+            } else if (existsIsStreamTrueIds.includes(feed.id)) {
               feed.isStream = true;
             }
           });
@@ -301,34 +315,37 @@ class YtPubSub {
       });
       const feedIds = Array.from(feedIdFeed.keys());
 
-      return this.main.db.setFeedsSyncTimeoutExpiresAt(feedIds).then(() => {
-        return this.main.youtube.getStreamIdLiveDetaildByIds(feedIds);
-      }).then((idStreamLiveDetails) => {
-        const feedIdChanges: {[s: string]: YtPubSubFeed} = {};
-        const notStreamIds = arrayDifference(feedIds, Array.from(idStreamLiveDetails.keys()));
+      return this.main.db
+        .setFeedsSyncTimeoutExpiresAt(feedIds)
+        .then(() => {
+          return this.main.youtube.getStreamIdLiveDetaildByIds(feedIds);
+        })
+        .then((idStreamLiveDetails) => {
+          const feedIdChanges: {[s: string]: YtPubSubFeed} = {};
+          const notStreamIds = arrayDifference(feedIds, Array.from(idStreamLiveDetails.keys()));
 
-        idStreamLiveDetails.forEach((info, id) => {
-          const feed = feedIdFeed.get(id);
-          if (!feed) {
-            debug('Skip info %s, cause: feed is not found', id);
-            return;
-          }
-          feed.isStream = true;
-          Object.assign(feed, info);
-          feedIdChanges[feed.id] = feed;
+          idStreamLiveDetails.forEach((info, id) => {
+            const feed = feedIdFeed.get(id);
+            if (!feed) {
+              debug('Skip info %s, cause: feed is not found', id);
+              return;
+            }
+            feed.isStream = true;
+            Object.assign(feed, info);
+            feedIdChanges[feed.id] = feed;
+          });
+
+          notStreamIds.forEach((id) => {
+            const feed = feedIdFeed.get(id)!;
+            if (feed.isStream) {
+              this.log.write('[not found]', feed.channelId, feed.id);
+            }
+            feed.isStream = false;
+            feedIdChanges[feed.id] = feed;
+          });
+
+          return this.main.db.updateFeeds(Object.values(feedIdChanges));
         });
-
-        notStreamIds.forEach((id) => {
-          const feed = feedIdFeed.get(id)!;
-          if (feed.isStream) {
-            this.log.write('[not found]', feed.channelId, feed.id);
-          }
-          feed.isStream = false;
-          feedIdChanges[feed.id] = feed;
-        });
-
-        return this.main.db.updateFeeds(Object.values(feedIdChanges));
-      });
     });
   }
 
@@ -347,46 +364,46 @@ class YtPubSub {
         }),
       );
     }
-    promises.push(
-      this.main.youtube.getStreamIdSnippetByChannelId(channelId)
-    );
+    promises.push(this.main.youtube.getStreamIdSnippetByChannelId(channelId));
 
-    return Promise.all(promises).then((results) => {
-      results.forEach((streamIdSnippet) => {
-        if (streamIdSnippet === null) return;
+    return Promise.all(promises)
+      .then((results) => {
+        results.forEach((streamIdSnippet) => {
+          if (streamIdSnippet === null) return;
 
-        streamIdSnippet.forEach((snippet, id) => {
-          feeds.push({
-            id,
-            title: snippet.title,
-            channelId: snippet.channelId,
-            channelTitle: snippet.channelTitle
+          streamIdSnippet.forEach((snippet, id) => {
+            feeds.push({
+              id,
+              title: snippet.title,
+              channelId: snippet.channelId,
+              channelTitle: snippet.channelTitle,
+            });
           });
         });
+      })
+      .then(() => {
+        return {
+          withUpcoming,
+          feeds,
+        };
       });
-    }).then(() => {
-      return {
-        withUpcoming,
-        feeds,
-      };
-    });
   }
 }
 
 interface PubSubFeed {
-  topic: string|undefined,
-  hub: string|undefined,
-  callback: string,
-  feed: Buffer
-  headers: IncomingHttpHeaders
+  topic: string | undefined;
+  hub: string | undefined;
+  callback: string;
+  feed: Buffer;
+  headers: IncomingHttpHeaders;
 }
 
 interface Feed {
-  id: string,
-  title: string,
-  channelId: string,
-  channelTitle: string,
-  publishedAt: Date,
+  id: string;
+  title: string;
+  channelId: string;
+  channelTitle: string;
+  publishedAt: Date;
 }
 
 function parseData(xml: string): Feed {
@@ -406,16 +423,18 @@ function parseData(xml: string): Feed {
     }
 
     const data: {[s: string]: string} = {};
-    const success = ['yt:videoId', 'yt:channelId', 'title', 'author', 'published'].every((field) => {
-      let node = getChildNode(entry, field);
-      if (node && field === 'author') {
-        node = getChildNode(node, 'name');
-      }
-      if (node) {
-        data[field] = node.val;
-        return true;
-      }
-    });
+    const success = ['yt:videoId', 'yt:channelId', 'title', 'author', 'published'].every(
+      (field) => {
+        let node = getChildNode(entry, field);
+        if (node && field === 'author') {
+          node = getChildNode(node, 'name');
+        }
+        if (node) {
+          data[field] = node.val;
+          return true;
+        }
+      },
+    );
     if (!success) {
       throw new ErrorWithCode('Some fields is not found', 'SOME_FIELDS_IS_NOT_FOUND');
     }
@@ -425,18 +444,25 @@ function parseData(xml: string): Feed {
       title: data.title,
       channelId: data['yt:channelId'],
       channelTitle: data.author,
-      publishedAt: new Date(data.published)
+      publishedAt: new Date(data.published),
     };
   } catch (err) {
-    debug('parseData error, cause: Some data is not found %j', document.toString({compressed: true}));
+    debug(
+      'parseData error, cause: Some data is not found %j',
+      document.toString({compressed: true}),
+    );
     throw err;
   }
 }
 
 function getTopicUrl(channelId: string) {
-  return 'https://www.youtube.com/xml/feeds/videos.xml' + '?' + qs.stringify({
-    channel_id: channelId
-  });
+  return (
+    'https://www.youtube.com/xml/feeds/videos.xml' +
+    '?' +
+    qs.stringify({
+      channel_id: channelId,
+    })
+  );
 }
 
 function getChildNode(root: XmlElement | XmlDocument, name: string): XmlElement | null {

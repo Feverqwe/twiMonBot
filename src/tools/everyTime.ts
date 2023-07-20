@@ -3,7 +3,10 @@ const minuteMs = 60 * secondMs;
 const hourMs = 60 * minuteMs;
 const dayMs = 24 * hourMs;
 
-const everyTime = (ms: number|{ms: number, offset?: number}, callback: () => any): () => void => {
+const everyTime = (
+  ms: number | {ms: number; offset?: number},
+  callback: () => any,
+): (() => void) => {
   let _ms = 0;
   let _offset: number | undefined = 0;
   if (typeof ms === 'object') {
@@ -16,12 +19,15 @@ const everyTime = (ms: number|{ms: number, offset?: number}, callback: () => any
   let offsetTimeoutId: NodeJS.Timeout | null = null;
   let intervalId: NodeJS.Timeout | null = null;
 
-  offsetTimeoutId = setTimeout(() => {
-    intervalId = setInterval(() => {
+  offsetTimeoutId = setTimeout(
+    () => {
+      intervalId = setInterval(() => {
+        callback();
+      }, _ms);
       callback();
-    }, _ms);
-    callback();
-  }, getOffset(_ms, _offset));
+    },
+    getOffset(_ms, _offset),
+  );
 
   return () => {
     clearTimeout(offsetTimeoutId!);
@@ -42,7 +48,10 @@ const everyDayAt = (hours: number, minutes: number, callback: () => any) => {
 };
 
 const everyWeekAt = (day: number, hours: number, minutes: number, callback: () => any) => {
-  return everyTime({ms: 7 * dayMs, offset: day * dayMs + hours * hourMs + minutes * minuteMs}, callback);
+  return everyTime(
+    {ms: 7 * dayMs, offset: day * dayMs + hours * hourMs + minutes * minuteMs},
+    callback,
+  );
 };
 
 function getOffset(step: number, offset: number = 0) {
