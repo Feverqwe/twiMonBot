@@ -53,10 +53,10 @@ class Chat {
   async init() {
     const {bot} = this.main;
 
-    const user = await bot.getMe();
-    if (!user.username) throw new Error('Bot name is empty');
+    const {username} = await bot.getMe();
+    if (!username) throw new Error('Bot name is empty');
 
-    this.router.init(bot, user.username);
+    this.router.init(bot, username);
 
     await bot.startPolling();
   }
