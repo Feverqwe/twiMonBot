@@ -350,9 +350,9 @@ export class RouterReq {
 
   get from() {
     return this._useCache('from', () => {
-      let from = null;
+      let from;
       if (this.message) {
-        from = this.message.from || null;
+        from = this.message.from;
       } else if (this.callback_query) {
         from = this.callback_query.from;
       }

@@ -58,6 +58,10 @@ const en = {
   context_about: 'Source code: https://bit.ly/twiMonBot\nHosting https://m.do.co/c/f6ae2a246c7d',
   'alert_channel-in_blacklist': 'Channel in black list',
   'alert_channel-limit-exceeded': 'Channels limit exceeded',
+  'alert_unknown-error': 'Oops something went wrong...',
+  'alert_chat-not-found': 'Telegram chat is not found!',
+  'alert_bot-is-not-channel-member': 'Bot is not a member of the channel!',
+  'context_options': 'Options:'
 };
 
 export default en;
