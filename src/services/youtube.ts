@@ -130,7 +130,7 @@ class Youtube implements ServiceInterface {
     const resultStreams: ServiceStream[] = [];
     const skippedChannelIds: string[] = [];
     const removedChannelIds: string[] = [];
-    return this.main.ytPubSub
+    return this.main.webServer.ytPubSub
       .getStreams(channelIds, skippedChannelIds)
       .then(
         (streams) => {

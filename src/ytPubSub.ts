@@ -8,15 +8,14 @@ import {YtPubSubChannel, YtPubSubChannelModel, YtPubSubFeed} from './db';
 import LogFile from './logFile';
 import arrayByPart from './tools/arrayByPart';
 import ExpressPubSub from './tools/expressPubSub';
-import express from 'express';
 import promiseLimit from './tools/promiseLimit';
-import {Server} from 'http';
 import qs from 'node:querystring';
 import {appConfig} from './appConfig';
 import {IncomingHttpHeaders} from 'node:http';
 import {getDebug} from './tools/getDebug';
 import {XmlDocument, XmlElement} from 'xmldoc';
 import throttle from 'lodash.throttle';
+import {Express} from 'express';
 
 const debug = getDebug('app:YtPubSub');
 const oneLimit = promiseLimit(1);
@@ -24,21 +23,17 @@ const oneLimit = promiseLimit(1);
 class YtPubSub {
   private log = new LogFile('ytPubSub');
   private hubUrl = 'https://pubsubhubbub.appspot.com/subscribe';
-  private host = appConfig.push.host || 'localhost';
-  private port = appConfig.push.port;
   private expressPubSub = new ExpressPubSub({
     path: appConfig.push.path,
     secret: appConfig.push.secret,
     callbackUrl: appConfig.push.callbackUrl,
     leaseSeconds: appConfig.push.leaseSeconds,
   });
-  private server: Server | undefined;
-  private app = express();
 
   constructor(private main: Main) {}
 
-  init() {
-    this.expressPubSub.bind(this.app);
+  init(expressApp: Express) {
+    this.expressPubSub.bind(expressApp);
     this.expressPubSub.on('denied', (data: any) => {
       debug('Denied %o', data);
     });
@@ -46,28 +41,8 @@ class YtPubSub {
       this.handleFeed(data);
     });
 
-    this.app.get('/isLive/:channelId', async (req, res) => {
-      const {channelId} = req.params;
-      const streams = (await this.main.db.getStreamsByChannelIds([channelId])).filter(
-        (stream) => !stream.isOffline,
-      );
-      res.json({channelId, streams});
-    });
-
-    this.app.post('/isLive', express.json(), async (req, res) => {
-      const ids = req.body;
-      const streams = (await this.main.db.getStreamsByChannelIds(ids)).filter(
-        (stream) => !stream.isOffline,
-      );
-      res.json({streams});
-    });
-
-    return new Promise<void>((resolve) => {
-      this.server = this.app.listen(this.port, this.host, resolve);
-    }).then(() => {
-      this.startUpdateInterval();
-      this.startCleanInterval();
-    });
+    this.startUpdateInterval();
+    this.startCleanInterval();
   }
 
   updateTimer: (() => void) | null = null;
