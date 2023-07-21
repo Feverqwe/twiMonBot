@@ -1,52 +1,54 @@
-import Main from "./main";
-import {everyMinutes} from "./tools/everyTime";
-import serviceId from "./tools/serviceId";
-import ensureMap from "./tools/ensureMap";
-import arrayDifference from "./tools/arrayDifference";
-import {Channel, NewChatIdStreamId, Stream} from "./db";
-import LogFile from "./logFile";
-import getInProgress from "./tools/getInProgress";
-import parallel from "./tools/parallel";
+import Main from './main';
+import {everyMinutes} from './tools/everyTime';
+import serviceId from './tools/serviceId';
+import ensureMap from './tools/ensureMap';
+import arrayDifference from './tools/arrayDifference';
+import {Channel, NewChatIdStreamId, Stream} from './db';
+import LogFile from './logFile';
+import getInProgress from './tools/getInProgress';
+import parallel from './tools/parallel';
+import {appConfig} from './appConfig';
+import {getDebug} from './tools/getDebug';
 
-const debug = require('debug')('app:Checker');
+const debug = getDebug('app:Checker');
 
 export interface ServiceStream extends Omit<Stream, 'id' | 'channelId'> {
-  id: string|number,
-  channelId: string|number,
-  channelTitle: string,
-  channelUrl: string,
+  id: string | number;
+  channelId: string | number;
+  channelTitle: string;
+  channelUrl: string;
 }
 
 export interface ServiceChannel {
-  id: string|number,
-  url: string,
-  title: string,
+  id: string | number;
+  url: string;
+  title: string;
 }
 
 interface ServiceGetStreamsResult {
-  streams: ServiceStream[],
-  skippedChannelIds: (string | number)[],
-  removedChannelIds: (string | number)[]
+  streams: ServiceStream[];
+  skippedChannelIds: (string | number)[];
+  removedChannelIds: (string | number)[];
 }
 
 export interface ServiceInterface {
-  id: string,
-  name: string,
-  batchSize: number,
-  noCachePreview?: boolean,
-  streamUrlWithoutChannelName?: boolean,
-  match(query: string): boolean,
-  getStreams(channelsIds: (string|number)[]): Promise<ServiceGetStreamsResult>,
-  getExistsChannelIds(channelsIds: (string|number)[]): Promise<(string|number)[]>,
-  findChannel(query: string): Promise<ServiceChannel>,
+  id: string;
+  name: string;
+  batchSize: number;
+  noCachePreview?: boolean;
+  streamUrlWithoutChannelName?: boolean;
+  match(query: string): boolean;
+  getStreams(channelsIds: (string | number)[]): Promise<ServiceGetStreamsResult>;
+  getExistsChannelIds(channelsIds: (string | number)[]): Promise<(string | number)[]>;
+  findChannel(query: string): Promise<ServiceChannel>;
 }
 
 interface ThreadSession {
-  id: string,
-  startAt: number,
-  lastActivityAt: number,
-  service: ServiceInterface,
-  thread?: Promise<void>,
+  id: string;
+  startAt: number;
+  lastActivityAt: number;
+  service: ServiceInterface;
+  thread?: Promise<void>;
   aborted?: boolean;
   lockCount: number;
 }
@@ -65,7 +67,7 @@ class Checker {
   updateTimer: (() => void) | null = null;
   startUpdateInterval() {
     this.updateTimer && this.updateTimer();
-    this.updateTimer = everyMinutes(this.main.config.emitCheckChannelsEveryMinutes, () => {
+    this.updateTimer = everyMinutes(appConfig.emitCheckChannelsEveryMinutes, () => {
       this.check().catch((err) => {
         debug('check error, cause: %o', err);
       });
@@ -75,7 +77,7 @@ class Checker {
   cleanTimer: (() => void) | null = null;
   startCleanInterval() {
     this.cleanTimer && this.cleanTimer();
-    this.cleanTimer = everyMinutes(this.main.config.emitCleanChatsAndChannelsEveryHours * 60, () => {
+    this.cleanTimer = everyMinutes(appConfig.emitCleanChatsAndChannelsEveryHours * 60, () => {
       this.clean().catch((err) => {
         debug('clean error, cause: %o', err);
       });
@@ -88,7 +90,7 @@ class Checker {
       const existsThreadSession = this.serviceThread.get(service);
       if (existsThreadSession) {
         if (existsThreadSession.lastActivityAt < Date.now() - 5 * 60 * 1000) {
-          existsThreadSession.lockCount++
+          existsThreadSession.lockCount++;
           if (existsThreadSession.lockCount > 3) {
             existsThreadSession.aborted = true;
             this.serviceThread.delete(service);
@@ -109,16 +111,18 @@ class Checker {
         service: service,
         lockCount: 0,
       };
-      session.thread = this.runThread(service, session).finally(() => {
-        this.serviceThread.delete(service);
-      }).catch((err) => {
-        debug('check: runThread error, cause: %o', err);
-      });
+      session.thread = this.runThread(service, session)
+        .finally(() => {
+          this.serviceThread.delete(service);
+        })
+        .catch((err) => {
+          debug('check: runThread error, cause: %o', err);
+        });
       this.serviceThread.set(service, session);
       newThreadCount++;
     });
     return {
-      newThreadCount
+      newThreadCount,
     };
   };
 
@@ -147,7 +151,7 @@ class Checker {
 
       const channelIdChannel: Map<string, Channel> = new Map();
       const channelIds: string[] = [];
-      const rawChannelIds: (string|number)[] = [];
+      const rawChannelIds: (string | number)[] = [];
       channels.forEach((channel) => {
         channelIdChannel.set(channel.id, channel.get({plain: true}) as Channel);
         channelIds.push(channel.id);
@@ -157,20 +161,20 @@ class Checker {
       const syncAt = new Date();
       await Promise.all([
         this.getStreams(service, channelIds, rawChannelIds, sessionId),
-        this.getExistsStreams(channelIds)
+        this.getExistsStreams(channelIds),
       ]).then(([streamsResult, existsStreamsResult]) => {
         const {streams, checkedChannelIds, skippedChannelIds, removedChannelIds} = streamsResult;
         const {existsStreams, existsStreamIds, existsStreamIdStream} = existsStreamsResult;
 
         const streamIds: string[] = [];
         const streamIdStream: Map<string, Stream> = new Map();
-        const channelIdsChanges:{[s: string]: Channel} = {};
-        const channelIdStreamIds:Map<string, string[]> = new Map();
+        const channelIdsChanges: {[s: string]: Channel} = {};
+        const channelIdStreamIds: Map<string, string[]> = new Map();
 
         checkedChannelIds.forEach((id: string) => {
           const channel = channelIdChannel.get(id);
           channelIdsChanges[id] = Object.assign({}, channel, {
-            lastSyncAt: syncAt
+            lastSyncAt: syncAt,
           });
         });
 
@@ -251,8 +255,7 @@ class Checker {
               }
             }
             return;
-          } else
-          if (stream.isTimeout) {
+          } else if (stream.isTimeout) {
             stream.isTimeout = false;
             stream.timeoutFrom = null;
             changedStreamIds.push(id);
@@ -260,7 +263,9 @@ class Checker {
 
           const channelStreamIds = channelIdStreamIds.get(stream.channelId);
           if (channelStreamIds) {
-            const channelNewStreams = arrayDifference(channelStreamIds, updatedStreamIds).map(id => streamIdStream.get(id)!);
+            const channelNewStreams = arrayDifference(channelStreamIds, updatedStreamIds).map(
+              (id) => streamIdStream.get(id)!,
+            );
             const similarStream = findSimilarStream(channelNewStreams, stream);
             if (similarStream) {
               const oPos = offlineStreamIds.indexOf(id);
@@ -284,7 +289,9 @@ class Checker {
             changedStreamIds.push(id);
           } else {
             const minOfflineDate = new Date();
-            minOfflineDate.setMinutes(minOfflineDate.getMinutes() - this.main.config.removeStreamIfOfflineMoreThanMinutes);
+            minOfflineDate.setMinutes(
+              minOfflineDate.getMinutes() - appConfig.removeStreamIfOfflineMoreThanMinutes,
+            );
             if (stream.offlineFrom!.getTime() < minOfflineDate.getTime()) {
               const pos = offlineStreamIds.indexOf(id);
               if (pos !== -1) {
@@ -295,135 +302,158 @@ class Checker {
           }
         });
 
-        return this.getChatIdStreamIdChanges(streamIdStream, newStreamIds).then((chatIdStreamIdChanges) => {
-          const channelsChanges = Object.values(channelIdsChanges);
-          const migratedStreamsIdCouple = Array.from(migratedStreamFromIdToId.entries());
-          const syncStreams: Stream[] = [
-            ...([] as string[]).concat(newStreamIds, migratedStreamsIds, updatedStreamIds).map(id => setStreamUpdatedAt(streamIdStream.get(id)!, syncAt)),
-            ...([] as string[]).concat(offlineStreamIds, timeoutStreamIds).map((id) => existsStreamIdStream.get(id)!)
-          ];
+        return this.getChatIdStreamIdChanges(streamIdStream, newStreamIds)
+          .then((chatIdStreamIdChanges) => {
+            const channelsChanges = Object.values(channelIdsChanges);
+            const migratedStreamsIdCouple = Array.from(migratedStreamFromIdToId.entries());
+            const syncStreams: Stream[] = [
+              ...([] as string[])
+                .concat(newStreamIds, migratedStreamsIds, updatedStreamIds)
+                .map((id) => setStreamUpdatedAt(streamIdStream.get(id)!, syncAt)),
+              ...([] as string[])
+                .concat(offlineStreamIds, timeoutStreamIds)
+                .map((id) => existsStreamIdStream.get(id)!),
+            ];
 
-          return this.main.db.putStreams(
-            channelsChanges,
-            removedChannelIds,
-            migratedStreamsIdCouple,
-            syncStreams,
-            changedStreamIds,
-            removedStreamIds,
-            chatIdStreamIdChanges,
-          );
-        }).then(() => {
-          streams.forEach((stream: Stream) => {
-            const id = stream.id;
-            if (newStreamIds.includes(id)) {
-              this.log.write(`[new] ${stream.channelId} ${stream.id}`);
-            } else
-            if (migratedStreamsIds.includes(id)) {
-              const fromId = migratedStreamToIdFromId.get(id);
-              this.log.write(`[migrate ${fromId} > ${id}] ${stream.channelId} ${stream.id}`);
-            } else
-            if (updatedStreamIds.includes(id)) {
-              if (changedStreamIds.includes(id)) {
-                const type = changedStreamIdChangeType.get(id);
-                this.log.write(`[${type}] ${stream.channelId} ${stream.id}`);
+            return this.main.db.putStreams(
+              channelsChanges,
+              removedChannelIds,
+              migratedStreamsIdCouple,
+              syncStreams,
+              changedStreamIds,
+              removedStreamIds,
+              chatIdStreamIdChanges,
+            );
+          })
+          .then(() => {
+            streams.forEach((stream: Stream) => {
+              const id = stream.id;
+              if (newStreamIds.includes(id)) {
+                this.log.write(`[new] ${stream.channelId} ${stream.id}`);
+              } else if (migratedStreamsIds.includes(id)) {
+                const fromId = migratedStreamToIdFromId.get(id);
+                this.log.write(`[migrate ${fromId} > ${id}] ${stream.channelId} ${stream.id}`);
+              } else if (updatedStreamIds.includes(id)) {
+                if (changedStreamIds.includes(id)) {
+                  const type = changedStreamIdChangeType.get(id);
+                  this.log.write(`[${type}] ${stream.channelId} ${stream.id}`);
+                } else {
+                  // pass
+                }
               } else {
-                // pass
+                this.log.write(`[?] ${stream.channelId} ${stream.id}`);
               }
-            } else {
-              this.log.write(`[?] ${stream.channelId} ${stream.id}`);
-            }
+            });
+            existsStreams.forEach((stream) => {
+              const id = stream.id;
+              if (updatedStreamIds.includes(id)) {
+                // pass
+              } else if (migratedStreamFromIdToId.has(id)) {
+                // pass
+              } else if (timeoutStreamIds.includes(id)) {
+                if (changedStreamIds.includes(id)) {
+                  this.log.write(`[timeout] ${stream.channelId} ${stream.id}`);
+                } else {
+                  // pass
+                }
+              } else if (offlineStreamIds.includes(id)) {
+                if (changedStreamIds.includes(id)) {
+                  this.log.write(`[offline] ${stream.channelId} ${stream.id}`);
+                } else {
+                  // pass
+                }
+              } else if (removedStreamIds.includes(id)) {
+                this.log.write(`[removed] ${stream.channelId} ${stream.id}`);
+              } else {
+                this.log.write(`[??] ${stream.channelId} ${stream.id}`);
+              }
+            });
+
+            this.main.sender.checkThrottled();
+
+            return {
+              streams: streams.length,
+              new: newStreamIds.length,
+              changed: changedStreamIds.length,
+              migrated: migratedStreamsIds.length,
+              timeout: timeoutStreamIds.length,
+              offline: offlineStreamIds.length,
+              removed: removedStreamIds.length,
+            };
           });
-          existsStreams.forEach((stream) => {
-            const id = stream.id;
-            if (updatedStreamIds.includes(id)) {
-              // pass
-            } else
-            if (migratedStreamFromIdToId.has(id)) {
-              // pass
-            } else
-            if (timeoutStreamIds.includes(id)) {
-              if (changedStreamIds.includes(id)) {
-                this.log.write(`[timeout] ${stream.channelId} ${stream.id}`);
-              } else {
-                // pass
-              }
-            } else
-            if (offlineStreamIds.includes(id)) {
-              if (changedStreamIds.includes(id)) {
-                this.log.write(`[offline] ${stream.channelId} ${stream.id}`);
-              } else {
-                // pass
-              }
-            } else
-            if (removedStreamIds.includes(id)) {
-              this.log.write(`[removed] ${stream.channelId} ${stream.id}`);
-            } else {
-              this.log.write(`[??] ${stream.channelId} ${stream.id}`);
-            }
-          });
-
-          this.main.sender.checkThrottled();
-
-          return {
-            streams: streams.length,
-            new: newStreamIds.length,
-            changed: changedStreamIds.length,
-            migrated: migratedStreamsIds.length,
-            timeout: timeoutStreamIds.length,
-            offline: offlineStreamIds.length,
-            removed: removedStreamIds.length,
-          };
-        });
       });
     }
   }
 
-  getStreams(service: ServiceInterface, channelIds: string[], rawChannelIds: (string|number)[], sessionId: string): Promise<{
-    streams: (Stream & { channelTitle: string; channelUrl: string; })[],
-    checkedChannelIds: string[], skippedChannelIds: string[], removedChannelIds: string[]
+  getStreams(
+    service: ServiceInterface,
+    channelIds: string[],
+    rawChannelIds: (string | number)[],
+    sessionId: string,
+  ): Promise<{
+    streams: (Stream & {channelTitle: string; channelUrl: string})[];
+    checkedChannelIds: string[];
+    skippedChannelIds: string[];
+    removedChannelIds: string[];
   }> {
-    return this.main.db.setChannelsSyncTimeoutExpiresAt(channelIds).then(() => {
-      return service.getStreams(rawChannelIds);
-    }).then(({streams: rawStreams, skippedChannelIds: skippedRawChannelIds, removedChannelIds: removedRawChannelIds}) => {
-      const streams: (Stream & { channelTitle: string; channelUrl: string; })[] = [];
+    return this.main.db
+      .setChannelsSyncTimeoutExpiresAt(channelIds)
+      .then(() => {
+        return service.getStreams(rawChannelIds);
+      })
+      .then(
+        ({
+          streams: rawStreams,
+          skippedChannelIds: skippedRawChannelIds,
+          removedChannelIds: removedRawChannelIds,
+        }) => {
+          const streams: (Stream & {channelTitle: string; channelUrl: string})[] = [];
 
-      const checkedChannelIds = channelIds.slice(0);
-      const onMapRawChannel = (rawId: string|number) => {
-        const id = serviceId.wrap(service, rawId);
-        const pos = checkedChannelIds.indexOf(id);
-        if (pos !== -1) {
-          checkedChannelIds.splice(pos, 1);
-        }
-        return id;
-      };
-      const skippedChannelIds = skippedRawChannelIds.map(onMapRawChannel);
-      const removedChannelIds = removedRawChannelIds.map(onMapRawChannel);
+          const checkedChannelIds = channelIds.slice(0);
+          const onMapRawChannel = (rawId: string | number) => {
+            const id = serviceId.wrap(service, rawId);
+            const pos = checkedChannelIds.indexOf(id);
+            if (pos !== -1) {
+              checkedChannelIds.splice(pos, 1);
+            }
+            return id;
+          };
+          const skippedChannelIds = skippedRawChannelIds.map(onMapRawChannel);
+          const removedChannelIds = removedRawChannelIds.map(onMapRawChannel);
 
-      rawStreams.forEach((rawStream) => {
-        const stream = Object.assign({}, rawStream, {
-          id: serviceId.wrap(service, rawStream.id),
-          channelId: serviceId.wrap(service, rawStream.channelId),
-          telegramPreviewFileId: null,
-          isOffline: false,
-          offlineFrom: null,
-          isTimeout: false,
-          timeoutFrom: null,
-        });
+          rawStreams.forEach((rawStream) => {
+            const stream = Object.assign({}, rawStream, {
+              id: serviceId.wrap(service, rawStream.id),
+              channelId: serviceId.wrap(service, rawStream.channelId),
+              telegramPreviewFileId: null,
+              isOffline: false,
+              offlineFrom: null,
+              isTimeout: false,
+              timeoutFrom: null,
+            });
 
-        if (!checkedChannelIds.includes(stream.channelId)) {
-          debug('Stream %s skip, cause: Channel %s is not exists in %j', stream.id, stream.channelId, checkedChannelIds);
-          return;
-        }
+            if (!checkedChannelIds.includes(stream.channelId)) {
+              debug(
+                'Stream %s skip, cause: Channel %s is not exists in %j',
+                stream.id,
+                stream.channelId,
+                checkedChannelIds,
+              );
+              return;
+            }
 
-        streams.push(stream);
-      });
+            streams.push(stream);
+          });
 
-      return {streams, checkedChannelIds, skippedChannelIds, removedChannelIds};
-    });
+          return {streams, checkedChannelIds, skippedChannelIds, removedChannelIds};
+        },
+      );
   }
 
   getExistsStreams(channelIds: string[]): Promise<{
-    existsStreams: Stream[], existsStreamIds: string[], existsStreamIdStream: Map<string, Stream>,
+    existsStreams: Stream[];
+    existsStreamIds: string[];
+    existsStreamIdStream: Map<string, Stream>;
   }> {
     return this.main.db.getStreamsByChannelIds(channelIds).then((existsDbStreams) => {
       const existsStreams: Stream[] = [];
@@ -440,7 +470,10 @@ class Checker {
     });
   }
 
-  getChatIdStreamIdChanges(streamIdStream: Map<string, Stream>, newStreamIds: string[]): Promise<NewChatIdStreamId[]> {
+  getChatIdStreamIdChanges(
+    streamIdStream: Map<string, Stream>,
+    newStreamIds: string[],
+  ): Promise<NewChatIdStreamId[]> {
     const channelIdNewStreamIds: Map<string, string[]> = new Map();
     newStreamIds.forEach((id) => {
       const stream = streamIdStream.get(id)!;
@@ -449,34 +482,42 @@ class Checker {
     });
     const newStreamChannelIds = Array.from(channelIdNewStreamIds.keys());
 
-    return this.main.db.getChatIdChannelIdByChannelIds(newStreamChannelIds).then((chatIdChannelIdList) => {
-      const channelIdChats: Map<string, { chatId: string, isMutedRecords: boolean }[]> = new Map();
-      chatIdChannelIdList.forEach((chatIdChannelId) => {
-        const chats = ensureMap(channelIdChats, chatIdChannelId.channelId, []);
-        if (!chatIdChannelId.chat.channelId || !chatIdChannelId.chat.isMuted) {
-          chats.push({chatId: chatIdChannelId.chat.id, isMutedRecords: chatIdChannelId.chat.isMutedRecords});
-        }
-        if (chatIdChannelId.chat.channelId) {
-          chats.push({chatId: chatIdChannelId.chat.channelId, isMutedRecords: chatIdChannelId.chat.isMutedRecords});
-        }
-      });
-
-      const chatIdStreamIdChanges: { chatId: string; streamId: string; }[] = [];
-      for (const [channelId, chats] of channelIdChats.entries()) {
-        const streamIds = channelIdNewStreamIds.get(channelId);
-        if (streamIds) {
-          streamIds.forEach((streamId) => {
-            const stream = streamIdStream.get(streamId)!;
-            chats.forEach(({chatId, isMutedRecords}) => {
-              if (!stream.isRecord || !isMutedRecords) {
-                chatIdStreamIdChanges.push({chatId, streamId});
-              }
+    return this.main.db
+      .getChatIdChannelIdByChannelIds(newStreamChannelIds)
+      .then((chatIdChannelIdList) => {
+        const channelIdChats: Map<string, {chatId: string; isMutedRecords: boolean}[]> = new Map();
+        chatIdChannelIdList.forEach((chatIdChannelId) => {
+          const chats = ensureMap(channelIdChats, chatIdChannelId.channelId, []);
+          if (!chatIdChannelId.chat.channelId || !chatIdChannelId.chat.isMuted) {
+            chats.push({
+              chatId: chatIdChannelId.chat.id,
+              isMutedRecords: chatIdChannelId.chat.isMutedRecords,
             });
-          });
+          }
+          if (chatIdChannelId.chat.channelId) {
+            chats.push({
+              chatId: chatIdChannelId.chat.channelId,
+              isMutedRecords: chatIdChannelId.chat.isMutedRecords,
+            });
+          }
+        });
+
+        const chatIdStreamIdChanges: {chatId: string; streamId: string}[] = [];
+        for (const [channelId, chats] of channelIdChats.entries()) {
+          const streamIds = channelIdNewStreamIds.get(channelId);
+          if (streamIds) {
+            streamIds.forEach((streamId) => {
+              const stream = streamIdStream.get(streamId)!;
+              chats.forEach(({chatId, isMutedRecords}) => {
+                if (!stream.isRecord || !isMutedRecords) {
+                  chatIdStreamIdChanges.push({chatId, streamId});
+                }
+              });
+            });
+          }
         }
-      }
-      return chatIdStreamIdChanges;
-    });
+        return chatIdStreamIdChanges;
+      });
   }
 
   checkChannelsExistsInProgress = getInProgress();
@@ -497,43 +538,50 @@ class Checker {
           if (!channelIds.length) break;
           result.channelCount += channelIds.length;
 
-          await service.getExistsChannelIds(channelIds.map(id => serviceId.unwrap(id))).then((existsRawChannelIds) => {
-            const existsChannelIds = existsRawChannelIds.map((id: string|number) => serviceId.wrap(service, id));
+          await service
+            .getExistsChannelIds(channelIds.map((id) => serviceId.unwrap(id)))
+            .then((existsRawChannelIds) => {
+              const existsChannelIds = existsRawChannelIds.map((id: string | number) =>
+                serviceId.wrap(service, id),
+              );
 
-            const removedChannelIds = arrayDifference(channelIds, existsChannelIds);
-            return this.main.db.removeChannelByIds(removedChannelIds).then(() => {
-              result.removedCount += removedChannelIds.length;
-              offset -= removedChannelIds.length;
+              const removedChannelIds = arrayDifference(channelIds, existsChannelIds);
+              return this.main.db.removeChannelByIds(removedChannelIds).then(() => {
+                result.removedCount += removedChannelIds.length;
+                offset -= removedChannelIds.length;
+              });
             });
-          });
         }
 
         return result;
       });
     });
-  }
+  };
 
   cleanInProgress = getInProgress();
   clean = () => {
     return this.cleanInProgress(() => {
-      return this.main.db.cleanChats().then((chatsCount) => {
-        return this.main.db.cleanChannels().then((channelsCount) => {
-          return [chatsCount, channelsCount];
+      return this.main.db
+        .cleanChats()
+        .then((chatsCount) => {
+          return this.main.db.cleanChannels().then((channelsCount) => {
+            return [chatsCount, channelsCount];
+          });
+        })
+        .then(([removedChats, removedChannels]) => {
+          return {removedChats, removedChannels};
         });
-      }).then(([removedChats, removedChannels]) => {
-        return {removedChats, removedChannels};
-      });
     });
-  }
+  };
 }
 
-function findSimilarStream<T extends Stream>(streams: T[], target: T): T|null {
+function findSimilarStream<T extends Stream>(streams: T[], target: T): T | null {
   let result = null;
   streams.some((stream) => {
     if (
-        stream.title === target.title &&
-        stream.game === target.game &&
-        stream.isRecord === target.isRecord
+      stream.title === target.title &&
+      stream.game === target.game &&
+      stream.isRecord === target.isRecord
     ) {
       result = stream;
       return true;
@@ -542,7 +590,7 @@ function findSimilarStream<T extends Stream>(streams: T[], target: T): T|null {
   return result;
 }
 
-function setStreamUpdatedAt(stream: Stream, date: Date):Stream {
+function setStreamUpdatedAt(stream: Stream, date: Date): Stream {
   stream.updatedAt = date;
   return stream;
 }

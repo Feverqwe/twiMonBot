@@ -1,15 +1,17 @@
-import {ServiceInterface, ServiceStream} from "../checker";
-import Main from "../main";
-import parallel from "../tools/parallel";
-import ErrorWithCode from "../tools/errorWithCode";
-import * as s from "superstruct";
-import arrayByPart from "../tools/arrayByPart";
-import fetchRequest, {FetchRequestOptions, HTTPError} from "../tools/fetchRequest";
-import getNow from "../tools/getNow";
-import promiseTry from "../tools/promiseTry";
-import RateLimit2 from "../tools/rateLimit2";
+import {ServiceInterface, ServiceStream} from '../checker';
+import Main from '../main';
+import parallel from '../tools/parallel';
+import ErrorWithCode from '../tools/errorWithCode';
+import * as s from 'superstruct';
+import arrayByPart from '../tools/arrayByPart';
+import fetchRequest, {FetchRequestOptions, HTTPError} from '../tools/fetchRequest';
+import getNow from '../tools/getNow';
+import promiseTry from '../tools/promiseTry';
+import RateLimit2 from '../tools/rateLimit2';
+import {appConfig} from '../appConfig';
+import {getDebug} from '../tools/getDebug';
 
-const debug = require('debug')('app:Twitch');
+const debug = getDebug('app:Twitch');
 
 const rateLimit = new RateLimit2(800, 60 * 1000);
 
@@ -17,29 +19,33 @@ const limitedFetchRequest = rateLimit.wrap(fetchRequest);
 const requestSingleChannelLimit = new RateLimit2(400, 60 * 1000);
 
 const ChannelsStruct = s.object({
-  data: s.array(s.object({
-    id: s.string(),
-    broadcaster_login: s.string(),
-    display_name: s.string(),
-  })),
+  data: s.array(
+    s.object({
+      id: s.string(),
+      broadcaster_login: s.string(),
+      display_name: s.string(),
+    }),
+  ),
   pagination: s.object({
     cursor: s.optional(s.string()),
   }),
 });
 
 const StreamsStruct = s.object({
-  data: s.array(s.object({
-    id: s.string(),
-    type: s.string(),
-    thumbnail_url: s.string(),
-    viewer_count: s.number(),
-    game_name: s.string(),
-    started_at: s.string(),
-    user_id: s.string(),
-    user_login: s.string(),
-    user_name: s.string(),
-    title: s.string(),
-  })),
+  data: s.array(
+    s.object({
+      id: s.string(),
+      type: s.string(),
+      thumbnail_url: s.string(),
+      viewer_count: s.number(),
+      game_name: s.string(),
+      started_at: s.string(),
+      user_id: s.string(),
+      user_login: s.string(),
+      user_name: s.string(),
+      title: s.string(),
+    }),
+  ),
   pagination: s.object({
     cursor: s.optional(s.string()),
   }),
@@ -54,9 +60,7 @@ class Twitch implements ServiceInterface {
   constructor(public main: Main) {}
 
   match(url: string) {
-    return [
-      /twitch\.tv\//i
-    ].some(re => re.test(url));
+    return [/twitch\.tv\//i].some((re) => re.test(url));
   }
 
   getStreams(channelIds: (number | string)[]) {
@@ -71,45 +75,47 @@ class Twitch implements ServiceInterface {
         },
         keepAlive: true,
         responseType: 'json',
-      }).then(({body}) => {
-        const result = s.mask(body, StreamsStruct);
-        const streams = result.data;
+      })
+        .then(({body}) => {
+          const result = s.mask(body, StreamsStruct);
+          const streams = result.data;
 
-        streams.forEach((stream) => {
-          const previews: string[] = [
-            stream.thumbnail_url.replace('{width}', '1920').replace('{height}', '1080'),
-          ];
+          streams.forEach((stream) => {
+            const previews: string[] = [
+              stream.thumbnail_url.replace('{width}', '1920').replace('{height}', '1080'),
+            ];
 
-          let id: number | string = stream.id;
-          let channelId: number | string = stream.user_id;
-          // fallback api v3
-          if (/^\d+$/.test(stream.id)) {
-            id = parseInt(stream.id, 10);
-          }
-          if (/^\d+$/.test(stream.user_id)) {
-            channelId = parseInt(stream.user_id, 10);
-          }
+            let id: number | string = stream.id;
+            let channelId: number | string = stream.user_id;
+            // fallback api v3
+            if (/^\d+$/.test(stream.id)) {
+              id = parseInt(stream.id, 10);
+            }
+            if (/^\d+$/.test(stream.user_id)) {
+              channelId = parseInt(stream.user_id, 10);
+            }
 
-          const url = getChannelUrl(stream.user_login);
+            const url = getChannelUrl(stream.user_login);
 
-          resultStreams.push({
-            id: id,
-            url: url,
-            title: stream.title,
-            game: stream.game_name,
-            // new api don't response records anymore
-            isRecord: false, // stream.type !== 'live',
-            previews: previews,
-            viewers: stream.viewer_count,
-            channelId: channelId,
-            channelTitle: stream.user_name,
-            channelUrl: url,
+            resultStreams.push({
+              id: id,
+              url: url,
+              title: stream.title,
+              game: stream.game_name,
+              // new api don't response records anymore
+              isRecord: false, // stream.type !== 'live',
+              previews: previews,
+              viewers: stream.viewer_count,
+              channelId: channelId,
+              channelTitle: stream.user_name,
+              channelUrl: url,
+            });
           });
+        })
+        .catch((err: any) => {
+          debug(`getStreams for channels (%j) skip, cause: %o`, channelIds, err);
+          skippedChannelIds.push(...channelIds);
         });
-      }).catch((err: any) => {
-        debug(`getStreams for channels (%j) skip, cause: %o`, channelIds, err);
-        skippedChannelIds.push(...channelIds);
-      });
     }).then(() => {
       return {streams: resultStreams, skippedChannelIds, removedChannelIds};
     });
@@ -118,18 +124,23 @@ class Twitch implements ServiceInterface {
   getExistsChannelIds(ids: (number | string)[]) {
     const resultChannelIds: (number | string)[] = [];
     return parallel(10, ids, (channelId) => {
-      return requestSingleChannelLimit.run(() => {
-        return this.requestChannelById(channelId);
-      }).then(() => {
-        resultChannelIds.push(channelId);
-      }, (err: any) => {
-        if (err.code === 'CHANNEL_BY_ID_IS_NOT_FOUND') {
-          // pass
-        } else {
-          debug('requestChannelById (%s) error: %o', channelId, err);
-          resultChannelIds.push(channelId);
-        }
-      });
+      return requestSingleChannelLimit
+        .run(() => {
+          return this.requestChannelById(channelId);
+        })
+        .then(
+          () => {
+            resultChannelIds.push(channelId);
+          },
+          (err: any) => {
+            if (err.code === 'CHANNEL_BY_ID_IS_NOT_FOUND') {
+              // pass
+            } else {
+              debug('requestChannelById (%s) error: %o', channelId, err);
+              resultChannelIds.push(channelId);
+            }
+          },
+        );
     }).then(() => resultChannelIds);
   }
 
@@ -148,27 +159,31 @@ class Twitch implements ServiceInterface {
   }
 
   findChannel(query: string) {
-    return this.getChannelNameByUrl(query).then((name) => {
-      return {query: name, isName: true};
-    }).catch((err: any) => {
-      if (err.code === 'IS_NOT_CHANNEL_URL') {
-        return {query, isName: false};
-      } else {
-        throw err;
-      }
-    }).then(({query, isName}) => {
-      return this.requestChannelByQuery(query, isName);
-    }).then((channel) => {
-      let id: number | string = channel.id;
-      // fallback api v3
-      if (/^\d+$/.test(channel.id)) {
-        id = parseInt(channel.id, 10);
-      }
+    return this.getChannelNameByUrl(query)
+      .then((name) => {
+        return {query: name, isName: true};
+      })
+      .catch((err: any) => {
+        if (err.code === 'IS_NOT_CHANNEL_URL') {
+          return {query, isName: false};
+        } else {
+          throw err;
+        }
+      })
+      .then(({query, isName}) => {
+        return this.requestChannelByQuery(query, isName);
+      })
+      .then((channel) => {
+        let id: number | string = channel.id;
+        // fallback api v3
+        if (/^\d+$/.test(channel.id)) {
+          id = parseInt(channel.id, 10);
+        }
 
-      const title = channel.display_name;
-      const url = getChannelUrl(channel.broadcaster_login);
-      return {id, title, url};
-    });
+        const title = channel.display_name;
+        const url = getChannelUrl(channel.broadcaster_login);
+        return {id, title, url};
+      });
   }
 
   requestChannelByQuery(query: string, isName: boolean) {
@@ -194,9 +209,7 @@ class Twitch implements ServiceInterface {
 
   async getChannelNameByUrl(url: string) {
     let channelName = '';
-    [
-      /twitch\.tv\/([\w\-]+)/i
-    ].some((re) => {
+    [/twitch\.tv\/([\w\-]+)/i].some((re) => {
       const m = re.exec(url);
       if (m) {
         channelName = m[1].toLowerCase();
@@ -213,8 +226,8 @@ class Twitch implements ServiceInterface {
   }
 
   token: null | {
-    accessToken: string,
-    expiresAt: number,
+    accessToken: string;
+    expiresAt: number;
   } = null;
 
   lastAccessTokenRequest: Promise<string> | undefined;
@@ -227,21 +240,24 @@ class Twitch implements ServiceInterface {
       return this.lastAccessTokenRequest;
     }
 
-    return this.lastAccessTokenRequest = promiseTry(async () => {
+    return (this.lastAccessTokenRequest = promiseTry(async () => {
       const {body} = await fetchRequest('https://id.twitch.tv/oauth2/token', {
         method: 'POST',
         searchParams: {
-          client_id: this.main.config.twitchToken,
-          client_secret: this.main.config.twitchSecret,
+          client_id: appConfig.twitchToken,
+          client_secret: appConfig.twitchSecret,
           grant_type: 'client_credentials',
         },
         responseType: 'json',
       });
 
-      s.assert(body, s.type({
-        access_token: s.string(),
-        expires_in: s.number(),
-      }));
+      s.assert(
+        body,
+        s.type({
+          access_token: s.string(),
+          expires_in: s.number(),
+        }),
+      );
 
       const expiresAt = Date.now() + body.expires_in * 1000;
       this.token = {
@@ -252,14 +268,17 @@ class Twitch implements ServiceInterface {
       return this.token.accessToken;
     }).finally(() => {
       this.lastAccessTokenRequest = undefined;
-    });
+    }));
   }
 
   async signFetchRequest(url: string, options: FetchRequestOptions) {
-    options.headers = Object.assign({
-      Authorization: 'Bearer ' + await this.getAccessToken(),
-      'Client-Id': this.main.config.twitchToken,
-    }, options.headers);
+    options.headers = Object.assign(
+      {
+        Authorization: 'Bearer ' + (await this.getAccessToken()),
+        'Client-Id': appConfig.twitchToken,
+      },
+      options.headers,
+    );
 
     return limitedFetchRequest(url, options);
   }

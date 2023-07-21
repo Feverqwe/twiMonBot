@@ -1,4 +1,8 @@
-async function withRetry<T>(params: {count: number, timeout?: number} | undefined, callback: () => T, ...errorHandlers:Function[]):Promise<T|any> {
+async function withRetry<T>(
+  params: {count: number; timeout?: number} | undefined,
+  callback: () => T,
+  ...errorHandlers: Function[]
+): Promise<T | any> {
   if (typeof params === 'function') {
     errorHandlers.unshift(callback);
     callback = params;
@@ -11,11 +15,11 @@ async function withRetry<T>(params: {count: number, timeout?: number} | undefine
       return await callback();
     } catch (err) {
       lastError = err;
-      if (errorHandlers.some(handle => handle(err))) {
+      if (errorHandlers.some((handle) => handle(err))) {
         break;
       }
       if (timeout) {
-        await new Promise(r => setTimeout(r, timeout));
+        await new Promise((r) => setTimeout(r, timeout));
       }
     }
   }

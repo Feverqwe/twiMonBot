@@ -1,42 +1,50 @@
-import promiseTry from "./promiseTry";
-import http from "http";
-import https from "https";
-import qs from "querystring";
-import AbortController from "abort-controller";
-import FormData from "form-data";
+import promiseTry from './promiseTry';
+import http from 'node:http';
+import https from 'node:https';
+import qs from 'node:querystring';
+import FormData from 'form-data';
 
-const fetch = require('node-fetch');
+import fetch, {Headers, Response} from 'node-fetch';
+import {getDebug} from './getDebug';
 
-const debug = require('debug')('app:fetchRequest');
+const debug = getDebug('app:fetchRequest');
 
 export interface FetchRequestOptions {
   method?: 'GET' | 'HEAD' | 'POST';
-  responseType?: 'text' | 'json' | 'buffer' | 'stream',
-  headers?: Record<string, string | string[] | undefined>,
-  searchParams?: Record<string, any>,
-  timeout?: number,
-  keepAlive?: boolean,
-  body?: string | URLSearchParams | FormData,
+  responseType?: 'text' | 'json' | 'buffer' | 'stream';
+  headers?: Record<string, string>;
+  searchParams?: Record<string, any>;
+  timeout?: number;
+  keepAlive?: boolean;
+  body?: string | URLSearchParams | FormData;
   cookieJar?: {
-    setCookie: (rawCookie: string, url: string) => Promise<unknown>,
-    getCookieString: (url: string) => Promise<string>,
-  },
-  throwHttpErrors?: boolean,
+    setCookie: (rawCookie: string, url: string) => Promise<unknown>;
+    getCookieString: (url: string) => Promise<string>;
+  };
+  throwHttpErrors?: boolean;
 }
 
 interface FetchResponse<T = any> {
-  ok: boolean,
-  url: string,
-  method: string,
-  statusCode: number,
-  statusMessage: string,
-  rawBody: any,
-  body: T,
-  headers: Record<string, string | string[]>,
+  ok: boolean;
+  url: string;
+  method: string;
+  statusCode: number;
+  statusMessage: string;
+  rawBody: any;
+  body: T;
+  headers: Record<string, string | string[]>;
 }
 
 function fetchRequest<T = any>(url: string, options?: FetchRequestOptions) {
-  const {responseType, keepAlive, searchParams, cookieJar, throwHttpErrors = true, timeout = 60 * 1000, ...fetchOptions} = options || {};
+  const {
+    responseType,
+    keepAlive,
+    searchParams,
+    cookieJar,
+    throwHttpErrors = true,
+    timeout = 60 * 1000,
+    ...fetchOptions
+  } = options || {};
 
   let timeoutId: NodeJS.Timeout | null = null;
   let setCookiePromise: Promise<unknown[]> | null = null;
@@ -103,9 +111,11 @@ function fetchRequest<T = any>(url: string, options?: FetchRequestOptions) {
         if (!Array.isArray(rawCookies)) {
           rawCookies = [rawCookies];
         }
-        setCookiePromise = Promise.all(rawCookies.map((rawCookie: string) => {
-          return cookieJar.setCookie(rawCookie, fetchResponse.url)
-        }));
+        setCookiePromise = Promise.all(
+          rawCookies.map((rawCookie: string) => {
+            return cookieJar.setCookie(rawCookie, fetchResponse.url);
+          }),
+        );
       }
     }
 
@@ -113,8 +123,7 @@ function fetchRequest<T = any>(url: string, options?: FetchRequestOptions) {
       try {
         if (responseType === 'stream') {
           fetchResponse.rawBody = rawResponse.body;
-        } else
-        if (responseType === 'buffer') {
+        } else if (responseType === 'buffer') {
           fetchResponse.rawBody = await rawResponse.buffer();
         } else {
           fetchResponse.rawBody = await rawResponse.text();
@@ -161,7 +170,11 @@ export class RequestError extends Error {
   stack!: string;
   declare readonly response?: FetchResponse;
 
-  constructor(message: string, error: {} | Error & {code?: string}, response?: FetchResponse | undefined) {
+  constructor(
+    message: string,
+    error: {} | (Error & {code?: string}),
+    response?: FetchResponse | undefined,
+  ) {
     super(message);
 
     this.name = 'RequestError';
@@ -172,7 +185,7 @@ export class RequestError extends Error {
     if (response) {
       Object.defineProperty(this, 'response', {
         enumerable: false,
-        value: response
+        value: response,
       });
     }
 
@@ -225,27 +238,31 @@ export class ReadError extends RequestError {
 }
 
 function transformStack(err: Error & {stack: string}, origError: Error) {
-  if (typeof origError.stack !== "undefined") {
+  if (typeof origError.stack !== 'undefined') {
     const indexOfMessage = err.stack.indexOf(err.message) + err.message.length;
     const thisStackTrace = err.stack.slice(indexOfMessage).split('\n').reverse();
-    const errorStackTrace = origError.stack.slice(origError.stack.indexOf(origError.message!) + origError.message!.length).split('\n').reverse();
+    const errorStackTrace = origError.stack
+      .slice(origError.stack.indexOf(origError.message!) + origError.message!.length)
+      .split('\n')
+      .reverse();
 
     // Remove duplicated traces
     while (errorStackTrace.length !== 0 && errorStackTrace[0] === thisStackTrace[0]) {
       thisStackTrace.shift();
     }
 
-    err.stack = `${err.stack.slice(0, indexOfMessage)}${thisStackTrace.reverse().join('\n')}${errorStackTrace.reverse().join('\n')}`;
+    err.stack = `${err.stack.slice(0, indexOfMessage)}${thisStackTrace
+      .reverse()
+      .join('\n')}${errorStackTrace.reverse().join('\n')}`;
   }
 }
 
-
 const httpAgent = new http.Agent({
-  keepAlive: true
+  keepAlive: true,
 });
 
 const httpsAgent = new https.Agent({
-  keepAlive: true
+  keepAlive: true,
 });
 
 function keepAliveAgentFn(_parsedURL: URL) {
@@ -263,8 +280,7 @@ function normalizeHeaders(fetchHeaders: Headers & any) {
     const lowKey = key.toLowerCase();
     if (values.length === 1) {
       headers[lowKey] = values[0];
-    } else
-    if (values.length) {
+    } else if (values.length) {
       headers[lowKey] = values;
     }
   });

@@ -2,9 +2,12 @@
   "version": "2",
   "services": {
     "bot": {
+      "env_file": [
+        ".env"
+      ],
       "build": ".",
       "volumes": [
-          "./log:/opt/backend/log"
+        "/var/log/twiMonBot:/opt/log"
       ],
       "restart": "always",
       "network_mode": "host"

@@ -1,12 +1,10 @@
 {
+  "extends": "@tsconfig/node18/tsconfig.json",
   "compilerOptions": {
-    "experimentalDecorators": true,
-    "allowJs": true,
-    "strict": true,
-    "noEmit": true,
-    "target": "ES2020",
-    "moduleResolution": "Node",
-    "skipLibCheck": true,
-    "esModuleInterop": true
-  }
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules"
+  ]
 }
