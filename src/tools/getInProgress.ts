@@ -1,13 +1,13 @@
-import promiseTry from './promiseTry';
-
-const getInProgress = (): (<T>(callback: () => T) => Promise<T | undefined>) => {
+const getInProgress = () => {
   let isInProgress = false;
-  return <T>(callback: () => T): Promise<T | undefined> => {
-    if (isInProgress) return Promise.resolve(undefined);
+  return async <T>(callback: () => Promise<T>) => {
+    if (isInProgress) return;
     isInProgress = true;
-    return promiseTry(() => callback()).finally(() => {
+    try {
+      return await callback();
+    } finally {
       isInProgress = false;
-    });
+    }
   };
 };
 
