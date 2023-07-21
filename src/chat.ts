@@ -424,10 +424,10 @@ class Chat {
               messageText,
               cancelText,
               chooseKeyboard,
-            ).then(({req, msgId}) => {
+            ).then(({req, messageId}) => {
               requestedService = req.params.value;
               const service = this.main.getServiceById(req.params.value)!;
-              return {service, messageId: msgId};
+              return {service, messageId};
             });
           }).then(({service, messageId}) => {
             return this.main.db
@@ -1180,13 +1180,11 @@ class Chat {
       inline_keyboard: TelegramBot.InlineKeyboardButton[][],
     ): Promise<{
       req: RouterCallbackQueryReq;
-      msgId: number;
+      messageId: number;
     }> => {
       return editOrSendNewMessage(chatId, messageId, messageText, {
         reply_markup: {inline_keyboard},
-      }).then((msg) => {
-        // todo: fix me
-        const msgId = messageId || (msg as TelegramBot.Message).message_id;
+      }).then((messageId) => {
         return this.router
           .waitResponse<RouterCallbackQueryReq>(
             /\/choose\/(?<value>.+)/,
@@ -1201,15 +1199,15 @@ class Chat {
             ({req, res, next}) => {
               return this.main.bot.answerCallbackQuery(req.callback_query.id).then(async () => {
                 if (req.params.value === 'cancel') {
-                  await editOrSendNewMessage(chatId, msgId, cancelText);
+                  await editOrSendNewMessage(chatId, messageId, cancelText);
                   throw new ErrorWithCode('Response cancel', 'RESPONSE_CANCEL');
                 }
-                return {req, msgId};
+                return {req, messageId};
               });
             },
             async (err) => {
               if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
-                await editOrSendNewMessage(chatId, msgId, cancelText);
+                await editOrSendNewMessage(chatId, messageId, cancelText);
               }
               throw err;
             },
@@ -1222,26 +1220,32 @@ class Chat {
       messageId: number | undefined,
       text: string,
       form?: object,
-    ): Promise<TelegramBot.Message | boolean> => {
-      return promiseTry(() => {
+    ): Promise<number> => {
+      return promiseTry(async () => {
         if (!messageId) {
           throw new ErrorWithCode('messageId is empty', 'MESSAGE_ID_IS_EMPTY');
         }
 
-        return this.main.bot.editMessageText(
+        const result = await this.main.bot.editMessageText(
           text,
           Object.assign({}, form, {
             chat_id: chatId,
             message_id: messageId,
           }),
         );
+
+        if (typeof result === 'object') {
+          return result.message_id;
+        }
+
+        return messageId;
       }).catch((err) => {
         if (
           err.code === 'MESSAGE_ID_IS_EMPTY' ||
           /message can't be edited/.test(err.message) ||
           /message to edit not found/.test(err.message)
         ) {
-          return this.main.bot.sendMessage(chatId, text, form);
+          return this.main.bot.sendMessage(chatId, text, form).then(({message_id}) => message_id);
         }
         throw err;
       });
