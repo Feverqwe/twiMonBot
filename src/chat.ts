@@ -286,6 +286,7 @@ class Chat {
       res: O,
       next: () => void,
     ) => {
+      const {locale} = res;
       const chatId = req.chatId;
       if (!chatId) return;
 
@@ -296,7 +297,7 @@ class Chat {
         },
         (err) => {
           debug('ensureChat error! %o', err);
-          this.main.bot.sendMessage(chatId, 'Oops something went wrong...').catch((err: any) => {
+          this.main.bot.sendMessage(chatId, locale.m('alert_unknown-error')).catch((err: any) => {
             debug('provideChat sendMessage error! %o', err);
           });
         },
@@ -308,6 +309,7 @@ class Chat {
       res: O,
       next: () => void,
     ) => {
+      const {locale} = res;
       const chatId = req.chatId;
       if (!chatId) return;
 
@@ -318,7 +320,7 @@ class Chat {
         },
         (err: any) => {
           debug('ensureChannels error! %o', err);
-          this.main.bot.sendMessage(chatId, 'Oops something went wrong...').catch((err: any) => {
+          this.main.bot.sendMessage(chatId, locale.m('alert_unknown-error')).catch((err: any) => {
             debug('provideChannels sendMessage error! %o', err);
           });
         },
@@ -813,15 +815,15 @@ class Chat {
                   }
                 } else if (err.code === 'ETELEGRAM' && /chat not found/.test(err.message)) {
                   isResolved = true;
-                  message = 'Telegram chat is not found!';
+                  message = locale.m('alert_chat-not-found');
                 } else if (
                   err.code === 'ETELEGRAM' &&
                   /bot is not a member of the/.test(err.message)
                 ) {
                   isResolved = true;
-                  message = 'Bot is not a member of the channel!';
+                  message = locale.m('alert_bot-is-not-channel-member');
                 } else {
-                  message = 'Unexpected error';
+                  message = locale.m('alert_unexpected-error');
                 }
                 await editOrSendNewMessage(req.chatId, req.messageId, message);
                 if (!isResolved) {
@@ -937,7 +939,7 @@ class Chat {
             },
           );
         } else {
-          return this.main.bot.sendMessage(req.chatId, 'Options:', {
+          return this.main.bot.sendMessage(req.chatId, locale.m('context_options'), {
             reply_markup: {
               inline_keyboard: getOptions(locale, req.chat),
             },
