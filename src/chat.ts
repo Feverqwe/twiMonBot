@@ -193,30 +193,30 @@ class Chat {
       const {locale} = res;
       const page = parseInt(req.params.page || '0', 10);
       try {
-        await passEx(
-          () =>
-            this.main.bot.editMessageReplyMarkup(
-              {
-                inline_keyboard: getMenu(locale, page),
-              },
-              {
-                chat_id: req.chatId,
-                message_id: req.messageId,
-              },
-            ),
-          [ErrEnum.MessageNotModified],
-        );
-      } catch (error) {
         try {
+          await passEx(
+            () =>
+              this.main.bot.editMessageReplyMarkup(
+                {
+                  inline_keyboard: getMenu(locale, page),
+                },
+                {
+                  chat_id: req.chatId,
+                  message_id: req.messageId,
+                },
+              ),
+            [ErrEnum.MessageNotModified],
+          );
+        } catch (error) {
           const err = error as Error;
           if (errHandler[ErrEnum.MessageToEditNotFound](err)) {
             await sendMenu(locale, req.chatId, page);
           } else {
             throw err;
           }
-        } catch (err) {
-          debug('%j error %o', req.command, err);
         }
+      } catch (err) {
+        debug('%j error %o', req.command, err);
       }
     });
 
@@ -336,7 +336,7 @@ class Chat {
         Object.assign(req, {channels});
         next();
       } catch (err) {
-        debug('ensureChannels error! %o', err);
+        debug('getChannelsByChatId error! %o', err);
         try {
           await this.main.bot.sendMessage(chatId, locale.m('alert_unknown-error'));
         } catch (err) {
