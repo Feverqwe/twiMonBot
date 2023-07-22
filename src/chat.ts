@@ -748,7 +748,7 @@ class Chat {
             } else {
               message = locale.m('alert_unexpected-error');
             }
-            await editOrSendNewMessage(req.chatId, req.messageId, message);
+            await editOrSendNewMessage(req.chatId, messageId, message);
             if (!isResolved) {
               throw err;
             }
@@ -756,7 +756,6 @@ class Chat {
           }
 
           const message = locale.m('alert_telegram-channel-set', {channelName: channelId});
-
           await editOrSendNewMessage(req.chatId, messageId, message);
 
           if (req.callback_query) {
@@ -1083,10 +1082,7 @@ class Chat {
       req: RouterTextReq | RouterCallbackQueryReq,
       messageText: string,
       cancelText: string,
-    ): Promise<{
-      req: RouterTextReq;
-      msg: TelegramBot.Message;
-    }> => {
+    ) => {
       const {chatId, fromId} = req;
       const options: {[s: string]: any} = {};
       let msgText = messageText;
