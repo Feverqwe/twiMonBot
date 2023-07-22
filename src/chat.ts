@@ -1175,8 +1175,8 @@ class Chat {
         chooseKeyboard,
       );
 
-      if (req.params.value === 'cancel') {
-        await editOrSendNewMessage(req.chatId, rMessageId, cancelText);
+      if (rReq.params.value === 'cancel') {
+        await editOrSendNewMessage(rReq.chatId, rMessageId, cancelText);
         throw new ErrorWithCode('Response cancel', 'RESPONSE_CANCEL');
       }
 
