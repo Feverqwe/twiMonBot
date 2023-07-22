@@ -5,6 +5,7 @@ FROM node as base
 COPY ./package.json .
 COPY ./package-lock.json .
 RUN chown -R nobody:nogroup ./ && \
+    touch /.npmrc && chown nobody:nogroup /.npmrc && \
     mkdir /.npm && chown nobody:nogroup /.npm && \
     mkdir ./log && chown nobody:nogroup ./log && \
     ln -sf /dev/stdout ./log/stdout.log && \
