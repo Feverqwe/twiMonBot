@@ -11,8 +11,23 @@ import {getDebug} from './tools/getDebug';
 import TelegramBot from 'node-telegram-bot-api';
 import {tracker} from './tracker';
 import ReadableStream = NodeJS.ReadableStream;
+import {ErrEnum, errHandler, passEx} from './tools/passTgEx';
 
 const debug = getDebug('app:ChatSender');
+
+interface TelegramError extends Error {
+  code: string;
+  response: {
+    statusCode: number;
+    body: {
+      error_code: string;
+      description: string;
+      parameters: {
+        migrate_to_chat_id: number;
+      };
+    };
+  };
+}
 
 const streamWeakMap = new WeakMap();
 
@@ -97,24 +112,23 @@ class ChatSender {
       this.streamIds = await this.getStreamIds();
     }
 
-    if (!this.streamIds.length) {
+    const streamId = this.streamIds.shift();
+    if (!streamId) {
       return true;
     }
 
-    const streamId = this.streamIds.shift()!;
-
-    return this.main.sender
-      .provideStream(streamId, (stream) => {
+    try {
+      await this.main.sender.provideStream(streamId, (stream) => {
         return this.sendStream(stream);
-      })
-      .catch((err) => {
-        if (err.code === 'STREAM_IS_NOT_FOUND') {
-          // pass
-        } else {
-          throw err;
-        }
-      })
-      .then(() => {});
+      });
+    } catch (error) {
+      const err = error as ErrorWithCode;
+      if (err.code === 'STREAM_IS_NOT_FOUND') {
+        // pass
+      } else {
+        throw err;
+      }
+    }
   }
 
   async update() {
@@ -122,15 +136,13 @@ class ChatSender {
       this.messages = await this.getMessages();
     }
 
-    if (!this.messages.length) {
+    const message = this.messages.shift();
+    if (!message) {
       return true;
     }
 
-    const message = this.messages.shift();
-    if (!message) return true;
-
-    return this.main.sender
-      .provideStream(message.streamId, (stream) => {
+    try {
+      await this.main.sender.provideStream(message.streamId, async (stream) => {
         let text: string;
         if (message.type === 'text') {
           text = getStreamAsDescription(stream, this.main.getServiceById(stream.channel.service)!);
@@ -138,52 +150,46 @@ class ChatSender {
           text = getStreamAsCaption(stream, this.main.getServiceById(stream.channel.service)!);
         }
 
-        return promiseTry(() => {
-          if (message.text === text) return;
-
-          return this.updateStreamMessage(
-            message.type,
-            message.chatId,
-            Number(message.id),
-            stream,
-            text,
-          ).catch((err: any) => {
-            if (
-              err.code === 'ETELEGRAM' &&
-              /message is not modified/.test(err.response.body.description)
-            ) {
-              return; // pass
-            }
-            throw err;
-          });
-        }).then(
-          () => {
-            return message.update({
-              text,
-              hasChanges: false,
-            });
-          },
-          (err: any) => {
-            if (
-              err.code === 'ETELEGRAM' &&
-              /message to edit not found|message can't be edited/.test(
-                err.response.body.description,
-              )
-            ) {
-              return this.main.db.deleteMessageById(message._id);
-            }
-            return this.onSendMessageError(err);
-          },
-        );
-      })
-      .catch((err) => {
-        if (err.code === 'STREAM_IS_NOT_FOUND') {
-          // pass
-        } else {
-          throw err;
+        try {
+          if (message.text !== text) {
+            await passEx(
+              () =>
+                this.updateStreamMessage(
+                  message.type,
+                  message.chatId,
+                  Number(message.id),
+                  stream,
+                  text,
+                ),
+              [ErrEnum.MessageNotModified],
+            );
+          }
+        } catch (error) {
+          const err = error as TelegramError;
+          if (
+            errHandler[ErrEnum.MessageToEditNotFound](err) ||
+            errHandler[ErrEnum.MessageCantBeEdited](err)
+          ) {
+            await this.main.db.deleteMessageById(message._id);
+          } else {
+            await this.onSendMessageError(err);
+          }
+          return;
         }
-      })
-      .then(() => {});
+
+        await message.update({
+          text,
+          hasChanges: false,
+        });
+      });
+    } catch (error) {
+      const err = error as ErrorWithCode;
+      if (err.code === 'STREAM_IS_NOT_FOUND') {
+        // pass
+      } else {
+        throw err;
+      }
+    }
   }
 
   async delete() {
@@ -193,17 +199,21 @@ class ChatSender {
       return true;
     }
 
-    const message = messages.shift()!;
+    const message = messages.shift();
+    if (!message) {
+      return true;
+    }
 
     const minDeleteTime = new Date();
     minDeleteTime.setHours(minDeleteTime.getHours() - 48);
 
-    return promiseTry(() => {
-      if (this.chat.isEnabledAutoClean && message.createdAt.getTime() > minDeleteTime.getTime()) {
-        return this.deleteStreamMessage(message.chatId, Number(message.id));
-      }
-    })
-      .catch((err) => {
+    await promiseTry(async () => {
+      try {
+        if (this.chat.isEnabledAutoClean && message.createdAt.getTime() > minDeleteTime.getTime()) {
+          await this.deleteStreamMessage(message.chatId, Number(message.id));
+        }
+      } catch (error) {
+        const err = error as TelegramError;
         if (err.code === 'ETELEGRAM') {
           const body = err.response.body;
 
@@ -221,157 +231,156 @@ class ChatSender {
         } else {
           throw err;
         }
-      })
-      .then(() => {
-        return this.main.db.deleteMessageById(message._id);
-      }, this.onSendMessageError)
-      .then(() => {});
+      }
+    }).then(() => {
+      return this.main.db.deleteMessageById(message._id);
+    }, this.onSendMessageError);
   }
 
-  onSendMessageError = (err: any) => {
+  onSendMessageError = async (error: unknown) => {
+    const err = error as TelegramError;
     if (err.code === 'ETELEGRAM') {
       const body = err.response.body;
 
       const isBlocked = isBlockedError(err);
       if (isBlocked) {
-        return this.main.db.deleteChatById(this.chat.id).then(() => {
-          this.main.chat.log.write(
-            `[deleted] ${this.chat.id}, cause: (${body.error_code}) ${JSON.stringify(
-              body.description,
-            )}`,
-          );
-          throw new ErrorWithCode(`Chat ${this.chat.id} is deleted`, 'CHAT_IS_DELETED');
-        });
+        await this.main.db.deleteChatById(this.chat.id);
+        this.main.chat.log.write(
+          `[deleted] ${this.chat.id}, cause: (${body.error_code}) ${JSON.stringify(
+            body.description,
+          )}`,
+        );
+        throw new ErrorWithCode(`Chat ${this.chat.id} is deleted`, 'CHAT_IS_DELETED');
       } else if (body.parameters && body.parameters.migrate_to_chat_id) {
         const newChatId = body.parameters.migrate_to_chat_id;
-        return this.main.db.changeChatId(this.chat.id, '' + newChatId).then(
-          () => {
-            this.main.chat.log.write(`[migrate] ${this.chat.id} > ${newChatId}`);
-            throw new ErrorWithCode(
-              `Chat ${this.chat.id} is migrated to ${newChatId}`,
-              'CHAT_IS_MIGRATED',
-            );
-          },
-          async (err: any) => {
-            if (/would lead to a duplicate entry in table/.test(err.message)) {
-              await this.main.db.deleteChatById(this.chat.id);
-              this.main.chat.log.write(`[deleted] ${this.chat.id}, cause: ${inlineInspect(err)}`);
-              throw new ErrorWithCode(`Chat ${this.chat.id} is deleted`, 'CHAT_IS_DELETED');
-            }
-            throw err;
-          },
+        try {
+          await this.main.db.changeChatId(this.chat.id, '' + newChatId);
+        } catch (error) {
+          const err = error as ErrorWithCode;
+          if (/would lead to a duplicate entry in table/.test(err.message)) {
+            await this.main.db.deleteChatById(this.chat.id);
+            this.main.chat.log.write(`[deleted] ${this.chat.id}, cause: ${inlineInspect(err)}`);
+            throw new ErrorWithCode(`Chat ${this.chat.id} is deleted`, 'CHAT_IS_DELETED');
+          }
+          throw err;
+        }
+
+        this.main.chat.log.write(`[migrate] ${this.chat.id} > ${newChatId}`);
+        throw new ErrorWithCode(
+          `Chat ${this.chat.id} is migrated to ${newChatId}`,
+          'CHAT_IS_MIGRATED',
         );
       } else if (/not enough rights to send photos/.test(body.description)) {
         this.chat.isHidePreview = true;
-
-        return this.chat.save().then(() => {
-          throw new ErrorWithCode(`Chat ${this.chat.id} is deny photos`, 'CHAT_IS_DENY_PHOTOS');
-        });
+        await this.chat.save();
+        throw new ErrorWithCode(`Chat ${this.chat.id} is deny photos`, 'CHAT_IS_DENY_PHOTOS');
       }
     }
     throw err;
   };
 
-  sendStream(stream: StreamModelWithChannel) {
-    return promiseTry(() => {
+  async sendStream(stream: StreamModelWithChannel) {
+    let message;
+    try {
       if (this.chat.isHidePreview || !stream.previews.length) {
-        return this.sendStreamAsText(stream);
+        message = await this.sendStreamAsText(stream);
       } else {
-        return this.sendStreamAsPhoto(stream);
+        message = await this.sendStreamAsPhoto(stream);
       }
-    }).then(
-      (sendMessage: SentMessage) => {
-        return Promise.all([
-          this.main.db.deleteChatIdStreamId(this.chat.id, stream.id),
-          this.main.db.putMessage({
-            id: sendMessage.message.message_id.toString(),
-            chatId: this.chat.id,
-            streamId: stream.id,
-            type: sendMessage.type,
-            text: sendMessage.text,
-          }),
-        ]);
-      },
-      (err) => {
-        if (isSkipMessageError(err)) {
-          debug('skip message %s error: %o', this.chat.id, err);
-          return this.main.db.deleteChatIdStreamId(this.chat.id, stream.id);
-        }
-        return this.onSendMessageError(err);
-      },
-    );
+    } catch (err) {
+      if (isSkipMessageError(err)) {
+        debug('skip message %s error: %o', this.chat.id, err);
+        return this.main.db.deleteChatIdStreamId(this.chat.id, stream.id);
+      }
+      return this.onSendMessageError(err);
+    }
+
+    return Promise.all([
+      this.main.db.deleteChatIdStreamId(this.chat.id, stream.id),
+      this.main.db.putMessage({
+        id: message.message.message_id.toString(),
+        chatId: this.chat.id,
+        streamId: stream.id,
+        type: message.type,
+        text: message.text,
+      }),
+    ]);
   }
 
-  sendStreamAsText(stream: StreamModelWithChannel, isFallback?: boolean): Promise<SentMessage> {
+  async sendStreamAsText(
+    stream: StreamModelWithChannel,
+    isFallback?: boolean,
+  ): Promise<SentMessage> {
     const text = getStreamAsDescription(stream, this.main.getServiceById(stream.channel.service)!);
-    return this.main.bot
-      .sendMessage(this.chat.id, text, {
-        parse_mode: 'HTML',
-      })
-      .then((message) => {
-        let type;
-        if (isFallback) {
-          type = 'send message as fallback';
-        } else {
-          type = 'send message';
-        }
 
-        tracker.track(this.chat.id, {
-          ec: 'bot',
-          ea: 'sendMsg',
-          el: stream.channelId,
-          t: 'event',
-        });
+    const message = await this.main.bot.sendMessage(this.chat.id, text, {
+      parse_mode: 'HTML',
+    });
 
-        this.main.sender.log.write(
-          `[${type}] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
-        );
+    let type;
+    if (isFallback) {
+      type = 'send message as fallback';
+    } else {
+      type = 'send message';
+    }
 
-        return {
-          type: 'text',
-          text: text,
-          message,
-        };
-      });
+    tracker.track(this.chat.id, {
+      ec: 'bot',
+      ea: 'sendMsg',
+      el: stream.channelId,
+      t: 'event',
+    });
+
+    this.main.sender.log.write(
+      `[${type}] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
+    );
+
+    return {
+      type: 'text',
+      text: text,
+      message,
+    };
   }
 
-  sendStreamAsPhoto(stream: StreamModelWithChannel): Promise<SentMessage> {
+  async sendStreamAsPhoto(stream: StreamModelWithChannel): Promise<SentMessage> {
     if (stream.telegramPreviewFileId) {
       const caption = getStreamAsCaption(stream, this.main.getServiceById(stream.channel.service)!);
-      return this.main.bot
-        .sendPhotoQuote(this.chat.id, stream.telegramPreviewFileId, {caption})
-        .then(
-          (message) => {
-            tracker.track(this.chat.id, {
-              ec: 'bot',
-              ea: 'sendPhoto',
-              el: stream.channelId,
-              t: 'event',
-            });
 
-            this.main.sender.log.write(
-              `[send photo as id] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
-            );
+      let message;
+      try {
+        message = await this.main.bot.sendPhotoQuote(this.chat.id, stream.telegramPreviewFileId, {
+          caption,
+        });
+      } catch (error) {
+        const err = error as TelegramError;
+        if (err.code === 'ETELEGRAM') {
+          const body = err.response.body;
 
-            return {
-              type: 'photo',
-              text: caption,
-              message,
-            };
-          },
-          (err: Error & any) => {
-            if (err.code === 'ETELEGRAM') {
-              const body = err.response.body;
+          if (/FILE_REFERENCE_.+/.test(body.description)) {
+            stream.telegramPreviewFileId = null;
 
-              if (/FILE_REFERENCE_.+/.test(body.description)) {
-                stream.telegramPreviewFileId = null;
+            return this.sendStreamAsPhoto(stream);
+          }
+        }
+        throw err;
+      }
 
-                return this.sendStreamAsPhoto(stream);
-              }
-            }
-            throw err;
-          },
-        );
+      tracker.track(this.chat.id, {
+        ec: 'bot',
+        ea: 'sendPhoto',
+        el: stream.channelId,
+        t: 'event',
+      });
+
+      this.main.sender.log.write(
+        `[send photo as id] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
+      );
+
+      return {
+        type: 'photo',
+        text: caption,
+        message,
+      };
     } else {
       return this.requestAndSendPhoto(stream);
     }
@@ -416,83 +425,96 @@ class ChatSender {
     return promise;
   }
 
-  ensureTelegramPreviewFileId(stream: StreamModelWithChannel): Promise<SentMessage> {
+  async ensureTelegramPreviewFileId(stream: StreamModelWithChannel): Promise<SentMessage> {
     const service = this.main.getServiceById(stream.channel.service)!;
     const previews = !Array.isArray(stream.previews)
       ? JSON.parse(stream.previews)
       : stream.previews;
-    return getValidPreviewUrl(previews, service).then(({url: _url, contentType}) => {
-      let url = _url;
-      if (service.noCachePreview) {
-        url = appendQueryParam(url, '_', stream.updatedAt.getTime());
-      }
-      const caption = getStreamAsCaption(stream, this.main.getServiceById(stream.channel.service)!);
-      return this.main.bot
-        .sendPhoto(this.chat.id, url, {caption})
-        .then((message) => {
-          this.main.sender.log.write(
-            `[send photo as url] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
+
+    const {url: urlLocal, contentType: contentTypeLocal} = await getValidPreviewUrl(
+      previews,
+      service,
+    );
+    let contentType = contentTypeLocal;
+    let url = urlLocal;
+    if (service.noCachePreview) {
+      url = appendQueryParam(url, '_', stream.updatedAt.getTime());
+    }
+    const caption = getStreamAsCaption(stream, this.main.getServiceById(stream.channel.service)!);
+
+    const message = await promiseTry(async () => {
+      try {
+        const message = await this.main.bot.sendPhoto(this.chat.id, url, {caption});
+
+        this.main.sender.log.write(
+          `[send photo as url] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
+        );
+
+        tracker.track(this.chat.id, {
+          ec: 'bot',
+          ea: 'sendPhoto',
+          el: stream.channelId,
+          t: 'event',
+        });
+
+        return message;
+      } catch (error) {
+        const err = error as TelegramError;
+
+        let isSendUrlError = sendUrlErrors.some((re) => re.test(err.message));
+        if (!isSendUrlError) {
+          isSendUrlError = err.response && err.response.statusCode === 504;
+        }
+
+        if (isSendUrlError) {
+          if (!contentType) {
+            debug('Content-type is empty, set default content-type %s', url);
+            contentType = 'image/jpeg';
+          }
+
+          const response = await fetchRequest<ReadableStream>(url, {
+            responseType: 'stream',
+            keepAlive: true,
+          });
+
+          const message = await this.main.bot.sendPhoto(
+            this.chat.id,
+            response.body,
+            {caption},
+            {contentType, filename: '-'},
           );
+
+          this.main.sender.log.write(
+            `[send photo as file] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
+          );
+
           tracker.track(this.chat.id, {
             ec: 'bot',
             ea: 'sendPhoto',
             el: stream.channelId,
             t: 'event',
           });
+
           return message;
-        })
-        .catch((err: any) => {
-          let isSendUrlError = sendUrlErrors.some((re) => re.test(err.message));
-          if (!isSendUrlError) {
-            isSendUrlError = err.response && err.response.statusCode === 504;
-          }
+        }
 
-          if (isSendUrlError) {
-            if (!contentType) {
-              debug('Content-type is empty, set default content-type %s', url);
-              contentType = 'image/jpeg';
-            }
-            return fetchRequest<ReadableStream>(url, {responseType: 'stream', keepAlive: true})
-              .then((response) => {
-                return this.main.bot.sendPhoto(
-                  this.chat.id,
-                  response.body,
-                  {caption},
-                  {contentType, filename: '-'},
-                );
-              })
-              .then((message) => {
-                this.main.sender.log.write(
-                  `[send photo as file] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
-                );
-                tracker.track(this.chat.id, {
-                  ec: 'bot',
-                  ea: 'sendPhoto',
-                  el: stream.channelId,
-                  t: 'event',
-                });
-                return message;
-              });
-          }
-
-          throw err;
-        })
-        .then((message) => {
-          const fileId = getPhotoFileIdFromMessage(message);
-          if (!fileId) {
-            throw new ErrorWithCode('File id if not found', 'FILE_ID_IS_NOT_FOUND');
-          }
-          stream.telegramPreviewFileId = fileId;
-
-          return stream.save().then(() => {
-            return {
-              type: 'photo',
-              text: caption,
-              message,
-            };
-          });
-        });
+        throw err;
+      }
     });
+
+    const fileId = getPhotoFileIdFromMessage(message);
+    if (!fileId) {
+      throw new ErrorWithCode('File id if not found', 'FILE_ID_IS_NOT_FOUND');
+    }
+    stream.telegramPreviewFileId = fileId;
+
+    await stream.save();
+
+    return {
+      type: 'photo',
+      text: caption,
+      message,
+    };
   }
 
   async updateStreamMessage(
@@ -504,52 +526,51 @@ class ChatSender {
   ) {
     switch (type) {
       case 'text': {
-        return this.main.bot
-          .editMessageText(text, {
-            chat_id: chatId,
-            message_id: messageId,
-            parse_mode: 'HTML',
-          })
-          .then((message: TelegramBot.Message | boolean) => {
-            this.main.sender.log.write(
-              `[update text] ${chatId} ${messageId} ${stream.channelId} ${stream.id}`,
-            );
-            tracker.track(chatId, {
-              ec: 'bot',
-              ea: 'updateText',
-              el: stream.channelId,
-              t: 'event',
-            });
-            return message;
-          });
+        const message = await this.main.bot.editMessageText(text, {
+          chat_id: chatId,
+          message_id: messageId,
+          parse_mode: 'HTML',
+        });
+
+        this.main.sender.log.write(
+          `[update text] ${chatId} ${messageId} ${stream.channelId} ${stream.id}`,
+        );
+
+        tracker.track(chatId, {
+          ec: 'bot',
+          ea: 'updateText',
+          el: stream.channelId,
+          t: 'event',
+        });
+
+        return message;
       }
       case 'photo': {
-        return this.main.bot
-          .editMessageCaption(text, {
-            chat_id: chatId,
-            message_id: messageId,
-          })
-          .then((message: TelegramBot.Message | boolean) => {
-            this.main.sender.log.write(
-              `[update caption] ${chatId} ${messageId} ${stream.channelId} ${stream.id}`,
-            );
-            tracker.track(chatId, {
-              ec: 'bot',
-              ea: 'updatePhoto',
-              el: stream.channelId,
-              t: 'event',
-            });
-            return message;
-          });
+        const message = await this.main.bot.editMessageCaption(text, {
+          chat_id: chatId,
+          message_id: messageId,
+        });
+
+        this.main.sender.log.write(
+          `[update caption] ${chatId} ${messageId} ${stream.channelId} ${stream.id}`,
+        );
+
+        tracker.track(chatId, {
+          ec: 'bot',
+          ea: 'updatePhoto',
+          el: stream.channelId,
+          t: 'event',
+        });
+
+        return message;
       }
     }
   }
 
-  deleteStreamMessage(chatId: string, messageId: number) {
-    return this.main.bot.deleteMessage(chatId, messageId).then((isSuccess: boolean) => {
-      this.main.sender.log.write(`[delete] ${chatId} ${messageId}`);
-      return isSuccess;
-    });
+  async deleteStreamMessage(chatId: string, messageId: number) {
+    const isSuccess = await this.main.bot.deleteMessage(chatId, messageId);
+    this.main.sender.log.write(`[delete] ${chatId} ${messageId}`);
+    return isSuccess;
   }
 }
 
@@ -592,15 +613,14 @@ async function getValidPreviewUrl(urls: string[], service: ServiceInterface) {
   let lastError = null;
   for (let i = 0, len = urls.length; i < len; i++) {
     try {
-      return await fetchRequest(urls[i], {
+      const response = await fetchRequest(urls[i], {
         method: 'HEAD',
         timeout: 5 * 1000,
         keepAlive: true,
-      }).then((response) => {
-        const url = response.url;
-        const contentType = response.headers['content-type'] as string;
-        return {url, contentType};
       });
+      const url = response.url;
+      const contentType = response.headers['content-type'] as string;
+      return {url, contentType};
     } catch (err) {
       lastError = err;
     }
