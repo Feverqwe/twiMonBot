@@ -812,7 +812,7 @@ class Db {
   }
 
   async getChannelsByChatId(chatId: string) {
-    const chatIdChannelIdList: {}[] = await ChatIdChannelIdModel.findAll({
+    const chatIdChannelIdList: unknown[] = await ChatIdChannelIdModel.findAll({
       include: [{model: ChannelModel, required: true}],
       where: {chatId},
       attributes: [],
@@ -844,7 +844,7 @@ class Db {
 
   async putChatIdChannelId(chatId: string, channelId: string) {
     const [model, isCreated] = await ChatIdChannelIdModel.upsert({chatId, channelId});
-    return isCreated as boolean; // cause mariadb
+    return Boolean(isCreated);
   }
 
   async deleteChatIdChannelId(chatId: string, channelId: string) {
