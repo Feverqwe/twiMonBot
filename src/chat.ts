@@ -309,16 +309,16 @@ class Chat {
       if (!chatId) return;
 
       try {
-        const chat = await this.main.db.ensureChat('' + chatId);
-        Object.assign(req, {chat});
-        next();
-      } catch (err) {
-        debug('ensureChat error! %o', err);
         try {
-          await this.main.bot.sendMessage(chatId, locale.m('alert_unknown-error'));
+          const chat = await this.main.db.ensureChat('' + chatId);
+          Object.assign(req, {chat});
+          next();
         } catch (err) {
-          debug('provideChat sendMessage error! %o', err);
+          debug('ensureChat error! %o', err);
+          await this.main.bot.sendMessage(chatId, locale.m('alert_unknown-error'));
         }
+      } catch (err) {
+        debug('provideChat error! %o', err);
       }
     };
 
@@ -332,16 +332,16 @@ class Chat {
       if (!chatId) return;
 
       try {
-        const channels = await this.main.db.getChannelsByChatId('' + chatId);
-        Object.assign(req, {channels});
-        next();
-      } catch (err) {
-        debug('getChannelsByChatId error! %o', err);
         try {
-          await this.main.bot.sendMessage(chatId, locale.m('alert_unknown-error'));
+          const channels = await this.main.db.getChannelsByChatId('' + chatId);
+          Object.assign(req, {channels});
+          next();
         } catch (err) {
-          debug('provideChannels sendMessage error! %o', err);
+          debug('getChannelsByChatId error! %o', err);
+          await this.main.bot.sendMessage(chatId, locale.m('alert_unknown-error'));
         }
+      } catch (err) {
+        debug('provideChannels error! %o', err);
       }
     };
 
