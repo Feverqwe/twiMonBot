@@ -1,5 +1,5 @@
 {
-  "name": "application-name",
+  "name": "twi-mon-bot",
   "version": "0.0.1",
   "scripts": {
     "clean": "del-cli ./dist",
