@@ -12,22 +12,9 @@ import TelegramBot from 'node-telegram-bot-api';
 import {tracker} from './tracker';
 import ReadableStream = NodeJS.ReadableStream;
 import {ErrEnum, errHandler, passEx} from './tools/passTgEx';
+import {TelegramError} from "./types";
 
 const debug = getDebug('app:ChatSender');
-
-interface TelegramError extends Error {
-  code: string;
-  response: {
-    statusCode: number;
-    body: {
-      error_code: string;
-      description: string;
-      parameters: {
-        migrate_to_chat_id: number;
-      };
-    };
-  };
-}
 
 const streamWeakMap = new WeakMap();
 
