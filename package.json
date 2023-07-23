@@ -1,5 +1,5 @@
 {
-  "name": "application-name",
+  "name": "twi-mon-bot",
   "version": "0.0.1",
   "scripts": {
     "clean": "del-cli ./dist",
@@ -23,6 +23,7 @@
     "node-fetch": "^2.6.1",
     "node-telegram-bot-api": "^0.61.0",
     "p-limit": "^3.1.0",
+    "p-map": "^4.0.0",
     "quick-lru": "^5.1.1",
     "sequelize": "^6.29.0",
     "superstruct": "^0.16.7",

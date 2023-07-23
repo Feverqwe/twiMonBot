@@ -5,12 +5,14 @@ FROM node as base
 COPY ./package.json .
 COPY ./package-lock.json .
 RUN chown -R nobody:nogroup ./ && \
+    touch /.npmrc && chown nobody:nogroup /.npmrc && \
     mkdir /.npm && chown nobody:nogroup /.npm && \
     mkdir ./log && chown nobody:nogroup ./log && \
     ln -sf /dev/stdout ./log/stdout.log && \
     ln -sf /dev/stderr ./log/stderr.log
 USER nobody:nobody
-RUN npm ci --omit dev --fund false
+RUN npm config set update-notifier false && \
+    npm ci --omit dev --fund false
 
 FROM base as build
 RUN npm i --fund false

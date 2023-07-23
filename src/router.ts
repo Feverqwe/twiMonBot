@@ -1,9 +1,9 @@
 import ErrorWithCode from './tools/errorWithCode';
-import Main from './main';
 import qs from 'node:querystring';
 import TelegramBot from 'node-telegram-bot-api';
 import {getDebug} from './tools/getDebug';
 import Locale from './locale';
+import {TelegramBotWrapped} from "./tools/telegramBotApi";
 
 const debug = getDebug('app:router');
 
@@ -124,35 +124,34 @@ const RouterImpl = class MessageTypesImpl implements MessageTypesObj {
 };
 
 class Router extends RouterImpl {
-  _botNameRe: RegExp | null = null;
+  bot?: TelegramBot;
+  botNameRe?: RegExp;
 
   textOrCallbackQuery = this.custom<RouterTextReq | RouterCallbackQueryReq>([
     'text',
     'callback_query',
   ]);
 
-  constructor(public main: Main) {
-    super();
-  }
-
-  get botNameRe() {
-    if (!this._botNameRe) {
-      this._botNameRe = new RegExp('^' + this.main.botName + '$', 'i');
-    }
-    return this._botNameRe;
+  init(bot: TelegramBotWrapped, botName: string) {
+    this.bot = bot;
+    this.botNameRe = new RegExp('^' + botName + '$', 'i');
   }
 
   handle = (
     event: 'message' | 'callback_query',
     data: TelegramBot.Message | TelegramBot.CallbackQuery,
   ) => {
+    if (!this.botNameRe || !this.bot) {
+      throw new Error('Router is not inited');
+    }
+
     const commands = getCommands(event, data, this.botNameRe);
     if (!commands.length) {
       commands.push('');
     }
     commands.forEach((command) => {
       const req = new RouterReq(event, data);
-      const res = new RouterRes(this.main.bot, req);
+      const res = new RouterRes(this.bot, req);
       let index = 0;
       const next = (): void => {
         const route = this.stack[index++];

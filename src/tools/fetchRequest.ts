@@ -1,4 +1,3 @@
-import promiseTry from './promiseTry';
 import http from 'node:http';
 import https from 'node:https';
 import qs from 'node:querystring';
@@ -35,7 +34,7 @@ interface FetchResponse<T = any> {
   headers: Record<string, string | string[]>;
 }
 
-function fetchRequest<T = any>(url: string, options?: FetchRequestOptions) {
+async function fetchRequest<T = any>(url: string, options?: FetchRequestOptions) {
   const {
     responseType,
     keepAlive,
@@ -47,9 +46,8 @@ function fetchRequest<T = any>(url: string, options?: FetchRequestOptions) {
   } = options || {};
 
   let timeoutId: NodeJS.Timeout | null = null;
-  let setCookiePromise: Promise<unknown[]> | null = null;
 
-  return promiseTry(async () => {
+  try {
     fetchOptions.method = fetchOptions.method || 'GET';
 
     if (searchParams) {
@@ -111,7 +109,7 @@ function fetchRequest<T = any>(url: string, options?: FetchRequestOptions) {
         if (!Array.isArray(rawCookies)) {
           rawCookies = [rawCookies];
         }
-        setCookiePromise = Promise.all(
+        await Promise.all(
           rawCookies.map((rawCookie: string) => {
             return cookieJar.setCookie(rawCookie, fetchResponse.url);
           }),
@@ -157,12 +155,11 @@ function fetchRequest<T = any>(url: string, options?: FetchRequestOptions) {
     }
 
     return fetchResponse;
-  }).finally(() => {
+  } finally {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
-    return setCookiePromise;
-  });
+  }
 }
 
 export class RequestError extends Error {

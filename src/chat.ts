@@ -12,9 +12,14 @@ import splitTextByPages from './tools/splitTextByPages';
 import LogFile from './logFile';
 import ensureMap from './tools/ensureMap';
 import arrayByPart from './tools/arrayByPart';
-import promiseTry from './tools/promiseTry';
 import Main from './main';
-import {ChannelModel, ChatModel, ChatModelWithOptionalChannel, NewChat} from './db';
+import {
+  ChannelModel,
+  ChatModel,
+  ChatModelWithOptionalChannel,
+  NewChat,
+  StreamModelWithChannel,
+} from './db';
 import {getStreamAsButtonText, getStreamAsText} from './tools/streamToString';
 import ChatSender from './chatSender';
 import parallel from './tools/parallel';
@@ -26,6 +31,7 @@ import {getDebug} from './tools/getDebug';
 import jsonStringifyPretty from 'json-stringify-pretty-compact';
 import {tracker} from './tracker';
 import TelegramBot, {ParseMode} from 'node-telegram-bot-api';
+import {ErrEnum, errHandler, passEx} from './tools/passTgEx';
 
 const debug = getDebug('app:Chat');
 
@@ -42,7 +48,7 @@ class Chat {
   private chatIdAdminIdsCache = new TimeCache<number, number[]>({maxSize: 100, ttl: 5 * 60 * 1000});
   private router: Router;
   constructor(private main: Main) {
-    this.router = new Router(this.main);
+    this.router = new Router();
     this.main.bot.on('message', (message) => {
       this.router.handle('message', message);
     });
@@ -54,6 +60,17 @@ class Chat {
     this.menu();
     this.user();
     this.admin();
+  }
+
+  async init() {
+    const {bot} = this.main;
+
+    const {username} = await bot.getMe();
+    if (!username) throw new Error('Bot name is empty');
+
+    this.router.init(bot, username);
+
+    await bot.startPolling();
   }
 
   base() {
@@ -78,8 +95,9 @@ class Chat {
       }
     });
 
-    this.router.callback_query((req, res, next) => {
-      return this.main.bot.answerCallbackQuery(req.callback_query.id).then(next);
+    this.router.callback_query(async (req, res, next) => {
+      await this.main.bot.answerCallbackQuery(req.callback_query.id);
+      next();
     });
 
     this.router.textOrCallbackQuery(async (req, res, next) => {
@@ -90,18 +108,13 @@ class Chat {
         }
 
         try {
-          const adminIds = await promiseTry(() => {
-            const adminIds = this.chatIdAdminIdsCache.get(req.chatId);
-            if (adminIds) return adminIds;
-
-            return this.main.bot.getChatAdministrators(req.chatId).then((chatMembers) => {
-              const adminIds = chatMembers.map((chatMember) => chatMember.user.id);
-              this.chatIdAdminIdsCache.set(req.chatId, adminIds);
-              return adminIds;
-            });
-          });
-
-          if (adminIds.includes(req.fromId!)) {
+          let adminIds = this.chatIdAdminIdsCache.get(req.chatId);
+          if (!adminIds) {
+            const chatMembers = await this.main.bot.getChatAdministrators(req.chatId);
+            adminIds = chatMembers.map((chatMember) => chatMember.user.id);
+            this.chatIdAdminIdsCache.set(req.chatId, adminIds);
+          }
+          if (req.fromId && adminIds.includes(req.fromId)) {
             next();
           }
         } catch (err) {
@@ -176,112 +189,117 @@ class Chat {
       }
     });
 
-    this.router.callback_query(/\/menu(?:\/(?<page>\d+))?/, (req, res) => {
+    this.router.callback_query(/\/menu(?:\/(?<page>\d+))?/, async (req, res) => {
       const {locale} = res;
       const page = parseInt(req.params.page || '0', 10);
-      return this.main.bot
-        .editMessageReplyMarkup(
-          {
-            inline_keyboard: getMenu(locale, page),
-          },
-          {
-            chat_id: req.chatId,
-            message_id: req.messageId,
-          },
-        )
-        .catch((err: any) => {
-          if (/message to edit not found/.test(err.message)) {
-            return sendMenu(locale, req.chatId, page);
-          } else if (/message is not modified/.test(err.message)) {
-            // pass
+      try {
+        try {
+          await passEx(
+            () =>
+              this.main.bot.editMessageReplyMarkup(
+                {
+                  inline_keyboard: getMenu(locale, page),
+                },
+                {
+                  chat_id: req.chatId,
+                  message_id: req.messageId,
+                },
+              ),
+            [ErrEnum.MessageNotModified],
+          );
+        } catch (error) {
+          const err = error as Error;
+          if (errHandler[ErrEnum.MessageToEditNotFound](err)) {
+            await sendMenu(locale, req.chatId, page);
           } else {
             throw err;
           }
-        })
-        .catch((err: any) => {
-          debug('%j error %o', req.command, err);
-        });
+        }
+      } catch (err) {
+        debug('%j error %o', req.command, err);
+      }
     });
 
-    this.router.textOrCallbackQuery(/\/top/, (req, res) => {
+    this.router.textOrCallbackQuery(/\/top/, async (req, res) => {
       const {locale} = res;
-      return Promise.all([
-        this.main.db.getChatIdChannelIdChatIdCount(),
-        this.main.db.getChatIdChannelIdChannelIdCount(),
-        this.main.db.getOnlineStreamCount(),
-        Promise.all(
-          this.main.services.map((service) => {
-            return this.main.db.getChatIdChannelIdTop10ByServiceId(service.id);
-          }),
-        ),
-        Promise.all(
-          this.main.services.map((service) => {
-            return this.main.db.getServiceIdChannelCount(service.id);
-          }),
-        ),
-      ])
-        .then(
-          ([
-            chatCount,
-            channelCount,
-            onlineCount,
-            serviceTopChannelsList,
-            serviceChannelCountList,
-          ]) => {
-            const lines = [];
 
-            lines.push(
-              locale.m('context-user-count', {count: chatCount}),
-              locale.m('context-channel-count', {count: channelCount}),
-              locale.m('context_online-count', {count: onlineCount}),
-            );
+      try {
+        const [
+          chatCount,
+          channelCount,
+          onlineCount,
+          serviceTopChannelsList,
+          serviceChannelCountList,
+        ] = await Promise.all([
+          this.main.db.getChatIdChannelIdChatIdCount(),
+          this.main.db.getChatIdChannelIdChannelIdCount(),
+          this.main.db.getOnlineStreamCount(),
+          Promise.all(
+            this.main.services.map((service) => {
+              return this.main.db.getChatIdChannelIdTop10ByServiceId(service.id);
+            }),
+          ),
+          Promise.all(
+            this.main.services.map((service) => {
+              return this.main.db.getServiceIdChannelCount(service.id);
+            }),
+          ),
+        ]);
 
-            const serviceCountMap = new Map();
-            serviceChannelCountList.forEach((item) => {
-              const {service, channelCount} = item;
-              serviceCountMap.set(service, channelCount);
-            });
+        const lines = [];
 
-            serviceTopChannelsList.sort((aa, bb) => {
-              const a = aa.length;
-              const b = bb.length;
-              return a === b ? 0 : a > b ? -1 : 1;
-            });
+        lines.push(
+          locale.m('context-user-count', {count: chatCount}),
+          locale.m('context-channel-count', {count: channelCount}),
+          locale.m('context_online-count', {count: onlineCount}),
+        );
 
-            serviceTopChannelsList.forEach((serviceTopChannels) => {
-              if (serviceTopChannels.length) {
-                const service = this.main.getServiceById(serviceTopChannels[0].service)!;
-                const channelCount = serviceCountMap.get(serviceTopChannels[0].service);
-                const name = service.name;
-                lines.push('');
-                lines.push(`${name} (${channelCount}):`);
-                serviceTopChannels.forEach(({title, chatCount}, index) => {
-                  lines.push(chatCount + ' - ' + title);
-                });
-              }
-            });
-
-            return this.main.bot.sendMessage(req.chatId, lines.join('\n'), {
-              disable_web_page_preview: true,
-            });
-          },
-        )
-        .catch((err) => {
-          debug('%j error %o', req.command, err);
+        const serviceCountMap = new Map();
+        serviceChannelCountList.forEach((item) => {
+          const {service, channelCount} = item;
+          serviceCountMap.set(service, channelCount);
         });
+
+        serviceTopChannelsList.sort((aa, bb) => {
+          const a = aa.length;
+          const b = bb.length;
+          return a === b ? 0 : a > b ? -1 : 1;
+        });
+
+        serviceTopChannelsList.forEach((serviceTopChannels) => {
+          if (serviceTopChannels.length) {
+            const service = this.main.getServiceById(serviceTopChannels[0].service)!;
+            const channelCount = serviceCountMap.get(serviceTopChannels[0].service);
+            const name = service.name;
+            lines.push('');
+            lines.push(`${name} (${channelCount}):`);
+            serviceTopChannels.forEach(({title, chatCount}, index) => {
+              lines.push(chatCount + ' - ' + title);
+            });
+          }
+        });
+
+        await this.main.bot.sendMessage(req.chatId, lines.join('\n'), {
+          disable_web_page_preview: true,
+        });
+      } catch (err) {
+        debug('%j error %o', req.command, err);
+      }
     });
 
-    this.router.textOrCallbackQuery(/\/about/, (req, res) => {
+    this.router.textOrCallbackQuery(/\/about/, async (req, res) => {
       const {locale} = res;
       const message = locale.m('context_about');
-      return this.main.bot.sendMessage(req.chatId, message).catch((err: any) => {
+      try {
+        await this.main.bot.sendMessage(req.chatId, message);
+      } catch (err) {
         debug('%j error %o', req.command, err);
-      });
+      }
     });
   }
 
   user() {
-    const provideChat = <I extends RouterReq, O extends RouterRes>(
+    const provideChat = async <I extends RouterReq, O extends RouterRes>(
       req: I,
       res: O,
       next: () => void,
@@ -290,269 +308,233 @@ class Chat {
       const chatId = req.chatId;
       if (!chatId) return;
 
-      return this.main.db.ensureChat('' + chatId).then(
-        (chat) => {
+      try {
+        try {
+          const chat = await this.main.db.ensureChat('' + chatId);
           Object.assign(req, {chat});
           next();
-        },
-        (err) => {
+        } catch (err) {
           debug('ensureChat error! %o', err);
-          this.main.bot.sendMessage(chatId, locale.m('alert_unknown-error')).catch((err: any) => {
-            debug('provideChat sendMessage error! %o', err);
-          });
-        },
-      );
-    };
-
-    const provideChannels = <I extends RouterReq, O extends RouterRes>(
-      req: I,
-      res: O,
-      next: () => void,
-    ) => {
-      const {locale} = res;
-      const chatId = req.chatId;
-      if (!chatId) return;
-
-      return this.main.db.getChannelsByChatId('' + chatId).then(
-        (channels) => {
-          Object.assign(req, {channels});
-          next();
-        },
-        (err: any) => {
-          debug('ensureChannels error! %o', err);
-          this.main.bot.sendMessage(chatId, locale.m('alert_unknown-error')).catch((err: any) => {
-            debug('provideChannels sendMessage error! %o', err);
-          });
-        },
-      );
-    };
-
-    const withChannels = <I extends RouterReq, O extends RouterRes>(
-      req: I,
-      res: O,
-      next: () => void,
-    ) => {
-      const chatId = req.chatId;
-      if (!chatId) return;
-
-      const {locale} = res;
-      assertType<typeof req & WithChannels>(req);
-
-      if (req.channels.length) {
-        next();
-      } else {
-        this.main.bot
-          .sendMessage(chatId, locale.m('alert_empty-channel-list'))
-          .catch((err: any) => {
-            debug('withChannels sendMessage error! %o', err);
-          });
+          await this.main.bot.sendMessage(chatId, locale.m('alert_unknown-error'));
+        }
+      } catch (err) {
+        debug('provideChat error! %o', err);
       }
     };
 
-    this.router.callback_query(/\/cancel\/(?<command>[^\s]+)/, (req, res) => {
+    const provideChannels = async <I extends RouterReq, O extends RouterRes>(
+      req: I,
+      res: O,
+      next: () => void,
+    ) => {
+      const {locale} = res;
+      const chatId = req.chatId;
+      if (!chatId) return;
+
+      try {
+        try {
+          const channels = await this.main.db.getChannelsByChatId('' + chatId);
+          Object.assign(req, {channels});
+          next();
+        } catch (err) {
+          debug('getChannelsByChatId error! %o', err);
+          await this.main.bot.sendMessage(chatId, locale.m('alert_unknown-error'));
+        }
+      } catch (err) {
+        debug('provideChannels error! %o', err);
+      }
+    };
+
+    const withChannels = async <I extends RouterReq, O extends RouterRes>(
+      req: I,
+      res: O,
+      next: () => void,
+    ) => {
+      const {locale} = res;
+      assertType<typeof req & WithChannels>(req);
+      const {chatId} = req;
+      if (!chatId) return;
+
+      if (req.channels.length) {
+        next();
+        return;
+      }
+
+      try {
+        await this.main.bot.sendMessage(chatId, locale.m('alert_empty-channel-list'));
+      } catch (err) {
+        debug('withChannels sendMessage error! %o', err);
+      }
+    };
+
+    this.router.callback_query(/\/cancel\/(?<command>[^\s]+)/, async (req, res) => {
       const {locale} = res;
       const command = req.params.command;
 
-      const cancelText = locale.m('alert_command-canceled', {command: command});
-      return this.main.bot
-        .editMessageText(cancelText, {
+      try {
+        const cancelText = locale.m('alert_command-canceled', {command: command});
+        await this.main.bot.editMessageText(cancelText, {
           chat_id: req.chatId,
           message_id: req.messageId,
-        })
-        .catch((err: any) => {
-          debug('%j error %o', req.command, err);
         });
+      } catch (err) {
+        debug('%j error %o', req.command, err);
+      }
     });
 
-    this.router.textOrCallbackQuery(/\/add(?:\s+(?<query>.+$))?/, provideChat, (req, res) => {
+    this.router.textOrCallbackQuery(/\/add(?:\s+(?<query>.+$))?/, provideChat, async (req, res) => {
       const {locale} = res;
       assertType<typeof req & WithChat>(req);
 
-      const query: string | undefined = req.params.query;
-      let requestedData: string | null = null;
-      let requestedService: string | null = null;
+      let requestedData: string | undefined;
+      let requestedService: string | undefined;
+      try {
+        const {value: query, messageId: qMessageId} = await askParam({
+          locale,
+          req,
+          value: req.params.query,
+          messageText: locale.m('context_enter-channel-name', {
+            example: appConfig.defaultChannelName,
+          }),
+        });
+        requestedData = query;
 
-      return promiseTry(() => {
-        if (query) {
-          return {query: query.trim()};
+        const options = this.main.services.map((service) => {
+          return {
+            name: service.name,
+            value: service.id,
+          };
+        });
+
+        const {value: serviceId, messageId} = await askChoose({
+          locale,
+          req,
+          messageId: qMessageId,
+          messageText: locale.m('context_enter-service'),
+          options,
+          value: this.main.services.find((service) => service.match(query))?.id,
+        });
+        requestedService = serviceId;
+        const service = this.main.services.find(({id}) => serviceId === id);
+        if (!service) {
+          throw new Error('Service is not found');
         }
 
-        const messageText = locale.m('context_enter-channel-name', {
-          example: appConfig.defaultChannelName,
-        });
-        const cancelText = locale.m('alert_command-canceled', {command: 'add'});
-        return requestData(locale, req, messageText, cancelText).then(({req, msg}) => {
-          const messageText = req.message.text || '';
-          requestedData = messageText;
-          tracker.track(req.chatId, {
-            ec: 'command',
-            ea: '/add',
-            el: messageText,
-            t: 'event',
-          });
-          return {query: messageText.trim(), messageId: msg.message_id};
-        });
-      })
-        .then(({query, messageId}: {query: string; messageId?: number}) => {
-          return promiseTry(() => {
-            const service = this.main.services.find((service) => service.match(query));
-            if (service) {
-              return {service, messageId};
-            }
+        let channel: ChannelModel;
+        let created: boolean;
+        try {
+          const count = await this.main.db.getChannelCountByChatId('' + req.chatId);
+          if (count >= 100) {
+            throw new ErrorWithCode('Channels limit exceeded', 'CHANNELS_LIMIT');
+          }
 
-            const messageText = locale.m('context_enter-service');
-            const cancelText = locale.m('alert_command-canceled', {command: 'add'});
-            const chooseKeyboard = [
-              ...arrayByPart(
-                this.main.services.map((service) => {
-                  return {
-                    text: service.name,
-                    callback_data: '/choose/' + service.id,
-                  };
-                }),
-                2,
-              ),
-              [
-                {
-                  text: locale.m('action_cancel'),
-                  callback_data: '/choose/cancel',
-                },
-              ],
-            ];
-            return requestChoose(
-              req.chatId,
-              req.fromId,
-              messageId,
-              messageText,
-              cancelText,
-              chooseKeyboard,
-            ).then(({req, messageId}) => {
-              requestedService = req.params.value;
-              const service = this.main.getServiceById(req.params.value)!;
-              return {service, messageId};
+          const serviceChannel = await service.findChannel(query);
+
+          channel = await this.main.db.ensureChannel(service, serviceChannel);
+
+          created = await this.main.db.putChatIdChannelId('' + req.chatId, channel.id);
+        } catch (error) {
+          const err = error as ErrorWithCode;
+          let isResolved = false;
+          let message = null;
+          if (['CHANNEL_BROADCASTS_IS_NOT_FOUND'].includes(err.code)) {
+            isResolved = true;
+            message = locale.m('alert_channel-broadcasts-not-found', {
+              channelName: query,
+              serviceName: service.name,
             });
-          }).then(({service, messageId}) => {
-            return this.main.db
-              .getChannelCountByChatId('' + req.chatId)
-              .then((count) => {
-                if (count >= 100) {
-                  throw new ErrorWithCode('Channels limit exceeded', 'CHANNELS_LIMIT');
-                }
-                return service.findChannel(query);
-              })
-              .then((serviceChannel) => {
-                return this.main.db.ensureChannel(service, serviceChannel).then((channel) => {
-                  return this.main.db
-                    .putChatIdChannelId('' + req.chatId, channel.id)
-                    .then((created) => {
-                      return {channel, created};
-                    });
-                });
-              })
-              .then(
-                ({channel, created}) => {
-                  let message = null;
-                  if (!created) {
-                    message = locale.m('alert_channel-exists');
-                  } else {
-                    const {title, url} = channel;
-                    message = locale.m('alert_channel-added', {
-                      channelName: htmlSanitize('a', title, url),
-                      serviceName: htmlSanitize('', service.name),
-                    });
-                  }
-                  return editOrSendNewMessage(req.chatId, messageId, message, {
-                    disable_web_page_preview: true,
-                    parse_mode: 'HTML',
-                  }).then(() => {
-                    return this.main.db
-                      .getStreamsWithChannelByChannelIds([channel.id])
-                      .then((streams) => {
-                        const chatSender = new ChatSender(this.main, req.chat);
-                        return parallel(1, streams, (stream) => {
-                          if (!stream.isOffline && !stream.isTimeout) {
-                            return chatSender.sendStream(stream);
-                          }
-                        });
-                      });
-                  });
-                },
-                async (err: any) => {
-                  let isResolved = false;
-                  let message = null;
-                  if (['CHANNEL_BROADCASTS_IS_NOT_FOUND'].includes(err.code)) {
-                    isResolved = true;
-                    message = locale.m('alert_channel-broadcasts-not-found', {
-                      channelName: query,
-                      serviceName: service.name,
-                    });
-                  } else if (
-                    [
-                      'INCORRECT_CHANNEL_ID',
-                      'CHANNEL_BY_VIDEO_ID_IS_NOT_FOUND',
-                      'INCORRECT_USERNAME',
-                      'CHANNEL_BY_USER_IS_NOT_FOUND',
-                      'QUERY_IS_EMPTY',
-                      'CHANNEL_BY_QUERY_IS_NOT_FOUND',
-                      'CHANNEL_BY_ID_IS_NOT_FOUND',
-                    ].includes(err.code)
-                  ) {
-                    isResolved = true;
-                    message = locale.m('alert_channel-not-found', {
-                      channelName: query,
-                      serviceName: service.name,
-                    });
-                  } else if (['CHANNEL_IN_BLACK_LIST', 'CHANNELS_LIMIT'].includes(err.code)) {
-                    isResolved = true;
-                    if (err.code === 'CHANNEL_IN_BLACK_LIST') {
-                      message = locale.m('alert_channel-in_blacklist');
-                    } else if (err.code === 'CHANNELS_LIMIT') {
-                      message = locale.m('alert_channel-limit-exceeded');
-                    } else {
-                      message = err.message;
-                    }
-                  } else {
-                    message = locale.m('alert_unexpected-error');
-                  }
-                  await editOrSendNewMessage(req.chatId, messageId, message, {
-                    disable_web_page_preview: true,
-                  });
-                  if (!isResolved) {
-                    throw err;
-                  }
-                },
-              );
-          });
-        })
-        .catch((err: any) => {
-          if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT', 'RESPONSE_CANCEL'].includes(err.code)) {
-            // pass
+          } else if (
+            [
+              'INCORRECT_CHANNEL_ID',
+              'CHANNEL_BY_VIDEO_ID_IS_NOT_FOUND',
+              'INCORRECT_USERNAME',
+              'CHANNEL_BY_USER_IS_NOT_FOUND',
+              'QUERY_IS_EMPTY',
+              'CHANNEL_BY_QUERY_IS_NOT_FOUND',
+              'CHANNEL_BY_ID_IS_NOT_FOUND',
+            ].includes(err.code)
+          ) {
+            isResolved = true;
+            message = locale.m('alert_channel-not-found', {
+              channelName: query,
+              serviceName: service.name,
+            });
+          } else if (['CHANNEL_IN_BLACK_LIST', 'CHANNELS_LIMIT'].includes(err.code)) {
+            isResolved = true;
+            if (err.code === 'CHANNEL_IN_BLACK_LIST') {
+              message = locale.m('alert_channel-in_blacklist');
+            } else if (err.code === 'CHANNELS_LIMIT') {
+              message = locale.m('alert_channel-limit-exceeded');
+            } else {
+              message = err.message;
+            }
           } else {
-            debug('%j %j %j error %o', req.command, requestedData, requestedService, err);
+            message = locale.m('alert_unexpected-error');
+          }
+          await editOrSendNewMessage(req.chatId, messageId, message, {
+            disable_web_page_preview: true,
+          });
+          if (!isResolved) {
+            throw err;
+          }
+          return;
+        }
+
+        let message;
+        if (!created) {
+          message = locale.m('alert_channel-exists');
+        } else {
+          const {title, url} = channel;
+          message = locale.m('alert_channel-added', {
+            channelName: htmlSanitize('a', title, url),
+            serviceName: htmlSanitize('', service.name),
+          });
+        }
+
+        await editOrSendNewMessage(req.chatId, messageId, message, {
+          disable_web_page_preview: true,
+          parse_mode: 'HTML',
+        });
+
+        const streams = await this.main.db.getStreamsWithChannelByChannelIds([channel.id]);
+
+        const chatSender = new ChatSender(this.main, req.chat);
+        await parallel(1, streams, (stream) => {
+          if (!stream.isOffline && !stream.isTimeout) {
+            return chatSender.sendStream(stream);
           }
         });
+      } catch (error) {
+        const err = error as ErrorWithCode;
+        if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT', 'RESPONSE_CANCEL'].includes(err.code)) {
+          // pass
+        } else {
+          debug('%j %j %j error %o', req.command, requestedData, requestedService, err);
+        }
+      }
     });
 
-    this.router.callback_query(/\/clear\/confirmed/, (req, res) => {
+    this.router.callback_query(/\/clear\/confirmed/, async (req, res) => {
       const {locale} = res;
-      return this.main.db
-        .deleteChatById('' + req.chatId)
-        .then(() => {
-          this.log.write(`[deleted] ${req.chatId}, cause: /clear`);
-          return this.main.bot.editMessageText(locale.m('alert_cleared'), {
-            chat_id: req.chatId,
-            message_id: req.messageId,
-          });
-        })
-        .catch((err: any) => {
-          debug('%j error %o', req.command, err);
+
+      try {
+        await this.main.db.deleteChatById('' + req.chatId);
+        this.log.write(`[deleted] ${req.chatId}, cause: /clear`);
+
+        await this.main.bot.editMessageText(locale.m('alert_cleared'), {
+          chat_id: req.chatId,
+          message_id: req.messageId,
         });
+      } catch (err) {
+        debug('%j error %o', req.command, err);
+      }
     });
 
-    this.router.textOrCallbackQuery(/\/clear/, (req, res) => {
+    this.router.textOrCallbackQuery(/\/clear/, async (req, res) => {
       const {locale} = res;
-      return this.main.bot
-        .sendMessage(req.chatId, locale.m('confirm_clear'), {
+
+      try {
+        await this.main.bot.sendMessage(req.chatId, locale.m('confirm_clear'), {
           reply_markup: {
             inline_keyboard: [
               [
@@ -567,61 +549,59 @@ class Chat {
               ],
             ],
           },
-        })
-        .catch((err: any) => {
-          debug('%j error %o', req.command, err);
         });
+      } catch (err) {
+        debug('%j error %o', req.command, err);
+      }
     });
 
-    this.router.callback_query(/\/delete\/(?<channelId>.+)/, (req, res) => {
+    this.router.callback_query(/\/delete\/(?<channelId>.+)/, async (req, res) => {
       const {locale} = res;
       const channelId = req.params.channelId;
 
-      return this.main.db
-        .getChannelById(channelId)
-        .then((channel) => {
-          return this.main.db.deleteChatIdChannelId('' + req.chatId, channelId).then((count) => {
-            return {channel, deleted: !!count};
+      try {
+        let channel: ChannelModel;
+
+        try {
+          channel = await this.main.db.getChannelById(channelId);
+          await this.main.db.deleteChatIdChannelId('' + req.chatId, channelId);
+        } catch (error) {
+          const err = error as ErrorWithCode;
+          let isResolved = false;
+          let message;
+          if (err.code === 'CHANNEL_IS_NOT_FOUND') {
+            isResolved = true;
+            message = locale.m('alert_channel-not-exists');
+          } else {
+            message = locale.m('alert_unexpected-error');
+          }
+          await this.main.bot.editMessageText(message, {
+            chat_id: req.chatId,
+            message_id: req.messageId,
           });
-        })
-        .then(
-          ({channel, deleted}) => {
-            const service = this.main.getServiceById(channel.service)!;
-            return this.main.bot.editMessageText(
-              locale.m('alert_channel-deleted', {
-                channelName: channel.title,
-                serviceName: service.name,
-              }),
-              {
-                chat_id: req.chatId,
-                message_id: req.messageId,
-              },
-            );
+          if (!isResolved) {
+            throw err;
+          }
+          return;
+        }
+
+        const service = this.main.getServiceById(channel.service)!;
+        await this.main.bot.editMessageText(
+          locale.m('alert_channel-deleted', {
+            channelName: channel.title,
+            serviceName: service.name,
+          }),
+          {
+            chat_id: req.chatId,
+            message_id: req.messageId,
           },
-          async (err: any) => {
-            let isResolved = false;
-            let message = null;
-            if (err.code === 'CHANNEL_IS_NOT_FOUND') {
-              isResolved = true;
-              message = locale.m('alert_channel-not-exists');
-            } else {
-              message = locale.m('alert_unexpected-error');
-            }
-            await this.main.bot.editMessageText(message, {
-              chat_id: req.chatId,
-              message_id: req.messageId,
-            });
-            if (!isResolved) {
-              throw err;
-            }
-          },
-        )
-        .catch((err: any) => {
-          debug('%j error %o', req.command, err);
-        });
+        );
+      } catch (err) {
+        debug('%j error %o', req.command, err);
+      }
     });
 
-    this.router.textOrCallbackQuery(/\/delete/, provideChannels, withChannels, (req, res) => {
+    this.router.textOrCallbackQuery(/\/delete/, provideChannels, withChannels, async (req, res) => {
       const {locale} = res;
       assertType<typeof req & WithChannels>(req);
 
@@ -640,50 +620,46 @@ class Chat {
         callback_data: '/cancel/delete',
       });
 
-      return promiseTry(() => {
+      try {
         if (req.callback_query && !req.query.rel) {
-          return this.main.bot
-            .editMessageReplyMarkup(
-              {
-                inline_keyboard: page,
-              },
-              {
-                chat_id: req.chatId,
-                message_id: req.messageId,
-              },
-            )
-            .catch((err: any) => {
-              if (/message is not modified/.test(err.message)) {
-                // pass
-              } else {
-                throw err;
-              }
-            });
+          await passEx(
+            () =>
+              this.main.bot.editMessageReplyMarkup(
+                {
+                  inline_keyboard: page,
+                },
+                {
+                  chat_id: req.chatId,
+                  message_id: req.messageId,
+                },
+              ),
+            [ErrEnum.MessageNotModified],
+          );
         } else {
-          return this.main.bot.sendMessage(req.chatId, locale.m('context_select-delete-channel'), {
+          await this.main.bot.sendMessage(req.chatId, locale.m('context_select-delete-channel'), {
             reply_markup: {
               inline_keyboard: page,
             },
           });
         }
-      }).catch((err) => {
+      } catch (err) {
         debug('%j error %o', req.command, err);
-      });
+      }
     });
 
-    this.router.callback_query(/\/unsetChannel/, provideChat, (req, res) => {
+    this.router.callback_query(/\/unsetChannel/, provideChat, async (req, res) => {
       const {locale} = res;
       assertType<typeof req & WithChat>(req);
 
-      return promiseTry(() => {
+      try {
         if (!req.chat.channelId) {
           throw new Error('ChannelId is not set');
         }
-        return this.main.db.deleteChatById(req.chat.channelId);
-      })
-        .then(() => {
-          return this.main.bot
-            .editMessageReplyMarkup(
+        await this.main.db.deleteChatById(req.chat.channelId);
+
+        await passEx(
+          () =>
+            this.main.bot.editMessageReplyMarkup(
               {
                 inline_keyboard: getOptions(locale, req.chat),
               },
@@ -691,166 +667,133 @@ class Chat {
                 chat_id: req.chatId,
                 message_id: req.messageId,
               },
-            )
-            .catch((err: any) => {
-              if (/message is not modified/.test(err.message)) {
-                return;
-              }
-              throw err;
-            });
-        })
-        .catch((err) => {
-          debug('%j error %o', req.command, err);
-        });
+            ),
+          [ErrEnum.MessageNotModified],
+        );
+      } catch (err) {
+        debug('%j error %o', req.command, err);
+      }
     });
 
     this.router.textOrCallbackQuery(
       /\/setChannel(?:\s+(?<channelId>.+))?/,
       provideChat,
-      (req, res) => {
+      async (req, res) => {
         const {locale} = res;
         assertType<typeof req & WithChat>(req);
 
-        const channelId = req.params.channelId;
-        let requestedData: string | null = null;
+        let requestedData: string | undefined;
 
-        return promiseTry(() => {
-          if (channelId) {
-            return {channelId: channelId.trim()};
+        try {
+          const {value: rawChannelId, messageId} = await askParam({
+            locale,
+            req,
+            value: req.params.channelId,
+            messageText: locale.m('context_enter-telegram-channel-name'),
+          });
+
+          let channelId;
+          try {
+            if (!/^@\w+$/.test(rawChannelId)) {
+              throw new ErrorWithCode('Incorrect channel name', 'INCORRECT_CHANNEL_NAME');
+            }
+
+            try {
+              await this.main.db.getChatById(rawChannelId);
+              throw new ErrorWithCode('Channel already used', 'CHANNEL_ALREADY_USED');
+            } catch (error) {
+              const err = error as ErrorWithCode;
+              if (err.code === 'CHAT_IS_NOT_FOUND') {
+                // pass
+              } else {
+                throw err;
+              }
+            }
+
+            await this.main.bot.sendChatAction(rawChannelId, 'typing');
+
+            const chat = await this.main.bot.getChat(rawChannelId);
+            if (chat.type !== 'channel') {
+              throw new ErrorWithCode('This chat type is not supported', 'INCORRECT_CHAT_TYPE');
+            }
+
+            channelId = '@' + chat.username;
+
+            await this.main.db.createChatChannel('' + req.chatId, channelId);
+          } catch (error) {
+            const err = error as ErrorWithCode;
+            let isResolved = false;
+            let message: string;
+            if (
+              ['INCORRECT_CHANNEL_NAME', 'CHANNEL_ALREADY_USED', 'INCORRECT_CHAT_TYPE'].includes(
+                err.code,
+              )
+            ) {
+              isResolved = true;
+              if (err.code === 'INCORRECT_CHANNEL_NAME') {
+                message = locale.m('alert_incorrect-telegram-channel-name');
+              } else if (err.code === 'CHANNEL_ALREADY_USED') {
+                message = locale.m('alert_telegram-channel-exists');
+              } else if (err.code === 'INCORRECT_CHAT_TYPE') {
+                message = locale.m('alert_telegram-chat-is-not-supported');
+              } else {
+                message = err.message;
+              }
+            } else if (errHandler[ErrEnum.ChatNotFound](err)) {
+              isResolved = true;
+              message = locale.m('alert_chat-not-found');
+            } else if (errHandler[ErrEnum.BotIsNotAMemberOfThe](err)) {
+              isResolved = true;
+              message = locale.m('alert_bot-is-not-channel-member');
+            } else {
+              message = locale.m('alert_unexpected-error');
+            }
+            await editOrSendNewMessage(req.chatId, messageId, message);
+            if (!isResolved) {
+              throw err;
+            }
+            return;
           }
 
-          const messageText = locale.m('context_enter-telegram-channel-name');
-          const cancelText = locale.m('alert_command-canceled', {command: '/setChannel'});
-          return requestData(locale, req, messageText, cancelText).then(({req, msg}) => {
-            const messageText = req.message.text || '';
-            requestedData = messageText;
-            tracker.track(req.chatId, {
-              ec: 'command',
-              ea: '/setChannel',
-              el: messageText,
-              t: 'event',
-            });
-            return {channelId: messageText.trim(), messageId: msg.message_id};
-          });
-        })
-          .then(({channelId, messageId}: {channelId: string; messageId?: number}) => {
-            return promiseTry(() => {
-              if (!/^@\w+$/.test(channelId)) {
-                throw new ErrorWithCode('Incorrect channel name', 'INCORRECT_CHANNEL_NAME');
-              }
+          const message = locale.m('alert_telegram-channel-set', {channelName: channelId});
+          await editOrSendNewMessage(req.chatId, messageId, message);
 
-              return this.main.db
-                .getChatById(channelId)
-                .then(
-                  (chat) => {
-                    throw new ErrorWithCode('Channel already used', 'CHANNEL_ALREADY_USED');
+          if (req.callback_query) {
+            await passEx(
+              () =>
+                this.main.bot.editMessageReplyMarkup(
+                  {
+                    inline_keyboard: getOptions(locale, req.chat),
                   },
-                  (err: any) => {
-                    if (err.code === 'CHAT_IS_NOT_FOUND') {
-                      // pass
-                    } else {
-                      throw err;
-                    }
+                  {
+                    chat_id: req.chatId,
+                    message_id: req.messageId,
                   },
-                )
-                .then(() => {
-                  return this.main.bot.sendChatAction(channelId, 'typing').then(() => {
-                    return this.main.bot.getChat(channelId).then((chat) => {
-                      if (chat.type !== 'channel') {
-                        throw new ErrorWithCode(
-                          'This chat type is not supported',
-                          'INCORRECT_CHAT_TYPE',
-                        );
-                      }
-                      const channelId = '@' + chat.username;
-                      return this.main.db
-                        .createChatChannel('' + req.chatId, channelId)
-                        .then(() => channelId);
-                    });
-                  });
-                });
-            }).then(
-              (channelId) => {
-                const message = locale.m('alert_telegram-channel-set', {channelName: channelId});
-                return editOrSendNewMessage(req.chatId, messageId, message).then(() => {
-                  if (req.callback_query) {
-                    return this.main.bot
-                      .editMessageReplyMarkup(
-                        {
-                          inline_keyboard: getOptions(locale, req.chat),
-                        },
-                        {
-                          chat_id: req.chatId,
-                          message_id: req.messageId,
-                        },
-                      )
-                      .catch((err: any) => {
-                        if (/message is not modified/.test(err.message)) {
-                          return;
-                        }
-                        throw err;
-                      });
-                  }
-                });
-              },
-              async (err) => {
-                let isResolved = false;
-                let message: string;
-                if (
-                  [
-                    'INCORRECT_CHANNEL_NAME',
-                    'CHANNEL_ALREADY_USED',
-                    'INCORRECT_CHAT_TYPE',
-                  ].includes(err.code)
-                ) {
-                  isResolved = true;
-                  if (err.code === 'INCORRECT_CHANNEL_NAME') {
-                    message = locale.m('alert_incorrect-telegram-channel-name');
-                  } else if (err.code === 'CHANNEL_ALREADY_USED') {
-                    message = locale.m('alert_telegram-channel-exists');
-                  } else if (err.code === 'INCORRECT_CHAT_TYPE') {
-                    message = locale.m('alert_telegram-chat-is-not-supported');
-                  } else {
-                    message = err.message;
-                  }
-                } else if (err.code === 'ETELEGRAM' && /chat not found/.test(err.message)) {
-                  isResolved = true;
-                  message = locale.m('alert_chat-not-found');
-                } else if (
-                  err.code === 'ETELEGRAM' &&
-                  /bot is not a member of the/.test(err.message)
-                ) {
-                  isResolved = true;
-                  message = locale.m('alert_bot-is-not-channel-member');
-                } else {
-                  message = locale.m('alert_unexpected-error');
-                }
-                await editOrSendNewMessage(req.chatId, req.messageId, message);
-                if (!isResolved) {
-                  throw err;
-                }
-              },
+                ),
+              [ErrEnum.MessageNotModified],
             );
-          })
-          .catch((err: any) => {
-            if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
-              // pass
-            } else {
-              debug('%j %j error %o', req.command, requestedData, err);
-            }
-          });
+          }
+        } catch (error) {
+          const err = error as ErrorWithCode;
+          if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
+            // pass
+          } else {
+            debug('%j %j error %o', req.command, requestedData, err);
+          }
+        }
       },
     );
 
     this.router.callback_query(
       /\/(?<optionsType>options|channelOptions)\/(?<key>[^\/]+)\/(?<value>.+)/,
       provideChat,
-      (req, res) => {
+      async (req, res) => {
         const {locale} = res;
         assertType<typeof req & WithChat>(req);
 
         const {optionsType, key, value} = req.params;
-        return promiseTry(() => {
+
+        try {
           const changes: Partial<NewChat> = {};
           switch (key) {
             case 'isHidePreview': {
@@ -885,23 +828,26 @@ class Chat {
               throw new Error('Unknown option filed');
             }
           }
+
           switch (optionsType) {
             case 'options': {
               Object.assign(req.chat, changes);
-              return req.chat.save();
+              await req.chat.save();
+              break;
             }
             case 'channelOptions': {
               if (!req.chat.channel) {
                 throw new Error('Chat channel is empty');
               }
               Object.assign(req.chat.channel, changes);
-              return req.chat.channel.save();
+              await req.chat.channel.save();
+              break;
             }
           }
-        })
-          .then(() => {
-            return this.main.bot
-              .editMessageReplyMarkup(
+
+          await passEx(
+            () =>
+              this.main.bot.editMessageReplyMarkup(
                 {
                   inline_keyboard: getOptions(locale, req.chat),
                 },
@@ -909,27 +855,22 @@ class Chat {
                   chat_id: req.chatId,
                   message_id: req.messageId,
                 },
-              )
-              .catch((err: any) => {
-                if (/message is not modified/.test(err.message)) {
-                  return;
-                }
-                throw err;
-              });
-          })
-          .catch((err) => {
-            debug('%j error %o', req.command, err);
-          });
+              ),
+            [ErrEnum.MessageNotModified],
+          );
+        } catch (err) {
+          debug('%j error %o', req.command, err);
+        }
       },
     );
 
-    this.router.textOrCallbackQuery(/\/options/, provideChat, (req, res) => {
+    this.router.textOrCallbackQuery(/\/options/, provideChat, async (req, res) => {
       const {locale} = res;
       assertType<typeof req & WithChat>(req);
 
-      return promiseTry(() => {
+      try {
         if (req.callback_query && !req.query.rel) {
-          return this.main.bot.editMessageReplyMarkup(
+          await this.main.bot.editMessageReplyMarkup(
             {
               inline_keyboard: getOptions(locale, req.chat),
             },
@@ -939,114 +880,108 @@ class Chat {
             },
           );
         } else {
-          return this.main.bot.sendMessage(req.chatId, locale.m('context_options'), {
+          await this.main.bot.sendMessage(req.chatId, locale.m('context_options'), {
             reply_markup: {
               inline_keyboard: getOptions(locale, req.chat),
             },
           });
         }
-      }).catch((err) => {
+      } catch (err) {
         debug('%j error %o', req.command, err);
-      });
+      }
     });
 
-    this.router.textOrCallbackQuery(/\/online/, provideChannels, withChannels, (req, res) => {
+    this.router.textOrCallbackQuery(/\/online/, provideChannels, withChannels, async (req, res) => {
       const {locale} = res;
       assertType<typeof req & WithChannels>(req);
 
-      const channelIds = req.channels.map((channel) => channel.id);
-      return this.main.db
-        .getStreamsWithChannelByChannelIds(channelIds)
-        .then((streams) => {
-          let message: string;
-          if (!streams.length) {
-            message = locale.m('alert_offline');
-          } else {
-            message = streams.map((stream) => getStreamAsText(stream)).join('\n\n');
+      try {
+        const channelIds = req.channels.map((channel) => channel.id);
+        const streams = await this.main.db.getStreamsWithChannelByChannelIds(channelIds);
+
+        let message: string;
+        if (!streams.length) {
+          message = locale.m('alert_offline');
+        } else {
+          message = streams.map((stream) => getStreamAsText(stream)).join('\n\n');
+        }
+
+        const buttons: TelegramBot.InlineKeyboardButton[][] = [];
+        streams.forEach((stream) => {
+          if (!stream.isOffline && !stream.isTimeout) {
+            buttons.push([
+              {
+                text: getStreamAsButtonText(stream),
+                callback_data: `/watch/${stream.id}`,
+              },
+            ]);
           }
-
-          const buttons: TelegramBot.InlineKeyboardButton[][] = [];
-          streams.forEach((stream) => {
-            if (!stream.isOffline && !stream.isTimeout) {
-              buttons.push([
-                {
-                  text: getStreamAsButtonText(stream),
-                  callback_data: `/watch/${stream.id}`,
-                },
-              ]);
-            }
-          });
-
-          const buttonsPage = pageBtnList(req.query, buttons, '/online');
-
-          buttonsPage.unshift([
-            {
-              text: locale.m('action_refresh'),
-              callback_data: '/online',
-            },
-          ]);
-
-          const options = {
-            disable_web_page_preview: true,
-            parse_mode: 'HTML' as ParseMode,
-            reply_markup: {
-              inline_keyboard: buttonsPage,
-            },
-          };
-
-          return promiseTry(() => {
-            if (req.callback_query && !req.query.rel) {
-              return this.main.bot
-                .editMessageText(message, {
-                  ...options,
-                  chat_id: req.chatId,
-                  message_id: req.messageId,
-                })
-                .catch((err: any) => {
-                  if (
-                    err.code === 'ETELEGRAM' &&
-                    /message is not modified/.test(err.response.body.description)
-                  ) {
-                    return; // pass
-                  }
-                  throw err;
-                });
-            } else {
-              return this.main.bot.sendMessage(req.chatId, message, options);
-            }
-          });
-        })
-        .catch((err) => {
-          debug('%j error %o', req.command, err);
         });
+
+        const buttonsPage = pageBtnList(req.query, buttons, '/online');
+
+        buttonsPage.unshift([
+          {
+            text: locale.m('action_refresh'),
+            callback_data: '/online',
+          },
+        ]);
+
+        const options = {
+          disable_web_page_preview: true,
+          parse_mode: 'HTML' as ParseMode,
+          reply_markup: {
+            inline_keyboard: buttonsPage,
+          },
+        };
+
+        if (req.callback_query && !req.query.rel) {
+          await passEx(
+            () =>
+              this.main.bot.editMessageText(message, {
+                ...options,
+                chat_id: req.chatId,
+                message_id: req.messageId,
+              }),
+            [ErrEnum.MessageNotModified],
+          );
+        } else {
+          await this.main.bot.sendMessage(req.chatId, message, options);
+        }
+      } catch (err) {
+        debug('%j error %o', req.command, err);
+      }
     });
 
-    this.router.callback_query(/\/watch\/(?<streamId>.+)/, provideChat, (req, res) => {
+    this.router.callback_query(/\/watch\/(?<streamId>.+)/, provideChat, async (req, res) => {
       const {locale} = res;
       assertType<typeof req & WithChat>(req);
 
-      const {streamId} = req.params;
-      return this.main.db
-        .getStreamWithChannelById(streamId)
-        .then(
-          (stream) => {
-            const chatSender = new ChatSender(this.main, req.chat);
-            return chatSender.sendStream(stream);
-          },
-          (err) => {
-            if (err.code === 'STREAM_IS_NOT_FOUND') {
-              const message = locale.m('action_stream-not-found');
-              return this.main.bot.sendMessage(req.chatId, message);
-            }
+      try {
+        let stream: StreamModelWithChannel;
+
+        try {
+          const {streamId} = req.params;
+          stream = await this.main.db.getStreamWithChannelById(streamId);
+        } catch (error) {
+          const err = error as ErrorWithCode;
+          if (err.code === 'STREAM_IS_NOT_FOUND') {
+            const message = locale.m('action_stream-not-found');
+            await this.main.bot.sendMessage(req.chatId, message);
+          } else {
             throw err;
-          },
-        )
-        .catch((err: any) => {
-          debug('%j error %o', req.command, err);
-        });
+          }
+          return;
+        }
+
+        const chatSender = new ChatSender(this.main, req.chat);
+        await chatSender.sendStream(stream);
+      } catch (err) {
+        debug('%j error %o', req.command, err);
+      }
     });
 
-    this.router.textOrCallbackQuery(/\/list/, provideChannels, withChannels, (req, res) => {
+    this.router.textOrCallbackQuery(/\/list/, provideChannels, withChannels, async (req, res) => {
       assertType<typeof req & WithChannels>(req);
 
       const serviceIds: string[] = [];
@@ -1104,30 +1039,50 @@ class Chat {
         },
       };
 
-      return promiseTry(() => {
+      try {
         if (req.callback_query && !req.query.rel) {
-          return this.main.bot.editMessageText(pageText, {
+          await this.main.bot.editMessageText(pageText, {
             ...options,
             chat_id: req.chatId,
             message_id: req.messageId,
           });
         } else {
-          return this.main.bot.sendMessage(req.chatId, pageText, options);
+          await this.main.bot.sendMessage(req.chatId, pageText, options);
         }
-      }).catch((err) => {
+      } catch (err) {
         debug('%j error %o', req.command, err);
-      });
+      }
     });
 
-    const requestData = (
+    type AskParamProps = {
+      locale: Locale;
+      req: RouterTextReq | RouterCallbackQueryReq;
+      value: string;
+      messageText: string;
+    };
+
+    const askParam = async ({locale, req, value, messageText}: AskParamProps) => {
+      if (value) {
+        return {value: value.trim()};
+      }
+
+      const cancelText = locale.m('alert_command-canceled', {command: req.command});
+      const {req: rdReq, msg: rdMsg} = await requestData(locale, req, messageText, cancelText);
+      tracker.track(rdReq.chatId, {
+        ec: 'command',
+        ea: req.command,
+        el: rdReq.message.text,
+        t: 'event',
+      });
+      return {value: rdReq.message.text.trim(), messageId: rdMsg.message_id};
+    };
+
+    const requestData = async (
       locale: Locale,
       req: RouterTextReq | RouterCallbackQueryReq,
       messageText: string,
       cancelText: string,
-    ): Promise<{
-      req: RouterTextReq;
-      msg: TelegramBot.Message;
-    }> => {
+    ) => {
       const {chatId, fromId} = req;
       const options: {[s: string]: any} = {};
       let msgText = messageText;
@@ -1144,86 +1099,139 @@ class Chat {
         });
       }
 
-      return this.main.bot
-        .sendMessage(chatId, msgText, options)
-        .then((msg: TelegramBot.Message) => {
-          return this.router
-            .waitResponse<RouterTextReq>(
-              null,
-              {
-                event: 'message',
-                type: 'text',
-                chatId: chatId,
-                fromId: fromId,
-                throwOnCommand: true,
-              },
-              3 * 60,
-            )
-            .then(
-              ({req, res, next}) => {
-                return {req, msg};
-              },
-              async (err) => {
-                if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
-                  await editOrSendNewMessage(chatId, msg.message_id, cancelText);
-                }
-                throw err;
-              },
-            );
-        });
+      const msg = await this.main.bot.sendMessage(chatId, msgText, options);
+
+      try {
+        const {req} = await this.router.waitResponse<RouterTextReq>(
+          null,
+          {
+            event: 'message',
+            type: 'text',
+            chatId: chatId,
+            fromId: fromId,
+            throwOnCommand: true,
+          },
+          3 * 60,
+        );
+        return {req, msg};
+      } catch (error) {
+        const err = error as ErrorWithCode;
+        if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
+          await editOrSendNewMessage(chatId, msg.message_id, cancelText);
+        }
+        throw err;
+      }
     };
 
-    const requestChoose = (
+    type AskChooseProps = {
+      req: RouterTextReq | RouterCallbackQueryReq;
+      locale: Locale;
+      messageText: string;
+      messageId?: number;
+      options: {
+        name: string;
+        value: string;
+      }[];
+      value?: string;
+    };
+
+    const askChoose = async ({
+      locale,
+      req,
+      value,
+      messageId,
+      messageText,
+      options,
+    }: AskChooseProps) => {
+      if (value) {
+        return {value: value.trim(), messageId};
+      }
+
+      const cancelText = locale.m('alert_command-canceled', {command: req.command});
+      const chooseKeyboard = [
+        ...arrayByPart(
+          options.map(({name, value}) => {
+            return {
+              text: name,
+              callback_data: '/choose/' + value,
+            };
+          }),
+          2,
+        ),
+        [
+          {
+            text: locale.m('action_cancel'),
+            callback_data: '/choose/cancel',
+          },
+        ],
+      ];
+
+      const {req: rReq, messageId: rMessageId} = await requestChoose(
+        req.chatId,
+        req.fromId,
+        messageId,
+        messageText,
+        cancelText,
+        chooseKeyboard,
+      );
+
+      if (rReq.params.value === 'cancel') {
+        await editOrSendNewMessage(rReq.chatId, rMessageId, cancelText);
+        throw new ErrorWithCode('Response cancel', 'RESPONSE_CANCEL');
+      }
+
+      const option = options.find(({value}) => rReq.params.value);
+      if (!option) {
+        throw new Error('Unexpected option value');
+      }
+
+      return {value: option?.value, messageId: rMessageId};
+    };
+
+    const requestChoose = async (
       chatId: number,
       fromId: number | undefined,
-      messageId: number | undefined,
+      origMessageId: number | undefined,
       messageText: string,
       cancelText: string,
       inline_keyboard: TelegramBot.InlineKeyboardButton[][],
-    ): Promise<{
-      req: RouterCallbackQueryReq;
-      messageId: number;
-    }> => {
-      return editOrSendNewMessage(chatId, messageId, messageText, {
+    ) => {
+      const messageId = await editOrSendNewMessage(chatId, origMessageId, messageText, {
         reply_markup: {inline_keyboard},
-      }).then((messageId) => {
-        return this.router
-          .waitResponse<RouterCallbackQueryReq>(
-            /\/choose\/(?<value>.+)/,
-            {
-              event: 'callback_query',
-              chatId: chatId,
-              fromId: fromId,
-            },
-            3 * 60,
-          )
-          .then(
-            ({req, res, next}) => {
-              return this.main.bot.answerCallbackQuery(req.callback_query.id).then(async () => {
-                if (req.params.value === 'cancel') {
-                  await editOrSendNewMessage(chatId, messageId, cancelText);
-                  throw new ErrorWithCode('Response cancel', 'RESPONSE_CANCEL');
-                }
-                return {req, messageId};
-              });
-            },
-            async (err) => {
-              if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
-                await editOrSendNewMessage(chatId, messageId, cancelText);
-              }
-              throw err;
-            },
-          );
       });
+
+      let req: RouterCallbackQueryReq;
+      try {
+        const {req: rReq} = await this.router.waitResponse<RouterCallbackQueryReq>(
+          /\/choose\/(?<value>.+)/,
+          {
+            event: 'callback_query',
+            chatId: chatId,
+            fromId: fromId,
+          },
+          3 * 60,
+        );
+        req = rReq;
+      } catch (error) {
+        const err = error as ErrorWithCode;
+        if (['RESPONSE_COMMAND', 'RESPONSE_TIMEOUT'].includes(err.code)) {
+          await editOrSendNewMessage(chatId, messageId, cancelText);
+        }
+        throw err;
+      }
+
+      await this.main.bot.answerCallbackQuery(req.callback_query.id);
+
+      return {req, messageId};
     };
 
-    const editOrSendNewMessage = (
+    const editOrSendNewMessage = async (
       chatId: number,
       messageId: number | undefined,
       text: string,
       form?: object,
     ): Promise<number> => {
-      return promiseTry(async () => {
+      try {
         if (!messageId) {
           throw new ErrorWithCode('messageId is empty', 'MESSAGE_ID_IS_EMPTY');
         }
@@ -1241,21 +1249,23 @@ class Chat {
         }
 
         return messageId;
-      }).catch((err) => {
+      } catch (error) {
+        const err = error as ErrorWithCode;
         if (
           err.code === 'MESSAGE_ID_IS_EMPTY' ||
-          /message can't be edited/.test(err.message) ||
-          /message to edit not found/.test(err.message)
+          errHandler[ErrEnum.MessageCantBeEdited](err) ||
+          errHandler[ErrEnum.MessageToEditNotFound](err)
         ) {
-          return this.main.bot.sendMessage(chatId, text, form).then(({message_id}) => message_id);
+          const msg = await this.main.bot.sendMessage(chatId, text, form);
+          return msg.message_id;
         }
         throw err;
-      });
+      }
     };
   }
 
   admin() {
-    const isAdmin = <T extends RouterReqWithAnyMessage>(
+    const isAdmin = async <T extends RouterReqWithAnyMessage>(
       req: T,
       res: RouterRes,
       next: () => void,
@@ -1263,13 +1273,18 @@ class Chat {
       const {locale} = res;
       const adminIds = appConfig.adminIds;
       if (adminIds.includes(req.chatId)) {
-        next();
-      } else {
-        this.main.bot
-          .sendMessage(req.chatId, locale.m('alert_access-denied', {chat: req.chatId}))
-          .catch((err: any) => {
-            debug('isAdmin sendMessage error: %o', err);
-          });
+        return next();
+      }
+
+      try {
+        await this.main.bot.sendMessage(
+          req.chatId,
+          locale.m('alert_access-denied', {
+            chat: req.chatId,
+          }),
+        );
+      } catch (err) {
+        debug('isAdmin sendMessage error: %o', err);
       }
     };
 
@@ -1280,52 +1295,58 @@ class Chat {
       {name: 'Sender check', method: this.main.sender.check},
       {name: 'Active checker threads', method: this.main.checker.getActiveThreads},
       {name: 'Active sender threads', method: this.main.sender.getActiveThreads},
-      {name: 'Update pubsub subscriptions', method: this.main.ytPubSub.updateSubscribes},
+      {name: 'Update pubsub subscriptions', method: this.main.webServer.ytPubSub.updateSubscribes},
       {name: 'Clean chats & channels', method: this.main.checker.clean},
-      {name: 'Clean pubsub feeds', method: this.main.ytPubSub.clean},
+      {name: 'Clean pubsub feeds', method: this.main.webServer.ytPubSub.clean},
     ];
 
-    this.router.callback_query(/\/admin\/(?<commandIndex>.+)/, isAdmin, (req, res) => {
+    this.router.callback_query(/\/admin\/(?<commandIndex>.+)/, isAdmin, async (req, res) => {
       const {locale} = res;
       const commandIndex = parseInt(req.params.commandIndex, 10);
       const command = commands[commandIndex];
-      return promiseTry((): any => {
-        if (!command) {
-          throw new ErrorWithCode('Method is not found', 'METHOD_IS_NOT_FOUND');
+
+      try {
+        let resultStr: string;
+
+        try {
+          if (!command) {
+            throw new ErrorWithCode('Method is not found', 'METHOD_IS_NOT_FOUND');
+          }
+          const result = await command.method();
+
+          resultStr = jsonStringifyPretty(
+            {result},
+            {
+              indent: 2,
+            },
+          );
+        } catch (err) {
+          await this.main.bot.sendMessage(
+            req.chatId,
+            locale.m('alert_command-error', {
+              command: command.name,
+            }),
+          );
+          throw err;
         }
-        return command.method();
-      })
-        .then(
-          (result) => {
-            const resultStr = jsonStringifyPretty(
-              {result},
-              {
-                indent: 2,
-              },
-            );
-            return this.main.bot.sendMessage(
-              req.chatId,
-              `${locale.m('alert_command-complete', {command: command.name})}\n${resultStr}`,
-            );
-          },
-          async (err) => {
-            await this.main.bot.sendMessage(
-              req.chatId,
-              locale.m('alert_command-error', {command: command.name}),
-            );
-            throw err;
-          },
-        )
-        .catch((err) => {
-          debug('%j error %o', req.command, err);
-        });
+
+        await this.main.bot.sendMessage(
+          req.chatId,
+          `${locale.m('alert_command-complete', {
+            command: command.name,
+          })}\n${resultStr}`,
+        );
+      } catch (err) {
+        debug('%j error %o', req.command, err);
+      }
     });
 
-    this.router.textOrCallbackQuery(/\/admin/, isAdmin, (req, res) => {
+    this.router.textOrCallbackQuery(/\/admin/, isAdmin, async (req, res) => {
       const {locale} = res;
       type Button = {text: string; callback_data: string};
-      return this.main.bot
-        .sendMessage(req.chatId, locale.m('title_admin-menu'), {
+
+      try {
+        await this.main.bot.sendMessage(req.chatId, locale.m('title_admin-menu'), {
           reply_markup: {
             inline_keyboard: commands.reduce<Button[][]>((menu, {name, method}, index) => {
               const buttons: Button[] = index % 2 ? menu.pop()! : [];
@@ -1337,10 +1358,10 @@ class Chat {
               return menu;
             }, []),
           },
-        })
-        .catch((err: any) => {
-          debug('%j error %o', req.command, err);
         });
+      } catch (err) {
+        debug('%j error %o', req.command, err);
+      }
     });
   }
 }
