@@ -123,7 +123,7 @@ class Sender {
 
     const isDone = await (async () => {
       try {
-        return chatSender.next();
+        return await chatSender.next();
       } catch (err) {
         debug('chatSender %s stopped, cause: %o', chatSender.chat.id, err);
         await this.main.db.setChatSendTimeoutExpiresAt([chatSender.chat.id]);
