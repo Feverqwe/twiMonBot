@@ -5,7 +5,7 @@ const en = {
   'alert_empty-channel-list': `You don't have channels in watchlist, yet.`,
   'context_enter-channel-name': 'Enter the channel URL or name (example: {example}):',
   'context_enter-service': 'Enter a live streaming video platform',
-  'alert_channel-exists': 'This channel exists!',
+  'alert_channel-exists': 'This channel has already been added before.',
   'alert_channel-added': 'Success! The channel {channelName} ({serviceName}) has been added!',
   'context_enter-telegram-channel-name': 'Enter the channel name (example: @telegram):',
   'alert_telegram-channel-set': 'Success! The channel {channelName} has been assigned!',
