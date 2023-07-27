@@ -63,151 +63,148 @@ class Twitch implements ServiceInterface {
     return [/twitch\.tv\//i].some((re) => re.test(url));
   }
 
-  getStreams(channelIds: (number | string)[]) {
+  async getStreams(channelIds: (number | string)[]) {
     const resultStreams: ServiceStream[] = [];
     const skippedChannelIds: (number | string)[] = [];
     const removedChannelIds: (number | string)[] = [];
-    return parallel(10, arrayByPart(channelIds, 100), (channelIds) => {
-      return this.signFetchRequest('https://api.twitch.tv/helix/streams', {
+    await parallel(10, arrayByPart(channelIds, 100), async (channelIds) => {
+      try {
+        const {body} = await this.signFetchRequest('https://api.twitch.tv/helix/streams', {
+          searchParams: {
+            user_id: channelIds,
+            first: 100,
+          },
+          keepAlive: true,
+          responseType: 'json',
+        });
+
+        const result = s.mask(body, StreamsStruct);
+        const streams = result.data;
+
+        streams.forEach((stream) => {
+          const previews: string[] = [
+            stream.thumbnail_url.replace('{width}', '1920').replace('{height}', '1080'),
+          ];
+
+          let id: number | string = stream.id;
+          let channelId: number | string = stream.user_id;
+          // fallback api v3
+          if (/^\d+$/.test(stream.id)) {
+            id = parseInt(stream.id, 10);
+          }
+          if (/^\d+$/.test(stream.user_id)) {
+            channelId = parseInt(stream.user_id, 10);
+          }
+
+          const url = getChannelUrl(stream.user_login);
+
+          resultStreams.push({
+            id: id,
+            url: url,
+            title: stream.title,
+            game: stream.game_name,
+            // new api don't response records anymore
+            isRecord: false, // stream.type !== 'live',
+            previews: previews,
+            viewers: stream.viewer_count,
+            channelId: channelId,
+            channelTitle: stream.user_name,
+            channelUrl: url,
+          });
+        });
+      } catch (err) {
+        debug(`getStreams for channels (%j) skip, cause: %o`, channelIds, err);
+        skippedChannelIds.push(...channelIds);
+      }
+    });
+    return {streams: resultStreams, skippedChannelIds, removedChannelIds};
+  }
+
+  async getExistsChannelIds(ids: (number | string)[]) {
+    const resultChannelIds: (number | string)[] = [];
+    await parallel(10, ids, async (channelId) => {
+      try {
+        await requestSingleChannelLimit.run(() => this.requestChannelById(channelId));
+
+        resultChannelIds.push(channelId);
+      } catch (error) {
+        const err = error as ErrorWithCode;
+        if (err.code === 'CHANNEL_BY_ID_IS_NOT_FOUND') {
+          // pass
+        } else {
+          debug('requestChannelById (%s) error: %o', channelId, err);
+          resultChannelIds.push(channelId);
+        }
+      }
+    });
+    return resultChannelIds;
+  }
+
+  async requestChannelById(channelId: number | string) {
+    try {
+      await this.signFetchRequest('https://api.twitch.tv/helix/channels', {
         searchParams: {
-          user_id: channelIds,
-          first: 100,
+          broadcaster_id: channelId,
         },
         keepAlive: true,
-        responseType: 'json',
-      })
-        .then(({body}) => {
-          const result = s.mask(body, StreamsStruct);
-          const streams = result.data;
-
-          streams.forEach((stream) => {
-            const previews: string[] = [
-              stream.thumbnail_url.replace('{width}', '1920').replace('{height}', '1080'),
-            ];
-
-            let id: number | string = stream.id;
-            let channelId: number | string = stream.user_id;
-            // fallback api v3
-            if (/^\d+$/.test(stream.id)) {
-              id = parseInt(stream.id, 10);
-            }
-            if (/^\d+$/.test(stream.user_id)) {
-              channelId = parseInt(stream.user_id, 10);
-            }
-
-            const url = getChannelUrl(stream.user_login);
-
-            resultStreams.push({
-              id: id,
-              url: url,
-              title: stream.title,
-              game: stream.game_name,
-              // new api don't response records anymore
-              isRecord: false, // stream.type !== 'live',
-              previews: previews,
-              viewers: stream.viewer_count,
-              channelId: channelId,
-              channelTitle: stream.user_name,
-              channelUrl: url,
-            });
-          });
-        })
-        .catch((err: any) => {
-          debug(`getStreams for channels (%j) skip, cause: %o`, channelIds, err);
-          skippedChannelIds.push(...channelIds);
-        });
-    }).then(() => {
-      return {streams: resultStreams, skippedChannelIds, removedChannelIds};
-    });
-  }
-
-  getExistsChannelIds(ids: (number | string)[]) {
-    const resultChannelIds: (number | string)[] = [];
-    return parallel(10, ids, (channelId) => {
-      return requestSingleChannelLimit
-        .run(() => {
-          return this.requestChannelById(channelId);
-        })
-        .then(
-          () => {
-            resultChannelIds.push(channelId);
-          },
-          (err: any) => {
-            if (err.code === 'CHANNEL_BY_ID_IS_NOT_FOUND') {
-              // pass
-            } else {
-              debug('requestChannelById (%s) error: %o', channelId, err);
-              resultChannelIds.push(channelId);
-            }
-          },
-        );
-    }).then(() => resultChannelIds);
-  }
-
-  requestChannelById(channelId: number | string) {
-    return this.signFetchRequest('https://api.twitch.tv/helix/channels', {
-      searchParams: {
-        broadcaster_id: channelId,
-      },
-      keepAlive: true,
-    }).catch((err: HTTPError) => {
+      });
+    } catch (error) {
+      const err = error as HTTPError;
       if (err.name === 'HTTPError' && err.response.statusCode === 404) {
         throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
       }
       throw err;
-    });
+    }
   }
 
-  findChannel(query: string) {
-    return this.getChannelNameByUrl(query)
-      .then((name) => {
-        return {query: name, isName: true};
-      })
-      .catch((err: any) => {
+  async findChannel(query: string) {
+    const nameOrQuery = await (async () => {
+      try {
+        return this.getChannelNameByUrl(query);
+      } catch (error) {
+        const err = error as ErrorWithCode;
         if (err.code === 'IS_NOT_CHANNEL_URL') {
-          return {query, isName: false};
+          return query;
         } else {
           throw err;
         }
-      })
-      .then(({query, isName}) => {
-        return this.requestChannelByQuery(query, isName);
-      })
-      .then((channel) => {
-        let id: number | string = channel.id;
-        // fallback api v3
-        if (/^\d+$/.test(channel.id)) {
-          id = parseInt(channel.id, 10);
-        }
+      }
+    })();
+    const channel = await this.requestChannelByQuery(nameOrQuery);
 
-        const title = channel.display_name;
-        const url = getChannelUrl(channel.broadcaster_login);
-        return {id, title, url};
-      });
+    let id: number | string = channel.id;
+    // fallback api v3
+    if (/^\d+$/.test(channel.id)) {
+      id = parseInt(channel.id, 10);
+    }
+
+    const title = channel.display_name;
+    const url = getChannelUrl(channel.broadcaster_login);
+    return {id, title, url};
   }
 
-  requestChannelByQuery(query: string, isName: boolean) {
-    return this.signFetchRequest('https://api.twitch.tv/helix/search/channels', {
+  async requestChannelByQuery(query: string) {
+    const {body} = await this.signFetchRequest('https://api.twitch.tv/helix/search/channels', {
       searchParams: {
         query: query,
         first: 100,
       },
       keepAlive: true,
       responseType: 'json',
-    }).then(({body}) => {
-      const channels = s.mask(body, ChannelsStruct).data;
-      if (!channels.length) {
-        throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
-      }
-      let result = channels.find((channel) => channel.broadcaster_login === query);
-      if (!result) {
-        result = channels[0];
-      }
-      return result;
     });
+
+    const channels = s.mask(body, ChannelsStruct).data;
+    if (!channels.length) {
+      throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
+    }
+    let result = channels.find((channel) => channel.broadcaster_login === query);
+    if (!result) {
+      result = channels[0];
+    }
+    return result;
   }
 
-  async getChannelNameByUrl(url: string) {
+  getChannelNameByUrl(url: string) {
     let channelName = '';
     [/twitch\.tv\/([\w\-]+)/i].some((re) => {
       const m = re.exec(url);

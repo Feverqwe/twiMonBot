@@ -10,7 +10,7 @@ import Events from 'events';
 import {appConfig} from './appConfig';
 import {getDebug} from './tools/getDebug';
 import {getTelegramBot, TelegramBotWrapped} from './tools/telegramBotApi';
-import WebServer from "./webServer";
+import WebServer from './webServer';
 
 const debug = getDebug('app:Main');
 
@@ -59,10 +59,7 @@ class Main extends Events {
 
   async init() {
     await this.db.init();
-    await Promise.all([
-      this.webServer.init(),
-      this.chat.init(),
-    ]);
+    await Promise.all([this.webServer.init(), this.chat.init()]);
     this.checker.init();
     this.sender.init();
   }

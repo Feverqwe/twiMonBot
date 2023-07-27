@@ -57,129 +57,133 @@ class Goodgame implements ServiceInterface {
     return [/goodgame\.ru\//i].some((re) => re.test(url));
   }
 
-  getStreams(channelIds: number[]) {
+  async getStreams(channelIds: number[]) {
     const resultStreams: ServiceStream[] = [];
     const skippedChannelIds: number[] = [];
     const removedChannelIds: number[] = [];
-    return parallel(10, arrayByPart(channelIds, 25), (channelIds) => {
-      return fetchRequest('https://api2.goodgame.ru/v2/streams', {
-        searchParams: {
-          ids: channelIds.join(','),
-          adult: true,
-          hidden: true,
-        },
-        headers: {
-          Accept: 'application/vnd.goodgame.v2+json',
-        },
-        keepAlive: true,
-        responseType: 'json',
-      })
-        .then(({body}) => {
-          const streams = s.mask(body, StreamsStruct)._embedded.streams;
-
-          streams.forEach((stream) => {
-            if (stream.status !== 'Live') return;
-
-            let gameTitle = null;
-            stream.channel.games.some((game) => {
-              if (game.title) {
-                gameTitle = game.title;
-                return true;
-              }
-            });
-
-            const previews = [];
-            let thumb = stream.channel.thumb.replace(/_240(\.jpg)$/, '$1');
-            if (/^\/\//.test(thumb)) {
-              thumb = 'https:' + thumb;
-            }
-            if (thumb) {
-              previews.push(thumb);
-            }
-
-            let viewers: null | number = parseInt(stream.viewers, 10);
-            if (!isFinite(viewers)) {
-              viewers = null;
-            }
-
-            resultStreams.push({
-              id: stream.id,
-              url: stream.channel.url,
-              title: stream.channel.title,
-              game: gameTitle,
-              isRecord: false,
-              previews: previews,
-              viewers: viewers,
-              channelId: stream.channel.id,
-              channelTitle: stream.channel.key,
-              channelUrl: stream.channel.url,
-            });
-          });
-        })
-        .catch((err: any) => {
-          debug(`getStreams for channels (%j) skip, cause: %o`, channelIds, err);
-          skippedChannelIds.push(...channelIds);
+    await parallel(10, arrayByPart(channelIds, 25), async (channelIds) => {
+      try {
+        const {body} = await fetchRequest('https://api2.goodgame.ru/v2/streams', {
+          searchParams: {
+            ids: channelIds.join(','),
+            adult: true,
+            hidden: true,
+          },
+          headers: {
+            Accept: 'application/vnd.goodgame.v2+json',
+          },
+          keepAlive: true,
+          responseType: 'json',
         });
-    }).then(() => {
-      return {streams: resultStreams, skippedChannelIds, removedChannelIds};
-    });
-  }
 
-  getExistsChannelIds(ids: number[]) {
-    const resultChannelIds: number[] = [];
-    return parallel(10, ids, (channelId) => {
-      return this.requestChannelById(channelId).then(
-        () => {
-          resultChannelIds.push(channelId);
-        },
-        (err: any) => {
-          if (err.code === 'CHANNEL_BY_ID_IS_NOT_FOUND') {
-            // pass
-          } else {
-            debug('requestChannelById (%s) error: %o', channelId, err);
-            resultChannelIds.push(channelId);
+        const streams = s.mask(body, StreamsStruct)._embedded.streams;
+
+        streams.forEach((stream) => {
+          if (stream.status !== 'Live') return;
+
+          let gameTitle = null;
+          stream.channel.games.some((game) => {
+            if (game.title) {
+              gameTitle = game.title;
+              return true;
+            }
+          });
+
+          const previews = [];
+          let thumb = stream.channel.thumb.replace(/_240(\.jpg)$/, '$1');
+          if (/^\/\//.test(thumb)) {
+            thumb = 'https:' + thumb;
           }
-        },
-      );
-    }).then(() => resultChannelIds);
+          if (thumb) {
+            previews.push(thumb);
+          }
+
+          let viewers: null | number = parseInt(stream.viewers, 10);
+          if (!isFinite(viewers)) {
+            viewers = null;
+          }
+
+          resultStreams.push({
+            id: stream.id,
+            url: stream.channel.url,
+            title: stream.channel.title,
+            game: gameTitle,
+            isRecord: false,
+            previews: previews,
+            viewers: viewers,
+            channelId: stream.channel.id,
+            channelTitle: stream.channel.key,
+            channelUrl: stream.channel.url,
+          });
+        });
+      } catch (err) {
+        debug(`getStreams for channels (%j) skip, cause: %o`, channelIds, err);
+        skippedChannelIds.push(...channelIds);
+      }
+    });
+    return {streams: resultStreams, skippedChannelIds, removedChannelIds};
   }
 
-  findChannel(query: string) {
-    return this.getChannelIdByUrl(query)
-      .catch((err) => {
+  async getExistsChannelIds(ids: number[]) {
+    const resultChannelIds: number[] = [];
+    await parallel(10, ids, async (channelId) => {
+      try {
+        await this.requestChannelById(channelId);
+        resultChannelIds.push(channelId);
+      } catch (error) {
+        const err = error as ErrorWithCode;
+        if (err.code === 'CHANNEL_BY_ID_IS_NOT_FOUND') {
+          // pass
+        } else {
+          debug('requestChannelById (%s) error: %o', channelId, err);
+          resultChannelIds.push(channelId);
+        }
+      }
+    });
+    return resultChannelIds;
+  }
+
+  async findChannel(query: string) {
+    const channelIdOrQuery = await (async () => {
+      try {
+        return await this.getChannelIdByUrl(query);
+      } catch (error) {
+        const err = error as ErrorWithCode;
         if (err.code === 'IS_NOT_CHANNEL_URL') {
           // pass
           return query;
         }
         throw err;
-      })
-      .then((query) => {
-        return this.requestChannelById(query);
-      });
+      }
+    })();
+    return this.requestChannelById(channelIdOrQuery);
   }
 
-  requestChannelById(channelId: string | number) {
-    return fetchRequest('https://api2.goodgame.ru/v2/streams/' + encodeURIComponent(channelId), {
-      headers: {
-        Accept: 'application/vnd.goodgame.v2+json',
-      },
-      keepAlive: true,
-      responseType: 'json',
-    }).then(
-      ({body}) => {
-        const stream = s.mask(body, StreamStrict);
-        const id = stream.channel.id;
-        const url = stream.channel.url;
-        const title = stream.channel.key;
-        return {id, title, url};
-      },
-      (err: HTTPError) => {
-        if (err.name === 'HTTPError' && err.response.statusCode === 404) {
-          throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
-        }
-        throw err;
-      },
-    );
+  async requestChannelById(channelId: string | number) {
+    try {
+      const {body} = await fetchRequest(
+        'https://api2.goodgame.ru/v2/streams/' + encodeURIComponent(channelId),
+        {
+          headers: {
+            Accept: 'application/vnd.goodgame.v2+json',
+          },
+          keepAlive: true,
+          responseType: 'json',
+        },
+      );
+
+      const stream = s.mask(body, StreamStrict);
+      const id = stream.channel.id;
+      const url = stream.channel.url;
+      const title = stream.channel.key;
+      return {id, title, url};
+    } catch (error) {
+      const err = error as HTTPError;
+      if (err.name === 'HTTPError' && err.response.statusCode === 404) {
+        throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
+      }
+      throw err;
+    }
   }
 
   async getChannelIdByUrl(url: string) {

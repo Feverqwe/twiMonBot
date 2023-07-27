@@ -3,7 +3,7 @@ import qs from 'node:querystring';
 import TelegramBot from 'node-telegram-bot-api';
 import {getDebug} from './tools/getDebug';
 import Locale from './locale';
-import {TelegramBotWrapped} from "./tools/telegramBotApi";
+import {TelegramBotWrapped} from './tools/telegramBotApi';
 
 const debug = getDebug('app:router');
 

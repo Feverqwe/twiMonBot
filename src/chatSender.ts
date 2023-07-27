@@ -10,9 +10,9 @@ import {ChatModel, MessageModel, StreamModelWithChannel} from './db';
 import {getDebug} from './tools/getDebug';
 import TelegramBot from 'node-telegram-bot-api';
 import {tracker} from './tracker';
-import ReadableStream = NodeJS.ReadableStream;
 import {ErrEnum, errHandler, passEx} from './tools/passTgEx';
-import {TelegramError} from "./types";
+import {TelegramError} from './types';
+import ReadableStream = NodeJS.ReadableStream;
 
 const debug = getDebug('app:ChatSender');
 

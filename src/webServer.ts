@@ -1,8 +1,8 @@
-import Main from "./main";
-import YtPubSub from "./ytPubSub";
+import Main from './main';
+import YtPubSub from './ytPubSub';
 import {Server} from 'http';
 import express from 'express';
-import {appConfig} from "./appConfig";
+import {appConfig} from './appConfig';
 
 class WebServer {
   public ytPubSub: YtPubSub;

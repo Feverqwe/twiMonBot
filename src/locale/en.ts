@@ -61,7 +61,7 @@ const en = {
   'alert_unknown-error': 'Oops something went wrong...',
   'alert_chat-not-found': 'Telegram chat is not found!',
   'alert_bot-is-not-channel-member': 'Bot is not a member of the channel!',
-  'context_options': 'Options:'
+  context_options: 'Options:',
 };
 
 export default en;

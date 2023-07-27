@@ -5,7 +5,6 @@ import ErrorWithCode from '../tools/errorWithCode';
 import * as s from 'superstruct';
 import {Infer} from 'superstruct';
 import arrayByPart from '../tools/arrayByPart';
-import promiseTry from '../tools/promiseTry';
 import fetchRequest, {HTTPError} from '../tools/fetchRequest';
 import {decode as decodeHtmlEntity} from 'html-entities';
 import ytCostCounter from '../tools/ytCostCounter';
@@ -126,54 +125,49 @@ class Youtube implements ServiceInterface {
     return [/youtu\.be\//i, /youtube\.com\//i].some((re) => re.test(url));
   }
 
-  getStreams(channelIds: string[]) {
+  async getStreams(channelIds: string[]) {
     const resultStreams: ServiceStream[] = [];
     const skippedChannelIds: string[] = [];
     const removedChannelIds: string[] = [];
-    return this.main.webServer.ytPubSub
-      .getStreams(channelIds, skippedChannelIds)
-      .then(
-        (streams) => {
-          streams.forEach(({id, title, viewers, channelId, channelTitle}) => {
-            const previews = [
-              'maxresdefault_live',
-              'sddefault_live',
-              'hqdefault_live',
-              'mqdefault_live',
-              'default_live',
-            ].map((quality) => {
-              return `https://i.ytimg.com/vi/${id}/${quality}.jpg`;
-            });
+    try {
+      const streams = await this.main.webServer.ytPubSub.getStreams(channelIds, skippedChannelIds);
 
-            const normViewers = typeof viewers === 'number' ? viewers : null;
+      streams.forEach(({id, title, viewers, channelId, channelTitle}) => {
+        const previews = [
+          'maxresdefault_live',
+          'sddefault_live',
+          'hqdefault_live',
+          'mqdefault_live',
+          'default_live',
+        ].map((quality) => {
+          return `https://i.ytimg.com/vi/${id}/${quality}.jpg`;
+        });
 
-            resultStreams.push({
-              id: id,
-              game: null,
-              isRecord: false,
-              previews: previews,
-              title: title,
-              url: getVideoUrl(id),
-              viewers: normViewers,
-              channelId: channelId,
-              channelTitle: channelTitle,
-              channelUrl: getChannelUrl(channelId),
-            });
-          });
-        },
-        (err) => {
-          debug(`getStreams for channels (%j) skip, cause: %o`, channelIds, err);
-          skippedChannelIds.push(...channelIds);
-        },
-      )
-      .then(() => {
-        return {streams: resultStreams, skippedChannelIds, removedChannelIds};
+        const normViewers = typeof viewers === 'number' ? viewers : null;
+
+        resultStreams.push({
+          id: id,
+          game: null,
+          isRecord: false,
+          previews: previews,
+          title: title,
+          url: getVideoUrl(id),
+          viewers: normViewers,
+          channelId: channelId,
+          channelTitle: channelTitle,
+          channelUrl: getChannelUrl(channelId),
+        });
       });
+    } catch (err) {
+      debug(`getStreams for channels (%j) skip, cause: %o`, channelIds, err);
+      skippedChannelIds.push(...channelIds);
+    }
+    return {streams: resultStreams, skippedChannelIds, removedChannelIds};
   }
 
-  getStreamIdSnippetByChannelId(channelId: string, isUpcoming = false) {
+  async getStreamIdSnippetByChannelId(channelId: string, isUpcoming = false) {
     const idSnippet: Map<string, SearchVideoResponseSnippet> = new Map();
-    return iterPages(async (pageToken?) => {
+    await iterPages(async (pageToken) => {
       const query: Record<string, any> = {
         part: 'snippet',
         channelId: channelId,
@@ -195,25 +189,26 @@ class Youtube implements ServiceInterface {
       }
 
       await costCounter.inc(100);
-      return fetchRequest('https://www.googleapis.com/youtube/v3/search', {
+      const {body} = await fetchRequest('https://www.googleapis.com/youtube/v3/search', {
         searchParams: query,
         keepAlive: true,
         responseType: 'json',
-      }).then(({body}) => {
-        const result = s.mask(body, SearchVideoResponseStruct);
-
-        result.items.forEach((item) => {
-          idSnippet.set(item.id.videoId, item.snippet);
-          // api bug for /search, quote in title is escaped
-          item.snippet.title = decodeHtmlEntity(item.snippet.title, {level: 'xml'});
-        });
-
-        return result.nextPageToken;
       });
-    }).then(() => idSnippet);
+
+      const result = s.mask(body, SearchVideoResponseStruct);
+
+      result.items.forEach((item) => {
+        idSnippet.set(item.id.videoId, item.snippet);
+        // api bug for /search, quote in title is escaped
+        item.snippet.title = decodeHtmlEntity(item.snippet.title, {level: 'xml'});
+      });
+
+      return result.nextPageToken;
+    });
+    return idSnippet;
   }
 
-  getStreamIdLiveDetaildByIds(ids: string[]) {
+  async getStreamIdLiveDetaildByIds(ids: string[]) {
     const idStreamInfo: Map<
       string,
       {
@@ -223,10 +218,10 @@ class Youtube implements ServiceInterface {
         viewers: number | null;
       }
     > = new Map();
-    return parallel(10, arrayByPart(ids, 50), (videoIds) => {
-      return iterPages(async (pageToken?) => {
+    await parallel(10, arrayByPart(ids, 50), async (videoIds) => {
+      await iterPages(async (pageToken) => {
         await costCounter.inc(1);
-        return fetchRequest('https://www.googleapis.com/youtube/v3/videos', {
+        const {body} = await fetchRequest('https://www.googleapis.com/youtube/v3/videos', {
           searchParams: {
             part: 'liveStreamingDetails',
             id: videoIds.join(','),
@@ -236,49 +231,50 @@ class Youtube implements ServiceInterface {
           },
           keepAlive: true,
           responseType: 'json',
-        }).then(({body}) => {
-          const videosResponse = s.mask(body, VideosResponseStruct);
-
-          videosResponse.items.forEach((item) => {
-            if (!item.liveStreamingDetails) return;
-            const {scheduledStartTime, actualStartTime, actualEndTime, concurrentViewers} =
-              item.liveStreamingDetails;
-            let scheduledStartAt = null;
-            if (scheduledStartTime) {
-              scheduledStartAt = new Date(scheduledStartTime);
-            }
-            let actualStartAt = null;
-            if (actualStartTime) {
-              actualStartAt = new Date(actualStartTime);
-            }
-            let actualEndAt = null;
-            if (actualEndTime) {
-              actualEndAt = new Date(actualEndTime);
-            }
-            let viewers: null | number = parseInt(concurrentViewers!, 10);
-            if (!isFinite(viewers)) {
-              viewers = null;
-            }
-            idStreamInfo.set(item.id, {
-              scheduledStartAt,
-              actualStartAt,
-              actualEndAt,
-              viewers,
-            });
-          });
-
-          return videosResponse.nextPageToken;
         });
+
+        const videosResponse = s.mask(body, VideosResponseStruct);
+
+        videosResponse.items.forEach((item) => {
+          if (!item.liveStreamingDetails) return;
+          const {scheduledStartTime, actualStartTime, actualEndTime, concurrentViewers} =
+            item.liveStreamingDetails;
+          let scheduledStartAt = null;
+          if (scheduledStartTime) {
+            scheduledStartAt = new Date(scheduledStartTime);
+          }
+          let actualStartAt = null;
+          if (actualStartTime) {
+            actualStartAt = new Date(actualStartTime);
+          }
+          let actualEndAt = null;
+          if (actualEndTime) {
+            actualEndAt = new Date(actualEndTime);
+          }
+          let viewers: null | number = parseInt(concurrentViewers!, 10);
+          if (!isFinite(viewers)) {
+            viewers = null;
+          }
+          idStreamInfo.set(item.id, {
+            scheduledStartAt,
+            actualStartAt,
+            actualEndAt,
+            viewers,
+          });
+        });
+
+        return videosResponse.nextPageToken;
       });
-    }).then(() => idStreamInfo);
+    });
+    return idStreamInfo;
   }
 
-  getExistsChannelIds(ids: string[]) {
+  async getExistsChannelIds(ids: string[]) {
     const resultChannelIds: string[] = [];
-    return parallel(10, arrayByPart(ids, 50), (ids) => {
-      return iterPages(async (pageToken?) => {
+    await parallel(10, arrayByPart(ids, 50), async (ids) => {
+      await iterPages(async (pageToken) => {
         await costCounter.inc(1);
-        return fetchRequest('https://www.googleapis.com/youtube/v3/channels', {
+        const {body} = await fetchRequest('https://www.googleapis.com/youtube/v3/channels', {
           searchParams: {
             part: 'id',
             id: ids.join(','),
@@ -289,26 +285,27 @@ class Youtube implements ServiceInterface {
           },
           keepAlive: true,
           responseType: 'json',
-        }).then(({body}) => {
-          const channelsItemsId = s.mask(body, ChannelsItemsIdStruct);
-          if (channelsItemsId.items) {
-            channelsItemsId.items.forEach((item) => {
-              resultChannelIds.push(item.id);
-            });
-          }
-
-          return channelsItemsId.nextPageToken;
         });
+
+        const channelsItemsId = s.mask(body, ChannelsItemsIdStruct);
+        if (channelsItemsId.items) {
+          channelsItemsId.items.forEach((item) => {
+            resultChannelIds.push(item.id);
+          });
+        }
+
+        return channelsItemsId.nextPageToken;
       });
-    }).then(() => resultChannelIds);
+    });
+    return resultChannelIds;
   }
 
-  findChannel(query: string) {
+  async findChannel(query: string) {
     const session = {
       isLiveVideoUrl: false,
     };
 
-    return this.getChannelIdByUrl(query)
+    const channelId = await this.getChannelIdByUrl(query)
       .catch((err) => {
         if (err.code === 'IS_NOT_CHANNEL_URL') {
           return this.requestChannelIdByVideoUrl(query, session);
@@ -336,33 +333,33 @@ class Youtube implements ServiceInterface {
         }
 
         return this.channelHasBroadcasts(channelId).then(() => channelId);
-      })
-      .then(async (channelId) => {
-        await costCounter.inc(100);
-        return fetchRequest('https://www.googleapis.com/youtube/v3/search', {
-          searchParams: {
-            part: 'snippet',
-            channelId: channelId,
-            maxResults: 1,
-            fields: 'items/snippet',
-            key: appConfig.ytToken,
-          },
-          keepAlive: true,
-          responseType: 'json',
-        }).then(({body}) => {
-          const searchItemsSnippet = s.mask(body, SearchItemsSnippetStruct);
-          if (!searchItemsSnippet.items.length) {
-            throw new ErrorWithCode('Channel is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
-          }
-
-          const snippet = searchItemsSnippet.items[0].snippet;
-          const title = snippet.channelTitle;
-          const id = snippet.channelId;
-          const url = getChannelUrl(id);
-
-          return {id, title, url};
-        });
       });
+
+    await costCounter.inc(100);
+
+    const {body} = await fetchRequest('https://www.googleapis.com/youtube/v3/search', {
+      searchParams: {
+        part: 'snippet',
+        channelId: channelId,
+        maxResults: 1,
+        fields: 'items/snippet',
+        key: appConfig.ytToken,
+      },
+      keepAlive: true,
+      responseType: 'json',
+    });
+
+    const searchItemsSnippet = s.mask(body, SearchItemsSnippetStruct);
+    if (!searchItemsSnippet.items.length) {
+      throw new ErrorWithCode('Channel is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
+    }
+
+    const snippet = searchItemsSnippet.items[0].snippet;
+    const title = snippet.channelTitle;
+    const id = snippet.channelId;
+    const url = getChannelUrl(id);
+
+    return {id, title, url};
   }
 
   async getChannelIdByUrl(url: string) {
@@ -405,7 +402,8 @@ class Youtube implements ServiceInterface {
     }
 
     await costCounter.inc(1);
-    return fetchRequest('https://www.googleapis.com/youtube/v3/videos', {
+
+    const {body} = await fetchRequest('https://www.googleapis.com/youtube/v3/videos', {
       searchParams: {
         part: 'snippet,liveStreamingDetails',
         id: videoId,
@@ -415,20 +413,20 @@ class Youtube implements ServiceInterface {
       },
       keepAlive: true,
       responseType: 'json',
-    }).then(({body}) => {
-      const videosItemsSnippet = s.mask(body, VideosItemsSnippetStruct);
-      if (!videosItemsSnippet.items.length) {
-        throw new ErrorWithCode('Video by id is not found', 'CHANNEL_BY_VIDEO_ID_IS_NOT_FOUND');
-      }
-
-      const firstItem = videosItemsSnippet.items[0];
-
-      if (firstItem.liveStreamingDetails) {
-        session.isLiveVideoUrl = true;
-      }
-
-      return firstItem.snippet.channelId;
     });
+
+    const videosItemsSnippet = s.mask(body, VideosItemsSnippetStruct);
+    if (!videosItemsSnippet.items.length) {
+      throw new ErrorWithCode('Video by id is not found', 'CHANNEL_BY_VIDEO_ID_IS_NOT_FOUND');
+    }
+
+    const firstItem = videosItemsSnippet.items[0];
+
+    if (firstItem.liveStreamingDetails) {
+      session.isLiveVideoUrl = true;
+    }
+
+    return firstItem.snippet.channelId;
   }
 
   async requestChannelIdByUserUrl(url: string) {
@@ -454,31 +452,33 @@ class Youtube implements ServiceInterface {
     }
 
     await costCounter.inc(1);
-    return fetchRequest('https://www.googleapis.com/youtube/v3/channels', {
-      searchParams: {
-        part: 'snippet',
-        forUsername: username,
-        maxResults: 1,
-        fields: 'items/id',
-        key: appConfig.ytToken,
-      },
-      keepAlive: true,
-      responseType: 'json',
-    })
-      .then(({body}) => {
-        const channelsItemsId = s.mask(body, ChannelsItemsIdStruct);
-        if (!channelsItemsId.items || !channelsItemsId.items.length) {
-          throw new ErrorWithCode('Channel by user is not found', 'CHANNEL_BY_USER_IS_NOT_FOUND');
-        }
 
-        return channelsItemsId.items[0].id;
-      })
-      .catch((err) => {
-        if (err.code === 'CHANNEL_BY_USER_IS_NOT_FOUND') {
-          return this.requestChannelIdByQuery(username);
-        }
-        throw err;
+    try {
+      const {body} = await fetchRequest('https://www.googleapis.com/youtube/v3/channels', {
+        searchParams: {
+          part: 'snippet',
+          forUsername: username,
+          maxResults: 1,
+          fields: 'items/id',
+          key: appConfig.ytToken,
+        },
+        keepAlive: true,
+        responseType: 'json',
       });
+
+      const channelsItemsId = s.mask(body, ChannelsItemsIdStruct);
+      if (!channelsItemsId.items || !channelsItemsId.items.length) {
+        throw new ErrorWithCode('Channel by user is not found', 'CHANNEL_BY_USER_IS_NOT_FOUND');
+      }
+
+      return channelsItemsId.items[0].id;
+    } catch (error) {
+      const err = error as ErrorWithCode;
+      if (err.code === 'CHANNEL_BY_USER_IS_NOT_FOUND') {
+        return this.requestChannelIdByQuery(username);
+      }
+      throw err;
+    }
   }
 
   async requestChannelIdByQuery(query: string) {
@@ -487,7 +487,8 @@ class Youtube implements ServiceInterface {
     }
 
     await costCounter.inc(100);
-    return fetchRequest('https://www.googleapis.com/youtube/v3/search', {
+
+    const {body} = await fetchRequest('https://www.googleapis.com/youtube/v3/search', {
       searchParams: {
         part: 'snippet',
         q: query,
@@ -498,20 +499,21 @@ class Youtube implements ServiceInterface {
       },
       keepAlive: true,
       responseType: 'json',
-    }).then(({body}) => {
-      const searchItemsId = s.mask(body, SearchItemsIdStruct);
-      if (!searchItemsId.items.length) {
-        throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
-      }
-
-      return searchItemsId.items[0].id.channelId;
     });
+
+    const searchItemsId = s.mask(body, SearchItemsIdStruct);
+    if (!searchItemsId.items.length) {
+      throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
+    }
+
+    return searchItemsId.items[0].id.channelId;
   }
 
   async channelHasBroadcasts(channelId: string) {
     for (const type of ['completed', 'live', 'upcoming']) {
       await costCounter.inc(100);
-      const result = await fetchRequest('https://www.googleapis.com/youtube/v3/search', {
+
+      const {body} = await fetchRequest('https://www.googleapis.com/youtube/v3/search', {
         searchParams: {
           part: 'snippet',
           channelId: channelId,
@@ -525,7 +527,9 @@ class Youtube implements ServiceInterface {
         },
         keepAlive: true,
         responseType: 'json',
-      }).then(({body}) => s.mask(body, SearchItemsIdVideoIdStruct));
+      });
+
+      const result = s.mask(body, SearchItemsIdVideoIdStruct);
 
       if (result.items.length) {
         return true;
@@ -560,15 +564,14 @@ function isDailyLimitExceeded(err: HTTPError) {
 
 function iterPages(callback: (pageToken?: string) => Promise<string | undefined>) {
   let limit = 100;
-  const getPage = (pageToken?: string): Promise<void> => {
-    return promiseTry(() => callback(pageToken)).then((nextPageToken?: string) => {
-      if (nextPageToken) {
-        if (--limit < 0) {
-          throw new ErrorWithCode(`Page limit reached`, 'PAGE_LIMIT_REACHED');
-        }
-        return getPage(nextPageToken);
+  const getPage = async (pageToken?: string): Promise<void> => {
+    const nextPageToken = await callback(pageToken);
+    if (nextPageToken) {
+      if (--limit < 0) {
+        throw new ErrorWithCode(`Page limit reached`, 'PAGE_LIMIT_REACHED');
       }
-    });
+      return getPage(nextPageToken);
+    }
   };
   return getPage();
 }
