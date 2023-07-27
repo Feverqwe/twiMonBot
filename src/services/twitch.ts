@@ -160,7 +160,7 @@ class Twitch implements ServiceInterface {
   async findChannel(query: string) {
     const nameOrQuery = await (async () => {
       try {
-        return this.getChannelNameByUrl(query);
+        return await this.getChannelNameByUrl(query);
       } catch (error) {
         const err = error as ErrorWithCode;
         if (err.code === 'IS_NOT_CHANNEL_URL') {
