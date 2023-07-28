@@ -37,7 +37,6 @@ export const appConfig = {
   emitSendMessagesEveryMinutes: 5,
   emitCheckExistsChatsEveryHours: 24,
   chatSendTimeoutAfterErrorMinutes: 1,
-  emitCheckProxyEveryHours: 1,
   emitUpdateChannelPubSubSubscribeEveryMinutes: 5,
   updateChannelPubSubSubscribeIfExpiresLessThenMinutes: 15,
   channelPubSubSubscribeTimeoutMinutes: 2.5,
@@ -45,7 +44,7 @@ export const appConfig = {
   feedSyncTimeoutMinutes: 2.5,
   emitCleanPubSubFeedEveryHours: 1,
   cleanPubSubFeedIfEndedOlderThanHours: 1,
-  defaultChannelName: 'sintica',
+  defaultChannelName: 'nasa',
   webServer: {
     host: YOUTUBE_PUBSUB_HOST,
     port: Number(YOUTUBE_PUBSUB_PORT),

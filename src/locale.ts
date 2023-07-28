@@ -1,7 +1,9 @@
 import en from './locale/en';
+import ru from './locale/ru';
 
 const languages = {
   en,
+  ru,
 };
 
 class Locale {
