@@ -4,11 +4,11 @@ services:
   bot:
     container_name: twimonbot-bot
     build: .
+    restart: always
     depends_on:
       - bot-db
     user: root
     env_file: .env
-    restart: always
     ports:
       - 1111:80
     volumes:
