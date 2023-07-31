@@ -1,16 +1,23 @@
-{
-  "version": "2",
-  "services": {
-    "bot": {
-      "env_file": [
-        ".env"
-      ],
-      "build": ".",
-      "volumes": [
-        "/var/log/twiMonBot:/opt/log"
-      ],
-      "restart": "always",
-      "network_mode": "host"
-    }
-  }
-}
+version: "3.8"
+
+services:
+  bot:
+    container_name: twimonbot-bot
+    build: .
+    restart: always
+    depends_on:
+      - bot-db
+    user: root
+    env_file: .env
+    ports:
+      - 1111:80
+    volumes:
+      - ./log/twiMonBot:/opt/log
+
+  bot-db:
+    container_name: twimonbot-bot-db
+    image: mariadb:11.0.2
+    restart: always
+    env_file: .env
+    volumes:
+      - ./volumes/bot-db/mysql:/var/lib/mysql
