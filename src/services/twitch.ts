@@ -86,6 +86,11 @@ class Twitch implements ServiceInterface {
             stream.thumbnail_url.replace('{width}', '1920').replace('{height}', '1080'),
           ];
 
+          const len = JSON.stringify(previews).length;
+          if (len > 1024) {
+            throw new Error('Preview payload too big');
+          }
+
           let id: number | string = stream.id;
           let channelId: number | string = stream.user_id;
           // fallback api v3
