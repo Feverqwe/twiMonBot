@@ -7,7 +7,7 @@
       ],
       "build": ".",
       "volumes": [
-        "/var/log/twiMonBot:/opt/log"
+        "./log:/opt/log"
       ],
       "restart": "always",
       "network_mode": "host"
