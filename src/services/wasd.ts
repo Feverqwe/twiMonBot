@@ -8,7 +8,7 @@ import RateLimit2 from '../tools/rateLimit2';
 import {appConfig} from '../appConfig';
 import {getDebug} from '../tools/getDebug';
 
-const rateLimit = new RateLimit2(10, 'sec');
+const rateLimit = new RateLimit2(5, 'sec');
 
 const limitedFetchRequest = rateLimit.wrap(fetchRequest);
 
