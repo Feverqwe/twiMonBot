@@ -5,7 +5,6 @@ import Checker, {ServiceInterface} from './checker';
 import Goodgame from './services/goodgame';
 import Twitch from './services/twitch';
 import Youtube from './services/youtube';
-import Wasd from './services/wasd';
 import Events from 'events';
 import {appConfig} from './appConfig';
 import {getDebug} from './tools/getDebug';
@@ -26,7 +25,6 @@ class Main extends Events {
   twitch: Twitch;
   youtube: Youtube;
   goodgame: Goodgame;
-  wasd: Wasd;
   services: ServiceInterface[];
   serviceIdService: Map<string, ServiceInterface>;
   sender: Sender;
@@ -42,8 +40,7 @@ class Main extends Events {
     this.twitch = new Twitch(this);
     this.youtube = new Youtube(this);
     this.goodgame = new Goodgame(this);
-    this.wasd = new Wasd(this);
-    this.services = [this.twitch, this.youtube, this.goodgame, this.wasd];
+    this.services = [this.twitch, this.youtube, this.goodgame];
     this.serviceIdService = this.services.reduce((map, service) => {
       map.set(service.id, service);
       return map;
