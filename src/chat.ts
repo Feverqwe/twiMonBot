@@ -239,11 +239,7 @@ class Chat {
               return this.main.db.getChatIdChannelIdTop10ByServiceId(service.id);
             }),
           ),
-          Promise.all(
-            this.main.services.map((service) => {
-              return this.main.db.getServiceIdChannelCount(service.id);
-            }),
-          ),
+          this.main.db.getServiceIdChannelCount(this.main.services.map(({id}) => id)),
         ]);
 
         const lines = [];
@@ -269,7 +265,7 @@ class Chat {
         serviceTopChannelsList.forEach((serviceTopChannels) => {
           if (serviceTopChannels.length) {
             const service = this.main.getServiceById(serviceTopChannels[0].service)!;
-            const channelCount = serviceCountMap.get(serviceTopChannels[0].service);
+            const channelCount = serviceCountMap.get(serviceTopChannels[0].service) ?? 0;
             const name = service.name;
             lines.push('');
             lines.push(`${name} (${channelCount}):`);

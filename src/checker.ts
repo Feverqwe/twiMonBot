@@ -486,9 +486,8 @@ class Checker {
     });
     const newStreamChannelIds = Array.from(channelIdNewStreamIds.keys());
 
-    const chatIdChannelIdList = await this.main.db.getChatIdChannelIdByChannelIds(
-      newStreamChannelIds,
-    );
+    const chatIdChannelIdList =
+      await this.main.db.getChatIdChannelIdByChannelIds(newStreamChannelIds);
 
     const channelIdChats: Map<string, {chatId: string; isMutedRecords: boolean}[]> = new Map();
     chatIdChannelIdList.forEach((chatIdChannelId) => {
