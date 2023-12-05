@@ -581,11 +581,12 @@ class Chat {
           return;
         }
 
-        const service = this.main.getServiceById(channel.service)!;
+        const serviceId = channel.service;
+        const service = this.main.getServiceById(serviceId);
         await this.main.bot.editMessageText(
           locale.m('alert_channel-deleted', {
             channelName: channel.title,
-            serviceName: service.name,
+            serviceName: service?.name ?? serviceId,
           }),
           {
             chat_id: req.chatId,
@@ -602,10 +603,11 @@ class Chat {
       assertType<typeof req & WithChannels>(req);
 
       const channels = req.channels.map((channel) => {
-        const service = this.main.getServiceById(channel.service)!;
+        const serviceId = channel.service;
+        const service = this.main.getServiceById(serviceId);
         return [
           {
-            text: `${channel.title} (${service.name})`,
+            text: `${channel.title} (${service?.name ?? serviceId})`,
             callback_data: `/delete/${channel.id}`,
           },
         ];
@@ -999,8 +1001,8 @@ class Chat {
       const lines: string[] = [];
       serviceIds.forEach((serviceId) => {
         const channelLines = [];
-        const service = this.main.getServiceById(serviceId)!;
-        channelLines.push(htmlSanitize('b', service.name + ':'));
+        const service = this.main.getServiceById(serviceId);
+        channelLines.push(htmlSanitize('b', (service?.name ?? serviceId) + ':'));
         serviceIdChannels.get(serviceId)!.forEach((channel) => {
           channelLines.push(htmlSanitize('a', channel.title, channel.url));
         });
