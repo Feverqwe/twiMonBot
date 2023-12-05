@@ -55,7 +55,7 @@ const en = {
   action_yes: 'Yes',
   action_no: 'No',
   action_cancel: 'Cancel',
-  context_about: 'Source code: https://bit.ly/twiMonBot\nHosting https://m.do.co/c/f6ae2a246c7d',
+  context_about: 'Source code: https://bit.ly/twiMonBot',
   'alert_channel-in_blacklist': 'Channel in black list',
   'alert_channel-limit-exceeded': 'Channels limit exceeded',
   'alert_unknown-error': 'Oops something went wrong...',
