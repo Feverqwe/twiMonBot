@@ -60,10 +60,9 @@ const StreamStruct = s.object({
 
 class Vkplay implements ServiceInterface {
   id = 'vkplay';
-  name = 'VKPlayLive';
+  name = 'vkplay.live';
   batchSize = 25;
-  noCachePreview?: boolean | undefined;
-  streamUrlWithoutChannelName?: boolean | undefined;
+  streamPreviewHeadUnsupported = true;
 
   constructor(public main: Main) {}
 
@@ -78,7 +77,9 @@ class Vkplay implements ServiceInterface {
     await parallel(10, channelIds, async (channelId) => {
       try {
         const stream = await this.fetchStreamInfo(channelId);
-        resultStreams.push(stream);
+        if (stream) {
+          resultStreams.push(stream);
+        }
       } catch (err) {
         debug(`getStreams for channel (%j) skip, cause: %o`, channelId, err);
         skippedChannelIds.push(channelId);
@@ -103,6 +104,8 @@ class Vkplay implements ServiceInterface {
     });
 
     const stream = s.mask(body, StreamStruct);
+
+    if (!stream.isOnline) return;
 
     const previews: string[] = [];
     if (stream.previewUrl) {
