@@ -1178,7 +1178,7 @@ class Chat {
         throw new ErrorWithCode('Response cancel', 'RESPONSE_CANCEL');
       }
 
-      const option = options.find(({value}) => rReq.params.value);
+      const option = options.find(({value}) => value === rReq.params.value);
       if (!option) {
         throw new Error('Unexpected option value');
       }
