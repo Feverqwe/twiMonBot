@@ -61,7 +61,7 @@ const StreamStruct = s.object({
 class Vkplay implements ServiceInterface {
   id = 'vkplay';
   name = 'vkplayLive';
-  batchSize = 25;
+  batchSize = 10;
   streamPreviewHeadUnsupported = true;
 
   constructor(public main: Main) {}
