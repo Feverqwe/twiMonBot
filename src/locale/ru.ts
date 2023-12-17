@@ -55,7 +55,7 @@ const ru = {
   action_yes: 'Да',
   action_no: 'Нет',
   action_cancel: 'Отмена',
-  context_about: 'Исходный код: https://bit.ly/twiMonBot',
+  context_about: 'Исходный код: https://bit.ly/twiMonBot\nХостинг: Yandex Cloud',
   'alert_channel-in_blacklist': 'Канал в черном списке',
   'alert_channel-limit-exceeded': 'Превышен лимит каналов',
   'alert_unknown-error': 'Упс! Что-то пошло не так...',
