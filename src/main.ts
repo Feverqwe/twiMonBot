@@ -10,6 +10,7 @@ import {appConfig} from './appConfig';
 import {getDebug} from './tools/getDebug';
 import {getTelegramBot, TelegramBotWrapped} from './tools/telegramBotApi';
 import WebServer from './webServer';
+import Vkplay from './services/vkplay';
 
 const debug = getDebug('app:Main');
 
@@ -25,6 +26,7 @@ class Main extends Events {
   twitch: Twitch;
   youtube: Youtube;
   goodgame: Goodgame;
+  vkplay: Vkplay;
   services: ServiceInterface[];
   serviceIdService: Map<string, ServiceInterface>;
   sender: Sender;
@@ -40,7 +42,8 @@ class Main extends Events {
     this.twitch = new Twitch(this);
     this.youtube = new Youtube(this);
     this.goodgame = new Goodgame(this);
-    this.services = [this.twitch, this.youtube, this.goodgame];
+    this.vkplay = new Vkplay(this);
+    this.services = [this.twitch, this.youtube, this.goodgame, this.vkplay];
     this.serviceIdService = this.services.reduce((map, service) => {
       map.set(service.id, service);
       return map;
