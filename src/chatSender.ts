@@ -419,12 +419,21 @@ class ChatSender {
       ? JSON.parse(stream.previews)
       : stream.previews;
 
-    const {url: urlLocal, contentType: contentTypeLocal} = await getValidPreviewUrl(
-      previews,
-      service,
-    );
-    let contentType = contentTypeLocal;
-    let url = urlLocal;
+    let url: string;
+    let contentType: string;
+    if (service.streamPreviewHeadUnsupported) {
+      url = stream.previews[0];
+    } else {
+      const {url: urlLocal, contentType: contentTypeLocal} = await getValidPreviewUrl(
+        previews,
+        service,
+      );
+      contentType = contentTypeLocal;
+      url = urlLocal;
+    }
+    if (!url) {
+      const err = new ErrorWithCode(`Preview url is empty`, 'INVALID_PREVIEWS');
+    }
     if (service.noCachePreview) {
       url = appendQueryParam(url, '_', stream.updatedAt.getTime());
     }

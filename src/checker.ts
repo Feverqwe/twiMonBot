@@ -37,6 +37,7 @@ export interface ServiceInterface {
   batchSize: number;
   noCachePreview?: boolean;
   streamUrlWithoutChannelName?: boolean;
+  streamPreviewHeadUnsupported?: boolean;
   match(query: string): boolean;
   getStreams(channelIds: (string | number)[]): Promise<ServiceGetStreamsResult>;
   getExistsChannelIds(channelIds: (string | number)[]): Promise<(string | number)[]>;
