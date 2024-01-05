@@ -270,7 +270,11 @@ class ChatSender {
   async sendStream(stream: StreamModelWithChannel) {
     let message;
     try {
-      if (this.chat.isHidePreview || !stream.previews.length) {
+      const previews = !Array.isArray(stream.previews)
+      ? JSON.parse(stream.previews)
+      : stream.previews;
+
+      if (this.chat.isHidePreview || !previews.length) {
         message = await this.sendStreamAsText(stream);
       } else {
         message = await this.sendStreamAsPhoto(stream);
@@ -422,7 +426,7 @@ class ChatSender {
     let url: string;
     let contentType: string;
     if (service.streamPreviewHeadUnsupported) {
-      url = stream.previews[0];
+      url = previews[0];
     } else {
       const {url: urlLocal, contentType: contentTypeLocal} = await getValidPreviewUrl(
         previews,

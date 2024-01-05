@@ -105,7 +105,7 @@ class Twitch implements ServiceInterface {
             game: stream.game_name,
             // new api don't response records anymore
             isRecord: false, // stream.type !== 'live',
-            previews: previews,
+            previews: JSON.stringify(previews),
             viewers: stream.viewer_count,
             channelId: channelId,
             channelTitle: stream.user_name,

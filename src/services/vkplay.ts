@@ -118,7 +118,7 @@ class Vkplay implements ServiceInterface {
       title: stream.title,
       game: stream.category.title,
       isRecord: false,
-      previews,
+      previews: JSON.stringify(previews),
       viewers: stream.count.viewers,
       channelId: channelId,
       channelTitle: stream.user.displayName,

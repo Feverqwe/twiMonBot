@@ -109,7 +109,7 @@ class Goodgame implements ServiceInterface {
             title: stream.channel.title,
             game: gameTitle,
             isRecord: false,
-            previews: previews,
+            previews: JSON.stringify(previews),
             viewers: viewers,
             channelId: stream.channel.id,
             channelTitle: stream.channel.key,

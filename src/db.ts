@@ -87,7 +87,7 @@ export interface Stream {
   title: string;
   game?: string | null;
   isRecord?: boolean;
-  previews: string[];
+  previews: string;
   viewers?: number | null;
   channelId: string;
   telegramPreviewFileId?: string | null;
@@ -105,7 +105,7 @@ export class StreamModel extends Sequelize.Model {
   declare title: string;
   declare game: string | null;
   declare isRecord: boolean;
-  declare previews: string[];
+  declare previews: string;
   declare viewers: number | null;
   declare channelId: string;
   declare telegramPreviewFileId: string | null;
@@ -379,7 +379,7 @@ class Db {
         title: {type: Sequelize.STRING(191), allowNull: false},
         game: {type: Sequelize.STRING(191), allowNull: true},
         isRecord: {type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false},
-        previews: {type: Sequelize.JSON, allowNull: false},
+        previews: {type: Sequelize.TEXT, allowNull: false},
         viewers: {type: Sequelize.INTEGER, allowNull: true},
         channelId: {type: Sequelize.STRING(191), allowNull: false},
         telegramPreviewFileId: {type: Sequelize.TEXT, allowNull: true},

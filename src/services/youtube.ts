@@ -149,7 +149,7 @@ class Youtube implements ServiceInterface {
           id: id,
           game: null,
           isRecord: false,
-          previews: previews,
+          previews: JSON.stringify(previews),
           title: title,
           url: getVideoUrl(id),
           viewers: normViewers,
