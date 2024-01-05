@@ -82,7 +82,11 @@ class Vkplay implements ServiceInterface {
         }
       } catch (err) {
         debug(`getStreams for channel (%j) skip, cause: %o`, channelId, err);
-        skippedChannelIds.push(channelId);
+        if ((err as ErrorWithCode).code === 'CHANNEL_BY_ID_IS_NOT_FOUND') {
+          removedChannelIds.push(channelId);
+        } else {
+          skippedChannelIds.push(channelId);
+        }
       }
     });
     return {streams: resultStreams, skippedChannelIds, removedChannelIds};
