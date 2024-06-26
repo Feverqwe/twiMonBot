@@ -52,10 +52,10 @@ const StreamStruct = s.object({
   // createdAt: s.number(),
   previewUrl: s.string(),
   isOnline: s.boolean(),
-  category: s.object({
+  category: s.optional(s.object({
     // type: s.string(),
     title: s.string(),
-  }),
+  })),
 });
 
 class Vkplay implements ServiceInterface {
@@ -120,7 +120,7 @@ class Vkplay implements ServiceInterface {
       id: stream.id,
       url: getBlogUrl(channelId),
       title: stream.title,
-      game: stream.category.title,
+      game: stream.category?.title,
       isRecord: false,
       previews: JSON.stringify(previews),
       viewers: stream.count.viewers,
