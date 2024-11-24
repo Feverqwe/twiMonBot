@@ -28,16 +28,6 @@ const {FatalError, ParseError, TelegramError} = (
 
 const debug = getDebug('app:replaceBotRequest');
 
-/*(Module as any)._resolveFilename = ((origFn) => {
-  return (...args: any[]) => {
-    const path: string = args[0];
-    if (['request', 'request-promise'].includes(path)) {
-      args[0] = 'debug';
-    }
-    return origFn.apply(Module, args);
-  };
-})((Module as any)._resolveFilename);*/
-
 interface RequestOptions {
   qs?: Record<string, any>;
   form?: string | Record<string, any>;
@@ -62,6 +52,8 @@ interface Bot {
 
   _fixEntitiesField(obj: any): void;
 
+  _fixReplyParameters(obj: any): void;
+
   _buildURL: (path: string) => string;
 }
 
@@ -80,9 +72,11 @@ function telegramBotApi(botProto: Bot) {
     if (reqOptions.form) {
       self._fixReplyMarkup(reqOptions.form);
       self._fixEntitiesField(reqOptions.form);
+      self._fixReplyParameters(reqOptions.form);
     }
     if (reqOptions.qs) {
       self._fixReplyMarkup(reqOptions.qs);
+      this._fixReplyParameters(reqOptions.qs);
     }
 
     // debug('HTTP request: %j', reqOptions);
