@@ -25,13 +25,13 @@ export interface ServiceChannel {
   title: string;
 }
 
-export interface ServiceGetStreamsResult {
+export interface ServiceGetStreamsResult<T = string | number> {
   streams: ServiceStream[];
-  skippedChannelIds: (string | number)[];
-  removedChannelIds: (string | number)[];
+  skippedChannelIds: T[];
+  removedChannelIds: T[];
 }
 
-export interface ServiceInterface {
+export interface ServiceInterface<T = string | number> {
   id: string;
   name: string;
   batchSize: number;
@@ -39,8 +39,8 @@ export interface ServiceInterface {
   streamUrlWithoutChannelName?: boolean;
   streamPreviewHeadUnsupported?: boolean;
   match(query: string): boolean;
-  getStreams(channelIds: (string | number)[]): Promise<ServiceGetStreamsResult>;
-  getExistsChannelIds(channelIds: (string | number)[]): Promise<(string | number)[]>;
+  getStreams(channelIds: T[]): Promise<ServiceGetStreamsResult<T>>;
+  getExistsChannelIds(channelIds: T[]): Promise<T[]>;
   findChannel(query: string): Promise<ServiceChannel>;
 }
 

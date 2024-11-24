@@ -271,8 +271,8 @@ class ChatSender {
     let message;
     try {
       const previews = !Array.isArray(stream.previews)
-      ? JSON.parse(stream.previews)
-      : stream.previews;
+        ? JSON.parse(stream.previews)
+        : stream.previews;
 
       if (this.chat.isHidePreview || !previews.length) {
         message = await this.sendStreamAsText(stream);

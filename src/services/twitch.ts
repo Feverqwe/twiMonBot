@@ -51,7 +51,7 @@ const StreamsStruct = s.object({
   }),
 });
 
-class Twitch implements ServiceInterface {
+class Twitch implements ServiceInterface<number> {
   id = 'twitch';
   name = 'Twitch';
   batchSize = 100;
@@ -63,10 +63,10 @@ class Twitch implements ServiceInterface {
     return [/twitch\.tv\//i].some((re) => re.test(url));
   }
 
-  async getStreams(channelIds: (number | string)[]) {
+  async getStreams(channelIds: number[]) {
     const resultStreams: ServiceStream[] = [];
-    const skippedChannelIds: (number | string)[] = [];
-    const removedChannelIds: (number | string)[] = [];
+    const skippedChannelIds: number[] = [];
+    const removedChannelIds: number[] = [];
     await parallel(10, arrayByPart(channelIds, 100), async (channelIds) => {
       try {
         const {body} = await this.signFetchRequest('https://api.twitch.tv/helix/streams', {
@@ -120,8 +120,8 @@ class Twitch implements ServiceInterface {
     return {streams: resultStreams, skippedChannelIds, removedChannelIds};
   }
 
-  async getExistsChannelIds(ids: (number | string)[]) {
-    const resultChannelIds: (number | string)[] = [];
+  async getExistsChannelIds(ids: number[]) {
+    const resultChannelIds: number[] = [];
     await parallel(10, ids, async (channelId) => {
       try {
         await requestSingleChannelLimit.run(() => this.requestChannelById(channelId));
@@ -140,7 +140,7 @@ class Twitch implements ServiceInterface {
     return resultChannelIds;
   }
 
-  async requestChannelById(channelId: number | string) {
+  async requestChannelById(channelId: number) {
     try {
       await this.signFetchRequest('https://api.twitch.tv/helix/channels', {
         searchParams: {

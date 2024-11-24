@@ -45,7 +45,7 @@ const StreamsStruct = s.object({
   }),
 });
 
-class Goodgame implements ServiceInterface {
+class Goodgame implements ServiceInterface<number> {
   id = 'goodgame';
   name = 'Goodgame';
   batchSize = 25;

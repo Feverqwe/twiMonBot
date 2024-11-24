@@ -35,7 +35,7 @@ test('getExistsChannelIds', async () => {
 
   const channel = await twitch.findChannel('karmikkoala');
 
-  const result = await twitch.getExistsChannelIds([channel.id]);
+  const result = await twitch.getExistsChannelIds([channel.id as number]);
 
   expect(result).toEqual([54742538]);
 });
@@ -45,7 +45,7 @@ test('getStreams', async () => {
 
   const channel = await twitch.findChannel('karmikkoala');
 
-  const result = await twitch.getStreams([channel.id]);
+  const result = await twitch.getStreams([channel.id as number]);
 
   debug(result);
 });

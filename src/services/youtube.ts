@@ -113,7 +113,7 @@ const VideosResponseStruct = s.object({
   nextPageToken: s.optional(s.string()),
 });
 
-class Youtube implements ServiceInterface {
+class Youtube implements ServiceInterface<string> {
   id = 'youtube';
   name = 'Youtube';
   batchSize = 50;

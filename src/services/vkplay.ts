@@ -52,13 +52,15 @@ const StreamStruct = s.object({
   // createdAt: s.number(),
   previewUrl: s.string(),
   isOnline: s.boolean(),
-  category: s.optional(s.object({
-    // type: s.string(),
-    title: s.string(),
-  })),
+  category: s.optional(
+    s.object({
+      // type: s.string(),
+      title: s.string(),
+    }),
+  ),
 });
 
-class Vkplay implements ServiceInterface {
+class Vkplay implements ServiceInterface<string> {
   id = 'vkplay';
   name = 'vkplayLive';
   batchSize = 10;
@@ -70,7 +72,7 @@ class Vkplay implements ServiceInterface {
     return [/vkplay\.live\//i].some((re) => re.test(query));
   }
 
-  async getStreams(channelIds: string[]): Promise<ServiceGetStreamsResult> {
+  async getStreams(channelIds: string[]): Promise<ServiceGetStreamsResult<string>> {
     const resultStreams: ServiceStream[] = [];
     const skippedChannelIds: string[] = [];
     const removedChannelIds: string[] = [];
