@@ -27,7 +27,7 @@ const StreamsStruct = s.object({
         key: s.string(),
         status: s.string(),
         id: s.number(),
-        viewers: s.string(),
+        viewers: s.number(),
         channel: s.object({
           id: s.number(),
           key: s.string(),
@@ -98,7 +98,7 @@ class Goodgame implements ServiceInterface<number> {
             previews.push(thumb);
           }
 
-          let viewers: null | number = parseInt(stream.viewers, 10);
+          let viewers: null | number = stream.viewers;
           if (!isFinite(viewers)) {
             viewers = null;
           }
