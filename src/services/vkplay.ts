@@ -1,11 +1,10 @@
+import * as s from 'superstruct';
 import {Infer} from 'superstruct';
 import {ServiceChannel, ServiceGetStreamsResult, ServiceInterface, ServiceStream} from '../checker';
 import ErrorWithCode from '../tools/errorWithCode';
 import fetchRequest, {HTTPError} from '../tools/fetchRequest';
-import * as s from 'superstruct';
 import parallel from '../tools/parallel';
 import {getDebug} from '../tools/getDebug';
-import arrayByPart from '../tools/arrayByPart';
 import Main from '../main';
 
 const debug = getDebug('app:vkplay');
@@ -69,7 +68,7 @@ class Vkplay implements ServiceInterface<string> {
   constructor(public main: Main) {}
 
   match(query: string): boolean {
-    return [/vkplay\.live\//i].some((re) => re.test(query));
+    return [/vkplay\.live\//i, /live\.vkvideo\.ru\//].some((re) => re.test(query));
   }
 
   async getStreams(channelIds: string[]): Promise<ServiceGetStreamsResult<string>> {
@@ -96,7 +95,7 @@ class Vkplay implements ServiceInterface<string> {
 
   async fetchStreamInfo(channelId: string) {
     const {body} = await fetchRequest(
-      `https://api.vkplay.live/v1/blog/${encodeURIComponent(channelId)}/public_video_stream`,
+      `https://api.live.vkvideo.ru/v1/blog/${encodeURIComponent(channelId)}/public_video_stream`,
       {
         keepAlive: true,
         responseType: 'json',
@@ -163,7 +162,7 @@ class Vkplay implements ServiceInterface<string> {
 
   async getChannelIdByUrl(url: string) {
     let channelId = '';
-    [/vkplay\.live\/([\w\-]+)/i].some((re) => {
+    [/vkplay\.live\/([\w\-]+)/i, /live\.vkvideo\.ru\/([\w\-]+)/i].some((re) => {
       const m = re.exec(url);
       if (m) {
         channelId = m[1];
@@ -181,7 +180,7 @@ class Vkplay implements ServiceInterface<string> {
 
   async findChannelIdByQuery(query: string) {
     const {body} = await fetchRequest(
-      'https://api.vkplay.live/v1/search/public_video_stream/blog/',
+      'https://api.live.vkvideo.ru/v1/search/public_video_stream/blog/',
       {
         searchParams: {
           search_query: query,
@@ -209,7 +208,7 @@ class Vkplay implements ServiceInterface<string> {
 
   async fetchChannelInfo(channelId: string) {
     const {body} = await fetchRequest(
-      'https://api.vkplay.live/v1/blog/' + encodeURIComponent(channelId),
+      'https://api.live.vkvideo.ru/v1/blog/' + encodeURIComponent(channelId),
       {
         keepAlive: true,
         responseType: 'json',
@@ -231,7 +230,7 @@ class Vkplay implements ServiceInterface<string> {
 }
 
 function getBlogUrl(name: string) {
-  return `https://vkplay.live/${encodeURIComponent(name)}`;
+  return `https://live.vkvideo.ru/${encodeURIComponent(name)}`;
 }
 
 export default Vkplay;
