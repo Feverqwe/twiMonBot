@@ -5,10 +5,13 @@ import {getDebug} from '../tools/getDebug';
 import fetchRequest, {HTTPError} from '../tools/fetchRequest';
 import * as s from 'superstruct';
 import Main from '../main';
+import {CookieJar} from 'tough-cookie';
 
 const debug = getDebug('app:kick');
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; rv:114.0) Gecko/20100101 Firefox/114.0';
+
+const cookieJar = new CookieJar();
 
 const StreamStruct = s.object({
   data: s.nullable(
@@ -89,6 +92,7 @@ class Kick implements ServiceInterface<string> {
           'Content-Type': 'application/json',
           'User-Agent': UA,
         },
+        cookieJar,
         keepAlive: true,
         responseType: 'json',
       },
@@ -181,6 +185,7 @@ class Kick implements ServiceInterface<string> {
           'Content-Type': 'application/json',
           'User-Agent': UA,
         },
+        cookieJar,
         keepAlive: true,
         responseType: 'json',
       },
