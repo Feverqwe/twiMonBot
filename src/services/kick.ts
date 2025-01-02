@@ -8,6 +8,8 @@ import Main from '../main';
 
 const debug = getDebug('app:kick');
 
+const UA = 'Mozilla/5.0 (Windows NT 10.0; rv:114.0) Gecko/20100101 Firefox/114.0';
+
 const StreamStruct = s.object({
   data: s.nullable(
     s.object({
@@ -83,6 +85,10 @@ class Kick implements ServiceInterface<string> {
     const {body} = await fetchRequest(
       `https://kick.com/api/v2/channels/${encodeURIComponent(channelId)}/livestream`,
       {
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': UA,
+        },
         keepAlive: true,
         responseType: 'json',
       },
@@ -171,6 +177,10 @@ class Kick implements ServiceInterface<string> {
     const {body} = await fetchRequest(
       'https://kick.com/api/v1/channels/' + encodeURIComponent(channelId),
       {
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': UA,
+        },
         keepAlive: true,
         responseType: 'json',
       },
