@@ -8,6 +8,8 @@ import {CookieJar} from 'tough-cookie';
 import axios, {AxiosError, AxiosResponse} from 'axios';
 import http2 from 'http2-wrapper';
 import { createHTTP2Adapter } from 'axios-http2-adapter';
+import path from 'node:path';
+import {FileCookieStore} from 'tough-cookie-file-store';
 
 const debug = getDebug('app:fetchRequest');
 
@@ -19,7 +21,7 @@ export interface FetchRequestOptions {
   timeout?: number;
   keepAlive?: boolean;
   body?: string | URLSearchParams | FormData;
-  cookieJar?: CookieJar;
+  cookie?: boolean;
   throwHttpErrors?: boolean;
   http2?: boolean;
 }
@@ -53,13 +55,15 @@ const axiosKeepAliveInstance = axios.create({
 
 const axiosDefaultInstance = axios.create();
 
+let globalCookieJar: CookieJar | null = null;
+
 async function fetchRequest<T = any>(url: string, options?: FetchRequestOptions) {
   const {
     http2,
     responseType,
     keepAlive,
     searchParams,
-    cookieJar,
+    cookie,
     throwHttpErrors = true,
     timeout = 60 * 1000,
     ...fetchOptions
@@ -82,6 +86,15 @@ async function fetchRequest<T = any>(url: string, options?: FetchRequestOptions)
     } else
     if (keepAlive) {
       axiosInstance = axiosKeepAliveInstance;
+    }
+
+    let cookieJar;
+    if (cookie) {
+      if (!globalCookieJar) {
+        const filepath = path.join(__dirname, '../../cookies.json');
+        globalCookieJar = new CookieJar(new FileCookieStore(filepath));
+      }
+      cookieJar = globalCookieJar;
     }
 
     if (cookieJar) {
