@@ -161,11 +161,10 @@ async function fetchRequest<T = any>(url: string, options?: FetchRequestOptions)
 
     if (responseType === 'buffer') {
       fetchResponse.rawBody = Buffer.from(rawResponse.data as ArrayBuffer);
-      fetchResponse.body = fetchResponse.rawBody;
     } else {
       fetchResponse.rawBody = rawResponse.data;
-      fetchResponse.body = fetchResponse.rawBody;
     }
+    fetchResponse.body = fetchResponse.rawBody;
 
     if (throwHttpErrors && !ok) {
       if (responseType === 'stream') {
