@@ -22,7 +22,7 @@ const {
   DB_PASSWORD = '',
   TG_ADMIN_CHAT_ID = '',
   CHANNEL_BLACKLIST = '',
-  KICK_HEADERS = '{}'
+  KICK_HEADERS = '{}',
 } = process.env;
 
 let kickHeaders = {};

@@ -5,9 +5,9 @@ import FormData from 'form-data';
 
 import {getDebug} from './getDebug';
 import {CookieJar} from 'tough-cookie';
-import axios, {AxiosError, AxiosResponse} from 'axios';
+import axios, {AxiosError, AxiosResponse, Cancel, isCancel} from 'axios';
 import http2 from 'http2-wrapper';
-import { createHTTP2Adapter } from 'axios-http2-adapter';
+import {createHTTP2Adapter} from 'axios-http2-adapter';
 import path from 'node:path';
 import {FileCookieStore} from 'tough-cookie-file-store';
 
@@ -83,8 +83,7 @@ async function fetchRequest<T = any>(url: string, options?: FetchRequestOptions)
     let axiosInstance = axiosDefaultInstance;
     if (http2) {
       axiosInstance = http2axiosInstance;
-    } else
-    if (keepAlive) {
+    } else if (keepAlive) {
       axiosInstance = axiosKeepAliveInstance;
     }
 
@@ -126,7 +125,7 @@ async function fetchRequest<T = any>(url: string, options?: FetchRequestOptions)
       signal: controller.signal,
       validateStatus: null,
     }).catch((err: Error & any) => {
-      if (err.name === 'AbortError' && err.type === 'aborted' && isTimeout) {
+      if (isCancel(err) && isTimeout) {
         throw new TimeoutError(err);
       } else {
         throw new RequestError(err.message, err);
@@ -188,11 +187,7 @@ export class RequestError extends Error {
   stack!: string;
   declare readonly response?: FetchResponse;
 
-  constructor(
-    message: string,
-    error: AxiosError | {},
-    response?: FetchResponse | undefined,
-  ) {
+  constructor(message: string, error: AxiosError | {}, response?: FetchResponse | undefined) {
     super(message);
 
     this.name = 'RequestError';
@@ -232,8 +227,8 @@ export class HTTPError extends RequestError {
 export class TimeoutError extends RequestError {
   declare readonly response: undefined;
 
-  constructor(error: Error) {
-    super(error.message, error, undefined);
+  constructor(error: Cancel) {
+    super(error.message ?? 'Empty message', error, undefined);
     this.name = 'TimeoutError';
 
     Error.captureStackTrace(this, this.constructor);
@@ -255,8 +250,8 @@ export class ReadError extends RequestError {
   }
 }
 
-function transformStack(err: Error & {stack: string}, origError: Error) {
-  if (typeof origError.stack !== 'undefined') {
+function transformStack(err: Error & {stack: string}, origError: Error | Cancel) {
+  if ('stack' in origError && typeof origError.stack !== 'undefined') {
     const indexOfMessage = err.stack.indexOf(err.message) + err.message.length;
     const thisStackTrace = err.stack.slice(indexOfMessage).split('\n').reverse();
     const errorStackTrace = origError.stack
