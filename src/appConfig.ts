@@ -1,4 +1,7 @@
 import 'dotenv/config';
+import {getDebug} from './tools/getDebug';
+
+const debug = getDebug('app:kick');
 
 const {
   TELEGRAM_TOKEN = '',
@@ -19,7 +22,15 @@ const {
   DB_PASSWORD = '',
   TG_ADMIN_CHAT_ID = '',
   CHANNEL_BLACKLIST = '',
+  KICK_HEADERS = '{}'
 } = process.env;
+
+let kickHeaders = {};
+try {
+  kickHeaders = JSON.parse(KICK_HEADERS);
+} catch (err) {
+  debug('Parse kick headers error: %o', err);
+}
 
 export const appConfig = {
   token: TELEGRAM_TOKEN,
@@ -68,4 +79,5 @@ export const appConfig = {
   channelBlackList: CHANNEL_BLACKLIST.split(',')
     .map((v) => v.trim())
     .filter(Boolean),
+  kickHeaders,
 };
