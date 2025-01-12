@@ -441,7 +441,7 @@ class ChatSender {
     if (service.noCachePreview) {
       url = appendQueryParam(url, '_', stream.updatedAt.getTime());
     }
-    const caption = getStreamAsCaption(stream, this.main.getServiceById(stream.channel.service)!);
+    const caption = getStreamAsCaption(stream, service);
 
     const message = await promiseTry(async () => {
       try {
@@ -476,6 +476,8 @@ class ChatSender {
           const response = await fetchRequest<ReadableStream>(url, {
             responseType: 'stream',
             keepAlive: true,
+            cookie: service.useCookies,
+            http2: service.useHttp2,
           });
 
           const message = await this.main.bot.sendPhoto(
