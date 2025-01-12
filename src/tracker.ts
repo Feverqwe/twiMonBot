@@ -95,7 +95,7 @@ class Tracker {
       .match(/(\d{0,2})/g)
       .reverse();
 
-    const random = new Array(16);
+    const random = new Uint8Array(16);
     for (let i = 0; i < 16; i++) {
       random[i] = 0x0;
     }
