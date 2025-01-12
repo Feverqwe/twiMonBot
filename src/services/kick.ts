@@ -51,6 +51,8 @@ class Kick implements ServiceInterface<string> {
   id = 'kick';
   name = 'Kick (beta)';
   batchSize = 10;
+  useHttp2 = true;
+  useCookies = true;
 
   constructor(public main: Main) {}
 
@@ -87,10 +89,10 @@ class Kick implements ServiceInterface<string> {
       `https://kick.com/api/v2/channels/${encodeURIComponent(channelId)}/livestream`,
       {
         headers: HEADERS,
-        cookie: true,
         keepAlive: true,
         responseType: 'json',
-        http2: true,
+        cookie: this.useCookies,
+        http2: this.useHttp2,
       },
     ).catch((error) => {
       const err = error as HTTPError;
@@ -178,10 +180,10 @@ class Kick implements ServiceInterface<string> {
       'https://kick.com/api/v1/channels/' + encodeURIComponent(channelId),
       {
         headers: HEADERS,
-        cookie: true,
         keepAlive: true,
         responseType: 'json',
-        http2: true,
+        cookie: this.useCookies,
+        http2: this.useHttp2,
       },
     ).catch((error) => {
       const err = error as HTTPError;
