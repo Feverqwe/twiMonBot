@@ -109,7 +109,7 @@ class Kick implements ServiceInterface<string> {
     const previews: string[] = [];
     if (stream) {
       stream.thumbnail.srcset.split(/,\s+/).forEach((urlRes) => {
-        const [url] = urlRes.split('s+');
+        const [url] = urlRes.split('\s+');
         previews.push(url);
       });
     }
