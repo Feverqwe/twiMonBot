@@ -4,10 +4,12 @@ import qs from 'node:querystring';
 import FormData from 'form-data';
 
 import {getDebug} from './getDebug';
-import {CookieJar} from 'tough-cookie';
+import {CookieJar, Store} from 'tough-cookie';
 import axios, {AxiosError, AxiosResponse, Cancel, isCancel} from 'axios';
 import http2 from 'http2-wrapper';
 import {createHTTP2Adapter} from 'axios-http2-adapter';
+import path from 'node:path';
+import {FileCookieStore} from 'tough-cookie-file-store';
 
 const debug = getDebug('app:fetchRequest');
 
@@ -53,7 +55,7 @@ const axiosKeepAliveInstance = axios.create({
 
 const axiosDefaultInstance = axios.create();
 
-const globalCookieJar = new CookieJar();
+let globalCookieJar: CookieJar | null = null;
 
 async function fetchRequest<T = any>(url: string, options?: FetchRequestOptions) {
   const {
@@ -87,6 +89,10 @@ async function fetchRequest<T = any>(url: string, options?: FetchRequestOptions)
 
     let cookieJar;
     if (cookie) {
+      if (!globalCookieJar) {
+        const filepath = path.join(__dirname, '../../cookies.json');
+        globalCookieJar = new CookieJar(new FileCookieStore(filepath) as unknown as Store);
+      }
       cookieJar = globalCookieJar;
     }
 
