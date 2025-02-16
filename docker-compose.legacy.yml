@@ -1,5 +1,4 @@
 {
-  "version": "2",
   "services": {
     "bot": {
       "env_file": [
@@ -7,7 +6,8 @@
       ],
       "build": ".",
       "volumes": [
-        "./log:/opt/log"
+        "./log:/opt/log",
+        "./store:/opt/store"
       ],
       "restart": "always",
       "network_mode": "host"
