@@ -187,6 +187,10 @@ class Kick implements ServiceInterface<string> {
       },
     ).catch((error) => {
       const err = error as HTTPError;
+      /*if (err.name === 'HTTPError' && err.response.statusCode === 403) {
+        fs.writeFileSync("out.html", err.response.body);
+        console.log('err', err.response.url);
+      }*/
       if (err.name === 'HTTPError' && err.response.statusCode === 404) {
         throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
       }
