@@ -4,3 +4,5 @@ log/
 dist/
 .env
 volumes
+out.html
+store
