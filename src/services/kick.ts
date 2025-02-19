@@ -177,7 +177,7 @@ class Kick implements ServiceInterface<string> {
 
   async fetchChannelInfo(channelId: string) {
     const {body} = await fetchRequest(
-      'https://kick.com/api/v1/channels/' + encodeURIComponent(channelId),
+      'https://kick.com/api/v2/channels/' + encodeURIComponent(channelId),
       {
         headers: HEADERS,
         keepAlive: true,
