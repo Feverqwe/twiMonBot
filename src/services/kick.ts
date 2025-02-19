@@ -6,6 +6,7 @@ import fetchRequest, {HTTPError} from '../tools/fetchRequest';
 import * as s from 'superstruct';
 import Main from '../main';
 import {appConfig} from '../appConfig';
+// import fs from 'node:fs';
 
 const debug = getDebug('app:kick');
 
