@@ -2,14 +2,15 @@ import {ServiceChannel, ServiceGetStreamsResult, ServiceInterface, ServiceStream
 import parallel from '../tools/parallel';
 import ErrorWithCode from '../tools/errorWithCode';
 import {getDebug} from '../tools/getDebug';
-import fetchRequest, {FetchRequestOptions, HTTPError} from '../tools/fetchRequest';
+import fetchRequest, {HTTPError} from '../tools/fetchRequest';
 import * as s from 'superstruct';
 import Main from '../main';
 import {appConfig} from '../appConfig';
-import getNow from '../tools/getNow';
-import promiseTry from '../tools/promiseTry';
+// import fs from 'node:fs';
 
 const debug = getDebug('app:kick');
+
+const HEADERS = appConfig.kickHeaders;
 
 const StreamStruct = s.object({
   data: s.nullable(
@@ -49,9 +50,10 @@ const ChannelStrict = s.object({
 
 class Kick implements ServiceInterface<string> {
   id = 'kick';
-  name = 'Kick';
+  name = 'Kick (beta)';
   batchSize = 10;
   useHttp2 = true;
+  useCookies = true;
 
   constructor(public main: Main) {}
 
@@ -84,11 +86,13 @@ class Kick implements ServiceInterface<string> {
   }
 
   async fetchStreamInfo(channelId: string) {
-    const {body} = await this.signFetchRequest(
+    const {body} = await fetchRequest(
       `https://kick.com/api/v2/channels/${encodeURIComponent(channelId)}/livestream`,
       {
+        headers: HEADERS,
         keepAlive: true,
         responseType: 'json',
+        cookie: this.useCookies,
         http2: this.useHttp2,
       },
     ).catch((error) => {
@@ -173,15 +177,21 @@ class Kick implements ServiceInterface<string> {
   }
 
   async fetchChannelInfo(channelId: string) {
-    const {body} = await this.signFetchRequest(
+    const {body} = await fetchRequest(
       'https://kick.com/api/v2/channels/' + encodeURIComponent(channelId),
       {
+        headers: HEADERS,
         keepAlive: true,
         responseType: 'json',
+        cookie: this.useCookies,
         http2: this.useHttp2,
       },
     ).catch((error) => {
       const err = error as HTTPError;
+      /*if (err.name === 'HTTPError' && err.response.statusCode === 403) {
+        fs.writeFileSync("out.html", err.response.body);
+        console.log('err', err.response.url);
+      }*/
       if (err.name === 'HTTPError' && err.response.statusCode === 404) {
         throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
       }
@@ -193,64 +203,6 @@ class Kick implements ServiceInterface<string> {
     const url = getChannelUrl(blog.slug);
     const title = blog.user.username;
     return {id, title, url};
-  }
-
-  token: null | {
-    accessToken: string;
-    expiresAt: number;
-  } = null;
-
-  lastAccessTokenRequest: Promise<string> | undefined;
-  async getAccessToken() {
-    if (this.token && this.token.expiresAt > getNow()) {
-      return this.token.accessToken;
-    }
-
-    if (this.lastAccessTokenRequest) {
-      return this.lastAccessTokenRequest;
-    }
-
-    return (this.lastAccessTokenRequest = promiseTry(async () => {
-      const {body} = await fetchRequest('https://id.kick.com/oauth2/token', {
-        method: 'POST',
-        searchParams: {
-          client_id: appConfig.kickToken,
-          client_secret: appConfig.kickSecret,
-          grant_type: 'client_credentials',
-        },
-        responseType: 'json',
-      });
-
-      s.assert(
-        body,
-        s.type({
-          access_token: s.string(),
-          expires_in: s.number(),
-        }),
-      );
-
-      const expiresAt = Date.now() + body.expires_in * 1000;
-      this.token = {
-        expiresAt,
-        accessToken: body.access_token,
-      };
-
-      return this.token.accessToken;
-    }).finally(() => {
-      this.lastAccessTokenRequest = undefined;
-    }));
-  }
-
-  async signFetchRequest(url: string, options: FetchRequestOptions) {
-    options.headers = Object.assign(
-      {
-        Authorization: 'Bearer ' + (await this.getAccessToken()),
-        'Client-Id': appConfig.twitchToken,
-      },
-      options.headers,
-    );
-
-    return fetchRequest(url, options);
   }
 }
 

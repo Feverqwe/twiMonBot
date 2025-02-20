@@ -4,10 +4,13 @@ import qs from 'node:querystring';
 import FormData from 'form-data';
 
 import {getDebug} from './getDebug';
-import {CookieJar} from 'tough-cookie';
+import {Cookie, CookieJar, MemoryCookieStore} from 'tough-cookie';
 import axios, {AxiosError, AxiosResponse, Cancel, isCancel} from 'axios';
 import http2 from 'http2-wrapper';
 import {createHTTP2Adapter} from 'axios-http2-adapter';
+import path from 'node:path';
+import {FileCookieStore} from 'tough-cookie-file-store';
+import fs from 'node:fs';
 
 const debug = getDebug('app:fetchRequest');
 
@@ -35,6 +38,28 @@ interface FetchResponse<T = any> {
   headers: Record<string, string | string[]>;
 }
 
+class NewFileCookieStore extends FileCookieStore {
+  findCookie(
+    domain: string,
+    path: string,
+    key: string,
+    cb?: (err: null, cookie: Cookie | null) => void,
+  ) {
+    const promise = new Promise<Cookie | null>((resolve, reject) => {
+      super.findCookie(domain, path, key, (err, cookie) => {
+        err ? reject(err) : resolve(cookie);
+      });
+    });
+    if (cb) {
+      promise.then(
+        (c) => cb(null, c),
+        (e) => cb(e, null),
+      );
+    }
+    return promise;
+  }
+}
+
 const http2axiosInstance = axios.create({
   adapter: createHTTP2Adapter({
     agent: new http2.Agent(),
@@ -53,7 +78,7 @@ const axiosKeepAliveInstance = axios.create({
 
 const axiosDefaultInstance = axios.create();
 
-const globalCookieJar = new CookieJar();
+let globalCookieJar: CookieJar | null = null;
 
 async function fetchRequest<T = any>(url: string, options?: FetchRequestOptions) {
   const {
@@ -87,6 +112,13 @@ async function fetchRequest<T = any>(url: string, options?: FetchRequestOptions)
 
     let cookieJar;
     if (cookie) {
+      if (!globalCookieJar) {
+        const filepath = path.join(__dirname, '../../store/cookies.json');
+        fs.mkdirSync(path.dirname(filepath), {recursive: true});
+        globalCookieJar = new CookieJar(
+          new NewFileCookieStore(filepath) as unknown as MemoryCookieStore,
+        );
+      }
       cookieJar = globalCookieJar;
     }
 

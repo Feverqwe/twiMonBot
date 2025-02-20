@@ -30,6 +30,7 @@
     "sequelize": "^6.29.0",
     "superstruct": "^0.16.7",
     "tough-cookie": "^5.1.0",
+    "tough-cookie-file-store": "^2.0.3",
     "uuid": "^11.0.5",
     "xmldoc": "^1.1.2"
   },
@@ -41,6 +42,7 @@
     "@types/lodash.throttle": "^4.1.7",
     "@types/node": "^22.9.3",
     "@types/node-telegram-bot-api": "^0.64.7",
+    "@types/tough-cookie-file-store": "^2.0.4",
     "@types/xmldoc": "^1.1.6",
     "cross-env": "^7.0.3",
     "del-cli": "^6.0.0",
