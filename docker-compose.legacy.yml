@@ -6,8 +6,7 @@
       ],
       "build": ".",
       "volumes": [
-        "./log:/opt/log",
-        "./store:/opt/store"
+        "./log:/opt/log"
       ],
       "restart": "always",
       "network_mode": "host"

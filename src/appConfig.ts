@@ -22,15 +22,9 @@ const {
   DB_PASSWORD = '',
   TG_ADMIN_CHAT_ID = '',
   CHANNEL_BLACKLIST = '',
-  KICK_HEADERS = '{}',
+  KICK_TOKEN = '',
+  KICK_SECRET = '',
 } = process.env;
-
-let kickHeaders = {};
-try {
-  kickHeaders = JSON.parse(KICK_HEADERS);
-} catch (err) {
-  debug('Parse kick headers error: %o', err);
-}
 
 export const appConfig = {
   token: TELEGRAM_TOKEN,
@@ -79,5 +73,6 @@ export const appConfig = {
   channelBlackList: CHANNEL_BLACKLIST.split(',')
     .map((v) => v.trim())
     .filter(Boolean),
-  kickHeaders,
+  kickToken: KICK_TOKEN,
+  kickSecret: KICK_SECRET,
 };
