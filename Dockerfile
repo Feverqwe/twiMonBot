@@ -8,7 +8,6 @@ RUN chown -R nobody:nogroup ./ && \
     touch /.npmrc && chown nobody:nogroup /.npmrc && \
     mkdir /.npm && chown nobody:nogroup /.npm && \
     mkdir ./log && chown nobody:nogroup ./log && \
-    mkdir ./store && chown nobody:nogroup ./store && \
     ln -sf /dev/stdout ./log/stdout.log && \
     ln -sf /dev/stderr ./log/stderr.log
 USER nobody:nobody

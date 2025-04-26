@@ -19,7 +19,6 @@ export interface FetchRequestOptions {
   body?: string | URLSearchParams | FormData;
   cookie?: boolean;
   throwHttpErrors?: boolean;
-  http2?: boolean;
 }
 
 interface FetchResponse<T = any> {
@@ -48,7 +47,6 @@ const globalCookieJar = new CookieJar();
 
 async function fetchRequest<T = any>(url: string, options?: FetchRequestOptions) {
   const {
-    http2,
     responseType,
     keepAlive,
     searchParams,
