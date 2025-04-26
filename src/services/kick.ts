@@ -2,7 +2,7 @@ import {ServiceChannel, ServiceGetStreamsResult, ServiceInterface, ServiceStream
 import parallel from '../tools/parallel';
 import ErrorWithCode from '../tools/errorWithCode';
 import {getDebug} from '../tools/getDebug';
-import fetchRequest, {FetchRequestOptions, HTTPError} from '../tools/fetchRequest';
+import fetchRequest, {FetchRequestOptions} from '../tools/fetchRequest';
 import * as s from 'superstruct';
 import Main from '../main';
 import {appConfig} from '../appConfig';
@@ -11,46 +11,38 @@ import promiseTry from '../tools/promiseTry';
 
 const debug = getDebug('app:kick');
 
-const StreamStruct = s.object({
-  data: s.nullable(
-    s.object({
-      id: s.number(),
-      // slug: s.string(),
-      session_title: s.string(),
-      created_at: s.string(),
-      // language: s.string(),
-      // is_mature: s.string(),
-      viewers: s.number(),
-      category: s.object({
-        // id: s.number(),
-        name: s.string(),
-        // slug: s.string(),
-        // tags: s.array(s.string()),
-        // parent_category: s.object({
-        //   id: s.number(),
-        //   slug: s.string(),
-        // })
-      }),
-      // playback_url: s.string(),
-      thumbnail: s.object({
-        // src: s.string(),
-        srcset: s.string(),
-      }),
-    }),
-  ),
-});
-
 const ChannelStrict = s.object({
+  broadcaster_user_id: s.number(),
   slug: s.string(),
-  user: s.object({
-    username: s.string(),
+  channel_description: s.string(),
+  banner_picture: s.string(),
+  stream: s.object({
+    url: s.string(),
+    key: s.string(),
+    is_live: s.boolean(),
+    is_mature: s.boolean(),
+    language: s.string(),
+    start_time: s.string(),
+    viewer_count: s.number(),
+    thumbnail: s.string(),
+  }),
+  stream_title: s.string(),
+  category: s.object({
+    id: s.number(),
+    name: s.string(),
+    thumbnail: s.string(),
   }),
 });
 
-class Kick implements ServiceInterface<string> {
+const ChannelsStrict = s.object({
+  data: s.array(ChannelStrict),
+  message: s.string(),
+});
+
+class Kick implements ServiceInterface<number> {
   id = 'kick';
   name = 'Kick';
-  batchSize = 10;
+  batchSize = 50;
   useHttp2 = true;
 
   constructor(public main: Main) {}
@@ -59,84 +51,63 @@ class Kick implements ServiceInterface<string> {
     return [/kick\.com\//i].some((re) => re.test(query));
   }
 
-  async getStreams(channelIds: string[]): Promise<ServiceGetStreamsResult<string>> {
+  async getStreams(channelIds: number[]): Promise<ServiceGetStreamsResult<number>> {
     const resultStreams: ServiceStream[] = [];
-    const skippedChannelIds: string[] = [];
-    const removedChannelIds: string[] = [];
+    const skippedChannelIds: number[] = [];
+    const removedChannelIds: number[] = [];
 
-    await parallel(10, channelIds, async (channelId) => {
-      try {
-        const stream = await this.fetchStreamInfo(channelId);
+    try {
+      const {data: channels} = await this.getChannelInfo({broadcasterUserId: channelIds});
+
+      channels.forEach((channel) => {
+        const {stream, broadcaster_user_id: channelId, slug} = channel;
+        if (!stream.is_live) return;
+
+        const previews: string[] = [];
         if (stream) {
-          resultStreams.push(stream);
+          previews.push(stream.thumbnail.replace(/\/\d+\.webp$/, '\/1080\.webp'));
+          previews.push(stream.thumbnail);
         }
-      } catch (err) {
-        debug(`getStreams for channel (%j) skip, cause: %o`, channelId, err);
-        if ((err as ErrorWithCode).code === 'CHANNEL_BY_ID_IS_NOT_FOUND') {
-          removedChannelIds.push(channelId);
-        } else {
-          skippedChannelIds.push(channelId);
-        }
-      }
-    });
+
+        const result = {
+          id: stream.start_time,
+          url: getChannelUrl(slug),
+          title: channel.stream_title,
+          game: channel.category.name,
+          isRecord: false,
+          previews: JSON.stringify(previews),
+          viewers: stream.viewer_count,
+          channelId: channelId,
+          channelTitle: slug,
+          channelUrl: getChannelUrl(slug),
+        };
+
+        resultStreams.push(result);
+      });
+    } catch (err) {
+      debug(`getStreams for channel (%j) skip, cause: %o`, channelIds, err);
+      skippedChannelIds.push(...channelIds);
+    }
 
     return {streams: resultStreams, skippedChannelIds, removedChannelIds};
   }
 
-  async fetchStreamInfo(channelId: string) {
-    const {body} = await this.signFetchRequest(
-      `https://kick.com/api/v2/channels/${encodeURIComponent(channelId)}/livestream`,
-      {
-        keepAlive: true,
-        responseType: 'json',
-        http2: this.useHttp2,
-      },
-    ).catch((error) => {
-      const err = error as HTTPError;
-      if (err.name === 'HTTPError' && err.response.statusCode === 404) {
-        throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
-      }
-      throw err;
-    });
-
-    const {data: stream} = s.mask(body, StreamStruct);
-
-    if (!stream) return;
-
-    const previews: string[] = [];
-    if (stream) {
-      stream.thumbnail.srcset.split(/,\s+/).forEach((urlRes) => {
-        const [url] = urlRes.split(/\s+/);
-        previews.push(url);
-      });
-    }
-
-    return {
-      id: stream.id,
-      url: getChannelUrl(channelId),
-      title: stream.session_title,
-      game: stream.category.name,
-      isRecord: false,
-      previews: JSON.stringify(previews),
-      viewers: stream.viewers,
-      channelId: channelId,
-      channelTitle: channelId,
-      channelUrl: getChannelUrl(channelId),
-    };
-  }
-
-  async getExistsChannelIds(channelIds: string[]): Promise<string[]> {
-    const resultChannelIds: string[] = [];
+  async getExistsChannelIds(channelIds: number[]): Promise<number[]> {
+    const resultChannelIds: number[] = [];
     await parallel(10, channelIds, async (channelId) => {
       try {
-        await this.fetchChannelInfo(channelId);
+        const {data} = await this.getChannelInfo({broadcasterUserId: [channelId]});
+        if (!data.length) {
+          throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
+        }
+
         resultChannelIds.push(channelId);
       } catch (error) {
         const err = error as ErrorWithCode;
         if (err.code === 'CHANNEL_BY_ID_IS_NOT_FOUND') {
           // pass
         } else {
-          debug('fetchChannelInfo (%s) error: %o', channelId, err);
+          debug('getChannelInfo (%s) error: %o', channelId, err);
           resultChannelIds.push(channelId);
         }
       }
@@ -173,25 +144,14 @@ class Kick implements ServiceInterface<string> {
   }
 
   async fetchChannelInfo(channelId: string) {
-    const {body} = await this.signFetchRequest(
-      'https://kick.com/api/v2/channels/' + encodeURIComponent(channelId),
-      {
-        keepAlive: true,
-        responseType: 'json',
-        http2: this.useHttp2,
-      },
-    ).catch((error) => {
-      const err = error as HTTPError;
-      if (err.name === 'HTTPError' && err.response.statusCode === 404) {
-        throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
-      }
-      throw err;
-    });
-
-    const blog = s.mask(body, ChannelStrict);
-    const id = blog.slug;
-    const url = getChannelUrl(blog.slug);
-    const title = blog.user.username;
+    const {data} = await this.getChannelInfo({slug: [channelId]});
+    if (!data.length) {
+      throw new ErrorWithCode('Channel by id is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
+    }
+    const [first] = data;
+    const id = first.broadcaster_user_id;
+    const url = getChannelUrl(first.slug);
+    const title = first.slug;
     return {id, title, url};
   }
 
@@ -211,8 +171,12 @@ class Kick implements ServiceInterface<string> {
     }
 
     return (this.lastAccessTokenRequest = promiseTry(async () => {
-      const {body} = await fetchRequest('https://id.kick.com/oauth2/token', {
+      const now = Date.now();
+      const {body} = await fetchRequest('https://id.kick.com/oauth/token', {
         method: 'POST',
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded',
+        },
         searchParams: {
           client_id: appConfig.kickToken,
           client_secret: appConfig.kickSecret,
@@ -226,10 +190,11 @@ class Kick implements ServiceInterface<string> {
         s.type({
           access_token: s.string(),
           expires_in: s.number(),
+          token_type: s.string(),
         }),
       );
 
-      const expiresAt = Date.now() + body.expires_in * 1000;
+      const expiresAt = now + body.expires_in * 1000;
       this.token = {
         expiresAt,
         accessToken: body.access_token,
@@ -245,12 +210,28 @@ class Kick implements ServiceInterface<string> {
     options.headers = Object.assign(
       {
         Authorization: 'Bearer ' + (await this.getAccessToken()),
-        'Client-Id': appConfig.twitchToken,
+        'Client-Id': appConfig.kickToken,
       },
       options.headers,
     );
 
     return fetchRequest(url, options);
+  }
+
+  async getChannelInfo({slug, broadcasterUserId}: {slug?: string[]; broadcasterUserId?: number[]}) {
+    const {body} = await this.signFetchRequest('https://api.kick.com/public/v1/channels', {
+      searchParams: {
+        ...(slug ? {slug} : {}),
+        ...(broadcasterUserId ? {broadcaster_user_id: broadcasterUserId} : {}),
+      },
+      keepAlive: true,
+      responseType: 'json',
+      http2: this.useHttp2,
+    });
+
+    const result = s.mask(body, ChannelsStrict);
+
+    return result;
   }
 }
 
