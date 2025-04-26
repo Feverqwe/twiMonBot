@@ -8,6 +8,7 @@ import Main from '../main';
 import {appConfig} from '../appConfig';
 import getNow from '../tools/getNow';
 import promiseTry from '../tools/promiseTry';
+import crypto from 'node:crypto';
 
 const debug = getDebug('app:kick');
 
@@ -69,8 +70,12 @@ class Kick implements ServiceInterface<number> {
           previews.push(stream.thumbnail);
         }
 
+        const id = crypto.createHash('sha256')
+          .update(`${channelId}-${stream.start_time}`)
+          .digest('hex');
+
         const result = {
-          id: stream.start_time,
+          id,
           url: getChannelUrl(slug),
           title: channel.stream_title,
           game: channel.category.name,
