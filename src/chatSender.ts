@@ -477,7 +477,6 @@ class ChatSender {
             responseType: 'stream',
             keepAlive: true,
             cookie: service.useCookies,
-            http2: service.useHttp2,
           });
 
           const message = await this.main.bot.sendPhoto(
@@ -621,7 +620,6 @@ async function getValidPreviewUrl(urls: string[], service: ServiceInterface) {
         timeout: 5 * 1000,
         keepAlive: true,
         cookie: service.useCookies,
-        http2: service.useHttp2,
       });
       const url = response.url;
       const contentType = response.headers['content-type'] as string;

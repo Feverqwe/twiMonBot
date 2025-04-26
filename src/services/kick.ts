@@ -226,7 +226,6 @@ class Kick implements ServiceInterface<number> {
       },
       keepAlive: true,
       responseType: 'json',
-      http2: this.useHttp2,
     });
 
     const result = s.mask(body, ChannelsStrict);

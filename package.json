@@ -12,13 +12,11 @@
   },
   "dependencies": {
     "axios": "^1.7.9",
-    "axios-http2-adapter": "^1.0.2",
     "debug": "^4.3.4",
     "dotenv": "^16.3.1",
     "express": "^4.17.1",
     "form-data": "^4.0.0",
     "html-entities": "^2.3.2",
-    "http2-wrapper": "^2.2.1",
     "json-stringify-pretty-compact": "^3.0.0",
     "limiter": "^2.1.0",
     "lodash.throttle": "^4.1.1",
