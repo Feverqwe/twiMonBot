@@ -24,15 +24,7 @@ const {
   CHANNEL_BLACKLIST = '',
   KICK_TOKEN = '',
   KICK_SECRET = '',
-  KICK_HEADERS = '{}',
 } = process.env;
-
-let kickHeaders = {};
-try {
-  kickHeaders = JSON.parse(KICK_HEADERS);
-} catch (err) {
-  debug('Parse kick headers error: %o', err);
-}
 
 export const appConfig = {
   token: TELEGRAM_TOKEN,
@@ -83,5 +75,4 @@ export const appConfig = {
     .filter(Boolean),
   kickToken: KICK_TOKEN,
   kickSecret: KICK_SECRET,
-  kickHeaders,
 };
