@@ -8,7 +8,5 @@ if (!process.env.DEBUG) {
 }
 
 module.exports = {
-  transform: {
-    '^.+\\.(t|j)sx?$': '@swc/jest',
-  },
+  preset: 'ts-jest',
 };
