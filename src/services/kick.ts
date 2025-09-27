@@ -2,7 +2,7 @@ import {ServiceChannel, ServiceGetStreamsResult, ServiceInterface, ServiceStream
 import parallel from '../tools/parallel';
 import ErrorWithCode from '../tools/errorWithCode';
 import {getDebug} from '../tools/getDebug';
-import fetchRequest, {FetchRequestOptions, HTTPError} from '../tools/fetchRequest';
+import fetchRequest, {FetchRequestOptions} from '../tools/fetchRequest';
 import * as s from 'superstruct';
 import Main from '../main';
 import {appConfig} from '../appConfig';
@@ -90,11 +90,7 @@ class Kick implements ServiceInterface<number> {
         resultStreams.push(result);
       });
     } catch (err) {
-      const httpError = err instanceof HTTPError ? err : undefined;
       debug(`getStreams for channel (%j) skip, cause: %o`, channelIds, err);
-      if (httpError) {
-        debug(`getStreams response body: %o`, httpError.response.body);
-      }
       skippedChannelIds.push(...channelIds);
     }
 
