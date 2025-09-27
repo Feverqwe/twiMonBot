@@ -32,20 +32,20 @@
     "xmldoc": "^1.1.2"
   },
   "devDependencies": {
+    "@swc/core": "^1.13.20",
+    "@swc/jest": "^0.2.39",
     "@tsconfig/node22": "^22.0.0",
     "@types/debug": "^4.1.8",
     "@types/express": "^4.17.9",
-    "@types/jest": "^29.5.3",
     "@types/lodash.throttle": "^4.1.7",
     "@types/node": "^22.9.3",
     "@types/node-telegram-bot-api": "^0.64.7",
     "@types/xmldoc": "^1.1.6",
     "cross-env": "^7.0.3",
     "del-cli": "^6.0.0",
-    "jest": "^29.6.1",
+    "jest": "^29.7.0",
     "nodemon": "^3.0.1",
     "prettier": "^3.0.0",
-    "ts-jest": "^29.1.1",
     "typescript": "^5.1.6"
   }
 }
