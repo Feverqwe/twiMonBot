@@ -1,7 +1,8 @@
-FROM node:22-alpine AS node
+FROM node:24-alpine AS node
 WORKDIR /opt
 
 FROM node AS base
+ADD ./packages ./packages
 COPY ./package.json .
 COPY ./package-lock.json .
 RUN chown -R nobody:nogroup ./ && \

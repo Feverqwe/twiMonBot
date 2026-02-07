@@ -5,7 +5,7 @@ import FormData from 'form-data';
 
 import {getDebug} from './getDebug';
 import {CookieJar} from 'tough-cookie';
-import axios, {AxiosError, AxiosResponse, Cancel, isCancel} from 'axios';
+import axios, {AxiosError, AxiosResponse, Cancel, CreateAxiosDefaults, isCancel} from 'axios';
 
 const debug = getDebug('app:fetchRequest');
 
@@ -32,7 +32,12 @@ interface FetchResponse<T = any> {
   headers: Record<string, string | string[]>;
 }
 
+const baseAxiosOptions = {
+  timeout: 60 * 1000,
+} satisfies CreateAxiosDefaults;
+
 const axiosKeepAliveInstance = axios.create({
+  ...baseAxiosOptions,
   httpAgent: new http.Agent({
     keepAlive: true,
   }),
@@ -41,7 +46,9 @@ const axiosKeepAliveInstance = axios.create({
   }),
 });
 
-const axiosDefaultInstance = axios.create();
+const axiosDefaultInstance = axios.create({
+  ...baseAxiosOptions,
+});
 
 const globalCookieJar = new CookieJar();
 

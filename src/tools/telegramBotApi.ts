@@ -54,6 +54,8 @@ interface Bot {
 
   _fixReplyParameters(obj: any): void;
 
+  _fixMessageIds(obj: any): void;
+
   _buildURL: (path: string) => string;
 }
 
@@ -73,6 +75,7 @@ function telegramBotApi(botProto: Bot) {
       self._fixReplyMarkup(reqOptions.form);
       self._fixEntitiesField(reqOptions.form);
       self._fixReplyParameters(reqOptions.form);
+      self._fixMessageIds(reqOptions.form);
     }
     if (reqOptions.qs) {
       self._fixReplyMarkup(reqOptions.qs);
