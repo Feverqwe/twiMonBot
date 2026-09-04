@@ -66,7 +66,7 @@ class Chat {
   async init() {
     const {bot} = this.main;
 
-    const {username} = await bot.getMe();
+    const {username} = await bot.api.getMe();
     if (!username) throw new Error('Bot name is empty');
 
     this.router.init(bot, username);
@@ -97,7 +97,7 @@ class Chat {
     });
 
     this.router.callback_query(async (req, res, next) => {
-      await this.main.bot.answerCallbackQuery(req.callback_query.id);
+      await this.main.bot.api.answerCallbackQuery({callback_query_id: req.callback_query.id});
       next();
     });
 
@@ -115,7 +115,9 @@ class Chat {
         try {
           let adminIds = this.chatIdAdminIdsCache.get(req.chatId);
           if (!adminIds) {
-            const chatMembers = await this.main.bot.getChatAdministrators(req.chatId);
+            const chatMembers = await this.main.bot.api.getChatAdministrators({
+              chat_id: req.chatId,
+            });
             adminIds = chatMembers.map((chatMember) => chatMember.user.id);
             this.chatIdAdminIdsCache.set(req.chatId, adminIds);
           }
@@ -715,7 +717,7 @@ class Chat {
 
             await this.main.bot.sendChatAction(rawChannelId, 'typing');
 
-            const chat = await this.main.bot.getChat(rawChannelId);
+            const chat = await this.main.bot.api.getChat({chat_id: rawChannelId});
             if (chat.type !== 'channel') {
               throw new ErrorWithCode('This chat type is not supported', 'INCORRECT_CHAT_TYPE');
             }
@@ -1223,7 +1225,7 @@ class Chat {
         throw err;
       }
 
-      await this.main.bot.answerCallbackQuery(req.callback_query.id);
+      await this.main.bot.api.answerCallbackQuery({callback_query_id: req.callback_query.id});
 
       return {req, messageId};
     };

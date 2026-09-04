@@ -3,15 +3,11 @@ import {
   Bot,
   InputFile,
   TelegramApiError,
-  type AnswerCallbackQueryParams,
   type CallbackQuery,
   type DeleteMessageResult,
   type EditMessageCaptionParams,
   type EditMessageReplyMarkupParams,
   type EditMessageTextParams,
-  type GetChatAdministratorsResult,
-  type GetChatResult,
-  type GetMeResult,
   type InlineKeyboardMarkup,
   type Message,
   type SendChatActionParams,
@@ -39,6 +35,7 @@ interface FileOptions {
 
 /** Adapts the v2 client to the small positional API used by the application. */
 export class TelegramBotWrapped {
+  readonly api: Bot['api'];
   private readonly bot: Bot;
   private polling?: Promise<void>;
   private readonly requestLimit = new RateLimit2(30);
@@ -46,6 +43,7 @@ export class TelegramBotWrapped {
 
   constructor(token: string) {
     this.bot = new Bot(token);
+    this.api = this.bot.api;
     this.bot.catch((err) => {
       debug('pollingError %s', err instanceof Error ? err.message : String(err));
     });
@@ -74,27 +72,6 @@ export class TelegramBotWrapped {
           debug('pollingError %s', err instanceof Error ? err.message : String(err));
         });
     }
-  }
-
-  getMe(): Promise<GetMeResult> {
-    return this.call(() => this.bot.api.getMe());
-  }
-
-  getChat(chatId: number | string): Promise<GetChatResult> {
-    return this.call(() => this.bot.api.getChat({chat_id: chatId}));
-  }
-
-  getChatAdministrators(chatId: number | string): Promise<GetChatAdministratorsResult> {
-    return this.call(() => this.bot.api.getChatAdministrators({chat_id: chatId}));
-  }
-
-  answerCallbackQuery(
-    callbackQueryId: string,
-    options: Omit<AnswerCallbackQueryParams, 'callback_query_id'> = {},
-  ) {
-    return this.call(() =>
-      this.bot.api.answerCallbackQuery({callback_query_id: callbackQueryId, ...options}),
-    );
   }
 
   sendMessage(chatId: number | string, text: string, options: MessageOptions = {}) {
