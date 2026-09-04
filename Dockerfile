@@ -8,7 +8,6 @@ ENV NPM_CONFIG_AUDIT=false \
     NPM_CONFIG_UPDATE_NOTIFIER=false
 
 COPY package.json package-lock.json ./
-COPY packages ./packages
 
 FROM base AS prod-deps
 RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev

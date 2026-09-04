@@ -59,9 +59,5 @@
     "nodemon": "^3.1.14",
     "prettier": "^3.9.6",
     "typescript": "^6.0.3"
-  },
-  "overrides": {
-    "@cypress/request": "file:./packages/noop",
-    "@cypress/request-promise": "file:./packages/noop"
   }
 }

@@ -26,8 +26,6 @@
 - `src/tools/`: shared networking, throttling, scheduling, Telegram, formatting, and collection
   helpers.
 - `src/locale/`: English and Russian user-facing strings.
-- `packages/noop/`: local override used to exclude obsolete Cypress request packages from the
-  dependency tree. Keep it available to Docker and `npm ci`.
 
 ## Working rules
 
