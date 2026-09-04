@@ -9,4 +9,5 @@ if (!process.env.DEBUG) {
 
 module.exports = {
   preset: 'ts-jest',
+  roots: ['<rootDir>/test'],
 };

@@ -54,9 +54,8 @@
 - Check formatting: `npm run prettier`. The repository currently has a pre-existing formatting
   warning in `src/services/kick.ts`; do not broaden unrelated changes merely to silence it.
 - Build (cleans and regenerates `dist/`): `npm run build`.
-- Jest has no package script. Run a targeted test with
-  `npx jest --runInBand path/to/test.ts`. The existing Twitch tests are live integration tests and
-  require provider credentials/network access; do not assume they are hermetic unit tests.
+- Run deterministic unit tests with `npm test -- --runInBand`. The default Jest roots exclude the
+  existing Twitch live integration tests, which require provider credentials and network access.
 - Prefer the narrowest relevant checks while iterating, then run type-check and formatting before
   handoff. Exercise database, Telegram, and live-provider paths only when suitable disposable
   credentials and infrastructure are explicitly available.
@@ -71,4 +70,3 @@
   callback queries, localization, Telegram rate limits, and known API error classification.
 - For polling or sending changes, verify the complete chain: provider raw IDs -> namespaced DB IDs
   -> stream reconciliation -> chat/stream queue rows -> Telegram messages.
-

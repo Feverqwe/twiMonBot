@@ -11,9 +11,11 @@ import {
 import {applyTelegramRateLimits, getTelegramBot} from '../../src/tools/telegramBotApi';
 
 type MockApi = {
-  sendChatAction: jest.Mock<(params: SendChatActionParams) => Promise<unknown>>;
-  sendMessage: jest.Mock<(params: SendMessageParams) => Promise<unknown>>;
-  sendPhoto: jest.Mock<(params: SendPhotoParams) => Promise<unknown>>;
+  sendChatAction: jest.Mock<
+    (params: SendChatActionParams, signal?: AbortSignal) => Promise<unknown>
+  >;
+  sendMessage: jest.Mock<(params: SendMessageParams, signal?: AbortSignal) => Promise<unknown>>;
+  sendPhoto: jest.Mock<(params: SendPhotoParams, signal?: AbortSignal) => Promise<unknown>>;
 };
 
 const getRateLimitedMockApi = () => {
