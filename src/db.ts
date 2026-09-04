@@ -308,12 +308,8 @@ class Db {
         updatedAt: false,
         indexes: [
           {
-            name: 'service_idx',
-            fields: ['service'],
-          },
-          {
-            name: 'lastStreamAt_idx',
-            fields: ['lastStreamAt'],
+            name: 'service_lastStreamAt_idx',
+            fields: ['service', 'lastStreamAt'],
           },
           {
             name: 'lastSyncAt_idx',
@@ -349,16 +345,12 @@ class Db {
             fields: ['chatId', 'channelId'],
           },
           {
-            name: 'chatId_idx',
-            fields: ['chatId'],
-          },
-          {
             name: 'channelId_idx',
             fields: ['channelId'],
           },
           {
-            name: 'createdAt_idx',
-            fields: ['createdAt'],
+            name: 'chatId_createdAt_idx',
+            fields: ['chatId', 'createdAt'],
           },
         ],
       },
@@ -399,8 +391,8 @@ class Db {
         timestamps: true,
         indexes: [
           {
-            name: 'createdAt_idx',
-            fields: ['createdAt'],
+            name: 'channelId_createdAt_idx',
+            fields: ['channelId', 'createdAt'],
           },
           {
             name: 'isOffline_isRecord_idx',
@@ -435,12 +427,8 @@ class Db {
             fields: ['chatId', 'streamId'],
           },
           {
-            name: 'chatId_idx',
-            fields: ['chatId'],
-          },
-          {
-            name: 'createdAt_idx',
-            fields: ['createdAt'],
+            name: 'chatId_createdAt_idx',
+            fields: ['chatId', 'createdAt'],
           },
         ],
       },
@@ -494,6 +482,10 @@ class Db {
           {
             name: 'chatId_hasChanges_createdAt_idx',
             fields: ['chatId', 'hasChanges', 'createdAt'],
+          },
+          {
+            name: 'chatId_streamId_createdAt_idx',
+            fields: ['chatId', 'streamId', 'createdAt'],
           },
         ],
       },
