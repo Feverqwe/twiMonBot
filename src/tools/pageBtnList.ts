@@ -1,4 +1,4 @@
-import TelegramBot from 'node-telegram-bot-api';
+import type * as TelegramBot from 'node-telegram-bot-api';
 
 const pageBtnList = (
   query: {[s: string]: any},

@@ -1,6 +1,6 @@
 import ErrorWithCode from './tools/errorWithCode';
 import qs from 'node:querystring';
-import TelegramBot from 'node-telegram-bot-api';
+import type * as TelegramBot from 'node-telegram-bot-api';
 import {getDebug} from './tools/getDebug';
 import Locale from './locale';
 import {TelegramBotWrapped} from './tools/telegramBotApi';
@@ -38,8 +38,7 @@ type RouterMethodCallback<I = RouterReq, O = RouterRes> = (
 ) => void;
 
 export type RouterMethodArgs<I = RouterReq, O = RouterRes> =
-  | [RegExp, ...RouterMethodCallback<I, O>[]]
-  | RouterMethodCallback<I, O>[];
+  [RegExp, ...RouterMethodCallback<I, O>[]] | RouterMethodCallback<I, O>[];
 interface RouterMethod<I = RouterReq, O = RouterRes> {
   (...callbacks: RouterMethodArgs<I, O>): void;
 }
@@ -75,7 +74,7 @@ export interface RouterCallbackQueryReq extends RouterReqWithAnyMessage {
 export interface RouterReqWithAnyMessage extends RouterReqCallback {
   messageId: number;
   chatId: number;
-  chatType: TelegramBot.ChatType;
+  chatType: TelegramBot.Chat['type'];
 }
 
 interface RouterReqCallback extends RouterReq {
@@ -124,7 +123,7 @@ const RouterImpl = class MessageTypesImpl implements MessageTypesObj {
 };
 
 class Router extends RouterImpl {
-  bot?: TelegramBot;
+  bot?: TelegramBotWrapped;
   botNameRe?: RegExp;
 
   textOrCallbackQuery = this.custom<RouterTextReq | RouterCallbackQueryReq>([

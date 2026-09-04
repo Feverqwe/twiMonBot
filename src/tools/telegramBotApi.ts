@@ -1,180 +1,201 @@
-import fetchRequest, {FetchRequestOptions} from './fetchRequest';
-import qs from 'node:querystring';
-import FormData from 'form-data';
-import {Stream} from 'node:stream';
-import * as Buffer from 'node:buffer';
+import {Readable, Stream} from 'node:stream';
+import {
+  Bot,
+  InputFile,
+  TelegramApiError,
+  type AnswerCallbackQueryParams,
+  type CallbackQuery,
+  type DeleteMessageResult,
+  type EditMessageCaptionParams,
+  type EditMessageReplyMarkupParams,
+  type EditMessageTextParams,
+  type GetChatAdministratorsResult,
+  type GetChatResult,
+  type GetMeResult,
+  type InlineKeyboardMarkup,
+  type Message,
+  type SendChatActionParams,
+  type SendMessageParams,
+  type SendPhotoParams,
+} from 'node-telegram-bot-api';
 import RateLimit2 from './rateLimit2';
-import TelegramBot from 'node-telegram-bot-api';
 import {getDebug} from './getDebug';
 
-Object.assign(process.env, {
-  NTBA_FIX_319: true,
-  NTBA_FIX_350: true,
-});
+const debug = getDebug('app:telegramBotApi');
 
-interface TGError {
-  new (message: string, resp: unknown): Error & {response: unknown};
+type MessageOptions = Omit<SendMessageParams, 'chat_id' | 'text'> & {
+  disable_web_page_preview?: boolean;
+};
+type EditMessageTextOptions = Omit<EditMessageTextParams, 'text'> & {
+  disable_web_page_preview?: boolean;
+};
+type PhotoOptions = Omit<SendPhotoParams, 'chat_id' | 'photo'>;
+type Photo = string | NodeJS.ReadableStream | Stream;
+
+interface FileOptions {
+  filename?: string;
+  contentType?: string;
 }
 
-const {FatalError, ParseError, TelegramError} = (
-  TelegramBot as unknown as {
-    errors: {
-      FatalError: typeof Error;
-      ParseError: TGError;
-      TelegramError: TGError;
-    };
+/** Adapts the v2 client to the small positional API used by the application. */
+export class TelegramBotWrapped {
+  private readonly bot: Bot;
+  private polling?: Promise<void>;
+  private readonly requestLimit = new RateLimit2(30);
+  private readonly chatActionLimit = new RateLimit2(30);
+
+  constructor(token: string) {
+    this.bot = new Bot(token);
+    this.bot.catch((err) => {
+      debug('pollingError %s', err instanceof Error ? err.message : String(err));
+    });
   }
-).errors;
 
-const debug = getDebug('app:replaceBotRequest');
+  on(event: 'message', handler: (message: Message) => void): this;
+  on(event: 'callback_query', handler: (query: CallbackQuery) => void): this;
+  on(event: 'message' | 'callback_query', handler: (value: any) => void) {
+    this.bot.on(event, (ctx) => {
+      const update = ctx.update as {message?: Message; callback_query?: CallbackQuery};
+      const value = update[event];
+      if (value) handler(value);
+    });
+    return this;
+  }
 
-interface RequestOptions {
-  qs?: Record<string, any>;
-  form?: string | Record<string, any>;
-  formData: Record<
-    string,
-    {
-      value: Stream | Buffer;
-      options: {
-        filename: string;
-        contentType: string;
-      };
+  async startPolling() {
+    if (!this.polling) {
+      this.polling = this.bot
+        .startPolling(undefined, {
+          onError: (err) => {
+            debug('pollingError %s', err instanceof Error ? err.message : String(err));
+          },
+        })
+        .catch((err) => {
+          debug('pollingError %s', err instanceof Error ? err.message : String(err));
+        });
     }
-  >;
+  }
+
+  getMe(): Promise<GetMeResult> {
+    return this.call(() => this.bot.api.getMe());
+  }
+
+  getChat(chatId: number | string): Promise<GetChatResult> {
+    return this.call(() => this.bot.api.getChat({chat_id: chatId}));
+  }
+
+  getChatAdministrators(chatId: number | string): Promise<GetChatAdministratorsResult> {
+    return this.call(() => this.bot.api.getChatAdministrators({chat_id: chatId}));
+  }
+
+  answerCallbackQuery(
+    callbackQueryId: string,
+    options: Omit<AnswerCallbackQueryParams, 'callback_query_id'> = {},
+  ) {
+    return this.call(() =>
+      this.bot.api.answerCallbackQuery({callback_query_id: callbackQueryId, ...options}),
+    );
+  }
+
+  sendMessage(chatId: number | string, text: string, options: MessageOptions = {}) {
+    const {disable_web_page_preview: disablePreview, ...params} = options;
+    if (disablePreview !== undefined && params.link_preview_options === undefined) {
+      params.link_preview_options = {is_disabled: disablePreview};
+    }
+    return this.requestLimit.run(() =>
+      this.call(() => this.bot.api.sendMessage({chat_id: chatId, text, ...params})),
+    );
+  }
+
+  sendPhoto(
+    chatId: number | string,
+    photo: Photo,
+    options: PhotoOptions = {},
+    fileOptions: FileOptions = {},
+  ) {
+    return this.call(() =>
+      this.bot.api.sendPhoto({
+        chat_id: chatId,
+        photo: toInputFile(photo, fileOptions),
+        ...options,
+      }),
+    );
+  }
+
+  sendPhotoQuote(
+    chatId: number | string,
+    photo: Photo,
+    options: PhotoOptions = {},
+    fileOptions: FileOptions = {},
+  ) {
+    return this.requestLimit.run(() => this.sendPhoto(chatId, photo, options, fileOptions));
+  }
+
+  sendChatAction(
+    chatId: number | string,
+    action: string,
+    options: Omit<SendChatActionParams, 'chat_id' | 'action'> = {},
+  ) {
+    return this.chatActionLimit.run(() =>
+      this.call(() => this.bot.api.sendChatAction({chat_id: chatId, action, ...options})),
+    );
+  }
+
+  editMessageText(text: string, options: EditMessageTextOptions) {
+    const {disable_web_page_preview: disablePreview, ...params} = options;
+    if (disablePreview !== undefined && params.link_preview_options === undefined) {
+      params.link_preview_options = {is_disabled: disablePreview};
+    }
+    return this.call(() => this.bot.api.editMessageText({text, ...params}));
+  }
+
+  editMessageCaption(caption: string, options: Omit<EditMessageCaptionParams, 'caption'>) {
+    return this.call(() => this.bot.api.editMessageCaption({caption, ...options}));
+  }
+
+  editMessageReplyMarkup(
+    replyMarkup: InlineKeyboardMarkup,
+    options: Omit<EditMessageReplyMarkupParams, 'reply_markup'>,
+  ) {
+    return this.call(() =>
+      this.bot.api.editMessageReplyMarkup({reply_markup: replyMarkup, ...options}),
+    );
+  }
+
+  deleteMessage(chatId: number | string, messageId: number): Promise<DeleteMessageResult> {
+    return this.call(() => this.bot.api.deleteMessage({chat_id: chatId, message_id: messageId}));
+  }
+
+  private async call<T>(request: () => Promise<T>): Promise<T> {
+    try {
+      return await request();
+    } catch (error) {
+      if (error instanceof TelegramApiError) addLegacyResponse(error);
+      throw error;
+    }
+  }
 }
 
-interface Bot {
-  token?: string;
-  _request: (path: string, options: RequestOptions) => Promise<unknown>;
-  options: any;
-
-  _fixReplyMarkup(obj: any): void;
-
-  _fixEntitiesField(obj: any): void;
-
-  _fixReplyParameters(obj: any): void;
-
-  _fixMessageIds(obj: any): void;
-
-  _buildURL: (path: string) => string;
+function toInputFile(photo: Photo, fileOptions: FileOptions): string | InputFile {
+  if (typeof photo === 'string') return photo;
+  const stream = Readable.toWeb(photo as Readable) as ReadableStream<Uint8Array>;
+  return new InputFile(stream, fileOptions);
 }
 
-function telegramBotApi(botProto: Bot) {
-  botProto._request = function (_path: string, reqOptions: RequestOptions) {
-    const self = this;
-
-    if (!self.token) {
-      return Promise.reject(new FatalError('Telegram Bot Token not provided!'));
-    }
-
-    if (self.options.request) {
-      Object.assign(reqOptions, self.options.request);
-    }
-
-    if (reqOptions.form) {
-      self._fixReplyMarkup(reqOptions.form);
-      self._fixEntitiesField(reqOptions.form);
-      self._fixReplyParameters(reqOptions.form);
-      self._fixMessageIds(reqOptions.form);
-    }
-    if (reqOptions.qs) {
-      self._fixReplyMarkup(reqOptions.qs);
-      this._fixReplyParameters(reqOptions.qs);
-    }
-
-    // debug('HTTP request: %j', reqOptions);
-
-    let url = self._buildURL(_path);
-    if (reqOptions.qs) {
-      url += '?' + qs.stringify(reqOptions.qs);
-    }
-
-    const fetchOptions: FetchRequestOptions = {
-      method: 'POST',
-      keepAlive: true,
-      responseType: 'text',
-      throwHttpErrors: false,
-    };
-
-    if (reqOptions.form) {
-      fetchOptions.headers = {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      };
-      if (typeof reqOptions.form === 'string') {
-        fetchOptions.body = reqOptions.form;
-      } else {
-        fetchOptions.body = qs.stringify(reqOptions.form);
-      }
-    }
-
-    if (reqOptions.formData) {
-      const fd = new FormData();
-      Object.entries(reqOptions.formData).forEach(([key, {value, options}]) => {
-        fd.append(key, value, options);
-      });
-      fetchOptions.body = fd;
-    }
-
-    return fetchRequest<string>(url, fetchOptions)
-      .then((resp) => {
-        let data;
-        try {
-          data = resp.body = JSON.parse(resp.body);
-        } catch (err) {
-          const error = new ParseError(`Error parsing response: ${resp.body}`, resp);
-          hideResponse(error);
-          throw error;
-        }
-
-        // debug('response %j', data);
-
-        if (data.ok) {
-          return data.result;
-        }
-
-        const err = new TelegramError(`${data.error_code} ${data.description}`, resp);
-        hideResponse(err);
-        throw err;
-      })
-      .catch((error) => {
-        if (error.response) throw error;
-        throw new FatalError(error);
-      });
-  };
-}
-
-function hideResponse(err: Error & {response: any}) {
-  const response = err.response;
-  delete err.response;
-  Object.defineProperty(err, 'response', {
+function addLegacyResponse(error: TelegramApiError) {
+  Object.defineProperty(error, 'response', {
+    configurable: true,
     enumerable: false,
-    value: response,
-  });
-}
-
-telegramBotApi(TelegramBot.prototype as unknown as Bot);
-
-export type TelegramBotWrapped = TelegramBot & {sendPhotoQuote: TelegramBot['sendPhoto']};
-
-export const getTelegramBot = (token: string) => {
-  const bot = new TelegramBot(token, {
-    polling: {
-      autoStart: false,
+    value: {
+      statusCode: error.errorCode,
+      body: {
+        ok: false,
+        error_code: error.errorCode,
+        description: error.description,
+        parameters: error.parameters,
+      },
     },
   });
+}
 
-  bot.on('polling_error', function (err: any) {
-    debug('pollingError %s', err.message);
-  });
-
-  const limit = new RateLimit2(30);
-  const chatActionLimit = new RateLimit2(30);
-
-  Object.assign(bot, {
-    sendMessage: limit.wrap(bot.sendMessage.bind(bot)),
-    sendPhotoQuote: limit.wrap(bot.sendPhoto.bind(bot)),
-    sendChatAction: chatActionLimit.wrap(bot.sendChatAction.bind(bot)),
-  });
-
-  return bot as TelegramBotWrapped;
-};
+export const getTelegramBot = (token: string) => new TelegramBotWrapped(token);

@@ -30,7 +30,8 @@ import {appConfig} from './appConfig';
 import {getDebug} from './tools/getDebug';
 import jsonStringifyPretty from 'json-stringify-pretty-compact';
 import {tracker} from './tracker';
-import TelegramBot, {ParseMode} from 'node-telegram-bot-api';
+import type * as TelegramBot from 'node-telegram-bot-api';
+import type {ParseMode} from 'node-telegram-bot-api';
 import {ErrEnum, errHandler, passEx} from './tools/passTgEx';
 
 const debug = getDebug('app:Chat');
@@ -103,7 +104,11 @@ class Chat {
     this.router.textOrCallbackQuery(async (req, res, next) => {
       if (['group', 'supergroup'].includes(req.chatType)) {
         const message = req.message || req.callback_query.message;
-        if (message && message.chat.all_members_are_administrators) {
+        if (
+          message &&
+          (message.chat as TelegramBot.Chat & {all_members_are_administrators?: boolean})
+            .all_members_are_administrators
+        ) {
           return next();
         }
 

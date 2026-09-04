@@ -8,7 +8,7 @@ import inlineInspect from './tools/inlineInspect';
 import fetchRequest from './tools/fetchRequest';
 import {ChatModel, MessageModel, StreamModelWithChannel} from './db';
 import {getDebug} from './tools/getDebug';
-import TelegramBot from 'node-telegram-bot-api';
+import type * as TelegramBot from 'node-telegram-bot-api';
 import {tracker} from './tracker';
 import {ErrEnum, errHandler, passEx} from './tools/passTgEx';
 import {TelegramError} from './types';
