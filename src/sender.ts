@@ -24,6 +24,14 @@ class Sender {
     this.startCleanInterval();
   }
 
+  stop() {
+    this.checkTimer?.();
+    this.cleanTimer?.();
+    this.checkThrottled.cancel();
+    this.checkTimer = null;
+    this.cleanTimer = null;
+  }
+
   checkTimer: (() => void) | null = null;
   startCheckInterval() {
     this.checkTimer && this.checkTimer();

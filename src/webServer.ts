@@ -30,6 +30,19 @@ class WebServer {
     });
   }
 
+  close() {
+    return new Promise<void>((resolve, reject) => {
+      if (!this.server) {
+        resolve();
+        return;
+      }
+      this.server.close((error) => {
+        if (error) reject(error);
+        else resolve();
+      });
+    });
+  }
+
   initApi() {
     this.app.post('/isLive', express.json(), async (req, res) => {
       const ids = req.body;

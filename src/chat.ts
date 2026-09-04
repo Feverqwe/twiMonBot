@@ -84,6 +84,11 @@ class Chat {
     });
   }
 
+  async stop() {
+    this.main.bot.stop();
+    await this.pollingPromise;
+  }
+
   base() {
     this.router.message(async (req, res, next) => {
       const {migrate_to_chat_id: targetChatId, migrate_from_chat_id: sourceChatId} = req.message;

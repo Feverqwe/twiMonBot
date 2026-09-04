@@ -6,7 +6,7 @@ import {ServiceInterface} from './checker';
 import appendQueryParam from './tools/appendQueryParam';
 import inlineInspect from './tools/inlineInspect';
 import fetchRequest from './tools/fetchRequest';
-import {ChatModel, MessageModel, StreamModelWithChannel} from './db';
+import {ChatModel, MessageModelWithStreamId, StreamModelWithChannel} from './db';
 import {getDebug} from './tools/getDebug';
 import {InputFile, TelegramApiError, type Message} from 'node-telegram-bot-api';
 import {tracker} from './tracker';
@@ -26,7 +26,7 @@ interface SentMessage {
 
 class ChatSender {
   private streamIds: string[] | null;
-  private messages: MessageModel[] | null;
+  private messages: MessageModelWithStreamId[] | null;
   private readonly methods: string[];
   private methodIndex: number;
   aborted = false;

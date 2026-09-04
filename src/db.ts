@@ -9,6 +9,7 @@ import arrayDifference from './tools/arrayDifference';
 import assertType from './tools/assertType';
 import {appConfig} from './appConfig';
 import {getDebug} from './tools/getDebug';
+import isDatabaseDeadlock from './tools/isDatabaseDeadlock';
 
 const debug = getDebug('app:db');
 
@@ -145,13 +146,15 @@ export class MessageModel extends Sequelize.Model {
   declare _id: number;
   declare id: string;
   declare chatId: string;
-  declare streamId: string;
+  declare streamId: string | null;
   declare type: string;
   declare text: string;
   declare hasChanges: boolean;
   declare createdAt: Date;
   declare updatedAt: Date;
 }
+
+export type MessageModelWithStreamId = MessageModel & {streamId: string};
 
 export interface YtPubSubChannel {
   id: string;
@@ -629,6 +632,10 @@ class Db {
     await this.removeChannelByIds(appConfig.channelBlackList);
   }
 
+  async close() {
+    await this.sequelize.close();
+  }
+
   async ensureChat(id: string) {
     const [model, isCreated] = await ChatModel.findOrCreate({
       where: {id},
@@ -1049,8 +1056,9 @@ class Db {
           ]);
         })
         .catch((err) => {
-          if (/Deadlock found when trying to get lock/.test(err.message) && --retry > 0) {
-            return new Promise((r) => setTimeout(r, 250)).then(() => doTry());
+          if (isDatabaseDeadlock(err) && --retry > 0) {
+            const delay = 250 * 2 ** (2 - retry) + Math.random() * 100;
+            return new Promise((resolve) => setTimeout(resolve, delay)).then(() => doTry());
           }
           throw err;
         });
@@ -1172,7 +1180,7 @@ class Db {
   }
 
   async getMessagesByChatId(chatId: string, limit = 10) {
-    return MessageModel.findAll({
+    const messages = await MessageModel.findAll({
       where: {
         chatId,
         hasChanges: true,
@@ -1181,6 +1189,8 @@ class Db {
       order: ['createdAt'],
       limit: limit,
     });
+    assertType<MessageModelWithStreamId[]>(messages);
+    return messages;
   }
 
   async getMessagesForDeleteByChatId(chatId: string, limit = 1) {

@@ -66,6 +66,13 @@ class Checker {
     this.startCleanInterval();
   }
 
+  stop() {
+    this.updateTimer?.();
+    this.cleanTimer?.();
+    this.updateTimer = null;
+    this.cleanTimer = null;
+  }
+
   updateTimer: (() => void) | null = null;
   startUpdateInterval() {
     this.updateTimer && this.updateTimer();
