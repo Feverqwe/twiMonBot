@@ -1,15 +1,16 @@
 import ErrorWithCode from './tools/errorWithCode';
 import arrayByPart from './tools/arrayByPart';
 import serviceId from './tools/serviceId';
-import Main from './main';
+import type Main from './main';
 import parallel from './tools/parallel';
-import {ServiceChannel, ServiceInterface} from './checker';
+import type {ServiceChannel, ServiceInterface} from './checker';
 import Sequelize, {Op} from 'sequelize';
 import arrayDifference from './tools/arrayDifference';
 import assertType from './tools/assertType';
 import {appConfig} from './appConfig';
 import {getDebug} from './tools/getDebug';
 import isDatabaseDeadlock from './tools/isDatabaseDeadlock';
+import createMigrator from './migrator';
 
 const debug = getDebug('app:db');
 
@@ -628,7 +629,7 @@ class Db {
    */
   async init() {
     await this.sequelize.authenticate();
-    await this.sequelize.sync();
+    await createMigrator(this.sequelize).up();
     await this.removeChannelByIds(appConfig.channelBlackList);
   }
 
