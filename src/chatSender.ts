@@ -525,7 +525,8 @@ class ChatSender {
   ) {
     switch (type) {
       case 'text': {
-        const message = await this.main.bot.editMessageText(text, {
+        const message = await this.main.bot.api.editMessageText({
+          text,
           chat_id: chatId,
           message_id: messageId,
           parse_mode: 'HTML',

@@ -5,7 +5,6 @@ import {
   RateLimiter,
   TelegramApiError,
   type CallbackQuery,
-  type EditMessageTextParams,
   type Message,
   type SendMessageParams,
   type SendPhotoParams,
@@ -18,12 +17,7 @@ const chatActionRateLimiter = new RateLimiter({global: 30});
 
 export const limitChatAction = (chatId: number | string) => chatActionRateLimiter.acquire(chatId);
 
-type MessageOptions = Omit<SendMessageParams, 'chat_id' | 'text'> & {
-  disable_web_page_preview?: boolean;
-};
-type EditMessageTextOptions = Omit<EditMessageTextParams, 'text'> & {
-  disable_web_page_preview?: boolean;
-};
+type MessageOptions = Omit<SendMessageParams, 'chat_id' | 'text'>;
 type PhotoOptions = Omit<SendPhotoParams, 'chat_id' | 'photo'>;
 type Photo = string | NodeJS.ReadableStream | Stream;
 
@@ -73,12 +67,8 @@ export class TelegramBotWrapped {
   }
 
   sendMessage(chatId: number | string, text: string, options: MessageOptions = {}) {
-    const {disable_web_page_preview: disablePreview, ...params} = options;
-    if (disablePreview !== undefined && params.link_preview_options === undefined) {
-      params.link_preview_options = {is_disabled: disablePreview};
-    }
     return this.requestLimit.run(() =>
-      this.call(() => this.bot.api.sendMessage({chat_id: chatId, text, ...params})),
+      this.call(() => this.bot.api.sendMessage({chat_id: chatId, text, ...options})),
     );
   }
 
@@ -104,14 +94,6 @@ export class TelegramBotWrapped {
     fileOptions: FileOptions = {},
   ) {
     return this.requestLimit.run(() => this.sendPhoto(chatId, photo, options, fileOptions));
-  }
-
-  editMessageText(text: string, options: EditMessageTextOptions) {
-    const {disable_web_page_preview: disablePreview, ...params} = options;
-    if (disablePreview !== undefined && params.link_preview_options === undefined) {
-      params.link_preview_options = {is_disabled: disablePreview};
-    }
-    return this.call(() => this.bot.api.editMessageText({text, ...params}));
   }
 
   private async call<T>(request: () => Promise<T>): Promise<T> {

@@ -181,7 +181,7 @@ class Chat {
         lestService: this.main.services.slice(-1)[0]?.name || '',
       });
       return this.main.bot.sendMessage(chatId, help, {
-        disable_web_page_preview: true,
+        link_preview_options: {is_disabled: true},
         reply_markup: {
           inline_keyboard: getMenu(locale, page),
         },
@@ -282,7 +282,7 @@ class Chat {
         });
 
         await this.main.bot.sendMessage(req.chatId, lines.join('\n'), {
-          disable_web_page_preview: true,
+          link_preview_options: {is_disabled: true},
         });
       } catch (err) {
         debug('%j error %o', req.command, err);
@@ -375,7 +375,8 @@ class Chat {
 
       try {
         const cancelText = locale.m('alert_command-canceled', {command: command});
-        await this.main.bot.editMessageText(cancelText, {
+        await this.main.bot.api.editMessageText({
+          text: cancelText,
           chat_id: req.chatId,
           message_id: req.messageId,
         });
@@ -474,7 +475,7 @@ class Chat {
             message = locale.m('alert_unexpected-error');
           }
           await editOrSendNewMessage(req.chatId, messageId, message, {
-            disable_web_page_preview: true,
+            link_preview_options: {is_disabled: true},
           });
           if (!isResolved) {
             throw err;
@@ -494,7 +495,7 @@ class Chat {
         }
 
         await editOrSendNewMessage(req.chatId, messageId, message, {
-          disable_web_page_preview: true,
+          link_preview_options: {is_disabled: true},
           parse_mode: 'HTML',
         });
 
@@ -523,7 +524,8 @@ class Chat {
         await this.main.db.deleteChatById('' + req.chatId);
         this.log.write(`[deleted] ${req.chatId}, cause: /clear`);
 
-        await this.main.bot.editMessageText(locale.m('alert_cleared'), {
+        await this.main.bot.api.editMessageText({
+          text: locale.m('alert_cleared'),
           chat_id: req.chatId,
           message_id: req.messageId,
         });
@@ -577,7 +579,8 @@ class Chat {
           } else {
             message = locale.m('alert_unexpected-error');
           }
-          await this.main.bot.editMessageText(message, {
+          await this.main.bot.api.editMessageText({
+            text: message,
             chat_id: req.chatId,
             message_id: req.messageId,
           });
@@ -589,16 +592,14 @@ class Chat {
 
         const serviceId = channel.service;
         const service = this.main.getServiceById(serviceId);
-        await this.main.bot.editMessageText(
-          locale.m('alert_channel-deleted', {
+        await this.main.bot.api.editMessageText({
+          text: locale.m('alert_channel-deleted', {
             channelName: channel.title,
             serviceName: service?.name ?? serviceId,
           }),
-          {
-            chat_id: req.chatId,
-            message_id: req.messageId,
-          },
-        );
+          chat_id: req.chatId,
+          message_id: req.messageId,
+        });
       } catch (err) {
         debug('%j error %o', req.command, err);
       }
@@ -923,7 +924,7 @@ class Chat {
         ]);
 
         const options = {
-          disable_web_page_preview: true,
+          link_preview_options: {is_disabled: true},
           parse_mode: 'HTML' as ParseMode,
           reply_markup: {
             inline_keyboard: buttonsPage,
@@ -933,7 +934,8 @@ class Chat {
         if (req.callback_query && !req.query.rel) {
           await passEx(
             () =>
-              this.main.bot.editMessageText(message, {
+              this.main.bot.api.editMessageText({
+                text: message,
                 ...options,
                 chat_id: req.chatId,
                 message_id: req.messageId,
@@ -1027,7 +1029,7 @@ class Chat {
       }
 
       const options = {
-        disable_web_page_preview: true,
+        link_preview_options: {is_disabled: true},
         parse_mode: 'HTML' as ParseMode,
         reply_markup: {
           inline_keyboard: [pageControls],
@@ -1036,7 +1038,8 @@ class Chat {
 
       try {
         if (req.callback_query && !req.query.rel) {
-          await this.main.bot.editMessageText(pageText, {
+          await this.main.bot.api.editMessageText({
+            text: pageText,
             ...options,
             chat_id: req.chatId,
             message_id: req.messageId,
@@ -1231,13 +1234,12 @@ class Chat {
           throw new ErrorWithCode('messageId is empty', 'MESSAGE_ID_IS_EMPTY');
         }
 
-        const result = await this.main.bot.editMessageText(
+        const result = await this.main.bot.api.editMessageText({
+          ...form,
           text,
-          Object.assign({}, form, {
-            chat_id: chatId,
-            message_id: messageId,
-          }),
-        );
+          chat_id: chatId,
+          message_id: messageId,
+        });
 
         if (typeof result === 'object') {
           return result.message_id;
