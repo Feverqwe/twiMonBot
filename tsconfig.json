@@ -3,6 +3,7 @@
   "compilerOptions": {
     "isolatedModules": true,
     "outDir": "./dist",
+    "rootDir": "./src",
     "types": ["node", "jest"]
   },
   "include": ["src/**/*"],
