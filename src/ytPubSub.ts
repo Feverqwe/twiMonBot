@@ -443,7 +443,7 @@ function getTopicUrl(channelId: string) {
 function getChildNode(root: XmlElement | XmlDocument, name: string): XmlElement | null {
   if (root.children) {
     for (let i = 0, node; (node = root.children[i]); i++) {
-      if ('name' in node && node.name === name) {
+      if (node instanceof XmlElement && node.name === name) {
         return node;
       }
     }
