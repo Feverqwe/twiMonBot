@@ -33,6 +33,7 @@ import {tracker} from './tracker';
 import type * as TelegramBot from 'node-telegram-bot-api';
 import type {ParseMode} from 'node-telegram-bot-api';
 import {ErrEnum, errHandler, passEx} from './tools/passTgEx';
+import {limitChatAction} from './tools/telegramBotApi';
 
 const debug = getDebug('app:Chat');
 
@@ -715,7 +716,8 @@ class Chat {
               }
             }
 
-            await this.main.bot.sendChatAction(rawChannelId, 'typing');
+            await limitChatAction(rawChannelId);
+            await this.main.bot.api.sendChatAction({chat_id: rawChannelId, action: 'typing'});
 
             const chat = await this.main.bot.api.getChat({chat_id: rawChannelId});
             if (chat.type !== 'channel') {

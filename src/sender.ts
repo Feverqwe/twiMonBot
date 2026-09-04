@@ -2,7 +2,7 @@ import Main from './main';
 import LogFile from './logFile';
 import {everyMinutes} from './tools/everyTime';
 import getProvider from './tools/getProvider';
-import ChatSender, {isBlockedError} from './chatSender';
+import ChatSender, {getTelegramErrorBody, isBlockedError} from './chatSender';
 import arrayUniq from './tools/arrayUniq';
 import parallel from './tools/parallel';
 import getInProgress from './tools/getInProgress';
@@ -10,7 +10,7 @@ import promiseLimit from './tools/promiseLimit';
 import {appConfig} from './appConfig';
 import {getDebug} from './tools/getDebug';
 import throttle from 'lodash.throttle';
-import {TelegramError} from './types';
+import {limitChatAction} from './tools/telegramBotApi';
 
 const debug = getDebug('app:Sender');
 
@@ -168,13 +168,14 @@ class Sender {
           result.chatCount++;
 
           try {
-            await this.main.bot.sendChatAction(chatId, 'typing');
+            await limitChatAction(chatId);
+            await this.main.bot.api.sendChatAction({chat_id: chatId, action: 'typing'});
           } catch (error) {
-            const err = error as TelegramError;
-            const isBlocked = isBlockedError(err);
+            const err = error;
+            const isBlocked = isBlockedError(error);
             if (isBlocked) {
               blockedChatIds.push(chatId);
-              const body = err.response.body;
+              const body = getTelegramErrorBody(err)!;
               this.main.chat.log.write(
                 `[deleted] ${chatId}, cause: (${body.error_code}) ${JSON.stringify(
                   body.description,

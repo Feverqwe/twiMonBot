@@ -14,6 +14,7 @@ import {ErrEnum, errHandler, passEx} from './tools/passTgEx';
 import {TelegramError} from './types';
 import ReadableStream = NodeJS.ReadableStream;
 import {Stream} from 'stream';
+import {TelegramApiError} from 'node-telegram-bot-api';
 
 const debug = getDebug('app:ChatSender');
 
@@ -633,10 +634,22 @@ async function getValidPreviewUrl(urls: string[], service: ServiceInterface) {
   throw err;
 }
 
-export function isBlockedError(err: any) {
-  if (err.code === 'ETELEGRAM') {
-    const body = err.response.body;
+export function getTelegramErrorBody(err: unknown): TelegramError['response']['body'] | undefined {
+  if (err instanceof TelegramApiError) {
+    return {
+      error_code: err.errorCode,
+      description: err.description,
+      parameters: err.parameters,
+    };
+  }
 
+  const legacyError = err as Partial<TelegramError>;
+  if (legacyError.code === 'ETELEGRAM') return legacyError.response?.body;
+}
+
+export function isBlockedError(err: unknown) {
+  const body = getTelegramErrorBody(err);
+  if (body) {
     let isBlocked = body.error_code === 403;
     if (!isBlocked) {
       isBlocked = blockedErrors.some((re) => re.test(body.description));
@@ -647,10 +660,9 @@ export function isBlockedError(err: any) {
   return false;
 }
 
-export function isSkipMessageError(err: any) {
-  if (err.code === 'ETELEGRAM') {
-    const body = err.response.body;
-
+export function isSkipMessageError(err: unknown) {
+  const body = getTelegramErrorBody(err);
+  if (body) {
     return skipMsgErrors.some((re) => re.test(body.description));
   }
   return false;

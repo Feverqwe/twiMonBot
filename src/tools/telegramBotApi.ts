@@ -2,6 +2,7 @@ import {Readable, Stream} from 'node:stream';
 import {
   Bot,
   InputFile,
+  RateLimiter,
   TelegramApiError,
   type CallbackQuery,
   type DeleteMessageResult,
@@ -10,7 +11,6 @@ import {
   type EditMessageTextParams,
   type InlineKeyboardMarkup,
   type Message,
-  type SendChatActionParams,
   type SendMessageParams,
   type SendPhotoParams,
 } from 'node-telegram-bot-api';
@@ -18,6 +18,9 @@ import RateLimit2 from './rateLimit2';
 import {getDebug} from './getDebug';
 
 const debug = getDebug('app:telegramBotApi');
+const chatActionRateLimiter = new RateLimiter({global: 30});
+
+export const limitChatAction = (chatId: number | string) => chatActionRateLimiter.acquire(chatId);
 
 type MessageOptions = Omit<SendMessageParams, 'chat_id' | 'text'> & {
   disable_web_page_preview?: boolean;
@@ -39,7 +42,6 @@ export class TelegramBotWrapped {
   private readonly bot: Bot;
   private polling?: Promise<void>;
   private readonly requestLimit = new RateLimit2(30);
-  private readonly chatActionLimit = new RateLimit2(30);
 
   constructor(token: string) {
     this.bot = new Bot(token);
@@ -106,16 +108,6 @@ export class TelegramBotWrapped {
     fileOptions: FileOptions = {},
   ) {
     return this.requestLimit.run(() => this.sendPhoto(chatId, photo, options, fileOptions));
-  }
-
-  sendChatAction(
-    chatId: number | string,
-    action: string,
-    options: Omit<SendChatActionParams, 'chat_id' | 'action'> = {},
-  ) {
-    return this.chatActionLimit.run(() =>
-      this.call(() => this.bot.api.sendChatAction({chat_id: chatId, action, ...options})),
-    );
   }
 
   editMessageText(text: string, options: EditMessageTextOptions) {
