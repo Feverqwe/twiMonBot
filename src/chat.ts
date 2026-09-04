@@ -204,15 +204,13 @@ class Chat {
         try {
           await passEx(
             () =>
-              this.main.bot.editMessageReplyMarkup(
-                {
+              this.main.bot.api.editMessageReplyMarkup({
+                reply_markup: {
                   inline_keyboard: getMenu(locale, page),
                 },
-                {
-                  chat_id: req.chatId,
-                  message_id: req.messageId,
-                },
-              ),
+                chat_id: req.chatId,
+                message_id: req.messageId,
+              }),
             [ErrEnum.MessageNotModified],
           );
         } catch (error) {
@@ -630,15 +628,13 @@ class Chat {
         if (req.callback_query && !req.query.rel) {
           await passEx(
             () =>
-              this.main.bot.editMessageReplyMarkup(
-                {
+              this.main.bot.api.editMessageReplyMarkup({
+                reply_markup: {
                   inline_keyboard: page,
                 },
-                {
-                  chat_id: req.chatId,
-                  message_id: req.messageId,
-                },
-              ),
+                chat_id: req.chatId,
+                message_id: req.messageId,
+              }),
             [ErrEnum.MessageNotModified],
           );
         } else {
@@ -665,15 +661,13 @@ class Chat {
 
         await passEx(
           () =>
-            this.main.bot.editMessageReplyMarkup(
-              {
+            this.main.bot.api.editMessageReplyMarkup({
+              reply_markup: {
                 inline_keyboard: getOptions(locale, req.chat),
               },
-              {
-                chat_id: req.chatId,
-                message_id: req.messageId,
-              },
-            ),
+              chat_id: req.chatId,
+              message_id: req.messageId,
+            }),
           [ErrEnum.MessageNotModified],
         );
       } catch (err) {
@@ -768,15 +762,13 @@ class Chat {
           if (req.callback_query) {
             await passEx(
               () =>
-                this.main.bot.editMessageReplyMarkup(
-                  {
+                this.main.bot.api.editMessageReplyMarkup({
+                  reply_markup: {
                     inline_keyboard: getOptions(locale, req.chat),
                   },
-                  {
-                    chat_id: req.chatId,
-                    message_id: req.messageId,
-                  },
-                ),
+                  chat_id: req.chatId,
+                  message_id: req.messageId,
+                }),
               [ErrEnum.MessageNotModified],
             );
           }
@@ -854,15 +846,13 @@ class Chat {
 
           await passEx(
             () =>
-              this.main.bot.editMessageReplyMarkup(
-                {
+              this.main.bot.api.editMessageReplyMarkup({
+                reply_markup: {
                   inline_keyboard: getOptions(locale, req.chat),
                 },
-                {
-                  chat_id: req.chatId,
-                  message_id: req.messageId,
-                },
-              ),
+                chat_id: req.chatId,
+                message_id: req.messageId,
+              }),
             [ErrEnum.MessageNotModified],
           );
         } catch (err) {
@@ -877,15 +867,13 @@ class Chat {
 
       try {
         if (req.callback_query && !req.query.rel) {
-          await this.main.bot.editMessageReplyMarkup(
-            {
+          await this.main.bot.api.editMessageReplyMarkup({
+            reply_markup: {
               inline_keyboard: getOptions(locale, req.chat),
             },
-            {
-              chat_id: req.chatId,
-              message_id: req.messageId,
-            },
-          );
+            chat_id: req.chatId,
+            message_id: req.messageId,
+          });
         } else {
           await this.main.bot.sendMessage(req.chatId, locale.m('context_options'), {
             reply_markup: {

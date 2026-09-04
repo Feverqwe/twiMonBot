@@ -5,10 +5,7 @@ import {
   RateLimiter,
   TelegramApiError,
   type CallbackQuery,
-  type EditMessageCaptionParams,
-  type EditMessageReplyMarkupParams,
   type EditMessageTextParams,
-  type InlineKeyboardMarkup,
   type Message,
   type SendMessageParams,
   type SendPhotoParams,
@@ -115,19 +112,6 @@ export class TelegramBotWrapped {
       params.link_preview_options = {is_disabled: disablePreview};
     }
     return this.call(() => this.bot.api.editMessageText({text, ...params}));
-  }
-
-  editMessageCaption(caption: string, options: Omit<EditMessageCaptionParams, 'caption'>) {
-    return this.call(() => this.bot.api.editMessageCaption({caption, ...options}));
-  }
-
-  editMessageReplyMarkup(
-    replyMarkup: InlineKeyboardMarkup,
-    options: Omit<EditMessageReplyMarkupParams, 'reply_markup'>,
-  ) {
-    return this.call(() =>
-      this.bot.api.editMessageReplyMarkup({reply_markup: replyMarkup, ...options}),
-    );
   }
 
   private async call<T>(request: () => Promise<T>): Promise<T> {

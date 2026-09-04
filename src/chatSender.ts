@@ -545,7 +545,8 @@ class ChatSender {
         return message;
       }
       case 'photo': {
-        const message = await this.main.bot.editMessageCaption(text, {
+        const message = await this.main.bot.api.editMessageCaption({
+          caption: text,
           chat_id: chatId,
           message_id: messageId,
         });
