@@ -19,8 +19,14 @@ class WebServer {
     this.initApi();
     this.ytPubSub.init(this.app);
 
-    return new Promise<void>((resolve) => {
-      this.server = this.app.listen(this.port, this.host, resolve);
+    return new Promise<void>((resolve, reject) => {
+      this.server = this.app.listen(this.port, this.host, (error) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
+      });
     });
   }
 
