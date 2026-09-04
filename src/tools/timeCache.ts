@@ -1,11 +1,9 @@
-import QuickLRU from 'quick-lru';
+import QuickLRU, {type Options} from 'quick-lru';
 
 class TimeCache<KeyType extends unknown, ValueType extends unknown> {
   private readonly ttl: number;
   private lru: QuickLRU<KeyType, {data: ValueType; expiresAt: number}>;
-  constructor(
-    options: QuickLRU.Options<KeyType, {data: ValueType; expiresAt: number}> & {ttl: number},
-  ) {
+  constructor(options: Options<KeyType, {data: ValueType; expiresAt: number}> & {ttl: number}) {
     this.lru = new QuickLRU<KeyType, {data: ValueType; expiresAt: number}>(options);
     this.ttl = options.ttl;
   }
