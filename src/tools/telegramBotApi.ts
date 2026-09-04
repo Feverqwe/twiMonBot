@@ -9,15 +9,19 @@ import {
   type SendMessageParams,
   type SendPhotoParams,
 } from 'node-telegram-bot-api';
-import RateLimit2 from './rateLimit2';
 import {getDebug} from './getDebug';
 
 const debug = getDebug('app:telegramBotApi');
 const chatActionRateLimiter = new RateLimiter({global: 30});
+const messageRateLimiter = new RateLimiter({global: 30});
 
 export const limitChatAction = (chatId: number | string) => chatActionRateLimiter.acquire(chatId);
 
-type MessageOptions = Omit<SendMessageParams, 'chat_id' | 'text'>;
+export const sendTelegramMessage = async (api: Bot['api'], params: SendMessageParams) => {
+  await messageRateLimiter.acquire(params.chat_id);
+  return api.sendMessage(params);
+};
+
 type PhotoOptions = Omit<SendPhotoParams, 'chat_id' | 'photo'>;
 type Photo = string | NodeJS.ReadableStream | Stream;
 
@@ -31,7 +35,6 @@ export class TelegramBotWrapped {
   readonly api: Bot['api'];
   private readonly bot: Bot;
   private polling?: Promise<void>;
-  private readonly requestLimit = new RateLimit2(30);
 
   constructor(token: string) {
     this.bot = new Bot(token);
@@ -66,12 +69,6 @@ export class TelegramBotWrapped {
     }
   }
 
-  sendMessage(chatId: number | string, text: string, options: MessageOptions = {}) {
-    return this.requestLimit.run(() =>
-      this.call(() => this.bot.api.sendMessage({chat_id: chatId, text, ...options})),
-    );
-  }
-
   sendPhoto(
     chatId: number | string,
     photo: Photo,
@@ -93,7 +90,9 @@ export class TelegramBotWrapped {
     options: PhotoOptions = {},
     fileOptions: FileOptions = {},
   ) {
-    return this.requestLimit.run(() => this.sendPhoto(chatId, photo, options, fileOptions));
+    return messageRateLimiter
+      .acquire(chatId)
+      .then(() => this.sendPhoto(chatId, photo, options, fileOptions));
   }
 
   private async call<T>(request: () => Promise<T>): Promise<T> {

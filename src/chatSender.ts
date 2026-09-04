@@ -15,6 +15,7 @@ import {TelegramError} from './types';
 import ReadableStream = NodeJS.ReadableStream;
 import {Stream} from 'stream';
 import {TelegramApiError} from 'node-telegram-bot-api';
+import {sendTelegramMessage} from './tools/telegramBotApi';
 
 const debug = getDebug('app:ChatSender');
 
@@ -302,7 +303,9 @@ class ChatSender {
   ): Promise<SentMessage> {
     const text = getStreamAsDescription(stream, this.main.getServiceById(stream.channel.service)!);
 
-    const message = await this.main.bot.sendMessage(this.chat.id, text, {
+    const message = await sendTelegramMessage(this.main.bot.api, {
+      chat_id: this.chat.id,
+      text,
       parse_mode: 'HTML',
     });
 

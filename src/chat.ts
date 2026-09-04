@@ -31,9 +31,9 @@ import {getDebug} from './tools/getDebug';
 import jsonStringifyPretty from 'json-stringify-pretty-compact';
 import {tracker} from './tracker';
 import type * as TelegramBot from 'node-telegram-bot-api';
-import type {ParseMode} from 'node-telegram-bot-api';
+import type {EditMessageTextParams, ParseMode, SendMessageParams} from 'node-telegram-bot-api';
 import {ErrEnum, errHandler, passEx} from './tools/passTgEx';
-import {limitChatAction} from './tools/telegramBotApi';
+import {limitChatAction, sendTelegramMessage} from './tools/telegramBotApi';
 
 const debug = getDebug('app:Chat');
 
@@ -164,7 +164,7 @@ class Chat {
 
     this.router.text(/\/ping/, async (req, res) => {
       try {
-        await this.main.bot.sendMessage(req.chatId, 'pong');
+        await sendTelegramMessage(this.main.bot.api, {chat_id: req.chatId, text: 'pong'});
       } catch (err) {
         debug('%j error %o', req.command, err);
       }
@@ -180,7 +180,9 @@ class Chat {
           .join(', '),
         lestService: this.main.services.slice(-1)[0]?.name || '',
       });
-      return this.main.bot.sendMessage(chatId, help, {
+      return sendTelegramMessage(this.main.bot.api, {
+        chat_id: chatId,
+        text: help,
         link_preview_options: {is_disabled: true},
         reply_markup: {
           inline_keyboard: getMenu(locale, page),
@@ -281,7 +283,9 @@ class Chat {
           }
         });
 
-        await this.main.bot.sendMessage(req.chatId, lines.join('\n'), {
+        await sendTelegramMessage(this.main.bot.api, {
+          chat_id: req.chatId,
+          text: lines.join('\n'),
           link_preview_options: {is_disabled: true},
         });
       } catch (err) {
@@ -293,7 +297,7 @@ class Chat {
       const {locale} = res;
       const message = locale.m('context_about');
       try {
-        await this.main.bot.sendMessage(req.chatId, message);
+        await sendTelegramMessage(this.main.bot.api, {chat_id: req.chatId, text: message});
       } catch (err) {
         debug('%j error %o', req.command, err);
       }
@@ -317,7 +321,10 @@ class Chat {
           next();
         } catch (err) {
           debug('ensureChat error! %o', err);
-          await this.main.bot.sendMessage(chatId, locale.m('alert_unknown-error'));
+          await sendTelegramMessage(this.main.bot.api, {
+            chat_id: chatId,
+            text: locale.m('alert_unknown-error'),
+          });
         }
       } catch (err) {
         debug('provideChat error! %o', err);
@@ -340,7 +347,10 @@ class Chat {
           next();
         } catch (err) {
           debug('getChannelsByChatId error! %o', err);
-          await this.main.bot.sendMessage(chatId, locale.m('alert_unknown-error'));
+          await sendTelegramMessage(this.main.bot.api, {
+            chat_id: chatId,
+            text: locale.m('alert_unknown-error'),
+          });
         }
       } catch (err) {
         debug('provideChannels error! %o', err);
@@ -363,7 +373,10 @@ class Chat {
       }
 
       try {
-        await this.main.bot.sendMessage(chatId, locale.m('alert_empty-channel-list'));
+        await sendTelegramMessage(this.main.bot.api, {
+          chat_id: chatId,
+          text: locale.m('alert_empty-channel-list'),
+        });
       } catch (err) {
         debug('withChannels sendMessage error! %o', err);
       }
@@ -538,7 +551,9 @@ class Chat {
       const {locale} = res;
 
       try {
-        await this.main.bot.sendMessage(req.chatId, locale.m('confirm_clear'), {
+        await sendTelegramMessage(this.main.bot.api, {
+          chat_id: req.chatId,
+          text: locale.m('confirm_clear'),
           reply_markup: {
             inline_keyboard: [
               [
@@ -639,7 +654,9 @@ class Chat {
             [ErrEnum.MessageNotModified],
           );
         } else {
-          await this.main.bot.sendMessage(req.chatId, locale.m('context_select-delete-channel'), {
+          await sendTelegramMessage(this.main.bot.api, {
+            chat_id: req.chatId,
+            text: locale.m('context_select-delete-channel'),
             reply_markup: {
               inline_keyboard: page,
             },
@@ -876,7 +893,9 @@ class Chat {
             message_id: req.messageId,
           });
         } else {
-          await this.main.bot.sendMessage(req.chatId, locale.m('context_options'), {
+          await sendTelegramMessage(this.main.bot.api, {
+            chat_id: req.chatId,
+            text: locale.m('context_options'),
             reply_markup: {
               inline_keyboard: getOptions(locale, req.chat),
             },
@@ -943,7 +962,11 @@ class Chat {
             [ErrEnum.MessageNotModified],
           );
         } else {
-          await this.main.bot.sendMessage(req.chatId, message, options);
+          await sendTelegramMessage(this.main.bot.api, {
+            chat_id: req.chatId,
+            text: message,
+            ...options,
+          });
         }
       } catch (err) {
         debug('%j error %o', req.command, err);
@@ -964,7 +987,10 @@ class Chat {
           const err = error as ErrorWithCode;
           if (err.code === 'STREAM_IS_NOT_FOUND') {
             const message = locale.m('action_stream-not-found');
-            await this.main.bot.sendMessage(req.chatId, message);
+            await sendTelegramMessage(this.main.bot.api, {
+              chat_id: req.chatId,
+              text: message,
+            });
           } else {
             throw err;
           }
@@ -1045,7 +1071,11 @@ class Chat {
             message_id: req.messageId,
           });
         } else {
-          await this.main.bot.sendMessage(req.chatId, pageText, options);
+          await sendTelegramMessage(this.main.bot.api, {
+            chat_id: req.chatId,
+            text: pageText,
+            ...options,
+          });
         }
       } catch (err) {
         debug('%j error %o', req.command, err);
@@ -1082,22 +1112,26 @@ class Chat {
       cancelText: string,
     ) => {
       const {chatId, fromId} = req;
-      const options: {[s: string]: any} = {};
+      const options: Omit<SendMessageParams, 'chat_id' | 'text'> = {};
       let msgText = messageText;
       if (chatId < 0) {
         msgText += '\n' + locale.m('context_group-note');
         if (req.callback_query) {
           msgText = '@' + req.callback_query.from.username + ' ' + messageText;
         } else {
-          options.reply_to_message_id = req.messageId;
+          options.reply_parameters = {message_id: req.messageId};
         }
-        options.reply_markup = JSON.stringify({
+        options.reply_markup = {
           force_reply: true,
           selective: true,
-        });
+        };
       }
 
-      const msg = await this.main.bot.sendMessage(chatId, msgText, options);
+      const msg = await sendTelegramMessage(this.main.bot.api, {
+        chat_id: chatId,
+        text: msgText,
+        ...options,
+      });
 
       try {
         const {req} = await this.router.waitResponse<RouterTextReq>(
@@ -1227,7 +1261,10 @@ class Chat {
       chatId: number,
       messageId: number | undefined,
       text: string,
-      form?: object,
+      form?: Pick<
+        EditMessageTextParams,
+        'parse_mode' | 'entities' | 'link_preview_options' | 'reply_markup'
+      >,
     ): Promise<number> => {
       try {
         if (!messageId) {
@@ -1253,7 +1290,11 @@ class Chat {
           errHandler[ErrEnum.MessageCantBeEdited](err) ||
           errHandler[ErrEnum.MessageToEditNotFound](err)
         ) {
-          const msg = await this.main.bot.sendMessage(chatId, text, form);
+          const msg = await sendTelegramMessage(this.main.bot.api, {
+            ...form,
+            chat_id: chatId,
+            text,
+          });
           return msg.message_id;
         }
         throw err;
@@ -1274,12 +1315,12 @@ class Chat {
       }
 
       try {
-        await this.main.bot.sendMessage(
-          req.chatId,
-          locale.m('alert_access-denied', {
+        await sendTelegramMessage(this.main.bot.api, {
+          chat_id: req.chatId,
+          text: locale.m('alert_access-denied', {
             chat: req.chatId,
           }),
-        );
+        });
       } catch (err) {
         debug('isAdmin sendMessage error: %o', err);
       }
@@ -1318,21 +1359,21 @@ class Chat {
             },
           );
         } catch (err) {
-          await this.main.bot.sendMessage(
-            req.chatId,
-            locale.m('alert_command-error', {
+          await sendTelegramMessage(this.main.bot.api, {
+            chat_id: req.chatId,
+            text: locale.m('alert_command-error', {
               command: command.name,
             }),
-          );
+          });
           throw err;
         }
 
-        await this.main.bot.sendMessage(
-          req.chatId,
-          `${locale.m('alert_command-complete', {
+        await sendTelegramMessage(this.main.bot.api, {
+          chat_id: req.chatId,
+          text: `${locale.m('alert_command-complete', {
             command: command.name,
           })}\n${resultStr}`,
-        );
+        });
       } catch (err) {
         debug('%j error %o', req.command, err);
       }
@@ -1343,7 +1384,9 @@ class Chat {
       type Button = {text: string; callback_data: string};
 
       try {
-        await this.main.bot.sendMessage(req.chatId, locale.m('title_admin-menu'), {
+        await sendTelegramMessage(this.main.bot.api, {
+          chat_id: req.chatId,
+          text: locale.m('title_admin-menu'),
           reply_markup: {
             inline_keyboard: commands.reduce<Button[][]>((menu, {name, method}, index) => {
               const buttons: Button[] = index % 2 ? menu.pop()! : [];
