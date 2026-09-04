@@ -16,7 +16,7 @@ RUN npm config set update-notifier false && \
     npm ci --omit dev --fund false
 
 FROM base AS build
-RUN npm i --fund false
+RUN npm ci --fund false
 ADD ./src ./src
 COPY ./tsconfig.json .
 RUN npm run build

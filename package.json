@@ -1,6 +1,9 @@
 {
   "name": "twi-mon-bot",
   "version": "0.0.1",
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "clean": "del-cli ./dist",
     "build": "npm run clean && tsc",
