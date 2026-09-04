@@ -8,6 +8,21 @@ if (!process.env.DEBUG) {
 }
 
 module.exports = {
-  preset: 'ts-jest',
   roots: ['<rootDir>/test'],
+  transform: {
+    '^.+\\.tsx?$': [
+      '@swc/jest',
+      {
+        jsc: {
+          parser: {
+            syntax: 'typescript',
+          },
+          target: 'es2024',
+        },
+        module: {
+          type: 'commonjs',
+        },
+      },
+    ],
+  },
 };
