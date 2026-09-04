@@ -13,7 +13,6 @@ import {tracker} from './tracker';
 import {ErrEnum, errHandler, passEx} from './tools/passTgEx';
 import NodeReadableStream = NodeJS.ReadableStream;
 import {Readable} from 'node:stream';
-import {sendRateLimitedTelegramPhoto, sendTelegramMessage} from './tools/telegramBotApi';
 
 const debug = getDebug('app:ChatSender');
 
@@ -254,7 +253,7 @@ class ChatSender {
           `Chat ${this.chat.id} is migrated to ${newChatId}`,
           'CHAT_IS_MIGRATED',
         );
-      } else if (/not enough rights to send photos/.test(body.description)) {
+      } else if (errHandler[ErrEnum.NotEnoughRightsSendPhotos](error)) {
         this.chat.isHidePreview = true;
         await this.chat.save();
         throw new ErrorWithCode(`Chat ${this.chat.id} is deny photos`, 'CHAT_IS_DENY_PHOTOS');
@@ -301,7 +300,7 @@ class ChatSender {
   ): Promise<SentMessage> {
     const text = getStreamAsDescription(stream, this.main.getServiceById(stream.channel.service)!);
 
-    const message = await sendTelegramMessage(this.main.bot.api, {
+    const message = await this.main.bot.api.sendMessage({
       chat_id: this.chat.id,
       text,
       parse_mode: 'HTML',
@@ -338,7 +337,7 @@ class ChatSender {
 
       let message;
       try {
-        message = await sendRateLimitedTelegramPhoto(this.main.bot.api, {
+        message = await this.main.bot.api.sendPhoto({
           chat_id: this.chat.id,
           photo: stream.telegramPreviewFileId,
           caption,
@@ -383,8 +382,7 @@ class ChatSender {
       });
       streamWeakMap.set(stream, promise);
       promise = promise.catch((err: any) => {
-        const body = getTelegramErrorBody(err);
-        if (body && /not enough rights to send photos/.test(body.description)) {
+        if (errHandler[ErrEnum.NotEnoughRightsSendPhotos](err)) {
           throw err;
         }
 

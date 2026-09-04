@@ -10,7 +10,6 @@ import promiseLimit from './tools/promiseLimit';
 import {appConfig} from './appConfig';
 import {getDebug} from './tools/getDebug';
 import throttle from 'lodash.throttle';
-import {limitChatAction} from './tools/telegramBotApi';
 
 const debug = getDebug('app:Sender');
 
@@ -168,7 +167,6 @@ class Sender {
           result.chatCount++;
 
           try {
-            await limitChatAction(chatId);
             await this.main.bot.api.sendChatAction({chat_id: chatId, action: 'typing'});
           } catch (error) {
             const err = error;

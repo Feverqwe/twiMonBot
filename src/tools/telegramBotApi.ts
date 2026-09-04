@@ -1,43 +1,34 @@
-import {
-  Bot,
-  RateLimiter,
-  type SendMessageParams,
-  type SendPhotoParams,
-} from 'node-telegram-bot-api';
+import {Bot, RateLimiter, type Api} from 'node-telegram-bot-api';
 import {getDebug} from './getDebug';
 
 const debug = getDebug('app:telegramBotApi');
-const chatActionRateLimiter = new RateLimiter({global: 30});
-const messageRateLimiter = new RateLimiter({global: 30});
 
-export const limitChatAction = (chatId: number | string) => chatActionRateLimiter.acquire(chatId);
+export function applyTelegramRateLimits(api: Api): void {
+  const sendLimit = new RateLimiter({global: 30});
+  const chatActionLimit = new RateLimiter({global: 30});
+  const sendChatAction = api.sendChatAction.bind(api);
+  const sendMessage = api.sendMessage.bind(api);
+  const sendPhoto = api.sendPhoto.bind(api);
 
-export const sendTelegramMessage = async (api: Bot['api'], params: SendMessageParams) => {
-  await messageRateLimiter.acquire(params.chat_id);
-  return api.sendMessage(params);
-};
+  api.sendChatAction = async (params, signal) => {
+    await chatActionLimit.acquire(params.chat_id, signal);
+    return sendChatAction(params, signal);
+  };
+  api.sendMessage = async (params, signal) => {
+    await sendLimit.acquire(params.chat_id, signal);
+    return sendMessage(params, signal);
+  };
+  api.sendPhoto = async (params, signal) => {
+    await sendLimit.acquire(params.chat_id, signal);
+    return sendPhoto(params, signal);
+  };
+}
 
-export const sendRateLimitedTelegramPhoto = async (api: Bot['api'], params: SendPhotoParams) => {
-  await messageRateLimiter.acquire(params.chat_id);
-  return api.sendPhoto(params);
-};
-
-export const getTelegramBot = (token: string) => {
+export const getTelegramBot = (token: string): Bot => {
   const bot = new Bot(token);
+  applyTelegramRateLimits(bot.api);
   bot.catch((err) => {
-    debug('updateError %s', err instanceof Error ? err.message : String(err));
+    debug('handler error %o', err);
   });
   return bot;
-};
-
-export const startTelegramPolling = (bot: Bot) => {
-  void bot
-    .startPolling(undefined, {
-      onError: (err) => {
-        debug('pollingError %s', err instanceof Error ? err.message : String(err));
-      },
-    })
-    .catch((err) => {
-      debug('pollingError %s', err instanceof Error ? err.message : String(err));
-    });
 };
