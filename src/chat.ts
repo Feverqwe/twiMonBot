@@ -33,7 +33,7 @@ import {tracker} from './tracker';
 import type * as TelegramBot from 'node-telegram-bot-api';
 import type {EditMessageTextParams, ParseMode, SendMessageParams} from 'node-telegram-bot-api';
 import {ErrEnum, errHandler, passEx} from './tools/passTgEx';
-import {limitChatAction, sendTelegramMessage} from './tools/telegramBotApi';
+import {limitChatAction, sendTelegramMessage, startTelegramPolling} from './tools/telegramBotApi';
 
 const debug = getDebug('app:Chat');
 
@@ -51,11 +51,11 @@ class Chat {
   private router: Router;
   constructor(private main: Main) {
     this.router = new Router();
-    this.main.bot.on('message', (message) => {
-      this.router.handle('message', message);
+    this.main.bot.on('message', (ctx) => {
+      if (ctx.message) this.router.handle('message', ctx.message);
     });
-    this.main.bot.on('callback_query', (callbackQuery) => {
-      this.router.handle('callback_query', callbackQuery);
+    this.main.bot.on('callback_query', (ctx) => {
+      if (ctx.callbackQuery) this.router.handle('callback_query', ctx.callbackQuery);
     });
 
     this.base();
@@ -72,7 +72,7 @@ class Chat {
 
     this.router.init(bot, username);
 
-    await bot.startPolling();
+    startTelegramPolling(bot);
   }
 
   base() {

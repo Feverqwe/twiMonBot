@@ -1,9 +1,9 @@
 import ErrorWithCode from './tools/errorWithCode';
 import qs from 'node:querystring';
 import type * as TelegramBot from 'node-telegram-bot-api';
+import type {Bot} from 'node-telegram-bot-api';
 import {getDebug} from './tools/getDebug';
 import Locale from './locale';
-import {TelegramBotWrapped} from './tools/telegramBotApi';
 
 const debug = getDebug('app:router');
 
@@ -123,7 +123,7 @@ const RouterImpl = class MessageTypesImpl implements MessageTypesObj {
 };
 
 class Router extends RouterImpl {
-  bot?: TelegramBotWrapped;
+  bot?: Bot;
   botNameRe?: RegExp;
 
   textOrCallbackQuery = this.custom<RouterTextReq | RouterCallbackQueryReq>([
@@ -131,7 +131,7 @@ class Router extends RouterImpl {
     'callback_query',
   ]);
 
-  init(bot: TelegramBotWrapped, botName: string) {
+  init(bot: Bot, botName: string) {
     this.bot = bot;
     this.botNameRe = new RegExp('^' + botName + '$', 'i');
   }

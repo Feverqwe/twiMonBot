@@ -1,8 +1,6 @@
 import {
   Bot,
   RateLimiter,
-  type CallbackQuery,
-  type Message,
   type SendMessageParams,
   type SendPhotoParams,
 } from 'node-telegram-bot-api';
@@ -24,44 +22,22 @@ export const sendRateLimitedTelegramPhoto = async (api: Bot['api'], params: Send
   return api.sendPhoto(params);
 };
 
-/** Temporarily bridges legacy event callbacks and non-blocking polling startup. */
-export class TelegramBotWrapped {
-  readonly api: Bot['api'];
-  private readonly bot: Bot;
-  private polling?: Promise<void>;
+export const getTelegramBot = (token: string) => {
+  const bot = new Bot(token);
+  bot.catch((err) => {
+    debug('updateError %s', err instanceof Error ? err.message : String(err));
+  });
+  return bot;
+};
 
-  constructor(token: string) {
-    this.bot = new Bot(token);
-    this.api = this.bot.api;
-    this.bot.catch((err) => {
+export const startTelegramPolling = (bot: Bot) => {
+  void bot
+    .startPolling(undefined, {
+      onError: (err) => {
+        debug('pollingError %s', err instanceof Error ? err.message : String(err));
+      },
+    })
+    .catch((err) => {
       debug('pollingError %s', err instanceof Error ? err.message : String(err));
     });
-  }
-
-  on(event: 'message', handler: (message: Message) => void): this;
-  on(event: 'callback_query', handler: (query: CallbackQuery) => void): this;
-  on(event: 'message' | 'callback_query', handler: (value: any) => void) {
-    this.bot.on(event, (ctx) => {
-      const update = ctx.update as {message?: Message; callback_query?: CallbackQuery};
-      const value = update[event];
-      if (value) handler(value);
-    });
-    return this;
-  }
-
-  async startPolling() {
-    if (!this.polling) {
-      this.polling = this.bot
-        .startPolling(undefined, {
-          onError: (err) => {
-            debug('pollingError %s', err instanceof Error ? err.message : String(err));
-          },
-        })
-        .catch((err) => {
-          debug('pollingError %s', err instanceof Error ? err.message : String(err));
-        });
-    }
-  }
-}
-
-export const getTelegramBot = (token: string) => new TelegramBotWrapped(token);
+};
