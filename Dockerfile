@@ -1,32 +1,36 @@
-FROM node:24-alpine AS node
+# syntax=docker/dockerfile:1
+
+FROM node:24-alpine AS base
 WORKDIR /opt
 
-FROM node AS base
-ADD ./packages ./packages
-COPY ./package.json .
-COPY ./package-lock.json .
-RUN chown -R nobody:nogroup ./ && \
-    touch /.npmrc && chown nobody:nogroup /.npmrc && \
-    mkdir /.npm && chown nobody:nogroup /.npm && \
-    mkdir ./log && chown nobody:nogroup ./log && \
-    ln -sf /dev/stdout ./log/stdout.log && \
-    ln -sf /dev/stderr ./log/stderr.log
-USER nobody:nobody
-RUN npm config set update-notifier false && \
-    npm ci --omit dev --fund false
+ENV NPM_CONFIG_AUDIT=false \
+    NPM_CONFIG_FUND=false \
+    NPM_CONFIG_UPDATE_NOTIFIER=false
+
+COPY package.json package-lock.json ./
+COPY packages ./packages
+
+FROM base AS prod-deps
+RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
 
 FROM base AS build
-RUN npm ci --fund false
-ADD ./src ./src
-COPY ./tsconfig.json .
+RUN --mount=type=cache,target=/root/.npm npm ci
+COPY src ./src
+COPY tsconfig.json ./
 RUN npm run build
 
-FROM base AS release
-COPY --from=build /opt/dist ./dist
+FROM node:24-alpine AS release
+WORKDIR /opt
 
-ENV NODE_ENV=production
-ENV DEBUG=app:*
+RUN apk add --no-cache su-exec
+
+ENV NODE_ENV=production \
+    DEBUG=app:*
+
+COPY package.json ./
+COPY --from=prod-deps /opt/node_modules ./node_modules
+COPY --from=build /opt/dist ./dist
 
 EXPOSE 80
 
-CMD node ./dist/main.js 1>> ./log/stdout.log 2>> ./log/stderr.log
+CMD ["sh", "-c", "mkdir -p /opt/log && chown -R nobody:nogroup /opt/log && exec su-exec nobody:nogroup sh -c 'exec node ./dist/main.js >> /opt/log/stdout.log 2>> /opt/log/stderr.log'"]

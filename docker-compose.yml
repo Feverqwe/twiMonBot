@@ -7,7 +7,6 @@ services:
     restart: always
     depends_on:
       - bot-db
-    user: root
     env_file: .env
     ports:
       - 1111:80
