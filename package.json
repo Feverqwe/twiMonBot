@@ -30,7 +30,7 @@
     "p-map": "^7.0.7",
     "quick-lru": "^7.3.0",
     "sequelize": "^6.37.8",
-    "tough-cookie": "^5.1.0",
+    "tough-cookie": "^6.0.2",
     "uuid": "^11.1.1",
     "valibot": "^1.4.2",
     "xmldoc": "^3.0.0"
