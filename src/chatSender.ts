@@ -8,14 +8,12 @@ import inlineInspect from './tools/inlineInspect';
 import fetchRequest from './tools/fetchRequest';
 import {ChatModel, MessageModel, StreamModelWithChannel} from './db';
 import {getDebug} from './tools/getDebug';
-import type * as TelegramBot from 'node-telegram-bot-api';
+import {InputFile, TelegramApiError, type Message} from 'node-telegram-bot-api';
 import {tracker} from './tracker';
 import {ErrEnum, errHandler, passEx} from './tools/passTgEx';
-import {TelegramError} from './types';
-import ReadableStream = NodeJS.ReadableStream;
-import {Stream} from 'stream';
-import {TelegramApiError} from 'node-telegram-bot-api';
-import {sendTelegramMessage} from './tools/telegramBotApi';
+import NodeReadableStream = NodeJS.ReadableStream;
+import {Readable} from 'node:stream';
+import {sendRateLimitedTelegramPhoto, sendTelegramMessage} from './tools/telegramBotApi';
 
 const debug = getDebug('app:ChatSender');
 
@@ -24,7 +22,7 @@ const streamWeakMap = new WeakMap();
 interface SentMessage {
   type: string;
   text: string;
-  message: TelegramBot.Message;
+  message: Message;
 }
 
 class ChatSender {
@@ -155,7 +153,7 @@ class ChatSender {
             );
           }
         } catch (error) {
-          const err = error as TelegramError;
+          const err = error as Error;
           if (
             errHandler[ErrEnum.MessageToEditNotFound](err) ||
             errHandler[ErrEnum.MessageCantBeEdited](err)
@@ -340,21 +338,19 @@ class ChatSender {
 
       let message;
       try {
-        message = await this.main.bot.sendPhotoQuote(this.chat.id, stream.telegramPreviewFileId, {
+        message = await sendRateLimitedTelegramPhoto(this.main.bot.api, {
+          chat_id: this.chat.id,
+          photo: stream.telegramPreviewFileId,
           caption,
         });
       } catch (error) {
-        const err = error as TelegramError;
-        if (err.code === 'ETELEGRAM') {
-          const body = err.response.body;
+        const body = getTelegramErrorBody(error);
+        if (body && /FILE_REFERENCE_.+/.test(body.description)) {
+          stream.telegramPreviewFileId = null;
 
-          if (/FILE_REFERENCE_.+/.test(body.description)) {
-            stream.telegramPreviewFileId = null;
-
-            return this.sendStreamAsPhoto(stream);
-          }
+          return this.sendStreamAsPhoto(stream);
         }
-        throw err;
+        throw error;
       }
 
       tracker.track(this.chat.id, {
@@ -387,10 +383,8 @@ class ChatSender {
       });
       streamWeakMap.set(stream, promise);
       promise = promise.catch((err: any) => {
-        if (
-          err.code === 'ETELEGRAM' &&
-          /not enough rights to send photos/.test(err.response.body.description)
-        ) {
+        const body = getTelegramErrorBody(err);
+        if (body && /not enough rights to send photos/.test(body.description)) {
           throw err;
         }
 
@@ -445,7 +439,11 @@ class ChatSender {
 
     const message = await promiseTry(async () => {
       try {
-        const message = await this.main.bot.sendPhoto(this.chat.id, url, {caption});
+        const message = await this.main.bot.api.sendPhoto({
+          chat_id: this.chat.id,
+          photo: url,
+          caption,
+        });
 
         this.main.sender.log.write(
           `[send photo as url] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
@@ -460,11 +458,12 @@ class ChatSender {
 
         return message;
       } catch (error) {
-        const err = error as TelegramError;
+        const err = error as Error;
+        const body = getTelegramErrorBody(error);
 
         let isSendUrlError = sendUrlErrors.some((re) => re.test(err.message));
         if (!isSendUrlError) {
-          isSendUrlError = err.response && err.response.statusCode === 504;
+          isSendUrlError = body?.error_code === 504;
         }
 
         if (isSendUrlError) {
@@ -473,18 +472,20 @@ class ChatSender {
             contentType = 'image/jpeg';
           }
 
-          const response = await fetchRequest<ReadableStream>(url, {
+          const response = await fetchRequest<NodeReadableStream>(url, {
             responseType: 'stream',
             keepAlive: true,
             cookie: service.useCookies,
           });
 
-          const message = await this.main.bot.sendPhoto(
-            this.chat.id,
-            response.body as unknown as Stream,
-            {caption},
-            {contentType, filename: '-'},
-          );
+          const message = await this.main.bot.api.sendPhoto({
+            chat_id: this.chat.id,
+            photo: new InputFile(
+              Readable.toWeb(response.body as Readable) as ReadableStream<Uint8Array>,
+              {contentType, filename: '-'},
+            ),
+            caption,
+          });
 
           this.main.sender.log.write(
             `[send photo as file] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
@@ -605,7 +606,7 @@ const sendUrlErrors = [
   /FILE_REFERENCE_.+/,
 ];
 
-function getPhotoFileIdFromMessage(message: TelegramBot.Message): string | null {
+function getPhotoFileIdFromMessage(message: Message): string | null {
   let fileId = null;
   message.photo
     ?.slice(0)
@@ -638,7 +639,7 @@ async function getValidPreviewUrl(urls: string[], service: ServiceInterface) {
   throw err;
 }
 
-export function getTelegramErrorBody(err: unknown): TelegramError['response']['body'] | undefined {
+export function getTelegramErrorBody(err: unknown) {
   if (err instanceof TelegramApiError) {
     return {
       error_code: err.errorCode,
@@ -646,9 +647,6 @@ export function getTelegramErrorBody(err: unknown): TelegramError['response']['b
       parameters: err.parameters,
     };
   }
-
-  const legacyError = err as Partial<TelegramError>;
-  if (legacyError.code === 'ETELEGRAM') return legacyError.response?.body;
 }
 
 export function isBlockedError(err: unknown) {

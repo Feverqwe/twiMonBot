@@ -1,9 +1,6 @@
-import {Readable, Stream} from 'node:stream';
 import {
   Bot,
-  InputFile,
   RateLimiter,
-  TelegramApiError,
   type CallbackQuery,
   type Message,
   type SendMessageParams,
@@ -22,15 +19,12 @@ export const sendTelegramMessage = async (api: Bot['api'], params: SendMessagePa
   return api.sendMessage(params);
 };
 
-type PhotoOptions = Omit<SendPhotoParams, 'chat_id' | 'photo'>;
-type Photo = string | NodeJS.ReadableStream | Stream;
+export const sendRateLimitedTelegramPhoto = async (api: Bot['api'], params: SendPhotoParams) => {
+  await messageRateLimiter.acquire(params.chat_id);
+  return api.sendPhoto(params);
+};
 
-interface FileOptions {
-  filename?: string;
-  contentType?: string;
-}
-
-/** Adapts the v2 client to the small positional API used by the application. */
+/** Temporarily bridges legacy event callbacks and non-blocking polling startup. */
 export class TelegramBotWrapped {
   readonly api: Bot['api'];
   private readonly bot: Bot;
@@ -68,63 +62,6 @@ export class TelegramBotWrapped {
         });
     }
   }
-
-  sendPhoto(
-    chatId: number | string,
-    photo: Photo,
-    options: PhotoOptions = {},
-    fileOptions: FileOptions = {},
-  ) {
-    return this.call(() =>
-      this.bot.api.sendPhoto({
-        chat_id: chatId,
-        photo: toInputFile(photo, fileOptions),
-        ...options,
-      }),
-    );
-  }
-
-  sendPhotoQuote(
-    chatId: number | string,
-    photo: Photo,
-    options: PhotoOptions = {},
-    fileOptions: FileOptions = {},
-  ) {
-    return messageRateLimiter
-      .acquire(chatId)
-      .then(() => this.sendPhoto(chatId, photo, options, fileOptions));
-  }
-
-  private async call<T>(request: () => Promise<T>): Promise<T> {
-    try {
-      return await request();
-    } catch (error) {
-      if (error instanceof TelegramApiError) addLegacyResponse(error);
-      throw error;
-    }
-  }
-}
-
-function toInputFile(photo: Photo, fileOptions: FileOptions): string | InputFile {
-  if (typeof photo === 'string') return photo;
-  const stream = Readable.toWeb(photo as Readable) as ReadableStream<Uint8Array>;
-  return new InputFile(stream, fileOptions);
-}
-
-function addLegacyResponse(error: TelegramApiError) {
-  Object.defineProperty(error, 'response', {
-    configurable: true,
-    enumerable: false,
-    value: {
-      statusCode: error.errorCode,
-      body: {
-        ok: false,
-        error_code: error.errorCode,
-        description: error.description,
-        parameters: error.parameters,
-      },
-    },
-  });
 }
 
 export const getTelegramBot = (token: string) => new TelegramBotWrapped(token);
