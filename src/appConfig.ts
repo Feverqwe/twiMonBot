@@ -5,6 +5,7 @@ const debug = getDebug('app:kick');
 
 const {
   TELEGRAM_TOKEN = '',
+  TELEGRAM_PROXY_URL = '',
   GA_TID = '',
   TWITCH_TOKEN = '',
   TWITCH_SECRET = '',
@@ -28,6 +29,7 @@ const {
 
 export const appConfig = {
   token: TELEGRAM_TOKEN,
+  telegramProxyUrl: TELEGRAM_PROXY_URL,
   gaId: GA_TID,
   ytToken: YOUTUBE_TOKEN,
   twitchToken: TWITCH_TOKEN,

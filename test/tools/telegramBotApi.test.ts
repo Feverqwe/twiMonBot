@@ -8,7 +8,12 @@ import {
   type SendMessageParams,
   type SendPhotoParams,
 } from 'node-telegram-bot-api';
-import {applyTelegramRateLimits, getTelegramBot} from '../../src/tools/telegramBotApi';
+import {fetch as undiciFetch, ProxyAgent} from 'undici';
+import {
+  applyTelegramRateLimits,
+  getProxyFetch,
+  getTelegramBot,
+} from '../../src/tools/telegramBotApi';
 
 type MockApi = {
   sendChatAction: jest.Mock<
@@ -30,6 +35,23 @@ const getRateLimitedMockApi = () => {
 };
 
 describe('Telegram bot setup', () => {
+  test('uses the configured proxy for Telegram requests', async () => {
+    const fetchMock = jest.fn<typeof undiciFetch>();
+    fetchMock.mockResolvedValue({} as Awaited<ReturnType<typeof undiciFetch>>);
+    let dispatcher: ProxyAgent | undefined;
+
+    try {
+      const proxyFetch = getProxyFetch('http://127.0.0.1:3128', fetchMock);
+      await proxyFetch?.('https://api.telegram.org');
+
+      const init = fetchMock.mock.calls[0][1] as {dispatcher?: ProxyAgent};
+      dispatcher = init.dispatcher;
+      expect(dispatcher).toBeInstanceOf(ProxyAgent);
+    } finally {
+      await dispatcher?.close();
+    }
+  });
+
   test('forwards v2 sendMessage parameters through the rate limiter', async () => {
     const {api, raw} = getRateLimitedMockApi();
     raw.sendMessage.mockResolvedValue({});

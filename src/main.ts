@@ -57,7 +57,7 @@ class Main extends Events {
     this.checker = new Checker(this);
     this.webServer = new WebServer(this);
 
-    this.bot = getTelegramBot(appConfig.token);
+    this.bot = getTelegramBot(appConfig.token, appConfig.telegramProxyUrl);
     this.chat = new Chat(this);
   }
 

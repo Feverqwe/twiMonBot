@@ -1,4 +1,5 @@
 import {Bot, RateLimiter, type Api} from 'node-telegram-bot-api';
+import {fetch as undiciFetch, ProxyAgent} from 'undici';
 import {getDebug} from './getDebug';
 
 const debug = getDebug('app:telegramBotApi');
@@ -24,8 +25,27 @@ export function applyTelegramRateLimits(api: Api): void {
   };
 }
 
-export const getTelegramBot = (token: string): Bot => {
-  const bot = new Bot(token);
+export const getProxyFetch = (
+  proxyUrl: string,
+  fetchImpl: typeof undiciFetch = undiciFetch,
+): typeof fetch | undefined => {
+  if (!proxyUrl) {
+    return undefined;
+  }
+
+  const dispatcher = new ProxyAgent(proxyUrl);
+  return async (input, init) => {
+    const response = await fetchImpl(
+      input as unknown as Parameters<typeof undiciFetch>[0],
+      {...init, dispatcher} as unknown as Parameters<typeof undiciFetch>[1],
+    );
+    return response as unknown as Response;
+  };
+};
+
+export const getTelegramBot = (token: string, proxyUrl = ''): Bot => {
+  const proxyFetch = getProxyFetch(proxyUrl);
+  const bot = new Bot(token, proxyFetch ? {fetch: proxyFetch} : undefined);
   applyTelegramRateLimits(bot.api);
   bot.catch((err) => {
     debug('handler error %o', err);
