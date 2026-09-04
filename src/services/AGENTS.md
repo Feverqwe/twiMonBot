@@ -23,7 +23,7 @@ These instructions extend the root and `src/` guides for `src/services/`.
 
 - Use `tools/fetchRequest.ts` so timeout, keep-alive, cookies, response metadata, and error types are
   consistent. Use existing batching/rate-limit helpers and stay within each provider's API limits.
-- Validate external JSON with `superstruct` before mapping it. Keep schemas close to the adapter and
+- Validate external JSON with `valibot` before mapping it. Keep schemas close to the adapter and
   mask responses so unrelated upstream fields do not leak into internal models.
 - Preserve access-token caching and single-flight refresh behavior in Twitch and Kick. Never log
   tokens, client secrets, authorization headers, or full signed callback URLs.
@@ -42,4 +42,3 @@ These instructions extend the root and `src/` guides for `src/services/`.
 - When adding an adapter, register it in `main.ts`, add required environment keys to
   `appConfig.ts` and `example.env`, and ensure the first two characters of its `id` do not collide
   with another service because `serviceId.wrap` uses that prefix.
-

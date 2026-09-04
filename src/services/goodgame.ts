@@ -1,5 +1,5 @@
 import ErrorWithCode from '../tools/errorWithCode';
-import * as s from 'superstruct';
+import * as v from 'valibot';
 import Main from '../main';
 import parallel from '../tools/parallel';
 import arrayByPart from '../tools/arrayByPart';
@@ -9,34 +9,34 @@ import {getDebug} from '../tools/getDebug';
 
 const debug = getDebug('app:Goodgame');
 
-const StreamStrict = s.object({
-  id: s.number(),
-  key: s.string(),
-  url: s.string(),
-  channel: s.object({
-    id: s.number(),
-    key: s.string(),
-    url: s.string(),
+const StreamSchema = v.object({
+  id: v.number(),
+  key: v.string(),
+  url: v.string(),
+  channel: v.object({
+    id: v.number(),
+    key: v.string(),
+    url: v.string(),
   }),
 });
 
-const StreamsStruct = s.object({
-  _embedded: s.object({
-    streams: s.array(
-      s.object({
-        key: s.string(),
-        status: s.string(),
-        id: s.number(),
-        viewers: s.number(),
-        channel: s.object({
-          id: s.number(),
-          key: s.string(),
-          title: s.string(),
-          url: s.string(),
-          thumb: s.string(),
-          games: s.array(
-            s.object({
-              title: s.nullable(s.string()),
+const StreamsSchema = v.object({
+  _embedded: v.object({
+    streams: v.array(
+      v.object({
+        key: v.string(),
+        status: v.string(),
+        id: v.number(),
+        viewers: v.number(),
+        channel: v.object({
+          id: v.number(),
+          key: v.string(),
+          title: v.string(),
+          url: v.string(),
+          thumb: v.string(),
+          games: v.array(
+            v.object({
+              title: v.nullable(v.string()),
             }),
           ),
         }),
@@ -76,7 +76,7 @@ class Goodgame implements ServiceInterface<number> {
           responseType: 'json',
         });
 
-        const streams = s.mask(body, StreamsStruct)._embedded.streams;
+        const streams = v.parse(StreamsSchema, body)._embedded.streams;
 
         streams.forEach((stream) => {
           if (stream.status !== 'Live') return;
@@ -172,7 +172,7 @@ class Goodgame implements ServiceInterface<number> {
         },
       );
 
-      const stream = s.mask(body, StreamStrict);
+      const stream = v.parse(StreamSchema, body);
       const id = stream.channel.id;
       const url = stream.channel.url;
       const title = stream.channel.key;

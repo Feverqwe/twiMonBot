@@ -1,5 +1,4 @@
-import * as s from 'superstruct';
-import {Infer} from 'superstruct';
+import * as v from 'valibot';
 import {ServiceChannel, ServiceGetStreamsResult, ServiceInterface, ServiceStream} from '../checker';
 import ErrorWithCode from '../tools/errorWithCode';
 import fetchRequest, {HTTPError} from '../tools/fetchRequest';
@@ -9,52 +8,52 @@ import Main from '../main';
 
 const debug = getDebug('app:vkplay');
 
-const BlogOwnerStrict = s.object({
-  displayName: s.string(),
-  // name: s.string(),
-  // nick: s.string(),
-  // id: s.number(),
+const BlogOwnerSchema = v.object({
+  displayName: v.string(),
+  // name: v.string(),
+  // nick: v.string(),
+  // id: v.number(),
 });
 
-const SearchBlogStrict = s.object({
-  /* owner: BlogOwnerStrict, */
-  blogUrl: s.string(),
+const SearchBlogSchema = v.object({
+  /* owner: BlogOwnerSchema, */
+  blogUrl: v.string(),
 });
-type SearchBlog = Infer<typeof SearchBlogStrict>;
+type SearchBlog = v.InferOutput<typeof SearchBlogSchema>;
 
-const SearchStrict = s.object({
-  data: s.object({
-    searchBlogs: s.array(
-      s.object({
-        blog: s.optional(SearchBlogStrict),
+const SearchSchema = v.object({
+  data: v.object({
+    searchBlogs: v.array(
+      v.object({
+        blog: v.optional(SearchBlogSchema),
       }),
     ),
   }),
 });
 
-const BlogStrict = s.object({
-  owner: BlogOwnerStrict,
-  blogUrl: s.string(),
+const BlogSchema = v.object({
+  owner: BlogOwnerSchema,
+  blogUrl: v.string(),
 });
 
-const StreamStruct = s.object({
-  title: s.string(),
-  // isEnded: s.boolean(),
-  count: s.object({
-    viewers: s.number(),
+const StreamSchema = v.object({
+  title: v.string(),
+  // isEnded: v.boolean(),
+  count: v.object({
+    viewers: v.number(),
   }),
-  user: s.object({
-    displayName: s.string(),
+  user: v.object({
+    displayName: v.string(),
   }),
-  startTime: s.optional(s.number()), // unixtimestamp
-  id: s.string(),
-  // createdAt: s.number(),
-  previewUrl: s.string(),
-  isOnline: s.boolean(),
-  category: s.optional(
-    s.object({
-      // type: s.string(),
-      title: s.string(),
+  startTime: v.optional(v.number()), // unixtimestamp
+  id: v.string(),
+  // createdAt: v.number(),
+  previewUrl: v.string(),
+  isOnline: v.boolean(),
+  category: v.optional(
+    v.object({
+      // type: v.string(),
+      title: v.string(),
     }),
   ),
 });
@@ -108,7 +107,7 @@ class Vkplay implements ServiceInterface<string> {
       throw err;
     });
 
-    const stream = s.mask(body, StreamStruct);
+    const stream = v.parse(StreamSchema, body);
 
     if (!stream.isOnline) return;
 
@@ -191,7 +190,7 @@ class Vkplay implements ServiceInterface<string> {
       },
     );
 
-    const stream = s.mask(body, SearchStrict);
+    const stream = v.parse(SearchSchema, body);
     let firstBlog: SearchBlog | undefined;
     stream.data.searchBlogs.some(({blog}) => {
       if (blog) {
@@ -221,7 +220,7 @@ class Vkplay implements ServiceInterface<string> {
       throw err;
     });
 
-    const blog = s.mask(body, BlogStrict);
+    const blog = v.parse(BlogSchema, body);
     const id = blog.blogUrl;
     const url = getBlogUrl(blog.blogUrl);
     const title = blog.owner.displayName;

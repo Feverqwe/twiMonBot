@@ -2,8 +2,7 @@ import {ServiceInterface, ServiceStream} from '../checker';
 import Main from '../main';
 import parallel from '../tools/parallel';
 import ErrorWithCode from '../tools/errorWithCode';
-import * as s from 'superstruct';
-import {Infer} from 'superstruct';
+import * as v from 'valibot';
 import arrayByPart from '../tools/arrayByPart';
 import fetchRequest, {HTTPError} from '../tools/fetchRequest';
 import {decode as decodeHtmlEntity} from 'html-entities';
@@ -15,102 +14,102 @@ const debug = getDebug('app:Youtube');
 
 const costCounter = ytCostCounter(150000);
 
-const VideosItemsSnippetStruct = s.object({
-  items: s.array(
-    s.object({
-      snippet: s.object({
-        channelId: s.string(),
+const VideosItemsSnippetSchema = v.object({
+  items: v.array(
+    v.object({
+      snippet: v.object({
+        channelId: v.string(),
       }),
-      liveStreamingDetails: s.optional(
-        s.object({
-          scheduledStartTime: s.optional(s.string()),
-          actualStartTime: s.optional(s.string()),
-          actualEndTime: s.optional(s.string()),
-          concurrentViewers: s.optional(s.string()),
+      liveStreamingDetails: v.optional(
+        v.object({
+          scheduledStartTime: v.optional(v.string()),
+          actualStartTime: v.optional(v.string()),
+          actualEndTime: v.optional(v.string()),
+          concurrentViewers: v.optional(v.string()),
         }),
       ),
     }),
   ),
 });
 
-const ChannelsItemsIdStruct = s.object({
-  items: s.optional(
-    s.array(
-      s.object({
-        id: s.string(),
+const ChannelsItemsIdSchema = v.object({
+  items: v.optional(
+    v.array(
+      v.object({
+        id: v.string(),
       }),
     ),
   ),
-  nextPageToken: s.optional(s.string()),
+  nextPageToken: v.optional(v.string()),
 });
 
-const SearchItemsIdStruct = s.object({
-  items: s.array(
-    s.object({
-      id: s.object({
-        channelId: s.string(),
+const SearchItemsIdSchema = v.object({
+  items: v.array(
+    v.object({
+      id: v.object({
+        channelId: v.string(),
       }),
     }),
   ),
 });
 
-const SearchItemsIdVideoIdStruct = s.object({
-  items: s.array(
-    s.object({
-      id: s.object({
-        videoId: s.string(),
+const SearchItemsIdVideoIdSchema = v.object({
+  items: v.array(
+    v.object({
+      id: v.object({
+        videoId: v.string(),
       }),
     }),
   ),
 });
 
-const SearchItemsSnippetStruct = s.object({
-  items: s.array(
-    s.object({
-      snippet: s.object({
-        channelId: s.string(),
-        channelTitle: s.string(),
+const SearchItemsSnippetSchema = v.object({
+  items: v.array(
+    v.object({
+      snippet: v.object({
+        channelId: v.string(),
+        channelTitle: v.string(),
       }),
     }),
   ),
 });
 
-type SearchVideoResponseSnippet = Infer<typeof SearchVideoResponseSnippetStruct>;
-const SearchVideoResponseSnippetStruct = s.object({
-  title: s.string(),
-  liveBroadcastContent: s.string(),
-  publishedAt: s.string(),
-  channelTitle: s.string(),
-  channelId: s.string(),
+type SearchVideoResponseSnippet = v.InferOutput<typeof SearchVideoResponseSnippetSchema>;
+const SearchVideoResponseSnippetSchema = v.object({
+  title: v.string(),
+  liveBroadcastContent: v.string(),
+  publishedAt: v.string(),
+  channelTitle: v.string(),
+  channelId: v.string(),
 });
 
-const SearchVideoResponseStruct = s.object({
-  items: s.array(
-    s.object({
-      id: s.object({
-        videoId: s.string(),
+const SearchVideoResponseSchema = v.object({
+  items: v.array(
+    v.object({
+      id: v.object({
+        videoId: v.string(),
       }),
-      snippet: SearchVideoResponseSnippetStruct,
+      snippet: SearchVideoResponseSnippetSchema,
     }),
   ),
-  nextPageToken: s.optional(s.string()),
+  nextPageToken: v.optional(v.string()),
 });
 
-const VideosResponseStruct = s.object({
-  items: s.array(
-    s.object({
-      id: s.string(),
-      liveStreamingDetails: s.optional(
-        s.object({
-          scheduledStartTime: s.optional(s.string()),
-          actualStartTime: s.optional(s.string()),
-          actualEndTime: s.optional(s.string()),
-          concurrentViewers: s.optional(s.string()),
+const VideosResponseSchema = v.object({
+  items: v.array(
+    v.object({
+      id: v.string(),
+      liveStreamingDetails: v.optional(
+        v.object({
+          scheduledStartTime: v.optional(v.string()),
+          actualStartTime: v.optional(v.string()),
+          actualEndTime: v.optional(v.string()),
+          concurrentViewers: v.optional(v.string()),
         }),
       ),
     }),
   ),
-  nextPageToken: s.optional(s.string()),
+  nextPageToken: v.optional(v.string()),
 });
 
 class Youtube implements ServiceInterface<string> {
@@ -195,7 +194,7 @@ class Youtube implements ServiceInterface<string> {
         responseType: 'json',
       });
 
-      const result = s.mask(body, SearchVideoResponseStruct);
+      const result = v.parse(SearchVideoResponseSchema, body);
 
       result.items.forEach((item) => {
         idSnippet.set(item.id.videoId, item.snippet);
@@ -233,7 +232,7 @@ class Youtube implements ServiceInterface<string> {
           responseType: 'json',
         });
 
-        const videosResponse = s.mask(body, VideosResponseStruct);
+        const videosResponse = v.parse(VideosResponseSchema, body);
 
         videosResponse.items.forEach((item) => {
           if (!item.liveStreamingDetails) return;
@@ -287,7 +286,7 @@ class Youtube implements ServiceInterface<string> {
           responseType: 'json',
         });
 
-        const channelsItemsId = s.mask(body, ChannelsItemsIdStruct);
+        const channelsItemsId = v.parse(ChannelsItemsIdSchema, body);
         if (channelsItemsId.items) {
           channelsItemsId.items.forEach((item) => {
             resultChannelIds.push(item.id);
@@ -349,7 +348,7 @@ class Youtube implements ServiceInterface<string> {
       responseType: 'json',
     });
 
-    const searchItemsSnippet = s.mask(body, SearchItemsSnippetStruct);
+    const searchItemsSnippet = v.parse(SearchItemsSnippetSchema, body);
     if (!searchItemsSnippet.items.length) {
       throw new ErrorWithCode('Channel is not found', 'CHANNEL_BY_ID_IS_NOT_FOUND');
     }
@@ -415,7 +414,7 @@ class Youtube implements ServiceInterface<string> {
       responseType: 'json',
     });
 
-    const videosItemsSnippet = s.mask(body, VideosItemsSnippetStruct);
+    const videosItemsSnippet = v.parse(VideosItemsSnippetSchema, body);
     if (!videosItemsSnippet.items.length) {
       throw new ErrorWithCode('Video by id is not found', 'CHANNEL_BY_VIDEO_ID_IS_NOT_FOUND');
     }
@@ -466,7 +465,7 @@ class Youtube implements ServiceInterface<string> {
         responseType: 'json',
       });
 
-      const channelsItemsId = s.mask(body, ChannelsItemsIdStruct);
+      const channelsItemsId = v.parse(ChannelsItemsIdSchema, body);
       if (!channelsItemsId.items || !channelsItemsId.items.length) {
         throw new ErrorWithCode('Channel by user is not found', 'CHANNEL_BY_USER_IS_NOT_FOUND');
       }
@@ -501,7 +500,7 @@ class Youtube implements ServiceInterface<string> {
       responseType: 'json',
     });
 
-    const searchItemsId = s.mask(body, SearchItemsIdStruct);
+    const searchItemsId = v.parse(SearchItemsIdSchema, body);
     if (!searchItemsId.items.length) {
       throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
     }
@@ -529,7 +528,7 @@ class Youtube implements ServiceInterface<string> {
         responseType: 'json',
       });
 
-      const result = s.mask(body, SearchItemsIdVideoIdStruct);
+      const result = v.parse(SearchItemsIdVideoIdSchema, body);
 
       if (result.items.length) {
         return true;

@@ -3,7 +3,7 @@ import parallel from '../tools/parallel';
 import ErrorWithCode from '../tools/errorWithCode';
 import {getDebug} from '../tools/getDebug';
 import fetchRequest, {FetchRequestOptions} from '../tools/fetchRequest';
-import * as s from 'superstruct';
+import * as v from 'valibot';
 import Main from '../main';
 import {appConfig} from '../appConfig';
 import getNow from '../tools/getNow';
@@ -12,32 +12,32 @@ import crypto from 'node:crypto';
 
 const debug = getDebug('app:kick');
 
-const ChannelStrict = s.object({
-  broadcaster_user_id: s.number(),
-  slug: s.string(),
-  channel_description: s.string(),
-  banner_picture: s.string(),
-  stream: s.object({
-    url: s.string(),
-    key: s.string(),
-    is_live: s.boolean(),
-    is_mature: s.boolean(),
-    language: s.string(),
-    start_time: s.string(),
-    viewer_count: s.number(),
-    thumbnail: s.string(),
+const ChannelSchema = v.object({
+  broadcaster_user_id: v.number(),
+  slug: v.string(),
+  channel_description: v.string(),
+  banner_picture: v.string(),
+  stream: v.object({
+    url: v.string(),
+    key: v.string(),
+    is_live: v.boolean(),
+    is_mature: v.boolean(),
+    language: v.string(),
+    start_time: v.string(),
+    viewer_count: v.number(),
+    thumbnail: v.string(),
   }),
-  stream_title: s.string(),
-  category: s.object({
-    id: s.number(),
-    name: s.string(),
-    thumbnail: s.string(),
+  stream_title: v.string(),
+  category: v.object({
+    id: v.number(),
+    name: v.string(),
+    thumbnail: v.string(),
   }),
 });
 
-const ChannelsStrict = s.object({
-  data: s.array(ChannelStrict),
-  message: s.string(),
+const ChannelsSchema = v.object({
+  data: v.array(ChannelSchema),
+  message: v.string(),
 });
 
 class Kick implements ServiceInterface<number> {
@@ -190,19 +190,19 @@ class Kick implements ServiceInterface<number> {
         responseType: 'json',
       });
 
-      s.assert(
-        body,
-        s.type({
-          access_token: s.string(),
-          expires_in: s.number(),
-          token_type: s.string(),
+      const tokenResponse = v.parse(
+        v.object({
+          access_token: v.string(),
+          expires_in: v.number(),
+          token_type: v.string(),
         }),
+        body,
       );
 
-      const expiresAt = now + body.expires_in * 1000;
+      const expiresAt = now + tokenResponse.expires_in * 1000;
       this.token = {
         expiresAt,
-        accessToken: body.access_token,
+        accessToken: tokenResponse.access_token,
       };
 
       return this.token.accessToken;
@@ -233,7 +233,7 @@ class Kick implements ServiceInterface<number> {
       responseType: 'json',
     });
 
-    const result = s.mask(body, ChannelsStrict);
+    const result = v.parse(ChannelsSchema, body);
 
     return result;
   }

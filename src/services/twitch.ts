@@ -2,7 +2,7 @@ import {ServiceInterface, ServiceStream} from '../checker';
 import Main from '../main';
 import parallel from '../tools/parallel';
 import ErrorWithCode from '../tools/errorWithCode';
-import * as s from 'superstruct';
+import * as v from 'valibot';
 import arrayByPart from '../tools/arrayByPart';
 import fetchRequest, {FetchRequestOptions, HTTPError} from '../tools/fetchRequest';
 import getNow from '../tools/getNow';
@@ -18,36 +18,36 @@ const rateLimit = new RateLimit2(800, 60 * 1000);
 const limitedFetchRequest = rateLimit.wrap(fetchRequest);
 const requestSingleChannelLimit = new RateLimit2(400, 60 * 1000);
 
-const ChannelsStruct = s.object({
-  data: s.array(
-    s.object({
-      id: s.string(),
-      broadcaster_login: s.string(),
-      display_name: s.string(),
+const ChannelsSchema = v.object({
+  data: v.array(
+    v.object({
+      id: v.string(),
+      broadcaster_login: v.string(),
+      display_name: v.string(),
     }),
   ),
-  pagination: s.object({
-    cursor: s.optional(s.string()),
+  pagination: v.object({
+    cursor: v.optional(v.string()),
   }),
 });
 
-const StreamsStruct = s.object({
-  data: s.array(
-    s.object({
-      id: s.string(),
-      type: s.string(),
-      thumbnail_url: s.string(),
-      viewer_count: s.number(),
-      game_name: s.string(),
-      started_at: s.string(),
-      user_id: s.string(),
-      user_login: s.string(),
-      user_name: s.string(),
-      title: s.string(),
+const StreamsSchema = v.object({
+  data: v.array(
+    v.object({
+      id: v.string(),
+      type: v.string(),
+      thumbnail_url: v.string(),
+      viewer_count: v.number(),
+      game_name: v.string(),
+      started_at: v.string(),
+      user_id: v.string(),
+      user_login: v.string(),
+      user_name: v.string(),
+      title: v.string(),
     }),
   ),
-  pagination: s.object({
-    cursor: s.optional(s.string()),
+  pagination: v.object({
+    cursor: v.optional(v.string()),
   }),
 });
 
@@ -78,7 +78,7 @@ class Twitch implements ServiceInterface<number> {
           responseType: 'json',
         });
 
-        const result = s.mask(body, StreamsStruct);
+        const result = v.parse(StreamsSchema, body);
         const streams = result.data;
 
         streams.forEach((stream) => {
@@ -193,7 +193,7 @@ class Twitch implements ServiceInterface<number> {
       responseType: 'json',
     });
 
-    const channels = s.mask(body, ChannelsStruct).data;
+    const channels = v.parse(ChannelsSchema, body).data;
     if (!channels.length) {
       throw new ErrorWithCode('Channel by query is not found', 'CHANNEL_BY_QUERY_IS_NOT_FOUND');
     }
@@ -248,18 +248,18 @@ class Twitch implements ServiceInterface<number> {
         responseType: 'json',
       });
 
-      s.assert(
-        body,
-        s.type({
-          access_token: s.string(),
-          expires_in: s.number(),
+      const tokenResponse = v.parse(
+        v.object({
+          access_token: v.string(),
+          expires_in: v.number(),
         }),
+        body,
       );
 
-      const expiresAt = Date.now() + body.expires_in * 1000;
+      const expiresAt = Date.now() + tokenResponse.expires_in * 1000;
       this.token = {
         expiresAt,
-        accessToken: body.access_token,
+        accessToken: tokenResponse.access_token,
       };
 
       return this.token.accessToken;
