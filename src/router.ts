@@ -37,9 +37,39 @@ type RouterMethodCallback<I = RouterReq, O = RouterRes> = (
   next: () => void,
 ) => void;
 
+declare const routerMiddlewareOutput: unique symbol;
+
+export type RouterMiddleware<A extends object, I = RouterReq, O = RouterRes> = RouterMethodCallback<
+  I,
+  O
+> & {
+  readonly [routerMiddlewareOutput]: A;
+};
+
 export type RouterMethodArgs<I = RouterReq, O = RouterRes> =
   [RegExp, ...RouterMethodCallback<I, O>[]] | RouterMethodCallback<I, O>[];
 interface RouterMethod<I = RouterReq, O = RouterRes> {
+  <A extends object, B extends object>(
+    ...callbacks: [
+      RouterMiddleware<A, I, O>,
+      RouterMiddleware<B, I & A, O>,
+      ...RouterMethodCallback<I & A & B, O>[],
+    ]
+  ): void;
+  <A extends object>(
+    ...callbacks: [RouterMiddleware<A, I, O>, ...RouterMethodCallback<I & A, O>[]]
+  ): void;
+  <A extends object, B extends object>(
+    re: RegExp,
+    first: RouterMiddleware<A, I, O>,
+    second: RouterMiddleware<B, I & A, O>,
+    ...callbacks: RouterMethodCallback<I & A & B, O>[]
+  ): void;
+  <A extends object>(
+    re: RegExp,
+    middleware: RouterMiddleware<A, I, O>,
+    ...callbacks: RouterMethodCallback<I & A, O>[]
+  ): void;
   (...callbacks: RouterMethodArgs<I, O>): void;
 }
 
@@ -170,15 +200,15 @@ class Router extends RouterImpl {
     });
   };
 
-  all(...callbacks: RouterMethodArgs) {
+  all = ((...callbacks: RouterMethodArgs) => {
     const {re, callbackList} = prepareArgs(callbacks);
 
     callbackList.forEach((callback) => {
       this.stack.push(new RouterRoute({}, re, callback));
     });
-  }
+  }) as RouterMethod;
 
-  message(...callbacks: RouterMethodArgs<RouterMessageReq>) {
+  message = ((...callbacks: RouterMethodArgs<RouterMessageReq>) => {
     const {re, callbackList} = prepareArgs(callbacks);
 
     callbackList.forEach((callback) => {
@@ -192,9 +222,9 @@ class Router extends RouterImpl {
         ),
       );
     });
-  }
+  }) as RouterMethod<RouterMessageReq>;
 
-  callback_query(...callbacks: RouterMethodArgs<RouterCallbackQueryReq, RouterRes>) {
+  callback_query = ((...callbacks: RouterMethodArgs<RouterCallbackQueryReq, RouterRes>) => {
     const {re, callbackList} = prepareArgs(callbacks);
 
     callbackList.forEach((callback) => {
@@ -208,14 +238,21 @@ class Router extends RouterImpl {
         ),
       );
     });
-  }
+  }) as RouterMethod<RouterCallbackQueryReq, RouterRes>;
 
   custom<I = RouterReq, O = RouterRes>(methods: (keyof Router)[]) {
-    return <I2 = I, O2 = O>(...callbacks: RouterMethodArgs<I2, O2>) => {
+    const routerMethod = (...callbacks: RouterMethodArgs<I, O>) => {
       methods.forEach((method) => {
         (this[method] as RouterMethod<any, any>).apply(this, callbacks);
       });
     };
+    return routerMethod as RouterMethod<I, O>;
+  }
+
+  middleware<A extends object, I = RouterReq, O = RouterRes>(
+    callback: RouterMethodCallback<I, O>,
+  ): RouterMiddleware<A, I, O> {
+    return callback as RouterMiddleware<A, I, O>;
   }
 
   waitResponse<I = RouterReq, O = RouterRes>(

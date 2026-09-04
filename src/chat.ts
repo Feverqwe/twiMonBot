@@ -24,7 +24,6 @@ import {getStreamAsButtonText, getStreamAsText} from './tools/streamToString';
 import ChatSender from './chatSender';
 import parallel from './tools/parallel';
 import TimeCache from './tools/timeCache';
-import assertType from './tools/assertType';
 import Locale from './locale';
 import {appConfig} from './appConfig';
 import {getDebug} from './tools/getDebug';
@@ -305,11 +304,7 @@ class Chat {
   }
 
   user() {
-    const provideChat = async <I extends RouterReq, O extends RouterRes>(
-      req: I,
-      res: O,
-      next: () => void,
-    ) => {
+    const provideChat = this.router.middleware<WithChat>(async (req, res, next) => {
       const {locale} = res;
       const chatId = req.chatId;
       if (!chatId) return;
@@ -329,13 +324,9 @@ class Chat {
       } catch (err) {
         debug('provideChat error! %o', err);
       }
-    };
+    });
 
-    const provideChannels = async <I extends RouterReq, O extends RouterRes>(
-      req: I,
-      res: O,
-      next: () => void,
-    ) => {
+    const provideChannels = this.router.middleware<WithChannels>(async (req, res, next) => {
       const {locale} = res;
       const chatId = req.chatId;
       if (!chatId) return;
@@ -355,15 +346,14 @@ class Chat {
       } catch (err) {
         debug('provideChannels error! %o', err);
       }
-    };
+    });
 
-    const withChannels = async <I extends RouterReq, O extends RouterRes>(
-      req: I,
-      res: O,
+    const withChannels = async (
+      req: RouterReq & WithChannels,
+      res: RouterRes,
       next: () => void,
     ) => {
       const {locale} = res;
-      assertType<typeof req & WithChannels>(req);
       const {chatId} = req;
       if (!chatId) return;
 
@@ -400,7 +390,6 @@ class Chat {
 
     this.router.textOrCallbackQuery(/\/add(?:\s+(?<query>.+$))?/, provideChat, async (req, res) => {
       const {locale} = res;
-      assertType<typeof req & WithChat>(req);
 
       let requestedData: string | undefined;
       let requestedService: string | undefined;
@@ -622,7 +611,6 @@ class Chat {
 
     this.router.textOrCallbackQuery(/\/delete/, provideChannels, withChannels, async (req, res) => {
       const {locale} = res;
-      assertType<typeof req & WithChannels>(req);
 
       const channels = req.channels.map((channel) => {
         const serviceId = channel.service;
@@ -669,7 +657,6 @@ class Chat {
 
     this.router.callback_query(/\/unsetChannel/, provideChat, async (req, res) => {
       const {locale} = res;
-      assertType<typeof req & WithChat>(req);
 
       try {
         if (!req.chat.channelId) {
@@ -698,7 +685,6 @@ class Chat {
       provideChat,
       async (req, res) => {
         const {locale} = res;
-        assertType<typeof req & WithChat>(req);
 
         let requestedData: string | undefined;
 
@@ -806,7 +792,6 @@ class Chat {
       provideChat,
       async (req, res) => {
         const {locale} = res;
-        assertType<typeof req & WithChat>(req);
 
         const {optionsType, key, value} = req.params;
 
@@ -881,7 +866,6 @@ class Chat {
 
     this.router.textOrCallbackQuery(/\/options/, provideChat, async (req, res) => {
       const {locale} = res;
-      assertType<typeof req & WithChat>(req);
 
       try {
         if (req.callback_query && !req.query.rel) {
@@ -908,7 +892,6 @@ class Chat {
 
     this.router.textOrCallbackQuery(/\/online/, provideChannels, withChannels, async (req, res) => {
       const {locale} = res;
-      assertType<typeof req & WithChannels>(req);
 
       try {
         const channelIds = req.channels.map((channel) => channel.id);
@@ -975,7 +958,6 @@ class Chat {
 
     this.router.callback_query(/\/watch\/(?<streamId>.+)/, provideChat, async (req, res) => {
       const {locale} = res;
-      assertType<typeof req & WithChat>(req);
 
       try {
         let stream: StreamModelWithChannel;
@@ -1005,8 +987,6 @@ class Chat {
     });
 
     this.router.textOrCallbackQuery(/\/list/, provideChannels, withChannels, async (req, res) => {
-      assertType<typeof req & WithChannels>(req);
-
       const serviceIds: string[] = [];
       const serviceIdChannels: Map<string, ChannelModel[]> = new Map();
       req.channels.forEach((channel) => {
