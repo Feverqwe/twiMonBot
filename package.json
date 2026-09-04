@@ -12,8 +12,10 @@
     "test": "npm run test:types && cross-env NODE_OPTIONS=--experimental-vm-modules jest",
     "test:types": "tsc --noEmit -p tsconfig.test.json",
     "typescript:check": "tsc --noEmit",
-    "prettier": "npx prettier --check ./src",
-    "prettier:fix": "npx prettier --write ./src"
+    "lint": "npx eslint ./src ./test && npm run prettier",
+    "lint:fix": "npx eslint --fix ./src ./test && npm run prettier:fix",
+    "prettier": "npx prettier --check './{src,test}/**/*.ts'",
+    "prettier:fix": "npx prettier --write './{src,test}/**/*.ts'"
   },
   "dependencies": {
     "axios": "^1.20.0",
@@ -38,6 +40,8 @@
     "xmldoc": "^3.0.0"
   },
   "devDependencies": {
+    "@gravity-ui/eslint-config": "^4.3.2",
+    "@jest/globals": "^30.5.1",
     "@swc/core": "^1.16.1",
     "@swc/jest": "^0.2.39",
     "@tsconfig/node24": "^24.0.5",
@@ -48,6 +52,8 @@
     "@types/node": "^24.13.3",
     "cross-env": "^10.1.0",
     "del-cli": "^7.0.0",
+    "eslint": "^9.39.5",
+    "eslint-import-resolver-typescript": "^4.4.5",
     "jest": "^30.5.1",
     "nodemon": "^3.1.14",
     "prettier": "^3.9.6",

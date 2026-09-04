@@ -272,8 +272,8 @@ class Checker {
 
         const channelStreamIds = channelIdStreamIds.get(stream.channelId);
         if (channelStreamIds) {
-          const channelNewStreams = arrayDifference(channelStreamIds, updatedStreamIds).map(
-            (id) => streamIdStream.get(id)!,
+          const channelNewStreams = arrayDifference(channelStreamIds, updatedStreamIds).map((id) =>
+            streamIdStream.get(id)!,
           );
           const similarStream = findSimilarStream(channelNewStreams, stream);
           if (similarStream) {
@@ -535,7 +535,7 @@ class Checker {
           removedCount: 0,
         };
 
-        let limit = 500;
+        const limit = 500;
         let offset = 0;
         while (true) {
           const channelIds = await this.main.db.getChannelIdsByServiceId(service.id, offset, limit);

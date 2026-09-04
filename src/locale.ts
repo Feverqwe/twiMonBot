@@ -13,7 +13,7 @@ class Locale {
     this.dictionary = languages[code as keyof typeof languages] || languages.en;
   }
 
-  public getMessage = (
+  getMessage = (
     messageName: keyof (typeof languages)[keyof typeof languages],
     variables?: Record<string, number | string>,
   ) => {
@@ -22,7 +22,7 @@ class Locale {
       return String(variables?.[variable] ?? variable);
     });
   };
-  public m = this.getMessage;
+  m = this.getMessage;
 }
 
 export default Locale;

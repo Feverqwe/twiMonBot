@@ -29,8 +29,13 @@ import {appConfig} from './appConfig';
 import {getDebug} from './tools/getDebug';
 import jsonStringifyPretty from 'json-stringify-pretty-compact';
 import {tracker} from './tracker';
-import type * as TelegramBot from 'node-telegram-bot-api';
-import type {EditMessageTextParams, ParseMode, SendMessageParams} from 'node-telegram-bot-api';
+import type {
+  Chat as TelegramChat,
+  EditMessageTextParams,
+  InlineKeyboardButton,
+  ParseMode,
+  SendMessageParams,
+} from 'node-telegram-bot-api';
 import {ErrEnum, errHandler, passEx} from './tools/passTgEx';
 
 const debug = getDebug('app:Chat');
@@ -44,7 +49,7 @@ interface WithChannels {
 }
 
 class Chat {
-  public log = new LogFile('chat');
+  log = new LogFile('chat');
   private chatIdAdminIdsCache = new TimeCache<number, number[]>({maxSize: 100, ttl: 5 * 60 * 1000});
   private router: Router;
   private pollingPromise?: Promise<void>;
@@ -111,7 +116,7 @@ class Chat {
         const message = req.message || req.callback_query.message;
         if (
           message &&
-          (message.chat as TelegramBot.Chat & {all_members_are_administrators?: boolean})
+          (message.chat as TelegramChat & {all_members_are_administrators?: boolean})
             .all_members_are_administrators
         ) {
           return next();
@@ -149,7 +154,7 @@ class Chat {
       } else if (req.callback_query) {
         const data = req.callback_query.data;
         let command = '';
-        let m = /(\/[^?\s]+)/.exec(data);
+        const m = /(\/[^?\s]+)/.exec(data);
         if (m) {
           command = m[1];
         }
@@ -908,7 +913,7 @@ class Chat {
           message = streams.map((stream) => getStreamAsText(stream)).join('\n\n');
         }
 
-        const buttons: TelegramBot.InlineKeyboardButton[][] = [];
+        const buttons: InlineKeyboardButton[][] = [];
         streams.forEach((stream) => {
           if (!stream.isOffline && !stream.isTimeout) {
             buttons.push([
@@ -1210,7 +1215,7 @@ class Chat {
       origMessageId: number | undefined,
       messageText: string,
       cancelText: string,
-      inline_keyboard: TelegramBot.InlineKeyboardButton[][],
+      inline_keyboard: InlineKeyboardButton[][],
     ) => {
       const messageId = await editOrSendNewMessage(chatId, origMessageId, messageText, {
         reply_markup: {inline_keyboard},

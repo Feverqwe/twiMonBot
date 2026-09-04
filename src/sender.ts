@@ -16,7 +16,7 @@ const debug = getDebug('app:Sender');
 const oneLimit = promiseLimit(1);
 
 class Sender {
-  public log = new LogFile('sender');
+  log = new LogFile('sender');
   constructor(private main: Main) {}
 
   init() {
@@ -150,7 +150,7 @@ class Sender {
   checkChatsExists = () => {
     return this.checkChatsExistsInProgress(async () => {
       let offset = 0;
-      let limit = 100;
+      const limit = 100;
       const result = {
         chatCount: 0,
         removedCount: 0,

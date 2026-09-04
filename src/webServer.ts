@@ -5,7 +5,7 @@ import express from 'express';
 import {appConfig} from './appConfig';
 
 class WebServer {
-  public ytPubSub: YtPubSub;
+  ytPubSub: YtPubSub;
   private server: Server | undefined;
   private app = express();
   private host = appConfig.webServer.host || 'localhost';

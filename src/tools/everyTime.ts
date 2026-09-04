@@ -54,7 +54,7 @@ const everyWeekAt = (day: number, hours: number, minutes: number, callback: () =
   );
 };
 
-function getOffset(step: number, offset: number = 0) {
+function getOffset(step: number, offset = 0) {
   if (!step) throw new Error(`Incorrect step value ${step}`);
 
   const now = new Date();

@@ -1,0 +1,45 @@
+import gravityConfig from '@gravity-ui/eslint-config';
+import prettierConfig from '@gravity-ui/eslint-config/prettier';
+import serverConfig from '@gravity-ui/eslint-config/server';
+
+export default [
+  ...gravityConfig,
+  ...serverConfig,
+  ...prettierConfig,
+  {
+    rules: {
+      complexity: 'off',
+      'callback-return': 'off',
+      camelcase: 'off',
+      'consistent-return': 'off',
+      curly: 'off',
+      'handle-callback-err': 'off',
+      'new-cap': 'off',
+      'no-console': 'off',
+      'no-implicit-coercion': 'off',
+      'no-negated-condition': 'off',
+      'no-nested-ternary': 'off',
+      'no-param-reassign': 'off',
+      'no-shadow': 'off',
+      'no-useless-escape': 'off',
+      'no-use-before-define': 'off',
+      'no-void': 'off',
+      'sort-imports': 'off',
+      'array-callback-return': 'warn',
+      'no-return-assign': 'warn',
+      'no-useless-concat': 'warn',
+      'prefer-spread': 'warn',
+      'security/detect-non-literal-regexp': 'warn',
+      'security/detect-unsafe-regex': 'warn',
+      '@typescript-eslint/member-ordering': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-loop-func': 'warn',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-shadow': 'off',
+      '@typescript-eslint/no-unused-expressions': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-use-before-define': 'off',
+      '@typescript-eslint/parameter-properties': 'off',
+    },
+  },
+];

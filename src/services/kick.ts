@@ -70,9 +70,11 @@ class Kick implements ServiceInterface<number> {
           previews.push(stream.thumbnail);
         }
 
-        const id = crypto.createHash('sha256')
+        const id = crypto
+          .createHash('sha256')
           .update(`${channelId}-${stream.start_time}`)
-          .digest('hex').slice(0, 16);
+          .digest('hex')
+          .slice(0, 16);
 
         const result = {
           id,

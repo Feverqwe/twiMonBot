@@ -51,8 +51,7 @@
 
 - Install exactly from the lockfile: `npm ci`.
 - Type-check without output: `npm run typescript:check`.
-- Check formatting: `npm run prettier`. The repository currently has a pre-existing formatting
-  warning in `src/services/kick.ts`; do not broaden unrelated changes merely to silence it.
+- Run lint and formatting checks: `npm run lint`. Use `npm run lint:fix` for automatic fixes.
 - Build (cleans and regenerates `dist/`): `npm run build`.
 - Run deterministic unit tests with `npm test -- --runInBand`. The default Jest roots exclude the
   existing Twitch live integration tests, which require provider credentials and network access.

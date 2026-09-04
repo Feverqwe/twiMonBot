@@ -621,7 +621,7 @@ class Db {
   }
 
   /**
-   * @return {Promise}
+   * @returns {Promise}
    */
   async init() {
     await this.sequelize.authenticate();

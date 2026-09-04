@@ -488,7 +488,7 @@ export class RouterReq {
 }
 
 export class RouterRes {
-  public locale: Locale;
+  locale: Locale;
   req: RouterReq;
   constructor(req: RouterReq) {
     this.req = req;
