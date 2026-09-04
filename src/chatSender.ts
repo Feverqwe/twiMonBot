@@ -202,10 +202,8 @@ class ChatSender {
           await this.deleteStreamMessage(message.chatId, Number(message.id));
         }
       } catch (error) {
-        const err = error as TelegramError;
-        if (err.code === 'ETELEGRAM') {
-          const body = err.response.body;
-
+        const body = getTelegramErrorBody(error);
+        if (body) {
           const isSkipError = [
             /message to delete not found/,
             /message can't be deleted/,
@@ -215,10 +213,10 @@ class ChatSender {
           if (isSkipError) {
             // pass
           } else {
-            throw err;
+            throw error;
           }
         } else {
-          throw err;
+          throw error;
         }
       }
     }).then(() => {
@@ -227,11 +225,9 @@ class ChatSender {
   }
 
   onSendMessageError = async (error: unknown) => {
-    const err = error as TelegramError;
-    if (err.code === 'ETELEGRAM') {
-      const body = err.response.body;
-
-      const isBlocked = isBlockedError(err);
+    const body = getTelegramErrorBody(error);
+    if (body) {
+      const isBlocked = isBlockedError(error);
       if (isBlocked) {
         await this.main.db.deleteChatById(this.chat.id);
         this.main.chat.log.write(
@@ -265,7 +261,7 @@ class ChatSender {
         throw new ErrorWithCode(`Chat ${this.chat.id} is deny photos`, 'CHAT_IS_DENY_PHOTOS');
       }
     }
-    throw err;
+    throw error;
   };
 
   async sendStream(stream: StreamModelWithChannel) {
@@ -571,7 +567,10 @@ class ChatSender {
   }
 
   async deleteStreamMessage(chatId: string, messageId: number) {
-    const isSuccess = await this.main.bot.deleteMessage(chatId, messageId);
+    const isSuccess = await this.main.bot.api.deleteMessage({
+      chat_id: chatId,
+      message_id: messageId,
+    });
     this.main.sender.log.write(`[delete] ${chatId} ${messageId}`);
     return isSuccess;
   }

@@ -5,7 +5,6 @@ import {
   RateLimiter,
   TelegramApiError,
   type CallbackQuery,
-  type DeleteMessageResult,
   type EditMessageCaptionParams,
   type EditMessageReplyMarkupParams,
   type EditMessageTextParams,
@@ -129,10 +128,6 @@ export class TelegramBotWrapped {
     return this.call(() =>
       this.bot.api.editMessageReplyMarkup({reply_markup: replyMarkup, ...options}),
     );
-  }
-
-  deleteMessage(chatId: number | string, messageId: number): Promise<DeleteMessageResult> {
-    return this.call(() => this.bot.api.deleteMessage({chat_id: chatId, message_id: messageId}));
   }
 
   private async call<T>(request: () => Promise<T>): Promise<T> {
