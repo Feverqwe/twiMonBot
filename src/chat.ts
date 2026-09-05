@@ -192,7 +192,7 @@ class Chat {
           .slice(0, -1)
           .map((s) => s.name)
           .join(', '),
-        lestService: this.main.services.slice(-1)[0]?.name || '',
+        lastService: this.main.services.slice(-1)[0]?.name || '',
       });
       return this.main.bot.api.sendMessage({
         chat_id: chatId,

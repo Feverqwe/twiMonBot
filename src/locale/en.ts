@@ -1,6 +1,6 @@
 const en = {
   alert_help:
-    'Hi! I will notify you about the beginning of the broadcasts on {services} and {lestService}!',
+    'Hi! I will notify you about the beginning of the broadcasts on {services} and {lastService}!',
   alert_offline: 'All channels offline',
   'alert_empty-channel-list': `You don't have channels in watchlist, yet.`,
   'context_enter-channel-name': 'Enter the channel URL or name (example: {example}):',
@@ -62,6 +62,6 @@ const en = {
   'alert_chat-not-found': 'Telegram chat is not found!',
   'alert_bot-is-not-channel-member': 'Bot is not a member of the channel!',
   context_options: 'Options:',
-};
+} as const;
 
 export default en;

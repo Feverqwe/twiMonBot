@@ -1,5 +1,5 @@
 const ru = {
-  alert_help: 'Привет! Я уведомлю вас о начале трансляций на {services} и {lestService}!',
+  alert_help: 'Привет! Я уведомлю вас о начале трансляций на {services} и {lastService}!',
   alert_offline: 'Все каналы офлайн',
   'alert_empty-channel-list': 'У вас пока нет каналов в списке просмотра',
   'context_enter-channel-name': 'Введите URL-адрес или название канала (пример: {example}):',
@@ -62,6 +62,6 @@ const ru = {
   'alert_chat-not-found': 'Чат Telegram не найден!',
   'alert_bot-is-not-channel-member': 'Бот не является участником канала!',
   context_options: 'Параметры:',
-};
+} as const satisfies Record<keyof typeof import('./en').default, string>;
 
 export default ru;
