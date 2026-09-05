@@ -38,8 +38,9 @@
 - `src/checker.ts`: periodic provider polling and reconciliation of channels/streams into MariaDB.
 - `src/sender.ts` and `src/chatSender.ts`: per-chat notification queues and Telegram message
   send/update/delete behavior.
-- `src/chat.ts` and `src/shared/router.ts`: Telegram commands, callback queries, menus, and
-  permissions.
+- `src/chat/` and `src/shared/router.ts`: Telegram commands, callback queries, menus, and
+  permissions. Keep `src/chat/index.ts` as a pure entry point containing only re-exports; put
+  lifecycle and route-registration logic in the other `src/chat/` modules.
 - `src/db/`: models, associations, persistence methods, and transactional stream updates.
 - `src/shared/migrator.ts`, `src/migrations/`: migration runner and ordered database schema changes.
 - `src/shared/webServer.ts`: shared Express/HTTP lifecycle; project routes are registered from
@@ -53,6 +54,8 @@
 
 - Make source changes in `src/`, not `dist/`. Do not commit generated output, runtime logs,
   database volumes, `node_modules/`, `.idea/`, or `.env`.
+- Keep directory `index.ts` files declarative: `src/chat/index.ts` must only expose exports and must
+  not contain application logic.
 - Never print or commit values from `.env`. Add new configuration keys to both `src/appConfig.ts`
   and `example.env`; update Docker configuration only when deployment behavior changes.
 - Preserve the existing style: two-space indentation, single quotes, no bracket spacing, trailing
