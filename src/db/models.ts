@@ -49,8 +49,6 @@ export class ChannelModel extends Sequelize.Model<
   declare lastSyncAt: CreationOptional<Date>;
   declare syncTimeoutExpiresAt: CreationOptional<Date>;
   declare createdAt: CreationOptional<Date>;
-
-  declare channelCount?: NonAttribute<number>;
 }
 export type Channel = CreationAttributes<ChannelModel>;
 
@@ -100,7 +98,6 @@ export class ChatIdChannelIdModel extends Sequelize.Model<
 
   declare channel?: NonAttribute<ChannelModel>;
   declare chat?: NonAttribute<ChatModel>;
-  declare chatCount?: NonAttribute<number>;
 }
 export type ChatIdChannelIdModelWithChannel = WithPresentProperty<ChatIdChannelIdModel, 'channel'>;
 
