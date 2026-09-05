@@ -352,7 +352,10 @@ class Db {
         syncTimeoutExpiresAt: {[Op.lt]: new Date()},
         lastSyncAt: {[Op.lt]: date},
       },
-      order: Sequelize.literal(`lastStreamAt IS NULL, lastSyncAt`),
+      order: [
+        [Sequelize.fn('ISNULL', Sequelize.col('lastStreamAt')), 'ASC'],
+        ['lastSyncAt', 'ASC'],
+      ],
       limit: limit,
     });
   }
