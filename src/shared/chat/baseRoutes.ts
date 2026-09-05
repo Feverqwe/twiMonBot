@@ -1,8 +1,8 @@
 import type {Bot, Chat as TelegramChat} from 'node-telegram-bot-api';
+import type QuickLRU from 'quick-lru';
 import LogFile from '../logFile';
 import Router from '../router';
 import {getDebug} from '../tools/getDebug';
-import TimeCache from '../tools/timeCache';
 
 const debug = getDebug('app:Chat');
 
@@ -21,7 +21,7 @@ export default function registerBaseRoutes(
   main: BaseRoutesContext,
   router: Router,
   log: LogFile,
-  chatIdAdminIdsCache: TimeCache<number, number[]>,
+  chatIdAdminIdsCache: QuickLRU<number, number[]>,
   tracker: CommandTracker,
 ) {
   router.message(async (req, res, next) => {

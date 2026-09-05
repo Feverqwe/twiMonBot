@@ -6,7 +6,6 @@ import * as v from 'valibot';
 import arrayByPart from '../shared/tools/arrayByPart';
 import fetchRequest, {FetchRequestOptions, HTTPError} from '../shared/tools/fetchRequest';
 import getNow from '../shared/tools/getNow';
-import promiseTry from '../shared/tools/promiseTry';
 import RateLimit2 from '../shared/tools/rateLimit2';
 import {appConfig} from '../appConfig';
 import {getDebug} from '../shared/tools/getDebug';
@@ -237,7 +236,7 @@ class Twitch implements ServiceInterface<number> {
       return this.lastAccessTokenRequest;
     }
 
-    return (this.lastAccessTokenRequest = promiseTry(async () => {
+    return (this.lastAccessTokenRequest = Promise.try(async () => {
       const {body} = await fetchRequest('https://id.twitch.tv/oauth2/token', {
         method: 'POST',
         searchParams: {

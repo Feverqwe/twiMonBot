@@ -7,7 +7,6 @@ import * as v from 'valibot';
 import Main from '../main';
 import {appConfig} from '../appConfig';
 import getNow from '../shared/tools/getNow';
-import promiseTry from '../shared/tools/promiseTry';
 import crypto from 'node:crypto';
 
 const debug = getDebug('app:kick');
@@ -177,7 +176,7 @@ class Kick implements ServiceInterface<number> {
       return this.lastAccessTokenRequest;
     }
 
-    return (this.lastAccessTokenRequest = promiseTry(async () => {
+    return (this.lastAccessTokenRequest = Promise.try(async () => {
       const now = Date.now();
       const {body} = await fetchRequest('https://id.kick.com/oauth/token', {
         method: 'POST',

@@ -1,5 +1,4 @@
 import Main from './main';
-import promiseTry from './shared/tools/promiseTry';
 import ErrorWithCode from './shared/tools/errorWithCode';
 import {getStreamAsCaption, getStreamAsDescription} from './tools/streamToString';
 import inlineInspect from './tools/inlineInspect';
@@ -68,7 +67,7 @@ class ChatSender {
     while (true) {
       if (this.aborted) return;
       this.lastActivityAt = Date.now();
-      const isDone = await promiseTry(() => {
+      const isDone = await Promise.try(() => {
         if (skipFromIndex !== null && this.methodIndex >= skipFromIndex) return true;
 
         switch (this.methods[this.methodIndex]) {
@@ -197,7 +196,7 @@ class ChatSender {
     const minDeleteTime = new Date();
     minDeleteTime.setHours(minDeleteTime.getHours() - 48);
 
-    await promiseTry(async () => {
+    await Promise.try(async () => {
       try {
         if (this.chat.isEnabledAutoClean && message.createdAt.getTime() > minDeleteTime.getTime()) {
           await this.deleteStreamMessage(message.chatId, Number(message.id));
