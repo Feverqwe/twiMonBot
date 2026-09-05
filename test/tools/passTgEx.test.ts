@@ -1,7 +1,12 @@
 import {describe, expect, test} from '@jest/globals';
 import {TelegramApiError} from 'node-telegram-bot-api';
-import {isBlockedError, isSkipMessageError} from '../../src/chatSender';
-import {ErrEnum, errHandler, passEx} from '../../src/shared/tools/passTgEx';
+import {
+  ErrEnum,
+  errHandler,
+  isBlockedError,
+  isSkipMessageError,
+  passEx,
+} from '../../src/shared/tools/passTgEx';
 
 describe('Telegram API error classification', () => {
   test('matches descriptions only on TelegramApiError instances', () => {
@@ -23,6 +28,8 @@ describe('Telegram API error classification', () => {
   test('recognizes blocked and skippable errors from structured errors', () => {
     expect(isBlockedError(new TelegramApiError(403, 'Forbidden'))).toBe(true);
     expect(isSkipMessageError(new TelegramApiError(400, 'Bad Request: TOPIC_CLOSED'))).toBe(true);
+    expect(isSkipMessageError(new TelegramApiError(400, 'Bad Request: TOPIC_DELETED'))).toBe(true);
+    expect(isBlockedError(new TelegramApiError(400, 'Bad Request: TOPIC_DELETED'))).toBe(false);
     expect(isBlockedError(new Error('403 Forbidden'))).toBe(false);
   });
 });

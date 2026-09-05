@@ -2,21 +2,24 @@ import Main from './main';
 import promiseTry from './shared/tools/promiseTry';
 import ErrorWithCode from './shared/tools/errorWithCode';
 import {getStreamAsCaption, getStreamAsDescription} from './tools/streamToString';
-import {ServiceInterface} from './checker';
-import appendQueryParam from './tools/appendQueryParam';
 import inlineInspect from './tools/inlineInspect';
 import fetchRequest from './tools/fetchRequest';
 import {ChatModel, MessageModelWithStreamId, StreamModelWithChannel} from './db';
 import {getDebug} from './shared/tools/getDebug';
-import {InputFile, TelegramApiError, type Message} from 'node-telegram-bot-api';
+import {type Message} from 'node-telegram-bot-api';
 import {tracker} from './tracker';
-import {ErrEnum, errHandler, passEx} from './shared/tools/passTgEx';
+import {
+  ErrEnum,
+  errHandler,
+  getTelegramErrorBody,
+  isBlockedError,
+  isSkipMessageError,
+  passEx,
+} from './shared/tools/passTgEx';
 import NodeReadableStream = NodeJS.ReadableStream;
-import {Readable} from 'node:stream';
+import {coordinatePreviewRequest, sendPreviewPhoto} from './shared/tools/telegramPreview';
 
 const debug = getDebug('app:ChatSender');
-
-const streamWeakMap = new WeakMap();
 
 interface SentMessage {
   type: string;
@@ -333,80 +336,34 @@ class ChatSender {
 
   async sendStreamAsPhoto(stream: StreamModelWithChannel): Promise<SentMessage> {
     if (stream.telegramPreviewFileId) {
-      const caption = getStreamAsCaption(stream, this.main.getServiceById(stream.channel.service)!);
-
-      let message;
-      try {
-        message = await this.main.bot.api.sendPhoto({
-          chat_id: this.chat.id,
-          photo: stream.telegramPreviewFileId,
-          caption,
-        });
-      } catch (error) {
-        const body = getTelegramErrorBody(error);
-        if (body && /FILE_REFERENCE_.+/.test(body.description)) {
-          stream.telegramPreviewFileId = null;
-
-          return this.sendStreamAsPhoto(stream);
-        }
-        throw error;
-      }
-
-      tracker.track(this.chat.id, {
-        ec: 'bot',
-        ea: 'sendPhoto',
-        el: stream.channelId,
-        t: 'event',
-      });
-
-      this.main.logs.sender.write(
-        `[send photo as id] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
-      );
-
-      return {
-        type: 'photo',
-        text: caption,
-        message,
-      };
+      return this.ensureTelegramPreviewFileId(stream);
     } else {
       return this.requestAndSendPhoto(stream);
     }
   }
 
   requestAndSendPhoto(stream: StreamModelWithChannel): Promise<SentMessage> {
-    let promise: Promise<SentMessage> = streamWeakMap.get(stream);
-
-    if (!promise) {
-      promise = this.ensureTelegramPreviewFileId(stream).finally(() => {
-        streamWeakMap.delete(stream);
-      });
-      streamWeakMap.set(stream, promise);
-      promise = promise.catch((err: any) => {
+    return coordinatePreviewRequest(
+      stream,
+      () => this.ensureTelegramPreviewFileId(stream),
+      (error) => {
+        const err = error as ErrorWithCode;
         if (errHandler[ErrEnum.NotEnoughRightsSendPhotos](err)) {
           throw err;
         }
-
         return this.sendStreamAsText(stream, true).then((sentMessage: SentMessage) => {
           debug('ensureTelegramPreviewFileId %s error: %o', this.chat.id, err);
           return sentMessage;
         });
-      });
-    } else {
-      promise = promise.then(
-        () => {
-          return this.sendStreamAsPhoto(stream);
-        },
-        (err: any) => {
-          if (['INVALID_PREVIEWS', 'FILE_ID_IS_NOT_FOUND'].includes(err.code)) {
-            return this.sendStreamAsText(stream, true);
-          } else {
-            return this.sendStreamAsPhoto(stream);
-          }
-        },
-      );
-    }
-
-    return promise;
+      },
+      (error) => {
+        const err = error as ErrorWithCode;
+        if (['INVALID_PREVIEWS', 'FILE_ID_IS_NOT_FOUND'].includes(err.code)) {
+          return this.sendStreamAsText(stream, true);
+        }
+        return this.sendStreamAsPhoto(stream);
+      },
+    );
   }
 
   async ensureTelegramPreviewFileId(stream: StreamModelWithChannel): Promise<SentMessage> {
@@ -415,106 +372,57 @@ class ChatSender {
       ? JSON.parse(stream.previews)
       : stream.previews;
 
-    let url: string;
-    let contentType: string;
-    if (service.streamPreviewHeadUnsupported) {
-      url = previews[0];
-    } else {
-      const {url: urlLocal, contentType: contentTypeLocal} = await getValidPreviewUrl(
-        previews,
-        service,
-      );
-      contentType = contentTypeLocal;
-      url = urlLocal;
-    }
-    if (!url) {
-      const err = new ErrorWithCode(`Preview url is empty`, 'INVALID_PREVIEWS');
-    }
-    if (service.noCachePreview) {
-      url = appendQueryParam(url, '_', stream.updatedAt.getTime());
-    }
     const caption = getStreamAsCaption(stream, service);
-
-    const message = await promiseTry(async () => {
-      try {
-        const message = await this.main.bot.api.sendPhoto({
-          chat_id: this.chat.id,
-          photo: url,
-          caption,
+    const result = await sendPreviewPhoto({
+      api: this.main.bot.api,
+      chatId: this.chat.id,
+      caption,
+      previewUrls: previews,
+      cachedFileId: stream.telegramPreviewFileId,
+      headUnsupported: service.streamPreviewHeadUnsupported,
+      cacheKey: service.noCachePreview ? stream.updatedAt.getTime() : undefined,
+      head: async (url) => {
+        const response = await fetchRequest(url, {
+          method: 'HEAD',
+          timeout: 5 * 1000,
+          keepAlive: true,
+          cookie: service.useCookies,
         });
-
+        return {url: response.url, contentType: response.headers['content-type'] as string};
+      },
+      download: async (url) => {
+        const response = await fetchRequest<NodeReadableStream>(url, {
+          responseType: 'stream',
+          keepAlive: true,
+          cookie: service.useCookies,
+        });
+        return {body: response.body};
+      },
+      onCachedFileIdInvalid: () => {
+        stream.telegramPreviewFileId = null;
+      },
+      onSent: (source, message) => {
         this.main.logs.sender.write(
-          `[send photo as url] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
+          `[send photo as ${source}] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
         );
-
         tracker.track(this.chat.id, {
           ec: 'bot',
           ea: 'sendPhoto',
           el: stream.channelId,
           t: 'event',
         });
-
-        return message;
-      } catch (error) {
-        const err = error as Error;
-        const body = getTelegramErrorBody(error);
-
-        let isSendUrlError = sendUrlErrors.some((re) => re.test(err.message));
-        if (!isSendUrlError) {
-          isSendUrlError = body?.error_code === 504;
-        }
-
-        if (isSendUrlError) {
-          if (!contentType) {
-            debug('Content-type is empty, set default content-type %s', url);
-            contentType = 'image/jpeg';
-          }
-
-          const response = await fetchRequest<NodeReadableStream>(url, {
-            responseType: 'stream',
-            keepAlive: true,
-            cookie: service.useCookies,
-          });
-
-          const message = await this.main.bot.api.sendPhoto({
-            chat_id: this.chat.id,
-            photo: new InputFile(
-              Readable.toWeb(response.body as Readable) as ReadableStream<Uint8Array>,
-              {contentType, filename: '-'},
-            ),
-            caption,
-          });
-
-          this.main.logs.sender.write(
-            `[send photo as file] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
-          );
-
-          tracker.track(this.chat.id, {
-            ec: 'bot',
-            ea: 'sendPhoto',
-            el: stream.channelId,
-            t: 'event',
-          });
-
-          return message;
-        }
-
-        throw err;
-      }
+      },
     });
 
-    const fileId = getPhotoFileIdFromMessage(message);
-    if (!fileId) {
-      throw new ErrorWithCode('File id if not found', 'FILE_ID_IS_NOT_FOUND');
+    if (stream.telegramPreviewFileId !== result.fileId) {
+      stream.telegramPreviewFileId = result.fileId;
+      await stream.save();
     }
-    stream.telegramPreviewFileId = fileId;
-
-    await stream.save();
 
     return {
       type: 'photo',
       text: caption,
-      message,
+      message: result.message,
     };
   }
 
@@ -578,94 +486,6 @@ class ChatSender {
     this.main.logs.sender.write(`[delete] ${chatId} ${messageId}`);
     return isSuccess;
   }
-}
-
-const blockedErrors = [
-  /group chat was deactivated/,
-  /group chat is deactivated/,
-  /chat not found/,
-  /channel not found/,
-  /USER_DEACTIVATED/,
-  /have no rights to send a message/,
-  /need administrator rights in the channel chat/,
-  /CHAT_WRITE_FORBIDDEN/,
-  /CHAT_SEND_MEDIA_FORBIDDEN/,
-  /CHAT_RESTRICTED/,
-  /not enough rights to send text messages to the chat/,
-  /TOPIC_DELETED/,
-];
-
-const skipMsgErrors = [/TOPIC_DELETED/, /TOPIC_CLOSED/];
-
-const sendUrlErrors = [
-  /failed to get HTTP URL content/,
-  /wrong type of the web page content/,
-  /wrong file identifier\/HTTP URL specified/,
-  /FILE_REFERENCE_.+/,
-];
-
-function getPhotoFileIdFromMessage(message: Message): string | null {
-  let fileId = null;
-  message.photo
-    ?.slice(0)
-    .sort((a, b) => {
-      return a.file_size! > b.file_size! ? -1 : 1;
-    })
-    .some((item) => (fileId = item.file_id));
-  return fileId;
-}
-
-async function getValidPreviewUrl(urls: string[], service: ServiceInterface) {
-  let lastError = null;
-  for (let i = 0, len = urls.length; i < len; i++) {
-    try {
-      const response = await fetchRequest(urls[i], {
-        method: 'HEAD',
-        timeout: 5 * 1000,
-        keepAlive: true,
-        cookie: service.useCookies,
-      });
-      const url = response.url;
-      const contentType = response.headers['content-type'] as string;
-      return {url, contentType};
-    } catch (err) {
-      lastError = err;
-    }
-  }
-  const err = new ErrorWithCode(`Previews is invalid`, 'INVALID_PREVIEWS');
-  Object.assign(err, {original: lastError});
-  throw err;
-}
-
-export function getTelegramErrorBody(err: unknown) {
-  if (err instanceof TelegramApiError) {
-    return {
-      error_code: err.errorCode,
-      description: err.description,
-      parameters: err.parameters,
-    };
-  }
-}
-
-export function isBlockedError(err: unknown) {
-  const body = getTelegramErrorBody(err);
-  if (body) {
-    let isBlocked = body.error_code === 403;
-    if (!isBlocked) {
-      isBlocked = blockedErrors.some((re) => re.test(body.description));
-    }
-
-    return isBlocked;
-  }
-  return false;
-}
-
-export function isSkipMessageError(err: unknown) {
-  const body = getTelegramErrorBody(err);
-  if (body) {
-    return skipMsgErrors.some((re) => re.test(body.description));
-  }
-  return false;
 }
 
 export default ChatSender;

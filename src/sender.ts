@@ -1,7 +1,8 @@
 import Main from './main';
 import {everyMinutes} from './shared/tools/everyTime';
 import getProvider from './shared/tools/getProvider';
-import ChatSender, {getTelegramErrorBody, isBlockedError} from './chatSender';
+import ChatSender from './chatSender';
+import {getTelegramErrorBody, isBlockedError} from './shared/tools/passTgEx';
 import arrayUniq from './tools/arrayUniq';
 import parallel from './shared/tools/parallel';
 import getInProgress from './shared/tools/getInProgress';
