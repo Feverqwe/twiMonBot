@@ -27,7 +27,7 @@ These instructions extend the root and `src/` guides for `src/services/`.
   mask responses so unrelated upstream fields do not leak into internal models.
 - Preserve access-token caching and single-flight refresh behavior in Twitch and Kick. Never log
   tokens, client secrets, authorization headers, or full signed callback URLs.
-- YouTube stream discovery is coupled to `WebServer.ytPubSub` and quota accounting. Update
+- YouTube stream discovery is coupled to `Main.ytPubSub` and quota accounting. Update
   `ytPubSub.ts`, YouTube parsing, and quota costs together when an API flow changes.
 - URL matchers should be narrow enough to avoid claiming another service's input. `findChannel`
   must support the adapter's advertised URL forms and plain-name fallback, returning a canonical

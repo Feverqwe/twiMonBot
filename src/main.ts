@@ -10,9 +10,11 @@ import {appConfig} from './appConfig';
 import {getDebug} from './shared/tools/getDebug';
 import {getTelegramBot} from './shared/tools/telegramBotApi';
 import type {Bot} from 'node-telegram-bot-api';
-import WebServer from './webServer';
+import express from 'express';
+import WebServer from './shared/webServer';
 import Vkplay from './services/vkplay';
 import Kick from './services/kick';
+import YtPubSub from './ytPubSub';
 
 const debug = getDebug('app:Main');
 
@@ -28,6 +30,7 @@ class Main extends Events {
   sender: Sender;
   checker: Checker;
   webServer: WebServer;
+  ytPubSub: YtPubSub;
   bot: Bot;
   chat: Chat;
   private stopPromise?: Promise<void>;
@@ -49,7 +52,8 @@ class Main extends Events {
 
     this.sender = new Sender(this);
     this.checker = new Checker(this);
-    this.webServer = new WebServer(this);
+    this.webServer = new WebServer(appConfig.webServer);
+    this.ytPubSub = new YtPubSub(this);
 
     this.bot = getTelegramBot(appConfig.token, appConfig.telegramProxyUrl);
     this.chat = new Chat(this);
@@ -57,9 +61,21 @@ class Main extends Events {
 
   async init() {
     await this.db.init();
+    this.initWebServer();
     await Promise.all([this.webServer.init(), this.chat.init()]);
     this.checker.init();
     this.sender.init();
+  }
+
+  private initWebServer() {
+    this.ytPubSub.init(this.webServer.app);
+    this.webServer.app.post('/isLive', express.json(), async (req, res) => {
+      const ids = req.body;
+      const streams = (await this.db.getStreamsByChannelIds(ids)).filter(
+        (stream) => !stream.isOffline,
+      );
+      res.json({streams});
+    });
   }
 
   stop() {

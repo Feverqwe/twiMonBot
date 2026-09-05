@@ -12,7 +12,8 @@ These instructions extend the repository-level `AGENTS.md` for files under `src/
   `ChatSender` owns the state machine for sending, updating, and deleting one chat's messages.
 - `Chat` declares commands and middleware through `Router`. Preserve middleware ordering: migration
   handling, callback acknowledgement, group-admin authorization, tracking, then command routes.
-- `WebServer` owns the Express app. YouTube WebSub routes and signature handling belong in
+- Shared `WebServer` owns only the Express/HTTP lifecycle. Register project routes from the
+  composition root; YouTube WebSub routes and signature handling belong in
   `ytPubSub.ts`/`tools/expressPubSub.ts`, not in provider polling code.
 
 ## Persistence and concurrency invariants
@@ -49,4 +50,3 @@ These instructions extend the repository-level `AGENTS.md` for files under `src/
 - When changing a command, cover both text and callback-query entry points when both are supported.
   When changing reconciliation, cover success, transient/skipped IDs, confirmed removed IDs, and
   an empty live-stream result.
-

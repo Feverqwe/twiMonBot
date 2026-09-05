@@ -42,7 +42,8 @@
   permissions.
 - `src/db/`: models, associations, persistence methods, and transactional stream updates.
 - `src/shared/migrator.ts`, `src/migrations/`: migration runner and ordered database schema changes.
-- `src/webServer.ts`, `src/ytPubSub.ts`: internal HTTP endpoint and YouTube WebSub lifecycle.
+- `src/shared/webServer.ts`: shared Express/HTTP lifecycle; project routes are registered from
+  `src/main.ts` and `src/ytPubSub.ts`.
 - `src/services/`: provider adapters implementing `ServiceInterface` from `src/checker.ts`.
 - `src/shared/`: infrastructure kept byte-identical with `ytWatchBot`; `src/tools/` contains
   provider-specific helpers.

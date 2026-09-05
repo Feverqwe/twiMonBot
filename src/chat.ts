@@ -1327,9 +1327,9 @@ class Chat {
       {name: 'Sender check', method: this.main.sender.check},
       {name: 'Active checker threads', method: this.main.checker.getActiveThreads},
       {name: 'Active sender threads', method: this.main.sender.getActiveThreads},
-      {name: 'Update pubsub subscriptions', method: this.main.webServer.ytPubSub.updateSubscribes},
+      {name: 'Update pubsub subscriptions', method: this.main.ytPubSub.updateSubscribes},
       {name: 'Clean chats & channels', method: this.main.checker.clean},
-      {name: 'Clean pubsub feeds', method: this.main.webServer.ytPubSub.clean},
+      {name: 'Clean pubsub feeds', method: this.main.ytPubSub.clean},
     ];
 
     this.router.callback_query(/\/admin\/(?<commandIndex>.+)/, isAdmin, async (req, res) => {
