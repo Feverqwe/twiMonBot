@@ -33,8 +33,8 @@ const messageTypes = [
 type RouterMethodCallback<I = RouterReq, O = RouterRes> = (
   req: I,
   res: O,
-  next: () => void,
-) => void;
+  next: () => Promise<void>,
+) => void | Promise<void>;
 
 declare const routerMiddlewareOutput: unique symbol;
 
@@ -163,7 +163,7 @@ class Router extends RouterImpl {
     this.botNameRe = new RegExp('^' + botName + '$', 'i');
   }
 
-  handle = (event: 'message' | 'callback_query', data: Message | CallbackQuery) => {
+  handle = async (event: 'message' | 'callback_query', data: Message | CallbackQuery) => {
     if (!this.botNameRe) {
       throw new Error('Router is not inited');
     }
@@ -172,26 +172,29 @@ class Router extends RouterImpl {
     if (!commands.length) {
       commands.push('');
     }
-    commands.forEach((command) => {
-      const req = new RouterReq(event, data);
-      const res = new RouterRes(req);
-      let index = 0;
-      const next = (): void => {
-        const route = this.stack[index++];
-        if (!route) return;
+    await Promise.all(
+      commands.map(async (command) => {
+        const req = new RouterReq(event, data);
+        const res = new RouterRes(req);
+        let index = 0;
+        const next = async (): Promise<void> => {
+          const route = this.stack[index++];
+          if (!route) return;
 
-        req.commands = commands;
-        req.command = command;
-        req.params = route.getParams(command);
+          req.commands = commands;
+          req.command = command;
+          req.params = route.getParams(command);
 
-        if (route.match(req)) {
-          return route.dispatch(req, res, next);
-        }
+          if (route.match(req)) {
+            await route.dispatch(req, res, next);
+            return;
+          }
 
-        next();
-      };
-      next();
-    });
+          await next();
+        };
+        await next();
+      }),
+    );
   };
 
   all = ((...callbacks: RouterMethodArgs) => {
@@ -256,7 +259,7 @@ class Router extends RouterImpl {
   ): Promise<{
     req: I;
     res: O;
-    next: () => void;
+    next: () => Promise<void>;
   }> {
     return new Promise((resolve, reject) => {
       const timeoutTimer = setTimeout(() => {
@@ -306,9 +309,9 @@ class RouterRoute {
     this.type = details.type as keyof (Message | CallbackQuery) | undefined;
     this.fromId = details.fromId;
     this.chatId = details.chatId;
-    this.dispatch = (req, res, next) => {
+    this.dispatch = async (req, res, next) => {
       try {
-        callback(req, res, next);
+        await callback(req, res, next);
       } catch (err) {
         debug('Dispatch error %o', err);
       }

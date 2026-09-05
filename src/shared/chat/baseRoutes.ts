@@ -36,18 +36,18 @@ export default function registerBaseRoutes(
           await main.db.changeChatId('' + sourceChatId, '' + req.chatId);
           log.write(`[migrate msg] ${req.chatId} < ${sourceChatId}`);
         }
-        next();
+        await next();
       } catch (err) {
         debug('Process message %s %j error %o', req.chatId, req.message, err);
       }
     } else {
-      next();
+      await next();
     }
   });
 
   router.callback_query(async (req, res, next) => {
     await main.bot.api.answerCallbackQuery({callback_query_id: req.callback_query.id});
-    next();
+    await next();
   });
 
   router.textOrCallbackQuery(async (req, res, next) => {
@@ -71,18 +71,18 @@ export default function registerBaseRoutes(
           chatIdAdminIdsCache.set(req.chatId, adminIds);
         }
         if (req.fromId && adminIds.includes(req.fromId)) {
-          next();
+          await next();
         }
       } catch (err) {
         debug('getChatAdministrators error %s %j error %o', req.chatId, req.message, err);
       }
     } else {
-      next();
+      await next();
     }
   });
 
   router.textOrCallbackQuery(/(.+)/, (req, res, next) => {
-    next();
+    const nextPromise = next();
     if (req.message) {
       tracker.track(req.chatId, {
         ec: 'command',
@@ -108,6 +108,7 @@ export default function registerBaseRoutes(
         t: 'event',
       });
     }
+    return nextPromise;
   });
 
   router.text(/\/ping/, async (req, res) => {

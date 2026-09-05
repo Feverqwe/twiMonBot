@@ -19,13 +19,23 @@ class WebServer {
 
   init() {
     return new Promise<void>((resolve, reject) => {
-      this.server = this.app.listen(this.port, this.host, (error) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve();
+      const server = this.app.listen(this.port, this.host);
+      this.server = server;
+
+      const onError = (error: Error) => {
+        server.off('listening', onListening);
+        if (this.server === server) {
+          this.server = undefined;
         }
-      });
+        reject(error);
+      };
+      const onListening = () => {
+        server.off('error', onError);
+        resolve();
+      };
+
+      server.once('error', onError);
+      server.once('listening', onListening);
     });
   }
 
@@ -35,7 +45,11 @@ class WebServer {
         resolve();
         return;
       }
-      this.server.close((error) => {
+      const server = this.server;
+      server.close((error) => {
+        if (this.server === server) {
+          this.server = undefined;
+        }
         if (error) reject(error);
         else resolve();
       });

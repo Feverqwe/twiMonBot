@@ -2,7 +2,7 @@ import http from 'node:http';
 import https from 'node:https';
 import qs from 'node:querystring';
 import {getDebug} from './getDebug';
-import axios, {AxiosError, AxiosResponse, Cancel, CreateAxiosDefaults, isCancel} from 'axios';
+import axios, {AxiosError, AxiosResponse, CreateAxiosDefaults} from 'axios';
 
 const debug = getDebug('app:fetchRequest');
 
@@ -29,7 +29,7 @@ interface FetchResponse<T = any> {
 }
 
 const baseAxiosOptions = {
-  timeout: 60 * 1000,
+  timeout: 0,
 } satisfies CreateAxiosDefaults;
 
 const axiosKeepAliveInstance = axios.create({
@@ -56,81 +56,64 @@ async function fetchRequest<T = any>(url: string, options?: FetchRequestOptions)
     ...fetchOptions
   } = options || {};
 
-  let timeoutId: NodeJS.Timeout | null = null;
+  fetchOptions.method = fetchOptions.method || 'GET';
 
-  try {
-    fetchOptions.method = fetchOptions.method || 'GET';
-
-    if (searchParams) {
-      const uri = new URL(url);
-      uri.search = '?' + qs.stringify(searchParams);
-      url = uri.toString();
-    }
-
-    let axiosInstance = axiosDefaultInstance;
-    if (keepAlive) {
-      axiosInstance = axiosKeepAliveInstance;
-    }
-
-    let isTimeout = false;
-    const controller = new AbortController();
-    if (timeout) {
-      timeoutId = setTimeout(() => {
-        isTimeout = true;
-        controller.abort();
-      }, timeout);
-    }
-
-    const axiosResponseType = responseType === 'buffer' ? 'arraybuffer' : responseType;
-
-    const rawResponse: AxiosResponse = await axiosInstance(url, {
-      method: fetchOptions.method,
-      data: fetchOptions.body,
-      headers: fetchOptions.headers,
-      responseType: axiosResponseType,
-      signal: controller.signal,
-      validateStatus: null,
-    }).catch((err: Error & any) => {
-      if (isCancel(err) && isTimeout) {
-        throw new TimeoutError(err);
-      } else {
-        throw new RequestError(err.message, err);
-      }
-    });
-
-    const ok = rawResponse.status >= 200 && rawResponse.status < 300;
-
-    const fetchResponse: FetchResponse<T> = {
-      ok: ok,
-      url: rawResponse.config.url ?? url,
-      method: rawResponse.config.method ?? fetchOptions.method,
-      statusCode: rawResponse.status,
-      statusMessage: rawResponse.statusText,
-      headers: normalizeHeaders(rawResponse.headers),
-      rawBody: undefined as any,
-      body: undefined as any,
-    };
-
-    if (responseType === 'buffer') {
-      fetchResponse.rawBody = Buffer.from(rawResponse.data as ArrayBuffer);
-    } else {
-      fetchResponse.rawBody = rawResponse.data;
-    }
-    fetchResponse.body = fetchResponse.rawBody;
-
-    if (throwHttpErrors && !ok) {
-      if (responseType === 'stream') {
-        fetchResponse.rawBody.destroy();
-      }
-      throw new HTTPError(fetchResponse);
-    }
-
-    return fetchResponse;
-  } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
+  if (searchParams) {
+    const uri = new URL(url);
+    uri.search = '?' + qs.stringify(searchParams);
+    url = uri.toString();
   }
+
+  let axiosInstance = axiosDefaultInstance;
+  if (keepAlive) {
+    axiosInstance = axiosKeepAliveInstance;
+  }
+
+  const axiosResponseType = responseType === 'buffer' ? 'arraybuffer' : responseType;
+
+  const rawResponse: AxiosResponse = await axiosInstance(url, {
+    method: fetchOptions.method,
+    data: fetchOptions.body,
+    headers: fetchOptions.headers,
+    responseType: axiosResponseType,
+    timeout,
+    validateStatus: null,
+  }).catch((err: Error & any) => {
+    if (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT') {
+      throw new TimeoutError(err);
+    } else {
+      throw new RequestError(err.message, err);
+    }
+  });
+
+  const ok = rawResponse.status >= 200 && rawResponse.status < 300;
+
+  const fetchResponse: FetchResponse<T> = {
+    ok: ok,
+    url: rawResponse.config.url ?? url,
+    method: rawResponse.config.method ?? fetchOptions.method,
+    statusCode: rawResponse.status,
+    statusMessage: rawResponse.statusText,
+    headers: normalizeHeaders(rawResponse.headers),
+    rawBody: undefined as any,
+    body: undefined as any,
+  };
+
+  if (responseType === 'buffer') {
+    fetchResponse.rawBody = Buffer.from(rawResponse.data as ArrayBuffer);
+  } else {
+    fetchResponse.rawBody = rawResponse.data;
+  }
+  fetchResponse.body = fetchResponse.rawBody;
+
+  if (throwHttpErrors && !ok) {
+    if (responseType === 'stream') {
+      fetchResponse.rawBody.destroy();
+    }
+    throw new HTTPError(fetchResponse);
+  }
+
+  return fetchResponse;
 }
 
 export class RequestError extends Error {
@@ -178,7 +161,7 @@ export class HTTPError extends RequestError {
 export class TimeoutError extends RequestError {
   declare readonly response: undefined;
 
-  constructor(error: Cancel) {
+  constructor(error: AxiosError) {
     super(error.message ?? 'Empty message', error, undefined);
     this.name = 'TimeoutError';
 
@@ -201,7 +184,7 @@ export class ReadError extends RequestError {
   }
 }
 
-function transformStack(err: Error & {stack: string}, origError: Error | Cancel) {
+function transformStack(err: Error & {stack: string}, origError: Error) {
   if ('stack' in origError && typeof origError.stack !== 'undefined') {
     const indexOfMessage = err.stack.indexOf(err.message) + err.message.length;
     const thisStackTrace = err.stack.slice(indexOfMessage).split('\n').reverse();

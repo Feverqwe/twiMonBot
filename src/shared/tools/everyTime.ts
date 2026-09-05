@@ -55,29 +55,25 @@ const everyWeekAt = (day: number, hours: number, minutes: number, callback: () =
 };
 
 function getOffset(step: number, offset = 0) {
-  if (!step) throw new Error(`Incorrect step value ${step}`);
+  if (!Number.isFinite(step) || step <= 0) throw new Error(`Incorrect step value ${step}`);
 
   const now = new Date();
 
   let pos = now.getMilliseconds();
-  if (step > dayMs) {
+  if (step >= 7 * dayMs) {
     pos += now.getDay() * dayMs;
   }
-  if (step > hourMs) {
+  if (step >= dayMs) {
     pos += now.getHours() * hourMs;
   }
-  if (step > minuteMs) {
+  if (step >= hourMs) {
     pos += now.getMinutes() * minuteMs;
   }
-  if (step > secondMs) {
+  if (step >= minuteMs) {
     pos += now.getSeconds() * secondMs;
   }
 
-  let point = offset;
-  while (pos > point) {
-    point += step;
-  }
-  return point - pos;
+  return (((offset - pos) % step) + step) % step;
 }
 
 export default everyTime;

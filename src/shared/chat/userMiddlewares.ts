@@ -39,7 +39,7 @@ export default function createUserMiddlewares<TChat, TChannel>({
       try {
         const chat = await ensureChat(String(chatId));
         Object.assign(req, {chat});
-        next();
+        await next();
       } catch (err) {
         debug('ensureChat error: %o', err);
         await api.sendMessage({
@@ -61,7 +61,7 @@ export default function createUserMiddlewares<TChat, TChannel>({
       try {
         const channels = await getChannels(String(chatId));
         Object.assign(req, {channels});
-        next();
+        await next();
       } catch (err) {
         debug('getChannelsByChatId error: %o', err);
         await api.sendMessage({
@@ -77,14 +77,14 @@ export default function createUserMiddlewares<TChat, TChannel>({
   const withChannels = async (
     req: RouterReq & WithChannels<TChannel>,
     res: RouterRes,
-    next: () => void,
+    next: () => Promise<void>,
   ) => {
     const {locale} = res;
     const {chatId} = req;
     if (!chatId) return;
 
     if (req.channels.length) {
-      next();
+      await next();
       return;
     }
 

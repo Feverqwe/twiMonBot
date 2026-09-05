@@ -49,30 +49,38 @@ class Tracker {
     return oneLimit(async () => {
       while (this.queue.length) {
         const queue = this.queue.splice(0);
-        await parallel(10, arrayByPart(queue, 20), (part) => {
-          return this.fetchRequest('https://www.google-analytics.com/batch', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'text/html',
-            },
-            body: part
-              .map(([time, hit]) => {
-                hit.qt = Date.now() - time;
-                return qs.stringify(hit);
-              })
-              .join('\n'),
-            keepAlive: true,
-          }).catch((error: unknown) => {
-            const fourHoursAgo = new Date();
-            fourHoursAgo.setHours(fourHoursAgo.getHours() - 4);
+        const failedParts: {part: typeof queue; error: unknown}[] = [];
+        await parallel(10, arrayByPart(queue, 20), async (part) => {
+          try {
+            await this.fetchRequest('https://www.google-analytics.com/batch', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'text/html',
+              },
+              body: part
+                .map(([time, hit]) => {
+                  hit.qt = Date.now() - time;
+                  return qs.stringify(hit);
+                })
+                .join('\n'),
+              keepAlive: true,
+            });
+          } catch (error) {
+            failedParts.push({part, error});
+          }
+        });
+
+        if (failedParts.length) {
+          const fourHoursAgo = Date.now() - 4 * 60 * 60 * 1000;
+          failedParts.forEach(({part}) => {
             part.forEach(([time, hit]) => {
-              if (time > fourHoursAgo.getTime()) {
-                this.queue.unshift([time, hit]);
+              if (time > fourHoursAgo) {
+                this.queue.push([time, hit]);
               }
             });
-            throw error;
           });
-        });
+          throw failedParts[0].error;
+        }
       }
     }).catch((error: unknown) => {
       debug('track error: %o', error);
