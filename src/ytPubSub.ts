@@ -7,7 +7,7 @@ import arrayDifference from './shared/tools/arrayDifference';
 import {YtPubSubChannel, YtPubSubChannelModel, YtPubSubFeed} from './db';
 import LogFile from './shared/logFile';
 import arrayByPart from './shared/tools/arrayByPart';
-import ExpressPubSub from './tools/expressPubSub';
+import ExpressPubSub from './shared/expressPubSub';
 import promiseLimit from './shared/tools/promiseLimit';
 import qs from 'node:querystring';
 import {appConfig} from './appConfig';

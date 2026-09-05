@@ -13,8 +13,8 @@ These instructions extend the repository-level `AGENTS.md` for files under `src/
 - `Chat` declares commands and middleware through `Router`. Preserve middleware ordering: migration
   handling, callback acknowledgement, group-admin authorization, tracking, then command routes.
 - Shared `WebServer` owns only the Express/HTTP lifecycle. Register project routes from the
-  composition root; YouTube WebSub routes and signature handling belong in
-  `ytPubSub.ts`/`tools/expressPubSub.ts`, not in provider polling code.
+  composition root; YouTube WebSub orchestration belongs in `ytPubSub.ts`, while shared routes and
+  signature handling belong in `shared/expressPubSub.ts`.
 
 ## Persistence and concurrency invariants
 

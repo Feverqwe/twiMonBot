@@ -1,10 +1,10 @@
 import express, {Express} from 'express';
-import fetchRequest from './fetchRequest';
+import fetchRequest from './tools/fetchRequest';
 import {EventEmitter} from 'node:events';
 import crypto from 'node:crypto';
-import qs from 'querystring';
-import RateLimit2 from './rateLimit2';
-import {getDebug} from '../shared/tools/getDebug';
+import qs from 'node:querystring';
+import RateLimit2 from './tools/rateLimit2';
+import {getDebug} from './tools/getDebug';
 
 const rateLimit = new RateLimit2(5);
 

@@ -2,7 +2,7 @@ import {ServiceChannel, ServiceGetStreamsResult, ServiceInterface, ServiceStream
 import parallel from '../shared/tools/parallel';
 import ErrorWithCode from '../shared/tools/errorWithCode';
 import {getDebug} from '../shared/tools/getDebug';
-import fetchRequest, {FetchRequestOptions} from '../tools/fetchRequest';
+import fetchRequest, {FetchRequestOptions} from '../shared/tools/fetchRequest';
 import * as v from 'valibot';
 import Main from '../main';
 import {appConfig} from '../appConfig';

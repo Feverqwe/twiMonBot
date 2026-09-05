@@ -4,10 +4,10 @@ import parallel from '../shared/tools/parallel';
 import ErrorWithCode from '../shared/tools/errorWithCode';
 import * as v from 'valibot';
 import arrayByPart from '../shared/tools/arrayByPart';
-import fetchRequest, {FetchRequestOptions, HTTPError} from '../tools/fetchRequest';
+import fetchRequest, {FetchRequestOptions, HTTPError} from '../shared/tools/fetchRequest';
 import getNow from '../shared/tools/getNow';
 import promiseTry from '../shared/tools/promiseTry';
-import RateLimit2 from '../tools/rateLimit2';
+import RateLimit2 from '../shared/tools/rateLimit2';
 import {appConfig} from '../appConfig';
 import {getDebug} from '../shared/tools/getDebug';
 

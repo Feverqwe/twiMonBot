@@ -1,6 +1,6 @@
 import {appConfig} from './appConfig';
 import Tracker from './shared/tracker';
-import fetchRequest from './tools/fetchRequest';
+import fetchRequest from './shared/tools/fetchRequest';
 
 const tracker = new Tracker(appConfig.gaId, fetchRequest);
 

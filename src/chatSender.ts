@@ -3,7 +3,7 @@ import promiseTry from './shared/tools/promiseTry';
 import ErrorWithCode from './shared/tools/errorWithCode';
 import {getStreamAsCaption, getStreamAsDescription} from './tools/streamToString';
 import inlineInspect from './tools/inlineInspect';
-import fetchRequest from './tools/fetchRequest';
+import fetchRequest from './shared/tools/fetchRequest';
 import {ChatModel, MessageModelWithStreamId, StreamModelWithChannel} from './db';
 import {getDebug} from './shared/tools/getDebug';
 import {type Message} from 'node-telegram-bot-api';

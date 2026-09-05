@@ -21,8 +21,9 @@ These instructions extend the root and `src/` guides for `src/services/`.
 
 ## HTTP and API behavior
 
-- Use `tools/fetchRequest.ts` so timeout, keep-alive, cookies, response metadata, and error types are
-  consistent. Use existing batching/rate-limit helpers and stay within each provider's API limits.
+- Use `shared/tools/fetchRequest.ts` so timeout, keep-alive, cookies, response metadata, and error
+  types are consistent. Use existing batching/rate-limit helpers and stay within each provider's
+  API limits.
 - Validate external JSON with `valibot` before mapping it. Keep schemas close to the adapter and
   mask responses so unrelated upstream fields do not leak into internal models.
 - Preserve access-token caching and single-flight refresh behavior in Twitch and Kick. Never log

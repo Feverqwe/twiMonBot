@@ -4,7 +4,7 @@ import parallel from '../shared/tools/parallel';
 import ErrorWithCode from '../shared/tools/errorWithCode';
 import * as v from 'valibot';
 import arrayByPart from '../shared/tools/arrayByPart';
-import fetchRequest, {HTTPError} from '../tools/fetchRequest';
+import fetchRequest, {HTTPError} from '../shared/tools/fetchRequest';
 import {decode as decodeHtmlEntity} from 'html-entities';
 import ytCostCounter from '../shared/tools/ytCostCounter';
 import {appConfig} from '../appConfig';

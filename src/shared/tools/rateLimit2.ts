@@ -3,10 +3,7 @@ import {Interval, RateLimiter} from 'limiter';
 class RateLimit2 {
   private limiter: RateLimiter;
 
-  constructor(
-    private limit: number,
-    private interval: Interval = 'second',
-  ) {
+  constructor(limit: number, interval: Interval = 'second') {
     this.limiter = new RateLimiter({
       tokensPerInterval: limit,
       interval,
@@ -15,7 +12,7 @@ class RateLimit2 {
 
   wrap<T, A extends any[]>(fn: (...args: A) => T | Promise<T>) {
     return (...args: A) => {
-      return this.run(() => fn.apply(null, args));
+      return this.run(() => fn(...args));
     };
   }
 

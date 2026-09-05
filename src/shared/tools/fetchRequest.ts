@@ -3,7 +3,7 @@ import https from 'node:https';
 import qs from 'node:querystring';
 import FormData from 'form-data';
 
-import {getDebug} from '../shared/tools/getDebug';
+import {getDebug} from './getDebug';
 import {CookieJar} from 'tough-cookie';
 import axios, {AxiosError, AxiosResponse, Cancel, CreateAxiosDefaults, isCancel} from 'axios';
 

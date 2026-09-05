@@ -4,7 +4,7 @@ import Main from '../main';
 import parallel from '../shared/tools/parallel';
 import arrayByPart from '../shared/tools/arrayByPart';
 import {ServiceInterface, ServiceStream} from '../checker';
-import fetchRequest, {HTTPError} from '../tools/fetchRequest';
+import fetchRequest, {HTTPError} from '../shared/tools/fetchRequest';
 import {getDebug} from '../shared/tools/getDebug';
 
 const debug = getDebug('app:Goodgame');
