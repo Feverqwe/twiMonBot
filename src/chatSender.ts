@@ -386,7 +386,6 @@ class ChatSender {
           method: 'HEAD',
           timeout: 5 * 1000,
           keepAlive: true,
-          cookie: service.useCookies,
         });
         return {url: response.url, contentType: response.headers['content-type'] as string};
       },
@@ -394,7 +393,6 @@ class ChatSender {
         const response = await fetchRequest<NodeReadableStream>(url, {
           responseType: 'stream',
           keepAlive: true,
-          cookie: service.useCookies,
         });
         return {body: response.body};
       },

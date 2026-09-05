@@ -1,10 +1,7 @@
 import http from 'node:http';
 import https from 'node:https';
 import qs from 'node:querystring';
-import FormData from 'form-data';
-
 import {getDebug} from './getDebug';
-import {CookieJar} from 'tough-cookie';
 import axios, {AxiosError, AxiosResponse, Cancel, CreateAxiosDefaults, isCancel} from 'axios';
 
 const debug = getDebug('app:fetchRequest');
@@ -16,8 +13,7 @@ export interface FetchRequestOptions {
   searchParams?: Record<string, any>;
   timeout?: number;
   keepAlive?: boolean;
-  body?: string | URLSearchParams | FormData;
-  cookie?: boolean;
+  body?: string | URLSearchParams;
   throwHttpErrors?: boolean;
 }
 
@@ -50,14 +46,11 @@ const axiosDefaultInstance = axios.create({
   ...baseAxiosOptions,
 });
 
-const globalCookieJar = new CookieJar();
-
 async function fetchRequest<T = any>(url: string, options?: FetchRequestOptions) {
   const {
     responseType,
     keepAlive,
     searchParams,
-    cookie,
     throwHttpErrors = true,
     timeout = 60 * 1000,
     ...fetchOptions
@@ -77,21 +70,6 @@ async function fetchRequest<T = any>(url: string, options?: FetchRequestOptions)
     let axiosInstance = axiosDefaultInstance;
     if (keepAlive) {
       axiosInstance = axiosKeepAliveInstance;
-    }
-
-    let cookieJar;
-    if (cookie) {
-      cookieJar = globalCookieJar;
-    }
-
-    if (cookieJar) {
-      const cookieString = await cookieJar.getCookieString(url);
-      if (cookieString) {
-        if (!fetchOptions.headers) {
-          fetchOptions.headers = {};
-        }
-        fetchOptions.headers.cookie = cookieString;
-      }
     }
 
     let isTimeout = false;
@@ -132,20 +110,6 @@ async function fetchRequest<T = any>(url: string, options?: FetchRequestOptions)
       rawBody: undefined as any,
       body: undefined as any,
     };
-
-    if (cookieJar) {
-      let rawCookies = fetchResponse.headers['set-cookie'];
-      if (rawCookies) {
-        if (!Array.isArray(rawCookies)) {
-          rawCookies = [rawCookies];
-        }
-        await Promise.all(
-          rawCookies.map((rawCookie: string) => {
-            return cookieJar.setCookie(rawCookie, fetchResponse.url);
-          }),
-        );
-      }
-    }
 
     if (responseType === 'buffer') {
       fetchResponse.rawBody = Buffer.from(rawResponse.data as ArrayBuffer);

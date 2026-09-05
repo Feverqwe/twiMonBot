@@ -38,7 +38,6 @@ export interface ServiceInterface<T = string | number> {
   noCachePreview?: boolean;
   streamUrlWithoutChannelName?: boolean;
   streamPreviewHeadUnsupported?: boolean;
-  useCookies?: boolean;
   match(query: string): boolean;
   getStreams(channelIds: T[]): Promise<ServiceGetStreamsResult<T>>;
   getExistsChannelIds(channelIds: T[]): Promise<T[]>;
