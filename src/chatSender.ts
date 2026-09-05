@@ -228,7 +228,7 @@ class ChatSender {
       const isBlocked = isBlockedError(error);
       if (isBlocked) {
         await this.main.db.deleteChatById(this.chat.id);
-        this.main.chat.log.write(
+        this.main.logs.chat.write(
           `[deleted] ${this.chat.id}, cause: (${body.error_code}) ${JSON.stringify(
             body.description,
           )}`,
@@ -242,13 +242,13 @@ class ChatSender {
           const err = error as ErrorWithCode;
           if (/would lead to a duplicate entry in table/.test(err.message)) {
             await this.main.db.deleteChatById(this.chat.id);
-            this.main.chat.log.write(`[deleted] ${this.chat.id}, cause: ${inlineInspect(err)}`);
+            this.main.logs.chat.write(`[deleted] ${this.chat.id}, cause: ${inlineInspect(err)}`);
             throw new ErrorWithCode(`Chat ${this.chat.id} is deleted`, 'CHAT_IS_DELETED');
           }
           throw err;
         }
 
-        this.main.chat.log.write(`[migrate] ${this.chat.id} > ${newChatId}`);
+        this.main.logs.chat.write(`[migrate] ${this.chat.id} > ${newChatId}`);
         throw new ErrorWithCode(
           `Chat ${this.chat.id} is migrated to ${newChatId}`,
           'CHAT_IS_MIGRATED',
@@ -320,7 +320,7 @@ class ChatSender {
       t: 'event',
     });
 
-    this.main.sender.log.write(
+    this.main.logs.sender.write(
       `[${type}] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
     );
 
@@ -359,7 +359,7 @@ class ChatSender {
         t: 'event',
       });
 
-      this.main.sender.log.write(
+      this.main.logs.sender.write(
         `[send photo as id] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
       );
 
@@ -443,7 +443,7 @@ class ChatSender {
           caption,
         });
 
-        this.main.sender.log.write(
+        this.main.logs.sender.write(
           `[send photo as url] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
         );
 
@@ -485,7 +485,7 @@ class ChatSender {
             caption,
           });
 
-          this.main.sender.log.write(
+          this.main.logs.sender.write(
             `[send photo as file] ${this.chat.id} ${message.message_id} ${stream.channelId} ${stream.id}`,
           );
 
@@ -534,7 +534,7 @@ class ChatSender {
           parse_mode: 'HTML',
         });
 
-        this.main.sender.log.write(
+        this.main.logs.sender.write(
           `[update text] ${chatId} ${messageId} ${stream.channelId} ${stream.id}`,
         );
 
@@ -554,7 +554,7 @@ class ChatSender {
           message_id: messageId,
         });
 
-        this.main.sender.log.write(
+        this.main.logs.sender.write(
           `[update caption] ${chatId} ${messageId} ${stream.channelId} ${stream.id}`,
         );
 
@@ -575,7 +575,7 @@ class ChatSender {
       chat_id: chatId,
       message_id: messageId,
     });
-    this.main.sender.log.write(`[delete] ${chatId} ${messageId}`);
+    this.main.logs.sender.write(`[delete] ${chatId} ${messageId}`);
     return isSuccess;
   }
 }

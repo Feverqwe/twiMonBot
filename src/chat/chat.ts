@@ -1,5 +1,4 @@
 import Router from '../shared/router';
-import LogFile from '../shared/logFile';
 import TimeCache from '../shared/tools/timeCache';
 import Main from '../main';
 import {getDebug} from '../shared/tools/getDebug';
@@ -11,7 +10,6 @@ import registerUserRoutes from './user';
 const debug = getDebug('app:Chat');
 
 class Chat {
-  readonly log = new LogFile('chat');
   private readonly chatIdAdminIdsCache = new TimeCache<number, number[]>({
     maxSize: 100,
     ttl: 5 * 60 * 1000,
@@ -28,9 +26,9 @@ class Chat {
       if (ctx.callbackQuery) this.router.handle('callback_query', ctx.callbackQuery);
     });
 
-    registerBaseRoutes(this.main, this.router, this.log, this.chatIdAdminIdsCache);
+    registerBaseRoutes(this.main, this.router, this.main.logs.chat, this.chatIdAdminIdsCache);
     registerMenuRoutes(this.main, this.router);
-    registerUserRoutes(this.main, this.router, this.log);
+    registerUserRoutes(this.main, this.router, this.main.logs.chat);
     registerAdminRoutes(this.main, this.router);
   }
 

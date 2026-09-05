@@ -1,5 +1,4 @@
 import Main from './main';
-import LogFile from './shared/logFile';
 import {everyMinutes} from './shared/tools/everyTime';
 import getProvider from './shared/tools/getProvider';
 import ChatSender, {getTelegramErrorBody, isBlockedError} from './chatSender';
@@ -16,7 +15,6 @@ const debug = getDebug('app:Sender');
 const oneLimit = promiseLimit(1);
 
 class Sender {
-  log = new LogFile('sender');
   constructor(private main: Main) {}
 
   init() {
@@ -182,7 +180,7 @@ class Sender {
             if (isBlocked) {
               blockedChatIds.push(chatId);
               const body = getTelegramErrorBody(err)!;
-              this.main.chat.log.write(
+              this.main.logs.chat.write(
                 `[deleted] ${chatId}, cause: (${body.error_code}) ${JSON.stringify(
                   body.description,
                 )}`,

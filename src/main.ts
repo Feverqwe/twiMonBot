@@ -15,10 +15,12 @@ import WebServer from './shared/webServer';
 import Vkplay from './services/vkplay';
 import Kick from './services/kick';
 import YtPubSub from './ytPubSub';
+import AppLogs from './shared/appLogs';
 
 const debug = getDebug('app:Main');
 
 class Main extends Events {
+  readonly logs = new AppLogs();
   db: Db;
   twitch: Twitch;
   youtube: Youtube;

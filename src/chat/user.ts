@@ -1,9 +1,4 @@
-import type {
-  EditMessageTextParams,
-  InlineKeyboardButton,
-  ParseMode,
-  SendMessageParams,
-} from 'node-telegram-bot-api';
+import type {InlineKeyboardButton, ParseMode, SendMessageParams} from 'node-telegram-bot-api';
 import {appConfig} from '../appConfig';
 import {
   ChannelModel,
@@ -16,6 +11,8 @@ import ChatSender from '../chatSender';
 import Main from '../main';
 import LogFile from '../shared/logFile';
 import Locale from '../shared/locale';
+import createEditOrSendNewMessage from '../shared/chat/editOrSendNewMessage';
+import createUserMiddlewares from '../shared/chat/userMiddlewares';
 import Router, {
   RouterCallbackQueryReq,
   RouterReq,
@@ -36,78 +33,16 @@ import {tracker} from '../tracker';
 
 const debug = getDebug('app:Chat');
 
-interface WithChat {
-  chat: ChatModelWithOptionalChannel;
-}
-
-interface WithChannels {
-  channels: ChannelModel[];
-}
-
 export default function registerUserRoutes(main: Main, router: Router, log: LogFile) {
-  const provideChat = router.middleware<WithChat>(async (req, res, next) => {
-    const {locale} = res;
-    const chatId = req.chatId;
-    if (!chatId) return;
-
-    try {
-      try {
-        const chat = await main.db.ensureChat('' + chatId);
-        Object.assign(req, {chat});
-        next();
-      } catch (err) {
-        debug('ensureChat error! %o', err);
-        await main.bot.api.sendMessage({
-          chat_id: chatId,
-          text: locale.m('alert_unknown-error'),
-        });
-      }
-    } catch (err) {
-      debug('provideChat error! %o', err);
-    }
+  const {provideChat, provideChannels, withChannels} = createUserMiddlewares({
+    router,
+    api: main.bot.api,
+    ensureChat: (chatId) => main.db.ensureChat(chatId),
+    getChannels: (chatId) => main.db.getChannelsByChatId(chatId),
+    getUnknownErrorText: (locale) => locale.m('alert_unknown-error'),
+    getEmptyChannelsText: (locale) => locale.m('alert_empty-channel-list'),
   });
-
-  const provideChannels = router.middleware<WithChannels>(async (req, res, next) => {
-    const {locale} = res;
-    const chatId = req.chatId;
-    if (!chatId) return;
-
-    try {
-      try {
-        const channels = await main.db.getChannelsByChatId('' + chatId);
-        Object.assign(req, {channels});
-        next();
-      } catch (err) {
-        debug('getChannelsByChatId error! %o', err);
-        await main.bot.api.sendMessage({
-          chat_id: chatId,
-          text: locale.m('alert_unknown-error'),
-        });
-      }
-    } catch (err) {
-      debug('provideChannels error! %o', err);
-    }
-  });
-
-  const withChannels = async (req: RouterReq & WithChannels, res: RouterRes, next: () => void) => {
-    const {locale} = res;
-    const {chatId} = req;
-    if (!chatId) return;
-
-    if (req.channels.length) {
-      next();
-      return;
-    }
-
-    try {
-      await main.bot.api.sendMessage({
-        chat_id: chatId,
-        text: locale.m('alert_empty-channel-list'),
-      });
-    } catch (err) {
-      debug('withChannels sendMessage error! %o', err);
-    }
-  };
+  const editOrSendNewMessage = createEditOrSendNewMessage(main.bot.api);
 
   router.callback_query(/\/cancel\/(?<command>[^\s]+)/, async (req, res) => {
     const {locale} = res;
@@ -971,50 +906,6 @@ export default function registerUserRoutes(main: Main, router: Router, log: LogF
     await main.bot.api.answerCallbackQuery({callback_query_id: req.callback_query.id});
 
     return {req, messageId};
-  };
-
-  const editOrSendNewMessage = async (
-    chatId: number,
-    messageId: number | undefined,
-    text: string,
-    form?: Pick<
-      EditMessageTextParams,
-      'parse_mode' | 'entities' | 'link_preview_options' | 'reply_markup'
-    >,
-  ): Promise<number> => {
-    try {
-      if (!messageId) {
-        throw new ErrorWithCode('messageId is empty', 'MESSAGE_ID_IS_EMPTY');
-      }
-
-      const result = await main.bot.api.editMessageText({
-        ...form,
-        text,
-        chat_id: chatId,
-        message_id: messageId,
-      });
-
-      if (typeof result === 'object') {
-        return result.message_id;
-      }
-
-      return messageId;
-    } catch (error) {
-      const err = error as ErrorWithCode;
-      if (
-        err.code === 'MESSAGE_ID_IS_EMPTY' ||
-        errHandler[ErrEnum.MessageCantBeEdited](err) ||
-        errHandler[ErrEnum.MessageToEditNotFound](err)
-      ) {
-        const msg = await main.bot.api.sendMessage({
-          ...form,
-          chat_id: chatId,
-          text,
-        });
-        return msg.message_id;
-      }
-      throw err;
-    }
   };
 }
 
