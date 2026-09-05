@@ -18,13 +18,14 @@
 - `src/checker.ts`: periodic provider polling and reconciliation of channels/streams into MariaDB.
 - `src/sender.ts` and `src/chatSender.ts`: per-chat notification queues and Telegram message
   send/update/delete behavior.
-- `src/chat.ts` and `src/router.ts`: Telegram commands, callback queries, menus, and permissions.
+- `src/chat.ts` and `src/shared/router.ts`: Telegram commands, callback queries, menus, and
+  permissions.
 - `src/db.ts`: all models, associations, persistence methods, and transactional stream updates.
-- `src/migrator.ts`, `src/migrations/`: migration runner and ordered database schema changes.
+- `src/shared/migrator.ts`, `src/migrations/`: migration runner and ordered database schema changes.
 - `src/webServer.ts`, `src/ytPubSub.ts`: internal HTTP endpoint and YouTube WebSub lifecycle.
 - `src/services/`: provider adapters implementing `ServiceInterface` from `src/checker.ts`.
-- `src/tools/`: shared networking, throttling, scheduling, Telegram, formatting, and collection
-  helpers.
+- `src/shared/`: infrastructure kept byte-identical with `ytWatchBot`; `src/tools/` contains
+  provider-specific helpers.
 - `src/locale/`: English and Russian user-facing strings.
 
 ## Working rules

@@ -1,4 +1,4 @@
-import htmlSanitize from './htmlSanitize';
+import htmlSanitize from '../shared/tools/htmlSanitize';
 import {ServiceInterface} from '../checker';
 import {StreamModel, StreamModelWithChannel} from '../db';
 

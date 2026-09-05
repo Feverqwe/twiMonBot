@@ -1,6 +1,6 @@
 import {describe, expect, test} from '@jest/globals';
 import type {Message} from 'node-telegram-bot-api';
-import Router from '../src/router';
+import Router from '../src/shared/router';
 
 describe('Router', () => {
   test('routes a bot command after initialization with only the bot name', () => {

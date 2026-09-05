@@ -1,7 +1,7 @@
 import {describe, expect, test} from '@jest/globals';
 import {TelegramApiError} from 'node-telegram-bot-api';
 import {isBlockedError, isSkipMessageError} from '../../src/chatSender';
-import {ErrEnum, errHandler, passEx} from '../../src/tools/passTgEx';
+import {ErrEnum, errHandler, passEx} from '../../src/shared/tools/passTgEx';
 
 describe('Telegram API error classification', () => {
   test('matches descriptions only on TelegramApiError instances', () => {

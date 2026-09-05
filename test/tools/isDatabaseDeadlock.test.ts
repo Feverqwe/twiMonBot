@@ -1,5 +1,5 @@
 import {describe, expect, test} from '@jest/globals';
-import isDatabaseDeadlock from '../../src/tools/isDatabaseDeadlock';
+import isDatabaseDeadlock from '../../src/shared/tools/isDatabaseDeadlock';
 
 describe('isDatabaseDeadlock', () => {
   test('recognizes MariaDB deadlocks by error code', () => {

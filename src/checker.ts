@@ -1,14 +1,14 @@
 import Main from './main';
-import {everyMinutes} from './tools/everyTime';
+import {everyMinutes} from './shared/tools/everyTime';
 import serviceId from './tools/serviceId';
-import ensureMap from './tools/ensureMap';
-import arrayDifference from './tools/arrayDifference';
+import ensureMap from './shared/tools/ensureMap';
+import arrayDifference from './shared/tools/arrayDifference';
 import {Channel, NewChatIdStreamId, Stream} from './db';
-import LogFile from './logFile';
-import getInProgress from './tools/getInProgress';
-import parallel from './tools/parallel';
+import LogFile from './shared/logFile';
+import getInProgress from './shared/tools/getInProgress';
+import parallel from './shared/tools/parallel';
 import {appConfig} from './appConfig';
-import {getDebug} from './tools/getDebug';
+import {getDebug} from './shared/tools/getDebug';
 
 const debug = getDebug('app:Checker');
 

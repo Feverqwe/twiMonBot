@@ -1,13 +1,13 @@
-import parallel from './tools/parallel';
-import arrayByPart from './tools/arrayByPart';
-import promiseLimit from './tools/promiseLimit';
+import parallel from './shared/tools/parallel';
+import arrayByPart from './shared/tools/arrayByPart';
+import promiseLimit from './shared/tools/promiseLimit';
 import fetchRequest from './tools/fetchRequest';
 import qs from 'node:querystring';
 import {v4 as uuidV4} from 'uuid';
 import QuickLRU from 'quick-lru';
 import {appConfig} from './appConfig';
 import throttle from 'lodash.throttle';
-import {getDebug} from './tools/getDebug';
+import {getDebug} from './shared/tools/getDebug';
 
 const debug = getDebug('app:tracker');
 

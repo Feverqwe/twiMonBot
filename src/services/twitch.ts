@@ -1,15 +1,15 @@
 import {ServiceInterface, ServiceStream} from '../checker';
 import Main from '../main';
-import parallel from '../tools/parallel';
-import ErrorWithCode from '../tools/errorWithCode';
+import parallel from '../shared/tools/parallel';
+import ErrorWithCode from '../shared/tools/errorWithCode';
 import * as v from 'valibot';
-import arrayByPart from '../tools/arrayByPart';
+import arrayByPart from '../shared/tools/arrayByPart';
 import fetchRequest, {FetchRequestOptions, HTTPError} from '../tools/fetchRequest';
-import getNow from '../tools/getNow';
-import promiseTry from '../tools/promiseTry';
+import getNow from '../shared/tools/getNow';
+import promiseTry from '../shared/tools/promiseTry';
 import RateLimit2 from '../tools/rateLimit2';
 import {appConfig} from '../appConfig';
-import {getDebug} from '../tools/getDebug';
+import {getDebug} from '../shared/tools/getDebug';
 
 const debug = getDebug('app:Twitch');
 

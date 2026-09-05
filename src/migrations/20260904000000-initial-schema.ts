@@ -1,4 +1,4 @@
-import type {Migration} from '../migrator';
+import type {Migration} from '../shared/migrator';
 
 interface BaselineTable {
   table: string;

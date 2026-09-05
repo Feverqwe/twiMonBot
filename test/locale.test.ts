@@ -1,5 +1,5 @@
 import {describe, expect, test} from '@jest/globals';
-import Locale from '../src/locale';
+import Locale from '../src/shared/locale';
 
 describe('Locale', () => {
   test('uses Russian for a regional Russian language code', () => {

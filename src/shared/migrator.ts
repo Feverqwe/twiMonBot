@@ -9,7 +9,7 @@ export type Migration = MigrationFn<QueryInterface>;
 
 const createMigrator = (sequelize: Sequelize) => {
   return new Umzug({
-    migrations: {glob: path.join(__dirname, 'migrations', '*.js')},
+    migrations: {glob: path.join(__dirname, '..', 'migrations', '*.js')},
     context: sequelize.getQueryInterface(),
     storage: new SequelizeStorage({sequelize}),
     logger: {

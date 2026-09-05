@@ -1,5 +1,5 @@
 import type {QueryInterface} from 'sequelize';
-import type {Migration} from '../migrator';
+import type {Migration} from '../shared/migrator';
 
 interface IndexDefinition {
   name: string;

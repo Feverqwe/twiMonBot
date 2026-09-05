@@ -1,16 +1,16 @@
 import Main from './main';
-import promiseTry from './tools/promiseTry';
-import ErrorWithCode from './tools/errorWithCode';
+import promiseTry from './shared/tools/promiseTry';
+import ErrorWithCode from './shared/tools/errorWithCode';
 import {getStreamAsCaption, getStreamAsDescription} from './tools/streamToString';
 import {ServiceInterface} from './checker';
 import appendQueryParam from './tools/appendQueryParam';
 import inlineInspect from './tools/inlineInspect';
 import fetchRequest from './tools/fetchRequest';
 import {ChatModel, MessageModelWithStreamId, StreamModelWithChannel} from './db';
-import {getDebug} from './tools/getDebug';
+import {getDebug} from './shared/tools/getDebug';
 import {InputFile, TelegramApiError, type Message} from 'node-telegram-bot-api';
 import {tracker} from './tracker';
-import {ErrEnum, errHandler, passEx} from './tools/passTgEx';
+import {ErrEnum, errHandler, passEx} from './shared/tools/passTgEx';
 import NodeReadableStream = NodeJS.ReadableStream;
 import {Readable} from 'node:stream';
 

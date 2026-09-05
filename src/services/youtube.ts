@@ -1,14 +1,14 @@
 import {ServiceInterface, ServiceStream} from '../checker';
 import Main from '../main';
-import parallel from '../tools/parallel';
-import ErrorWithCode from '../tools/errorWithCode';
+import parallel from '../shared/tools/parallel';
+import ErrorWithCode from '../shared/tools/errorWithCode';
 import * as v from 'valibot';
-import arrayByPart from '../tools/arrayByPart';
+import arrayByPart from '../shared/tools/arrayByPart';
 import fetchRequest, {HTTPError} from '../tools/fetchRequest';
 import {decode as decodeHtmlEntity} from 'html-entities';
-import ytCostCounter from '../tools/ytCostCounter';
+import ytCostCounter from '../shared/tools/ytCostCounter';
 import {appConfig} from '../appConfig';
-import {getDebug} from '../tools/getDebug';
+import {getDebug} from '../shared/tools/getDebug';
 
 const debug = getDebug('app:Youtube');
 

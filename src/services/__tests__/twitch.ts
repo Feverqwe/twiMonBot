@@ -1,6 +1,6 @@
 import Twitch from '../twitch';
 import Main from '../../main';
-import {getDebug} from '../../tools/getDebug';
+import {getDebug} from '../../shared/tools/getDebug';
 
 const debug = getDebug('app:Twitch:test');
 

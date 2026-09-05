@@ -4,7 +4,7 @@ import {EventEmitter} from 'node:events';
 import crypto from 'node:crypto';
 import qs from 'querystring';
 import RateLimit2 from './rateLimit2';
-import {getDebug} from './getDebug';
+import {getDebug} from '../shared/tools/getDebug';
 
 const rateLimit = new RateLimit2(5);
 

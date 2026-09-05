@@ -1,5 +1,5 @@
-import en from './locale/en';
-import ru from './locale/ru';
+import en from '../locale/en';
+import ru from '../locale/ru';
 
 type MessageName = keyof typeof en;
 type Dictionary = Record<MessageName, string>;

@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import {getDebug} from './tools/getDebug';
+import {getDebug} from './shared/tools/getDebug';
 
 const debug = getDebug('app:kick');
 

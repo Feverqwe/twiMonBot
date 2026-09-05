@@ -1,11 +1,11 @@
-import ErrorWithCode from '../tools/errorWithCode';
+import ErrorWithCode from '../shared/tools/errorWithCode';
 import * as v from 'valibot';
 import Main from '../main';
-import parallel from '../tools/parallel';
-import arrayByPart from '../tools/arrayByPart';
+import parallel from '../shared/tools/parallel';
+import arrayByPart from '../shared/tools/arrayByPart';
 import {ServiceInterface, ServiceStream} from '../checker';
 import fetchRequest, {HTTPError} from '../tools/fetchRequest';
-import {getDebug} from '../tools/getDebug';
+import {getDebug} from '../shared/tools/getDebug';
 
 const debug = getDebug('app:Goodgame');
 

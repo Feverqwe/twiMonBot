@@ -12,10 +12,11 @@
     "test": "npm run test:types && cross-env NODE_OPTIONS=--experimental-vm-modules jest",
     "test:types": "tsc --noEmit -p tsconfig.test.json",
     "typescript:check": "tsc --noEmit",
-    "lint": "npx eslint ./src ./test && npm run prettier",
+    "lint": "npx eslint ./src ./test && npm run shared:check && npm run prettier",
+    "shared:check": "node scripts/checkShared.mjs",
     "lint:fix": "npx eslint --fix ./src ./test && npm run prettier:fix",
-    "prettier": "npx prettier --check './{src,test}/**/*.ts'",
-    "prettier:fix": "npx prettier --write './{src,test}/**/*.ts'"
+    "prettier": "npx prettier --check './{src,test}/**/*.ts' './scripts/**/*.mjs'",
+    "prettier:fix": "npx prettier --write './{src,test}/**/*.ts' './scripts/**/*.mjs'"
   },
   "dependencies": {
     "axios": "^1.20.0",

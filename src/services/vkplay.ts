@@ -1,9 +1,9 @@
 import * as v from 'valibot';
 import {ServiceChannel, ServiceGetStreamsResult, ServiceInterface, ServiceStream} from '../checker';
-import ErrorWithCode from '../tools/errorWithCode';
+import ErrorWithCode from '../shared/tools/errorWithCode';
 import fetchRequest, {HTTPError} from '../tools/fetchRequest';
-import parallel from '../tools/parallel';
-import {getDebug} from '../tools/getDebug';
+import parallel from '../shared/tools/parallel';
+import {getDebug} from '../shared/tools/getDebug';
 import Main from '../main';
 
 const debug = getDebug('app:vkplay');

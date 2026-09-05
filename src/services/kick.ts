@@ -1,13 +1,13 @@
 import {ServiceChannel, ServiceGetStreamsResult, ServiceInterface, ServiceStream} from '../checker';
-import parallel from '../tools/parallel';
-import ErrorWithCode from '../tools/errorWithCode';
-import {getDebug} from '../tools/getDebug';
+import parallel from '../shared/tools/parallel';
+import ErrorWithCode from '../shared/tools/errorWithCode';
+import {getDebug} from '../shared/tools/getDebug';
 import fetchRequest, {FetchRequestOptions} from '../tools/fetchRequest';
 import * as v from 'valibot';
 import Main from '../main';
 import {appConfig} from '../appConfig';
-import getNow from '../tools/getNow';
-import promiseTry from '../tools/promiseTry';
+import getNow from '../shared/tools/getNow';
+import promiseTry from '../shared/tools/promiseTry';
 import crypto from 'node:crypto';
 
 const debug = getDebug('app:kick');

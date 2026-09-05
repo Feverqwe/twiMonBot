@@ -13,7 +13,7 @@ import {
   applyTelegramRateLimits,
   getProxyFetch,
   getTelegramBot,
-} from '../../src/tools/telegramBotApi';
+} from '../../src/shared/tools/telegramBotApi';
 
 type MockApi = {
   sendChatAction: jest.Mock<
