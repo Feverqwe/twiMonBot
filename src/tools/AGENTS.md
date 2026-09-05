@@ -1,9 +1,11 @@
-# Shared tools
+# Project-specific tools
 
-These instructions extend the root and `src/` guides for `src/tools/`.
+These instructions extend the root and `src/` guides for `src/tools/`. Generic helpers shared with
+`ytWatchBot` live in `src/shared/tools/` and follow `src/shared/AGENTS.md`. Move a helper into
+`shared` when the two implementations can be identical.
 
 - Keep helpers small, single-purpose, and independent of the `Main` composition root unless they
-  are explicitly an integration wrapper such as `telegramBotApi` or `expressPubSub`.
+  are explicitly an integration wrapper such as `expressPubSub`.
 - Preserve concurrency semantics in scheduling, caching, retry, and rate-limit helpers. Callers
   rely on deduplication, cancellation callbacks, queue limits, and timers being released after both
   success and failure.
@@ -14,6 +16,5 @@ These instructions extend the root and `src/` guides for `src/tools/`.
   Verify Telegram message and caption paths when changing shared formatting.
 - Prefer generic type-safe signatures and deterministic unit tests. For timer helpers, use fake
   timers; for HTTP/Telegram wrappers, mock the transport rather than calling external services.
-- A change to a shared helper needs call-site review with `rg` and validation of every semantic
-  consumer, especially for error handling, time units (milliseconds versus seconds), batching, and
-  mutation versus copied arrays/objects.
+- A change to a helper under `src/shared/tools/` must be applied to both sibling repositories,
+  reviewed at all call sites, and validated with `npm run shared:check`.
