@@ -40,6 +40,8 @@
     "xmldoc": "^3.0.0"
   },
   "devDependencies": {
+    "@emnapi/core": "1.11.3",
+    "@emnapi/runtime": "1.11.3",
     "@gravity-ui/eslint-config": "^4.3.2",
     "@jest/globals": "^30.5.1",
     "@swc/core": "^1.16.1",
