@@ -6,6 +6,7 @@ import registerAdminRoutes from './admin';
 import registerBaseRoutes from './base';
 import registerMenuRoutes from './menu';
 import registerUserRoutes from './user';
+import retryLoop from '../shared/tools/retryLoop';
 
 const debug = getDebug('app:Chat');
 
@@ -16,6 +17,7 @@ class Chat {
   });
   private readonly router: Router;
   private pollingPromise?: Promise<void>;
+  private pollingController?: AbortController;
 
   constructor(private main: Main) {
     this.router = new Router();
@@ -40,15 +42,26 @@ class Chat {
 
     this.router.init(username);
 
-    this.pollingPromise = bot.startPolling(undefined, {
-      onError: (err) => debug('polling error, retrying: %o', err),
-    });
+    this.pollingController = new AbortController();
+    this.pollingPromise = retryLoop(
+      () =>
+        bot.startPolling(undefined, {
+          onError: (err) => debug('polling error, retrying: %o', err),
+        }),
+      this.pollingController.signal,
+      {
+        onRetry: (err, delayMs) => {
+          debug('polling stopped, restarting in %d ms: %o', delayMs, err);
+        },
+      },
+    );
     void this.pollingPromise.catch((err) => {
-      debug('polling stopped: %o', err);
+      debug('polling retry loop stopped: %o', err);
     });
   }
 
   async stop() {
+    this.pollingController?.abort();
     this.main.bot.stop();
     await this.pollingPromise;
   }
