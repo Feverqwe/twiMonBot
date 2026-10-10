@@ -1,4 +1,13 @@
 const en = {
+  'broadcast-menu': 'Send to everyone',
+  'broadcast-private-admin': 'Only an administrator in a private chat can send the announcement.',
+  'broadcast-already-sent': 'The announcement is already running or has been sent.',
+  'broadcast-empty':
+    'The announcement texts have not been set (both RU and EN must contain 1–4096 characters).',
+  'broadcast-result':
+    'Announcement sent. Delivered: {sent}. Unavailable: {blocked}. Errors: {failed}.',
+  'broadcast-error':
+    'Announcement interrupted. Some messages may already have been delivered. Check the logs.',
   alert_help:
     'Hi! I will notify you about the beginning of the broadcasts on {services} and {lastService}!',
   alert_offline: 'All channels offline',

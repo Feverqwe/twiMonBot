@@ -16,6 +16,7 @@ class Chat {
     maxAge: 5 * 60 * 1000,
   });
   private readonly router: Router;
+  private readonly stopBroadcast: () => void;
   private pollingPromise?: Promise<void>;
   private pollingController?: AbortController;
 
@@ -31,7 +32,7 @@ class Chat {
     registerBaseRoutes(this.main, this.router, this.main.logs.chat, this.chatIdAdminIdsCache);
     registerMenuRoutes(this.main, this.router);
     registerUserRoutes(this.main, this.router, this.main.logs.chat);
-    registerAdminRoutes(this.main, this.router);
+    this.stopBroadcast = registerAdminRoutes(this.main, this.router);
   }
 
   async init() {
@@ -61,6 +62,7 @@ class Chat {
   }
 
   async stop() {
+    this.stopBroadcast();
     this.pollingController?.abort();
     this.main.bot.stop();
     await this.pollingPromise;

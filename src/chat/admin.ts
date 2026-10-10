@@ -1,3 +1,5 @@
+import {broadcastTexts} from '../broadcastTexts';
+import registerBroadcastRoutes from '../shared/chat/broadcastRoutes';
 import jsonStringifyPretty from 'json-stringify-pretty-compact';
 import {appConfig} from '../appConfig';
 import Main from '../main';
@@ -30,6 +32,14 @@ export default function registerAdminRoutes(main: Main, router: Router) {
       debug('isAdmin sendMessage error: %o', err);
     }
   };
+
+  const stopBroadcast = registerBroadcastRoutes(
+    router,
+    main.bot.api,
+    appConfig.adminIds,
+    (afterId, limit) => main.db.getBroadcastRecipients(afterId, limit),
+    broadcastTexts,
+  );
 
   const commands = [
     {name: 'Check chats exists', method: main.sender.checkChatsExists},
@@ -93,19 +103,24 @@ export default function registerAdminRoutes(main: Main, router: Router) {
         chat_id: req.chatId,
         text: locale.m('title_admin-menu'),
         reply_markup: {
-          inline_keyboard: commands.reduce<Button[][]>((menu, {name, method}, index) => {
-            const buttons: Button[] = index % 2 ? menu.pop()! : [];
-            buttons.push({
-              text: name || method.name,
-              callback_data: `/admin/${index}`,
-            });
-            menu.push(buttons);
-            return menu;
-          }, []),
+          inline_keyboard: commands.reduce<Button[][]>(
+            (menu, {name, method}, index) => {
+              const buttons: Button[] = index % 2 ? menu.pop()! : [];
+              buttons.push({
+                text: name || method.name,
+                callback_data: `/admin/${index}`,
+              });
+              menu.push(buttons);
+              return menu;
+            },
+            [[{text: locale.m('broadcast-menu'), callback_data: '/broadcast'}]],
+          ),
         },
       });
     } catch (err) {
       debug('%j error %o', req.command, err);
     }
   });
+
+  return stopBroadcast;
 }

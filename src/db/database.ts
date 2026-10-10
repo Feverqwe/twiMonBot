@@ -78,6 +78,15 @@ class Db {
     await this.sequelize.close();
   }
 
+  async getBroadcastRecipients(afterId: string, limit: number) {
+    return ChatModel.findAll({
+      attributes: ['id'],
+      where: {id: {[Op.gt]: afterId}},
+      order: [['id', 'ASC']],
+      limit,
+    });
+  }
+
   async ensureChat(id: string) {
     const [model, isCreated] = await ChatModel.findOrCreate({
       where: {id},
