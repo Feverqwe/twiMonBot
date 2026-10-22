@@ -11,6 +11,7 @@ import {getDebug} from '../shared/tools/getDebug';
 import isDatabaseDeadlock from '../shared/tools/isDatabaseDeadlock';
 import parseAggregateCount from '../shared/tools/parseAggregateCount';
 import createMigrator from '../shared/migrator';
+import deleteInBatches from '../shared/tools/deleteInBatches';
 import {
   ChannelModel,
   ChatIdChannelIdModel,
@@ -169,12 +170,15 @@ class Db {
   }
 
   async cleanChats() {
-    return ChatModel.destroy({
-      where: {
-        id: {[Op.notIn]: Sequelize.literal(`(SELECT DISTINCT chatId FROM chatIdChannelId)`)},
-        parentChatId: null,
-      },
-    });
+    return deleteInBatches((limit) =>
+      ChatModel.destroy({
+        limit,
+        where: {
+          id: {[Op.notIn]: Sequelize.literal(`(SELECT DISTINCT chatId FROM chatIdChannelId)`)},
+          parentChatId: null,
+        },
+      }),
+    );
   }
 
   async ensureChannel(service: ServiceInterface, rawChannel: ServiceChannel) {
@@ -424,11 +428,14 @@ class Db {
   }
 
   async cleanChannels() {
-    return ChannelModel.destroy({
-      where: {
-        id: {[Op.notIn]: Sequelize.literal(`(SELECT DISTINCT channelId FROM chatIdChannelId)`)},
-      },
-    });
+    return deleteInBatches((limit) =>
+      ChannelModel.destroy({
+        limit,
+        where: {
+          id: {[Op.notIn]: Sequelize.literal(`(SELECT DISTINCT channelId FROM chatIdChannelId)`)},
+        },
+      }),
+    );
   }
 
   async getChatIdChannelIdByChannelIds(channelIds: string[]) {
@@ -919,37 +926,40 @@ class Db {
     minStreamScheduledStartAtDate.setDate(minStreamScheduledStartAtDate.getDate() - 1);
     const minStreamCreatedAtDate = new Date();
     minStreamCreatedAtDate.setDate(minStreamCreatedAtDate.getDate() - 7);
-    return YtPubSubFeedModel.destroy({
-      where: {
-        [Op.or]: [
-          {
-            isStream: true,
-            [Op.or]: [
-              {
-                actualEndAt: {[Op.lt]: minStreamEndAtDate},
-              },
-              {
-                actualStartAt: null,
-                actualEndAt: null,
-                [Op.or]: [
-                  {
-                    scheduledStartAt: {[Op.lt]: minStreamScheduledStartAtDate},
-                  },
-                  {
-                    scheduledStartAt: null,
-                    createdAt: {[Op.lt]: minStreamCreatedAtDate},
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            isStream: false,
-            createdAt: {[Op.lt]: minCreatedAtDate},
-          },
-        ],
-      },
-    });
+    return deleteInBatches((limit) =>
+      YtPubSubFeedModel.destroy({
+        limit,
+        where: {
+          [Op.or]: [
+            {
+              isStream: true,
+              [Op.or]: [
+                {
+                  actualEndAt: {[Op.lt]: minStreamEndAtDate},
+                },
+                {
+                  actualStartAt: null,
+                  actualEndAt: null,
+                  [Op.or]: [
+                    {
+                      scheduledStartAt: {[Op.lt]: minStreamScheduledStartAtDate},
+                    },
+                    {
+                      scheduledStartAt: null,
+                      createdAt: {[Op.lt]: minStreamCreatedAtDate},
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              isStream: false,
+              createdAt: {[Op.lt]: minCreatedAtDate},
+            },
+          ],
+        },
+      }),
+    );
   }
 }
 
