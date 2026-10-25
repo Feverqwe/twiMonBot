@@ -26,8 +26,11 @@
   moving the common part into `shared` or documenting why domain behavior must remain separate.
   Do not blindly copy provider, checker, sender, database, migration, configuration, or locale
   dictionary logic when their video/stream semantics differ.
-- Shared dependency changes must be reflected in both `package.json` and lockfiles. Git commits are
-  created separately in each repository; report both commit IDs and keep both worktrees clean.
+- Shared dependency changes must be reflected in both `package.json` and lockfiles.
+- Create Git commits only when the user explicitly requests them. Implementation, validation,
+  and deployment requests do not by themselves authorize commits.
+  When commits are requested, create them separately in each repository and report both commit
+  IDs. Preserve unrelated local changes.
 - If the sibling checkout is unavailable, `shared:check` may skip. In that case, do not claim the
   shared trees are synchronized; call out that sibling verification is still required.
 

@@ -6,3 +6,4 @@ dist/
 volumes
 out.html
 store
+.DS_Store
