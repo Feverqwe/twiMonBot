@@ -234,47 +234,60 @@ class Db {
     const monthAgo = new Date();
     monthAgo.setMonth(monthAgo.getMonth() - 1);
 
-    const results = await ChatIdChannelIdModel.findAll({
-      include: [
-        {
-          model: ChannelModel,
-          required: true,
-          attributes: ['title', 'service'],
-          where: [
+    return this.sequelize.transaction(
+      {isolationLevel: Sequelize.Transaction.ISOLATION_LEVELS.REPEATABLE_READ},
+      async (transaction) => {
+        const results = await ChatIdChannelIdModel.findAll({
+          transaction,
+          include: [
             {
-              service: serviceId,
-              lastStreamAt: {[Op.gt]: monthAgo},
+              model: ChannelModel,
+              required: true,
+              attributes: [],
+              where: {
+                service: serviceId,
+                lastStreamAt: {[Op.gt]: monthAgo},
+              },
             },
           ],
-        },
-      ],
-      attributes: ['channelId', [Sequelize.fn('COUNT', Sequelize.col('chatId')), 'chatCount']],
-      group: 'channelId',
-      order: [['chatCount', 'DESC']],
-      limit: 10,
-    });
+          attributes: ['channelId', [Sequelize.fn('COUNT', Sequelize.literal('*')), 'chatCount']],
+          group: 'channelId',
+          order: [['chatCount', 'DESC']],
+          limit: 10,
+        });
 
-    return results.map((result) => {
-      const {channel, channelId, chatCount} = result.get({plain: true}) as unknown as {
-        channel?: {title?: unknown; service?: unknown};
-        channelId?: unknown;
-        chatCount?: unknown;
-      };
-      if (
-        !channel ||
-        typeof channelId !== 'string' ||
-        typeof channel.title !== 'string' ||
-        typeof channel.service !== 'string'
-      ) {
-        throw new Error('Top channel query did not return all selected fields');
-      }
-      return {
-        channelId,
-        chatCount: parseAggregateCount(chatCount, 'Top channel query'),
-        title: channel.title,
-        service: channel.service,
-      };
-    });
+        const rankedChannels = results.map((result) => {
+          const {channelId, chatCount} = result.get({plain: true}) as unknown as {
+            channelId?: unknown;
+            chatCount?: unknown;
+          };
+          if (typeof channelId !== 'string') {
+            throw new Error('Top channel query did not return all selected fields');
+          }
+          return {channelId, chatCount: parseAggregateCount(chatCount, 'Top channel query')};
+        });
+        if (!rankedChannels.length) return [];
+
+        const channels = await ChannelModel.findAll({
+          transaction,
+          attributes: ['id', 'title', 'service'],
+          where: {id: rankedChannels.map(({channelId}) => channelId)},
+        });
+        const channelsById = new Map(channels.map((channel) => [channel.id, channel]));
+
+        return rankedChannels.map(({channelId, chatCount}) => {
+          const channel = channelsById.get(channelId);
+          if (
+            !channel ||
+            typeof channel.title !== 'string' ||
+            typeof channel.service !== 'string'
+          ) {
+            throw new Error('Top channel query did not return all selected fields');
+          }
+          return {channelId, chatCount, title: channel.title, service: channel.service};
+        });
+      },
+    );
   }
 
   async getServiceIdChannelCount(serviceIds: string[]) {
