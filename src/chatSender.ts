@@ -284,16 +284,13 @@ class ChatSender {
       return this.onSendMessageError(err);
     }
 
-    return Promise.all([
-      this.main.db.deleteChatIdStreamId(this.chat.id, stream.id),
-      this.main.db.putMessage({
-        id: message.message.message_id.toString(),
-        chatId: this.chat.id,
-        streamId: stream.id,
-        type: message.type,
-        text: message.text,
-      }),
-    ]);
+    return this.main.db.confirmStreamMessage({
+      id: message.message.message_id.toString(),
+      chatId: this.chat.id,
+      streamId: stream.id,
+      type: message.type,
+      text: message.text,
+    });
   }
 
   async sendStreamAsText(

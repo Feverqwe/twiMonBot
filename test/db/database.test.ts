@@ -1,6 +1,13 @@
 import {afterEach, describe, expect, jest, test} from '@jest/globals';
+import {Sequelize, Transaction} from 'sequelize';
 import Db from '../../src/db/database';
-import {ChannelModel, ChatIdChannelIdModel, ChatModel} from '../../src/db/models';
+import {
+  ChannelModel,
+  ChatIdChannelIdModel,
+  ChatIdStreamIdModel,
+  ChatModel,
+  MessageModel,
+} from '../../src/db/models';
 
 describe('Db aggregate queries', () => {
   afterEach(() => {
@@ -63,6 +70,69 @@ describe('Db aggregate queries', () => {
     ]);
     expect(get).toHaveBeenCalledWith({plain: true});
   });
+});
+
+describe('Db stream delivery confirmation', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each([null, 'message', 'queue'] as const)(
+    'commits both writes or rolls back a failed confirmation: %s',
+    async (failure) => {
+      const sequelize = new Sequelize('test', 'test', 'test', {
+        dialect: 'mariadb',
+        logging: false,
+      });
+      // Run Sequelize's managed transaction lifecycle without connecting to MariaDB.
+      jest.spyOn(sequelize.connectionManager, 'getConnection').mockResolvedValue({} as never);
+      jest.spyOn(sequelize.connectionManager, 'releaseConnection').mockImplementation(() => {});
+      jest.spyOn(sequelize, 'query').mockResolvedValue([] as never);
+      const commit = jest.spyOn(Transaction.prototype, 'commit');
+      const rollback = jest.spyOn(Transaction.prototype, 'rollback');
+      const create = jest.spyOn(MessageModel, 'create').mockResolvedValue({} as never);
+      const remove = jest.spyOn(ChatIdStreamIdModel, 'destroy').mockResolvedValue(1);
+      const error = new Error('Database write failed');
+      if (failure === 'message') create.mockRejectedValue(error);
+      if (failure === 'queue') remove.mockRejectedValue(error);
+
+      const db = Object.create(Db.prototype) as Db;
+      db.sequelize = sequelize;
+      const message = {
+        id: '123',
+        chatId: '42',
+        streamId: 'tw:1',
+        type: 'text',
+        text: 'Stream is live',
+      };
+
+      try {
+        const result = db.confirmStreamMessage(message);
+        if (failure) {
+          await expect(result).rejects.toBe(error);
+          expect(rollback).toHaveBeenCalledTimes(1);
+          expect(commit).not.toHaveBeenCalled();
+        } else {
+          await expect(result).resolves.toBeUndefined();
+          expect(commit).toHaveBeenCalledTimes(1);
+          expect(rollback).not.toHaveBeenCalled();
+        }
+
+        const transaction = create.mock.calls[0][1]?.transaction;
+        expect(transaction).toBeInstanceOf(Transaction);
+        if (failure === 'message') {
+          expect(remove).not.toHaveBeenCalled();
+        } else {
+          expect(remove).toHaveBeenCalledWith({
+            where: {chatId: message.chatId, streamId: message.streamId},
+            transaction,
+          });
+        }
+      } finally {
+        await sequelize.close();
+      }
+    },
+  );
 });
 
 describe('Db chat initialization', () => {

@@ -655,8 +655,14 @@ class Db {
     });
   }
 
-  async putMessage(message: Message) {
-    return MessageModel.create(message);
+  async confirmStreamMessage(message: Message) {
+    return this.sequelize.transaction(async (transaction) => {
+      await MessageModel.create(message, {transaction});
+      await ChatIdStreamIdModel.destroy({
+        where: {chatId: message.chatId, streamId: message.streamId},
+        transaction,
+      });
+    });
   }
 
   async getDistinctMessagesChatIds() {
