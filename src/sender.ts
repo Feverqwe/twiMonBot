@@ -53,6 +53,7 @@ class Sender {
 
   check = () => {
     return oneLimit(async () => {
+      if (!this.main.db.health.isAvailable) return;
       const results = await Promise.all([
         this.main.db.getDistinctChatIdStreamIdChatIds(),
         this.main.db.getDistinctMessagesChatIds(),
@@ -117,6 +118,7 @@ class Sender {
   }
 
   async runThread() {
+    if (!this.main.db.health.isAvailable) return;
     const {threadLimit, chatIdChatSender, suspended, threads} = this;
 
     if (!suspended.length && !threads.length) return;
@@ -127,25 +129,25 @@ class Sender {
 
     threads.push(chatSender);
 
-    const isDone = await (async () => {
-      try {
-        return await chatSender.next();
-      } catch (err) {
-        debug('chatSender %s stopped, cause: %o', chatSender.chat.id, err);
+    let isDone = false;
+    try {
+      isDone = Boolean(await chatSender.next());
+    } catch (err) {
+      debug('chatSender %s stopped, cause: %o', chatSender.chat.id, err);
+      isDone = true;
+      if (this.main.db.health.isAvailable) {
         await this.main.db.setChatSendTimeoutExpiresAt([chatSender.chat.id]);
-        return true;
       }
-    })();
+    } finally {
+      const pos = threads.indexOf(chatSender);
+      if (pos !== -1) threads.splice(pos, 1);
+      if (isDone) {
+        chatIdChatSender.delete(chatSender.chat.id);
+      } else {
+        suspended.push(chatSender);
+      }
+    }
 
-    const pos = threads.indexOf(chatSender);
-    if (pos !== -1) {
-      threads.splice(pos, 1);
-    }
-    if (isDone) {
-      chatIdChatSender.delete(chatSender.chat.id);
-    } else {
-      suspended.push(chatSender);
-    }
     this.fillThreads();
   }
 
@@ -164,6 +166,7 @@ class Sender {
         errorCount: 0,
       };
       while (true) {
+        if (!this.main.db.health.isAvailable) return;
         const chatIds = await this.main.db.getChatIds(offset, limit);
         offset += limit;
         if (!chatIds.length) break;
@@ -171,6 +174,7 @@ class Sender {
         const blockedChatIds: string[] = [];
 
         await parallel(10, chatIds, async (chatId) => {
+          if (!this.main.db.health.isAvailable) return;
           result.chatCount++;
 
           try {

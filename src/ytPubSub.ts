@@ -32,7 +32,7 @@ class YtPubSub {
 
   constructor(private main: Main) {}
 
-  init(expressApp: Express) {
+  bind(expressApp: Express) {
     this.expressPubSub.bind(expressApp);
     this.expressPubSub.on('denied', (data: any) => {
       debug('Denied %o', data);
@@ -40,15 +40,27 @@ class YtPubSub {
     this.expressPubSub.on('feed', (data: PubSubFeed) => {
       this.handleFeed(data);
     });
+  }
 
+  init() {
     this.startUpdateInterval();
     this.startCleanInterval();
+  }
+
+  stop() {
+    this.updateTimer?.();
+    this.cleanTimer?.();
+    this.updateTimer = null;
+    this.cleanTimer = null;
+    this.emitFeedsChangesThrottled.cancel();
   }
 
   updateTimer: (() => void) | null = null;
   startUpdateInterval() {
     this.updateTimer && this.updateTimer();
     this.updateTimer = everyMinutes(appConfig.emitUpdateChannelPubSubSubscribeEveryMinutes, () => {
+      if (!this.main.db.health.isAvailable) return;
+      if (this.feeds.length) this.emitFeedsChangesThrottled();
       this.updateSubscribes().catch((err: any) => {
         debug('updateSubscribes error', err);
       });
@@ -69,7 +81,7 @@ class YtPubSub {
     return oneLimit(async () => {
       let subscribeCount = 0;
       let errorCount = 0;
-      while (true) {
+      while (this.main.db.health.isAvailable) {
         const channelIds = await this.main.db.getYtPubSubChannelIdsWithExpiresSubscription();
         if (!channelIds.length) break;
 
@@ -79,6 +91,7 @@ class YtPubSub {
 
           const subscribedChannelIds: string[] = [];
           return parallel(10, channelIds, (id) => {
+            if (!this.main.db.health.isAvailable) return;
             return this.subscribe(id).then(
               () => {
                 subscribedChannelIds.push(id);
@@ -103,6 +116,7 @@ class YtPubSub {
 
   clean = async () => {
     return oneLimit(() => {
+      if (!this.main.db.health.isAvailable) return;
       return this.main.db.cleanYtPubSub().then((count) => {
         return {removedVideoIds: count};
       });
@@ -124,7 +138,7 @@ class YtPubSub {
   feeds: Feed[] = [];
   emitFeedsChanges = () => {
     return oneLimit(async () => {
-      while (this.feeds.length) {
+      while (this.feeds.length && this.main.db.health.isAvailable) {
         let feeds = this.feeds.splice(0);
 
         const feedIds: string[] = [];
@@ -137,17 +151,22 @@ class YtPubSub {
         await Promise.all([
           this.main.db.getExistsYtPubSubChannelIds(channelIds),
           this.main.db.getExistsFeedIds(feedIds),
-        ]).then(([existsChannelIds, existsFeedIds]) => {
-          feeds = feeds.filter((feed) => existsChannelIds.includes(feed.channelId));
+        ])
+          .then(([existsChannelIds, existsFeedIds]) => {
+            feeds = feeds.filter((feed) => existsChannelIds.includes(feed.channelId));
 
-          return this.main.db.putFeeds(feeds).then(() => {
-            feeds.forEach((feed) => {
-              if (!existsFeedIds.includes(feed.id)) {
-                this.log.write('[insert]', feed.channelId, feed.id);
-              }
+            return this.main.db.putFeeds(feeds).then(() => {
+              feeds.forEach((feed) => {
+                if (!existsFeedIds.includes(feed.id)) {
+                  this.log.write('[insert]', feed.channelId, feed.id);
+                }
+              });
             });
+          })
+          .catch((error) => {
+            this.feeds = feeds.concat(this.feeds);
+            throw error;
           });
-        });
       }
     });
   };

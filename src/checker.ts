@@ -93,6 +93,7 @@ class Checker {
   }
 
   check = async () => {
+    if (!this.main.db.health.isAvailable) return;
     const results: Awaited<ReturnType<typeof this.runThread>>[] = [];
     let newThreadCount = 0;
     this.main.services.forEach((service) => {
@@ -155,7 +156,7 @@ class Checker {
   async runThread(service: ServiceInterface, session: ThreadSession) {
     const sessionId = session.id;
     const results = [];
-    while (true) {
+    while (this.main.db.health.isAvailable) {
       if (session.aborted) return;
       session.lastActivityAt = Date.now();
       const channels = await this.main.db.getServiceChannelsForSync(service.id, service.batchSize);
@@ -543,7 +544,7 @@ class Checker {
 
         const limit = 500;
         let offset = 0;
-        while (true) {
+        while (this.main.db.health.isAvailable) {
           const channelIds = await this.main.db.getChannelIdsByServiceId(service.id, offset, limit);
           offset += limit;
           if (!channelIds.length) break;
@@ -571,6 +572,7 @@ class Checker {
   cleanInProgress = getInProgress();
   clean = () => {
     return this.cleanInProgress(async () => {
+      if (!this.main.db.health.isAvailable) return;
       const chatsCount = await this.main.db.cleanChats();
       const channelsCount = await this.main.db.cleanChannels();
 

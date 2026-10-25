@@ -16,6 +16,7 @@ import Vkplay from './services/vkplay';
 import Kick from './services/kick';
 import YtPubSub from './ytPubSub';
 import AppLogs from './shared/appLogs';
+import requireDatabaseReady from './shared/requireDatabaseReady';
 
 const debug = getDebug('app:Main');
 
@@ -35,6 +36,7 @@ class Main extends Events {
   ytPubSub: YtPubSub;
   bot: Bot;
   chat: Chat;
+  private runtimeStarted = false;
   private stopPromise?: Promise<void>;
   constructor() {
     super();
@@ -62,15 +64,24 @@ class Main extends Events {
   }
 
   async init() {
+    this.registerWebRoutes();
+    await this.webServer.init();
+    await this.db.health.start();
     await this.db.init();
-    this.initWebServer();
-    await Promise.all([this.webServer.init(), this.chat.init()]);
+    await this.chat.init();
+    this.ytPubSub.init();
     this.checker.init();
     this.sender.init();
+    this.runtimeStarted = true;
   }
 
-  private initWebServer() {
-    this.ytPubSub.init(this.webServer.app);
+  get isReady() {
+    return this.runtimeStarted && this.db.health.isAvailable;
+  }
+
+  private registerWebRoutes() {
+    this.webServer.app.use(requireDatabaseReady(() => this.isReady));
+    this.ytPubSub.bind(this.webServer.app);
     this.webServer.app.post('/isLive', express.json(), async (req, res) => {
       const ids = req.body;
       const streams = (await this.db.getStreamsByChannelIds(ids)).filter(
@@ -86,9 +97,12 @@ class Main extends Events {
   }
 
   private async stopOnce() {
+    this.runtimeStarted = false;
+    const healthStopped = this.db.health.stop();
+    this.ytPubSub.stop();
     this.checker.stop();
     this.sender.stop();
-    await Promise.all([this.webServer.close(), this.chat.stop()]);
+    await Promise.all([healthStopped, this.webServer.close(), this.chat.stop()]);
     await this.db.close();
   }
 
