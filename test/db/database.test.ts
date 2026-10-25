@@ -1,6 +1,6 @@
 import {afterEach, describe, expect, jest, test} from '@jest/globals';
 import Db from '../../src/db/database';
-import {ChannelModel, ChatIdChannelIdModel} from '../../src/db/models';
+import {ChannelModel, ChatIdChannelIdModel, ChatModel} from '../../src/db/models';
 
 describe('Db aggregate queries', () => {
   afterEach(() => {
@@ -62,5 +62,51 @@ describe('Db aggregate queries', () => {
       {service: 'youtube', channelCount: 12},
     ]);
     expect(get).toHaveBeenCalledWith({plain: true});
+  });
+});
+
+describe('Db chat initialization', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test('loads the channel association for a newly created chat', async () => {
+    const chat = {
+      id: '42',
+      channel: undefined as ChatModel | null | undefined,
+      reload: jest.fn(async () => {
+        chat.channel = null;
+        return chat;
+      }),
+    };
+    jest.spyOn(ChatModel, 'findOrCreate').mockResolvedValue([chat, true] as never);
+
+    const db = Object.create(Db.prototype) as Db;
+    await expect(db.ensureChat('42')).resolves.toMatchObject({id: '42', channel: null});
+  });
+
+  test.each([null, {id: '-10042'}])(
+    'preserves an existing channel association: %j',
+    async (channel) => {
+      const chat = {id: '42', channel};
+      jest.spyOn(ChatModel, 'findOrCreate').mockResolvedValue([chat, false] as never);
+
+      const db = Object.create(Db.prototype) as Db;
+      await expect(db.ensureChat('42')).resolves.toMatchObject({id: '42', channel});
+    },
+  );
+
+  test('propagates an association reload failure instead of returning an incomplete chat', async () => {
+    const error = new Error('Database unavailable');
+    const chat = {
+      id: '42',
+      reload: jest.fn(async () => {
+        throw error;
+      }),
+    };
+    jest.spyOn(ChatModel, 'findOrCreate').mockResolvedValue([chat, true] as never);
+
+    const db = Object.create(Db.prototype) as Db;
+    await expect(db.ensureChat('42')).rejects.toBe(error);
   });
 });

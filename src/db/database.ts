@@ -1,3 +1,4 @@
+import ensureChatWithChannel from '../shared/chat/ensureChatWithChannel';
 import ErrorWithCode from '../shared/tools/errorWithCode';
 import arrayByPart from '../shared/tools/arrayByPart';
 import serviceId from '../tools/serviceId';
@@ -80,15 +81,7 @@ class Db {
   }
 
   async ensureChat(id: string) {
-    const [model, isCreated] = await ChatModel.findOrCreate({
-      where: {id},
-      include: [{model: ChatModel, as: 'channel'}],
-    });
-    const {channel} = model;
-    if (channel === undefined) {
-      throw new Error('Chat channel association was not loaded');
-    }
-    return Object.assign(model, {channel});
+    return ensureChatWithChannel(id);
   }
 
   async createChatChannel(chatId: string, channelId: string) {

@@ -50,7 +50,11 @@ export const errHandler = {
     return hasDescription(err, /message can't be edited/);
   },
   [ErrEnum.MessageToEditNotFound]: (err: unknown) => {
-    return hasDescription(err, /message to edit not found/);
+    return (
+      err instanceof TelegramApiError &&
+      err.errorCode === 400 &&
+      /message to edit not found|\bMESSAGE_ID_INVALID\b/.test(err.description)
+    );
   },
   [ErrEnum.NotEnoughRightsSendPhotos]: (err: unknown) => {
     return hasDescription(err, /not enough rights to send photos/);
